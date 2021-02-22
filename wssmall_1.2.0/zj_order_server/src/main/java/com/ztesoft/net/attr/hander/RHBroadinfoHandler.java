@@ -1,0 +1,163 @@
+package com.ztesoft.net.attr.hander;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import zte.net.ecsord.common.AttrConsts; 
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+import zte.net.ecsord.params.busi.req.OrderAdslBusiRequest;
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.StringUtils; 
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.model.AttrDef; 
+
+import consts.ConstsCore;
+/**
+ * 宽带明细
+ * @author Administrator
+ *
+ */
+public class RHBroadinfoHandler extends BaseSupport implements IAttrHandler {
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo) throws ApiBusiException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+		String order_id = params.getOrder_id();// 订单ID
+		String inst_id = params.getInst_id(); // 数据实列ID（如订单扩展表ID、子订单扩展表ID、货品扩展表ID、物流ID、支付记录ID）
+		String goods_id = params.getGoods_id(); // 商品ID 只有子订单或货品单才有值
+		String pro_goods_id = params.getPro_goods_id(); // 货品ID 只有货品单才有值
+		String order_from = params.getOrder_from(); // 订单来源
+		String value = params.getValue(); // 原始值
+		AttrDef attrDef = params.getAttrDef(); // 属性定议配置信息
+		Map orderAttrValues = params.getOrderAttrValues();// 订单所有属性值
+		
+		OrderAdslBusiRequest adslBusi = new OrderAdslBusiRequest();
+		
+		String broadinfo = (String) orderAttrValues.get(AttrConsts.RHBROAD_INFO);
+		if (!StringUtils.isEmpty(broadinfo) && !"null".equals(broadinfo) && !EcsOrderConsts.ATTR_DEFAULT_VALUE.equals(broadinfo)) {
+			JSONArray jsonArray = JSONArray.fromObject(broadinfo);
+			for (int i = 0; i < jsonArray.size(); i++) {
+				JSONObject jsonObject = JSONObject.fromObject(jsonArray.get(i));
+				String product_code = jsonObject.get("product_code")==null?"":jsonObject.getString("product_code");//
+				String service_type = jsonObject.get("service_type")==null?"":jsonObject.getString("service_type");//
+				String std_address = jsonObject.get("std_address")==null?"":jsonObject.getString("std_address");//
+				String adsl_addr_desc = jsonObject.get("adsl_addr_desc")==null?"":jsonObject.getString("adsl_addr_desc");//
+				String user_address = jsonObject.get("user_address")==null?"":jsonObject.getString("user_address");//
+				String exch_code = jsonObject.get("exch_code")==null?"":jsonObject.getString("exch_code");//
+				String grid = "";
+				if(jsonObject.containsKey("grid")){
+					grid = jsonObject.get("grid")==null?"":jsonObject.getString("grid");//固网网格
+				}
+				String is_judge_address = jsonObject.get("is_judge_address")==null?"":jsonObject.getString("is_judge_address");
+				String user_kind = jsonObject.get("user_kind")==null?"":jsonObject.getString("user_kind");//
+				String deal_operator = jsonObject.get("deal_operator")==null?"":jsonObject.getString("deal_operator");
+				String deal_office_id = jsonObject.get("deal_office_id")==null?"":jsonObject.getString("deal_office_id");
+				String bb_account = jsonObject.get("bb_account")==null?"":jsonObject.getString("bb_account");//
+				String bb_num = jsonObject.get("bb_num")==null?"":jsonObject.getString("bb_num");//
+				
+				String adsl_password = jsonObject.get("bb_password")==null?"":jsonObject.getString("bb_password");//密码
+				
+				String appt_date = jsonObject.get("appt_date")==null?"":jsonObject.getString("appt_date");
+				String appo_date = jsonObject.get("appo_date")==null?"":jsonObject.getString("appo_date");
+				if(StringUtils.isNotEmpty(appo_date)) {
+					appt_date = appo_date;
+				}
+				String county_id = jsonObject.get("county_id")==null?"":jsonObject.getString("county_id");
+				String develop_point_code = jsonObject.get("develop_point_code")==null?"":jsonObject.getString("develop_point_code");
+				String develop_point_name = jsonObject.get("develop_point_name")==null?"":jsonObject.getString("develop_point_name");
+				String moderm_id = jsonObject.get("moderm_id")==null?"":jsonObject.getString("moderm_id");
+				String moderm_name = jsonObject.get("moderm_name")==null?"":jsonObject.getString("moderm_name");
+				String req_swift_num = jsonObject.get("req_swift_num")==null?"":jsonObject.getString("req_swift_num");
+				String access_type = jsonObject.get("access_type")==null?"":jsonObject.getString("access_type");
+				String object_status = jsonObject.get("object_status")==null?"":jsonObject.getString("object_status");
+				String moderm_status = jsonObject.get("moderm_status")==null?"":jsonObject.getString("moderm_status");
+				if(StringUtils.isNotEmpty(moderm_status)) {
+					object_status = moderm_status;
+				}
+				String business_county = jsonObject.get("business_county")==null?"":jsonObject.getString("business_county");
+				String product_type = jsonObject.get("product_type")==null?"":jsonObject.getString("product_type");
+				String wotv_num = jsonObject.get("wotv_num")==null?"":jsonObject.getString("wotv_num");
+				String old_service_type = jsonObject.get("old_service_type")==null?"":jsonObject.getString("old_service_type");
+				/**
+				 * 行销融合收单新增字段
+				 */
+				String sale_mode = jsonObject.get("sale_mode")==null?"":jsonObject.getString("sale_mode");
+				String devic_gear = jsonObject.get("devic_gear")==null?"":jsonObject.getString("devic_gear");
+				String is_done_active = jsonObject.get("is_done_active")==null?"":jsonObject.getString("is_done_active");
+				String account_number = jsonObject.get("account_number")==null?"":jsonObject.getString("account_number"); 
+				
+				Map mapValue = new HashMap();
+				mapValue.put("adsl_inst_id",this.baseDaoSupport.getSequences("seq_adsl_info"));
+				mapValue.put("inst_id", inst_id);
+				mapValue.put("order_id", order_id);
+				mapValue.put("adsl_addr_desc", adsl_addr_desc);//标准地址
+				mapValue.put("product_code", product_code);//产品编码
+				mapValue.put("adsl_account", bb_account);//宽带账号
+				mapValue.put("adsl_number", bb_num);//宽带号码
+				mapValue.put("adsl_password", adsl_password);//密码
+				mapValue.put("adsl_addr", std_address);//标准地址
+				mapValue.put("adsl_speed", "");//速率
+				mapValue.put("adsl_grid", grid);//固网网格
+				mapValue.put("user_kind", user_kind);//用户种类
+				mapValue.put("service_type", service_type);//业务类型
+				mapValue.put("exch_code", exch_code);//局向编码
+				mapValue.put("cust_building_id", "");//备注
+				mapValue.put("total_fee", "");//宽带总费用
+				mapValue.put("user_address", user_address);//用户地址
+				mapValue.put("appt_date", appt_date);//预约装机时间
+				mapValue.put("county_id", county_id);//BSS县份
+				mapValue.put("develop_point_code", develop_point_code);//发展点编码
+				mapValue.put("develop_point_name", develop_point_name);//发展点名称
+				mapValue.put("moderm_id", moderm_id);//光猫ID
+				mapValue.put("moderm_name", moderm_name);//光猫ID中文名称
+				mapValue.put("req_swift_num", req_swift_num);//拍照流水
+				mapValue.put("access_type", access_type);//拍照流水
+				mapValue.put("object_status", object_status);//光猫物品状态
+				mapValue.put("business_county", business_county);//营业县分
+				mapValue.put("product_type", product_type);//产品分类
+				mapValue.put("wotv_num", wotv_num);//沃tv号码
+				mapValue.put("old_service_type", old_service_type);//老业务类型
+				mapValue.put("is_judge_address",is_judge_address);
+				mapValue.put("sale_mode", sale_mode);
+				mapValue.put("devic_gear", devic_gear);
+				mapValue.put("is_done_active", is_done_active);
+				mapValue.put("account_number", account_number);
+				
+				try {
+					BeanUtils.copyProperties(adslBusi, mapValue);
+					adslBusi.setDb_action(ConstsCore.DB_ACTION_INSERT);
+					adslBusi.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+					adslBusi.store();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		AttrInstLoadResp resp = new AttrInstLoadResp();
+		resp.setField_value(null);
+		return resp;
+	}
+	
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

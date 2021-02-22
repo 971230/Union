@@ -1,0 +1,111 @@
+package zte.service;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import params.coqueue.req.CoQueueAddReq;
+import params.coqueue.req.CoQueueModifyReq;
+import params.coqueue.resp.CoQueueAddResp;
+import params.coqueue.resp.CoQueueModifyResp;
+import services.ServiceBase;
+import zte.net.iservice.ICoQueueService;
+
+import com.ztesoft.ibss.common.util.StringUtils;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.model.CoQueue;
+import com.ztesoft.net.mall.core.service.ICoQueueManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+import consts.ConstsCore;
+
+@ServiceMethodBean(version="1.0")
+public class CoQueueService extends ServiceBase implements ICoQueueService{
+
+	@Resource
+	private ICoQueueManager coQueueManager;
+
+	@Override
+	public CoQueueAddResp add(CoQueueAddReq coQueueAddReq) {
+		CoQueueAddResp resp = new CoQueueAddResp();
+		
+		//如果批次号为空，则默认为1
+		String batch_id = coQueueAddReq.getBatch_id();
+		if (StringUtils.isEmpty(batch_id)) {
+			batch_id = "1";
+		}
+		
+		//消息队列对象封装
+		CoQueue coQueue = new CoQueue();
+		coQueue.setCo_name(coQueueAddReq.getCo_name());
+		coQueue.setBatch_id(batch_id);
+		coQueue.setService_code(coQueueAddReq.getService_code());
+		coQueue.setAction_code(coQueueAddReq.getAction_code());
+		coQueue.setObject_type(coQueueAddReq.getObject_type());
+		coQueue.setObject_id(coQueueAddReq.getObject_id());
+		coQueue.setContents(coQueueAddReq.getContents());
+		coQueue.setOper_id(coQueueAddReq.getOper_id());
+		coQueue.setOrg_id_str(coQueueAddReq.getOrg_id_str());
+		coQueue.setOrg_id_belong(coQueueAddReq.getOrg_id_belong());
+		coQueue.setUrl(coQueueAddReq.getUrl());
+		coQueue.setSys_code(coQueueAddReq.getSys_code());
+		coQueue.setSource_from(ManagerUtils.getSourceFrom());
+		
+		//非现场交付订单则插入
+		if (!EcsOrderConsts.SHIPPING_TYPE_XJ.equals(coQueueAddReq.getSending_type())) {
+			coQueueManager.add(coQueue);
+		}else{
+			coQueue.setCo_id(this.baseDaoSupport.getSeqByTableName("es_co_queue"));
+		}
+		
+		this.addReturn(coQueueAddReq, resp);
+		resp.setCoQueue(coQueue);//返回对象
+		resp.setError_code(ConstsCore.ERROR_SUCC);
+		return resp;
+	}
+	
+	@Override
+	public void modifyStatus(String co_id, String resp_code, String resp_msg) {
+		coQueueManager.modifyStatus(co_id, resp_code, resp_msg);
+		
+	}
+	
+	@Override
+	public void modifyStatus(String co_id, String status_new,
+			String status_old, String desc) {
+		coQueueManager.modifyStatus(co_id, status_new, status_old, desc);
+	}
+
+	@Override
+	public void delete(String co_id) {
+		coQueueManager.del(co_id);
+	}
+
+	@Override
+	public CoQueue get(String co_id) {
+		return coQueueManager.get(co_id);
+	}
+	@Override
+	public List<CoQueue> getForJob(String service_code, int max_count) {
+		return coQueueManager.getForJob(service_code, max_count);
+	}
+
+	@Override
+	public void lock(String co_id) {
+		coQueueManager.lock(co_id);
+	}
+
+	@Override
+	public CoQueueModifyResp modifyStatusToWFS(CoQueueModifyReq req) {
+		CoQueueModifyResp resp = new CoQueueModifyResp();
+		
+		List co_ids = req.getCo_ids();
+		coQueueManager.modifyStatusToWFS(co_ids);
+		
+		this.addReturn(req, resp);
+		return resp;
+	}
+
+}

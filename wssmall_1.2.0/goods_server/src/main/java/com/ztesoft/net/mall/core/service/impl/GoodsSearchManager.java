@@ -1,0 +1,852 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.jdbc.core.RowMapper;
+
+import params.member.req.MemberLvByLvIdReq;
+import params.member.req.MemberPriceListByLvIdReq;
+import params.member.resp.MemberLvByLvIdResp;
+import params.member.resp.MemberPriceListByLvIdResp;
+import services.MemberLvInf;
+import services.MemberPriceInf;
+
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.app.base.core.model.MemberLv;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.eop.sdk.user.IUserService;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.eop.sdk.utils.UploadUtil;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.database.StringMapper;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.Attribute;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.GoodsLvPrice;
+import com.ztesoft.net.mall.core.model.support.GoodsView;
+import com.ztesoft.net.mall.core.service.IGoodsSearchManager;
+import com.ztesoft.net.mall.core.service.IGoodsTypeManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+public class GoodsSearchManager extends BaseSupport implements
+		IGoodsSearchManager {
+	private MemberPriceInf memberPriceServ;
+	private MemberLvInf memberLvServ;
+	
+	private void init(){
+		if(null == memberPriceServ) memberPriceServ = ApiContextHolder.getBean("memberPriceServ");
+		if(null == memberLvServ) memberLvServ = ApiContextHolder.getBean("memberLvServ");
+	}
+	private IGoodsTypeManager goodsTypeManager;
+
+	@Override
+	public Page search(int page, int pageSize, Map<String, String> params) {
+
+		String cat_path = params.get("cat_path");
+		String time_order = params.get("time_order");
+		String order = params.get("order");
+		String brandStr = params.get("brandStr");
+		String propStr = params.get("propStr");
+		String keyword = params.get("keyword");
+		String minPrice = params.get("minPrice");
+		String maxPrice = params.get("maxPrice");
+		String tagids = params.get("tagids");	
+		String agn = params.get("agn");
+		String attrStr=params.get("attrStr"); //商品属性条件字串,由attr{is_group=1,is_limitbuy=0}得来
+		
+		String user_id = params.get("user_id");
+		String typeid= params.get("typeid");
+		String search_key = params.get("search_key");  //搜索关键字（福建电商）
+		String has_stock = params.get("has_stock");
+		String is_sale = params.get("is_sale");
+		boolean is_proxy = false;
+		Page webPage = this.listByCatId(user_id,typeid,cat_path, page, pageSize, order,time_order, brandStr,
+				propStr, keyword, minPrice, maxPrice, tagids,attrStr, agn, search_key,has_stock,is_proxy,is_sale);
+		return webPage;
+	}
+
+	@Override
+	public Page searchProxyGoods( int page, int pageSize,Map<String,String> params){
+		String cat_path = params.get("cat_path");
+		String time_order = params.get("time_order");
+		String order = params.get("order");
+		String brandStr = params.get("brandStr");
+		String propStr = params.get("propStr");
+		String keyword = params.get("keyword");
+		String minPrice = params.get("minPrice");
+		String maxPrice = params.get("maxPrice");
+		String tagids = params.get("tagids");	
+		String agn = params.get("agn");
+		String attrStr = params.get("attrStr"); 
+		String has_stock = params.get("has_stock");
+		String typeid= params.get("typeid");
+		String user_id = params.get("user_id");
+		String search_key = params.get("search_key");  //搜索关键字
+		String is_sale = params.get("is_sale");
+		boolean is_proxy = true;
+		Page webPage = this.listByCatId(user_id,typeid,cat_path, page, pageSize, order,time_order, brandStr,
+				propStr, keyword, minPrice, maxPrice, tagids,attrStr, agn, search_key,has_stock,is_proxy,is_sale);
+		return webPage;
+	}
+	
+	@Override
+	public List<Attribute> getpPropInstsByGoods(Goods goods){
+		//add by wui获取商品属性信息
+		String type_id =goods.getType_id();
+		if(!StringUtils.isEmpty(type_id))
+		{
+			Map goodsMap = new HashMap();
+			try{
+				com.ztesoft.common.util.BeanUtils.copyProperties(goodsMap, goods);}
+			catch(Exception e){
+				e.printStackTrace();
+			};
+			List<Attribute> propList = this.goodsTypeManager.getAttrListByTypeId(type_id); // 这个类型的属性
+			propList= propList== null ?new ArrayList<Attribute>():propList;
+			int att_index=0;
+			
+			for (int i = 0; i < 20; i++) {
+
+				if (i >= propList.size())
+					break;
+
+				String value =(String)goodsMap.get("p" + (i + 1));
+				Attribute prop = propList.get(i);
+				prop.setValue(value);
+			}
+			return propList;
+		}
+		return new ArrayList();
+		
+	}
+	
+	@Override
+	public List[] getPropListByCat(final String type_id, String cat_path, String brand_str,
+			String propStr,String attrStr) {
+		
+		
+		List<Attribute> temp_prop_list = this.goodsTypeManager
+				.getAttrListByTypeId(type_id); // 这个类型的属性
+		temp_prop_list= temp_prop_list== null ?new ArrayList<Attribute>():temp_prop_list;
+		
+		if (propStr != null && !propStr.equals("")) {
+			String[] s_ar = propStr.split(",");
+
+			for (int i = 0; i < s_ar.length; i++) {
+				String[] value = s_ar[i].split("\\_");
+				int index = Integer.valueOf(value[0]).intValue();
+				Attribute attr = temp_prop_list.get(index);
+				if(attr.getOptionMap()!=null && attr.getOptionMap().length>0)
+					attr.getOptionMap()[Integer.valueOf(value[1]).intValue()].put("selected", 1);
+				if (attr.getType() == 3) { // 移除递进式搜索的属性
+					
+					//attr.setHidden(1); // 在过滤器中这个属性不显示
+				} else {
+					attr.setHidden(0);
+				}
+
+			}
+
+		}
+
+		List temp_brand_list = null;
+		// 如果进行了品牌筛选 则不显示品牌 筛选器了
+			temp_brand_list = this.goodsTypeManager
+					.getBrandListByTypeId(type_id);// 这个类型关联的品牌
+
+		final List<Attribute> propList = temp_prop_list; // 属性过滤器
+		final List brandList = temp_brand_list; // 品牌过滤器
+
+		String sql = SF.goodsSql("GET_PROP_LIST_BY_CAT");
+		
+		sql += this.buildTermForByCat(type_id,brand_str, propStr,  attrStr);
+
+		RowMapper mapper = new RowMapper() {
+
+			@Override
+			public Object mapRow(ResultSet rs, int arg1) throws SQLException {
+
+				GoodsView goods = new GoodsView();
+
+				if(rs!=null){
+					if (type_id.equals(rs.getString("type_id"))) { // 是这个类型的属性
+						for (int i = 0; i < 20; i++) {
+
+							if (i >= propList.size())
+								break;
+
+							String value = rs.getString("p" + (i + 1));
+
+							Attribute prop = propList.get(i);
+
+							if (prop.getType() == 3 && value != null
+									&& !value.toString().equals("")) { // 渐进式搜索
+								int[] nums = prop.getNums();
+								int pos = Integer.valueOf(value);
+								nums[pos] = nums[pos] + 1;
+							}
+
+						}
+					}
+				}
+				
+				return goods;
+			}
+
+		};
+
+//		//add by wui 统一查询品牌总数量,前台不需要展示总数，
+//		for (int i = 0; i < brandList.size(); i++) {
+//			Map brand = (Map) brandList.get(i);
+//			{
+//				String  brand_sql= "select count(*) from es_goods g where g.brand_id = ? and g.disabled=0 and g.market_enable=1 and g.cat_id in( ";
+//						brand_sql += "select c.cat_id from "+this.getTableName("goods_cat")+" c where c.cat_path like '"+ cat_path + "%')";
+//						brand_sql +=this.buildTermForByCat(type_id,"", propStr,  attrStr);
+//				int num = this.daoSupport.queryForInt(brand_sql, brand.get("brand_id"));
+//				brand.put("num", num);
+//			}
+//		}
+		
+		this.daoSupport.queryForList(sql, mapper, cat_path + "%");
+//		this.jdbcTemplate.query(sql, mapper);
+
+		List[] props = new List[2];
+		props[0] = propList;
+		props[1] = brandList;
+
+		return props;
+	}
+
+	/**
+	 * 读取某个类别下的 所有规格数据
+	 * 
+	 * @param cat_path
+	 * @return
+	 */
+	private List getSpecListByCatId(String cat_path) {
+
+		String sql = SF.goodsSql("GET_SPECLIST_BY_CATID");
+		
+		if(!StringUtil.isEmpty(cat_path)){
+			sql+=" and g.cat_id in(";
+			sql += "select c.cat_id from " + this.getTableName("goods_cat")
+			+ " c where c.cat_path like '" + cat_path + "%' and c.source_from = '" + ManagerUtils.getSourceFrom() + "')";
+		}
+
+		List specList = this.daoSupport.queryForList(sql);
+
+		return specList;
+	}
+
+	/**
+	 * 构造基础sql
+	 * @param typeid
+	 * @param brand_str
+	 * @param propStr
+	 * @param keyword
+	 * @param minPrice
+	 * @param maxPrice
+	 * @param tagids
+	 * @param attrStr
+	 * @param cat_path
+	 * @param order
+	 * @return
+	 */
+	private String genBaseSql(String user_id,String typeid,String brand_str,String propStr,String keyword,
+		String minPrice,String maxPrice,String tagids,String attrStr,String cat_path,String order,
+		String agn,String search_key,String has_stock,boolean is_proxy,String is_sale){
+		String sql = SF.goodsSql("GEN_BASE_SQL");
+		if(!StringUtils.isEmpty(user_id)){
+			if(is_proxy){
+				sql += " and  g.goods_id in(select t.p_goods_id from es_goods_proxy t where t.userid='"+user_id+"') ";
+			}
+			else{
+				sql += " and  g.creator_user ='"+user_id+"'";
+			}
+		}
+		//lzf 20110114 add " g.goods_type='normal' and"
+		if (!StringUtil.isEmpty(cat_path)) { //add by wui
+			sql += " and  g.cat_id in(";
+			sql += "select c.cat_id from " + this.getTableName("goods_cat")
+					+ " c where c.cat_path like '" + cat_path + "%')  ";
+		}
+		
+		if("1".equals(is_sale)){
+			sql += " and exists (select 1 from es_pmt_goods pg where pg.goods_id=g.goods_id and pg.source_from=g.source_from) ";
+		}
+		
+		if("1".equals(has_stock)){
+			sql += " and g.store >0 ";
+		}
+		sql += buildTermForByCat(typeid,brand_str, propStr, keyword, minPrice,
+				maxPrice, tagids,  attrStr,agn,search_key);
+		
+		if(ThreadContextHolder.isMemberLvCache()){
+			String lv_id = ManagerUtils.getCurrentLvId();
+			sql += " and exists (select 1 from es_goods_lv_cat gl where gl.cat_id=g.cat_id and g.source_from = gl.source_from and gl.lv_id='"+lv_id+"') ";
+		}
+		
+		sql += " order by " + order ;
+		return sql;
+		
+	}
+	
+	
+	//add by wui
+	public String getQuerySql(String user_id,String typeid,String brand_str,String propStr,String keyword,
+			String minPrice,String maxPrice,String tagids,String attrStr,String cat_path,String order,
+			String agn,String search_key,String has_stock,boolean is_proxy,String is_sale){
+		String sql = genBaseSql(user_id,typeid, brand_str, propStr, keyword, minPrice, maxPrice, tagids, attrStr, cat_path, order,agn,search_key,has_stock,is_proxy,is_sale);
+		return sql;
+	}
+	
+	private String genProductSql(String typeid,String brand_str,String propStr,String keyword,
+			String minPrice,String maxPrice,String tagids,String attrStr,String cat_path,String order,String agn,String search_key){
+			//String sql = "select g.* from " + this.getTableName("goods")
+			//		+ " g where g.goods_type = 'normal' and g.disabled=0 and g.market_enable=1 ";
+			String sql = SF.goodsSql("GEN_PRODUCT_SQL");
+			if (!StringUtil.isEmpty(cat_path)) {
+				sql += " and  g.cat_id in(";
+				sql += "select c.cat_id from " + this.getTableName("goods_cat")
+						+ " c where c.cat_path like '" + cat_path + "%' and c.source_from = '" + ManagerUtils.getSourceFrom() + "')  ";
+			}
+			sql += buildTermForByCat(typeid,brand_str, propStr, keyword, minPrice,
+					maxPrice, tagids,  attrStr,agn,search_key);
+			sql += " order by " + order ;
+			return sql;
+			
+		}
+	
+	@Override
+	public Page qryProducts(String typeid,String cat_path, int page, int pageSize,
+			String order,String time_order, String brand_str, String propStr, String keyword,String search_key,
+			String minPrice, String maxPrice, String tagids,String attrStr,String agn,String member_lv_id){
+		//获取bean
+		init();
+		
+		//福建电商搜索需求不同，添加String search_key参数
+		// 首先读取这个类别下的所有商品集合的规格信息
+		final List goods_spec_list = this.getSpecListByCatId(cat_path);
+		String p_order ="";
+		if ("1".equals(order)) {
+			p_order += "last_modify asc";
+		 }else if ("2".equals(order)) {
+			 p_order += "last_modify desc";
+		 } else if ("3".equals(order)) {// 按价格 从高到低
+			 p_order += "price desc";
+		} else if ("4".equals(order)) {// 按发布时间 旧->新
+			p_order += "price asc";
+		} else if ("5".equals(order)) {// 访问次数
+			p_order +="view_count desc";
+		} else if ("6".equals(order)) {// 购买次数
+			p_order += "buy_count asc";
+		} else if ("7".equals(order)) {// 购买次数
+			p_order += "buy_count desc";
+		} else if (order == null || order.equals("") || order.equals("0")) {
+			p_order += "sord desc";
+		}
+		String sql = genProductSql(typeid, brand_str, propStr, keyword, minPrice, maxPrice, tagids, attrStr, cat_path, p_order, agn,search_key);
+		/******************计算会员价格**********************/
+		IUserService userService = UserServiceFactory.getUserService();
+		final Member member = userService.getCurrentMember();
+		List<GoodsLvPrice> memPriceList = new ArrayList<GoodsLvPrice>();
+		double discount =1; //默认是原价,防止无会员级别时出错		
+		if(member!=null && member.getLv_id()!=null){
+			MemberPriceListByLvIdResp mbpResp = new MemberPriceListByLvIdResp();
+			MemberPriceListByLvIdReq req = new MemberPriceListByLvIdReq();
+			
+			req.setLv_id(member.getLv_id());
+			
+			mbpResp = memberPriceServ.getPriceListByLvId(req);
+			if(mbpResp != null){
+				memPriceList = mbpResp.getGoodsLvPriceList();
+			}
+			
+			MemberLv lv = null;
+			
+			MemberLvByLvIdReq req1 = new MemberLvByLvIdReq();
+			MemberLvByLvIdResp mlResp = new MemberLvByLvIdResp();
+			req1.setLv_id(member.getLv_id());
+			
+			mlResp = memberLvServ.getMemberLvByLvId(req1);
+			if(mlResp != null){
+				lv = mlResp.getMemberLv();
+			}
+			discount = lv.getDiscount()/100.00;
+			this.applyMemPrice(goods_spec_list, memPriceList, discount);
+		}
+		final  List<GoodsLvPrice> priceList = memPriceList;
+		final  double final_discount = discount;
+		
+		
+		RowMapper mapper = new RowMapper() {
+			@Override
+			public Object mapRow(ResultSet rs, int arg1) throws SQLException {
+				GoodsView goods = new GoodsView();
+				goods.setName(rs.getString("name"));
+				goods.setGoods_id(rs.getString("goods_id"));
+				goods.setProductid(rs.getString("product_id"));
+				String image_default = rs.getString("image_default");
+				goods.setImage_default(image_default);
+				
+				
+				goods.setMktprice(rs.getDouble("mktprice"));
+				goods.setPrice(rs.getDouble("price"));
+				
+				goods.setCreate_time(rs.getString("create_time"));
+				goods.setLast_modify(rs.getString("last_modify"));
+				goods.setType_id(rs.getString("type_id"));
+				goods.setBuy_count(rs.getInt("buy_count"));
+				goods.setStore(rs.getInt("store"));
+				List specList = getSpecList(goods.getGoods_id(),
+						goods_spec_list);
+				goods.setSpecList(specList);
+				goods.setHasSpec(rs.getInt("have_spec"));
+				goods.setSn(rs.getString("sn"));
+				goods.setIntro(rs.getString("intro"));
+				String  image_file = rs.getString("image_file");
+				if(image_file !=null ){
+					image_file = UploadUtil.replacePath(image_file);
+					goods.setImage_file(image_file);
+				}
+				goods.setCat_id(rs.getString("cat_id"));
+				goods.setService_type(rs.getString("service_type"));
+				
+				// 如果商品没有规格，查找唯一的货品id
+				//if(goods.getHasSpec()==0 && specList!=null &&!specList.isEmpty()) 
+				//goods.setProductid( (String)((Map)specList.get(0)).get("product_id")   );
+				//计算会员价格
+				/*if(member!=null && goods.getProductid()!=null){
+					goods.setPrice( goods.getPrice() * final_discount);
+					for(GoodsLvPrice lvPrice :priceList){
+						if( goods.getProductid().equals(lvPrice.getProductid())){
+							goods.setPrice( lvPrice.getPrice() );
+						}
+					}
+				}*/
+				Map propMap = new HashMap();
+				
+				for(int i=0;i<20;i++){
+					String value = rs.getString("p" + (i+1));
+					propMap.put("p"+(i+1),value);
+				}
+				goods.setPropMap(propMap);
+				return goods;
+			}
+
+		};
+
+		String countSql = "select count(*) from "+sql.substring(sql.indexOf("from")+4);
+		Page p_page = this.daoSupport.queryForPage(sql, countSql, page, pageSize, mapper, member_lv_id);
+		return p_page;
+	}
+	/**
+	 * 读取某个类别下的商品 包括其子类别的 同时填充其规格
+	 * @param cat_path
+	 * @param page
+	 * @param pageSize
+	 * @param order
+	 * @param brand_str
+	 * @param propStr
+	 * @param keyword
+	 * @param minPrice
+	 * @param maxPrice
+	 * @param tagids
+	 * @return
+	 * 李志富修改，<br/>
+	 * 加入了tagid标签，以便于取得如“全部特价商品”这样的列表
+	 */
+	@Override
+	public Page listByCatId(String user_id,String typeid,String cat_path, int page, int pageSize,
+			String order,String time_order, String brand_str, String propStr, String keyword,
+			String minPrice, String maxPrice, String tagids,String attrStr,String agn,String search_key,
+			String has_stock,boolean is_proxy,String is_sale) {
+		//获取bean
+		init();
+		
+		// 首先读取这个类别下的所有商品集合的规格信息
+		final List goods_spec_list = this.getSpecListByCatId(cat_path);
+	
+		String p_order ="";
+		if ("1".equals(order)) {
+			p_order += "last_modify asc";
+		 }else if ("2".equals(order)) {
+			 p_order += "last_modify desc";
+		 } else if ("3".equals(order)) {// 按价格 从高到低
+			 p_order += "price desc";
+		} else if ("4".equals(order)) {// 
+			p_order += "price asc";
+		} else if ("5".equals(order)) {// 访问次数
+			p_order +="view_count desc";
+		} else if ("6".equals(order)) {// 购买次数
+			p_order += "buy_count asc";
+		} else if ("7".equals(order)) {// 购买次数
+			p_order += "buy_count desc";
+		} else if("8".equals(order)){//折扣
+			p_order += "(g.mktprice-g.price)/g.mktprice desc";
+		} else if("9".equals(order)){
+			p_order += "(g.mktprice-g.price)/g.mktprice asc";
+		} else if("10".equals(order)){
+			p_order += "g.store asc";
+		} else if("11".equals(order)){
+			p_order += "g.store desc";
+		} else if (order == null || order.equals("") || order.equals("0")) {
+			p_order += "sord desc";
+		}
+		
+		String sql = getQuerySql(user_id, typeid, brand_str, propStr, keyword, minPrice, maxPrice, tagids, attrStr, cat_path, p_order,agn,search_key,has_stock,is_proxy,is_sale);
+		
+		/******************计算会员价格**********************/
+		IUserService userService = UserServiceFactory.getUserService();
+		final Member member = userService.getCurrentMember();
+		List<GoodsLvPrice> memPriceList = new ArrayList<GoodsLvPrice>();
+		double discount =1; //默认是原价,防止无会员级别时出错
+		if(member!=null && member.getLv_id()!=null){
+			MemberPriceListByLvIdResp mbpResp = new MemberPriceListByLvIdResp();
+			MemberPriceListByLvIdReq req = new MemberPriceListByLvIdReq();
+			
+			req.setLv_id(member.getLv_id());
+			
+			mbpResp = memberPriceServ.getPriceListByLvId(req);
+			if(mbpResp != null){
+				memPriceList = mbpResp.getGoodsLvPriceList();
+			}
+			
+			MemberLv lv = null;
+			
+			MemberLvByLvIdReq req1 = new MemberLvByLvIdReq();
+			MemberLvByLvIdResp mlResp = new MemberLvByLvIdResp();
+			req1.setLv_id(member.getLv_id());
+			
+			mlResp = memberLvServ.getMemberLvByLvId(req1);
+			if(mlResp != null){
+				lv = mlResp.getMemberLv();
+			}
+			discount = lv.getDiscount()/100.00;
+			this.applyMemPrice(goods_spec_list, memPriceList, discount);
+		}
+		final  List<GoodsLvPrice> priceList = memPriceList;
+		final  double final_discount = discount;
+		
+		RowMapper mapper = new RowMapper() {
+			@Override
+			public Object mapRow(ResultSet rs, int arg1) throws SQLException {
+
+				GoodsView goods = new GoodsView();
+				goods.setName(rs.getString("name"));
+				goods.setGoods_id(rs.getString("goods_id"));
+				
+				String image_default = rs.getString("image_default");
+				goods.setImage_default(image_default);
+				goods.setPc_image_default(rs.getString("pc_image_default"));
+				goods.setPc_remark(rs.getString("pc_remark"));
+				//goods.setPc_image_file(rs.getString("pc_image_default"));
+				goods.setMbl_image_default(rs.getString("mbl_image_default"));
+				goods.setMbl_remark(rs.getString("mbl_remark"));
+				//goods.setMbl_image_file(rs.getString("mbl_image_file"));
+				goods.setWx_image_default(rs.getString("wx_image_default"));
+				goods.setWx_remark(rs.getString("wx_remark"));
+				//goods.setWx_image_file(rs.getString("wx_image_file"));
+				goods.setOther_image_default(rs.getString("other_image_default"));
+				goods.setOther_remark(rs.getString("other_remark"));
+				//goods.setOther_image_file(rs.getString("other_image_file"));
+				
+				goods.setMktprice(rs.getDouble("mktprice"));
+				goods.setPrice(rs.getDouble("price"));
+				
+				goods.setCreate_time(rs.getString("create_time"));
+				goods.setCreator_user(rs.getString("creator_user"));
+				goods.setLast_modify(rs.getString("last_modify"));
+				goods.setType_id(rs.getString("type_id"));
+				goods.setBuy_count(rs.getInt("buy_count"));
+				goods.setStore(rs.getInt("store"));
+				List specList = getSpecList(goods.getGoods_id(),
+						goods_spec_list);
+				goods.setSpecList(specList);
+				goods.setHasSpec(rs.getInt("have_spec"));
+				//	lzy	add
+				goods.setSn(rs.getString("sn"));
+				goods.setIntro(rs.getString("intro"));
+				String  image_file = rs.getString("image_file");
+				if(image_file !=null ){
+					image_file = UploadUtil.replacePath(image_file);
+					goods.setImage_file(image_file);
+				}
+				goods.setCat_id(rs.getString("cat_id"));
+				goods.setService_type(rs.getString("service_type"));
+				
+				// 如果商品没有规格，查找唯一的货品id
+				if(goods.getHasSpec()==0 && specList!=null &&!specList.isEmpty()) 
+					goods.setProductid( (String)((Map)specList.get(0)).get("product_id")   );
+				//计算会员价格
+				if(member!=null && goods.getProductid()!=null){
+					goods.setPrice( goods.getPrice() * final_discount);
+					for(GoodsLvPrice lvPrice :priceList){
+						if( goods.getProductid().equals(lvPrice.getProductid())){
+							goods.setPrice( lvPrice.getPrice() );
+						}
+					}
+				}
+				//lzf add
+				Map propMap = new HashMap();
+				
+				for(int i=0;i<20;i++){
+					String value = rs.getString("p" + (i+1));
+					propMap.put("p"+(i+1),value);
+				}
+				goods.setPropMap(propMap);
+				return goods;
+			}
+
+		};
+
+		String countSql = "select count(*) from "+sql.substring(sql.indexOf("from")+4);
+		Page p_page = this.daoSupport.queryForPage(sql, countSql, page, pageSize, mapper, null);
+		return p_page;
+	}
+	
+	/**
+	 * 应用会员价
+	 */
+	private void applyMemPrice(List<Map> proList,List<GoodsLvPrice> memPriceList,double discount ){
+		/*for(Map pro : proList ){
+			double price  =( (BigDecimal )pro.get("price")).doubleValue() *  discount;
+			for(GoodsLvPrice lvPrice:memPriceList){
+				if( (pro.get("product_id").toString()).equals(lvPrice.getProductid())  ){
+					price = lvPrice.getPrice();
+				}
+			}
+			 
+			pro.put("price", price);
+		}*/
+		
+		for(Map pro : proList ){
+			Object obj = pro.get("price");
+			double price  = 0d;
+			if(obj!=null){
+				String val = String.valueOf(obj);
+				if(!StringUtil.isEmpty(val))
+					price = Double.parseDouble(val) *  discount;
+			}
+			for(GoodsLvPrice lvPrice:memPriceList){
+				if( (pro.get("product_id").toString()).equals(lvPrice.getProductid())  ){
+					price = lvPrice.getPrice();
+				}
+			}
+			pro.put("price", price);
+		}
+	}
+	
+
+	/**
+	 * 读取某个类别下所有的商品数 包括其子类的
+	 * @param cat_path
+	 * @param brand_str
+	 * @param propStr
+	 * @param keyword
+	 * @param minPrice
+	 * @param maxPrice
+	 * @param tagids
+	 * @return
+	 * 李志富修改<br/>
+	 * 加入了tagid标签，以便于取得如“全部物价商品”这样的列表
+	 */
+	private long countByCatId(String typeid,String cat_path, String brand_str,
+			String propStr, String keyword, String minPrice, String maxPrice, String tagids,String attrStr,String agn,String search_key) {
+		String sql = SF.goodsSql("COUNT_BY_CATID");
+
+		if (cat_path != null) {
+			sql += " and g.cat_id in(";
+			sql += "select c.cat_id from " + this.getTableName("goods_cat")
+					+ " c where c.cat_path like '" + cat_path + "%')";
+		}
+
+		sql += this.buildTermForByCat(typeid,brand_str, propStr, keyword, minPrice,
+				maxPrice, tagids,  attrStr,agn,search_key);
+
+//		String testSql ="select * from es_goods where name like '%凤尾%'";
+//		logger.info("11111111");
+//		List list =this.daoSupport.queryForList(testSql, null);
+		long count = this.daoSupport.queryForLong(sql);
+		return count;
+	}
+
+	/**
+	 * 读取某个商品的规格列表
+	 * 
+	 * @param goods_id
+	 * @param specList
+	 *            某个商品集合的所有规格
+	 * @return
+	 */
+	private List getSpecList(String goods_id, List specList) {
+		List list = new ArrayList();
+
+		for (int i = 0; i < specList.size(); i++) {
+			Map spec = (Map) specList.get(i);
+			String temp_id = (String) spec.get("goods_id");
+			if (temp_id.equals(goods_id)) {
+				list.add(spec);
+			}
+		}
+
+		return list;
+	}
+
+	/**
+	 * 构建查询类别下的商品的条件
+	 * 
+	 * @param cat_path
+	 * @param order
+	 * @return
+	 */
+	private String buildTerm(String typeid,String brand_str, String propStr,
+			String keyword, String minPrice, String maxPrice,String attrStr,String agn,String search_key) {
+		StringBuffer sql = new StringBuffer();
+
+		sql.append(buildTermForByCat(typeid,brand_str, propStr,  attrStr));
+
+		//福建电商使用
+		if(!StringUtil.isEmpty(search_key)){
+			sql.append(" and g.search_key like '%");
+			sql.append(search_key);
+			sql.append("%'");
+		}
+		
+		if (!StringUtil.isEmpty(keyword)) {
+			sql.append(" and g.name like '%");
+			sql.append(keyword);
+			sql.append("%'");
+		}
+
+		if (!StringUtil.isEmpty(minPrice)) {
+			sql.append(" and  g.price>=");
+			sql.append(minPrice);
+		}
+
+		if (!StringUtil.isEmpty(maxPrice)) {
+			sql.append(" and g.price<=");
+			sql.append(maxPrice);
+		}
+		
+		if (!StringUtil.isEmpty(agn)) {
+			sql.append(" and g.staff_no=");
+			sql.append(agn);
+		}
+		return sql.toString();
+	}
+	
+	private String buildTermForByCat(String typeid,String brand_str, String propStr,
+			String keyword, String minPrice, String maxPrice, String tagids,String attrStr,String agn,String search_key){
+		StringBuffer sql = new StringBuffer(buildTerm(typeid,brand_str, propStr,
+				keyword, minPrice, maxPrice,  attrStr,agn,search_key));
+		if(!StringUtil.isEmpty(tagids)){
+			String filter= this.goodsIdInTags(tagids);
+			filter =filter.equals("")?"-1":filter;
+			sql.append( " and g.goods_id in(" +filter+")" );
+		}
+		return sql.toString();
+	}
+	
+	private String goodsIdInTags(String tags){
+		tags = Const.getInWhereCond(tags);
+		String sql = SF.goodsSql("GOODS_ID_INTAGS") + " and tag_id in (" + tags + ")";
+		List<String> goodsIdList = this.baseDaoSupport.queryForList(sql, new StringMapper());
+		return StringUtil.listToString(goodsIdList, ",");
+	}
+
+	private String buildTermForByCat(String typeid,String brand_str, String propStr,String attrStr) {
+
+		
+		StringBuffer sql = new StringBuffer();
+
+		if (!StringUtil.isEmpty(brand_str)) {
+			brand_str = "-1," + brand_str.replaceAll("\\_", ",");
+			sql.append(" and g.brand_id in(");
+			sql.append(brand_str);
+			sql.append(")");
+
+		}
+		
+		//**关于自定义属性**/
+		if(!StringUtil.isEmpty(attrStr)){
+			//is_group_1,is_limitbuy_1
+			String[] attrAr = attrStr.split(",");
+			for(String attrTerm:attrAr){
+				String[] term = attrTerm.split("\\_");
+				if(term.length!=2) continue;
+				sql.append(" and "+term[0]+"="+term[1]);
+			}
+			
+		}
+
+		// 关于属性的过滤
+		//属性值示例: 0_1,0_2
+		if (!StringUtil.isEmpty(propStr)) {
+			
+			List<Attribute> prop_list = this.goodsTypeManager.getAttrListByTypeId(typeid); // 这个类型的属性
+			prop_list= prop_list== null ?new ArrayList<Attribute>():prop_list;			
+			String[] s_ar = propStr.split(",");
+	
+			for (int i = 0; i < s_ar.length; i++) {
+				String[] value = s_ar[i].split("\\_");
+				int index = Integer.valueOf(value[0]).intValue();
+				Attribute attr = prop_list.get(index);
+				int type = attr.getType();
+				if(type==2 || type==5 ) continue; //不可搜索跳过
+				
+				
+				if(type==3 || type==4){ //add by wui不限特殊处理
+					if(attr.getOptionAr()!=null && attr.getOptionAr().length>0)
+					{
+						String cname =attr.getOptionAr()[new Integer(value[1]).intValue()];
+						if("不限".equals(cname))
+						{
+							continue;
+						}
+							
+					}
+				}				
+
+				
+				sql.append(" and g.p" + (index + 1));
+								
+				if(type==1){ //输入项搜索用like
+					sql.append(" like'%");
+					sql.append(value[1]);
+					sql.append("%'");
+				}
+				if(type==3 || type==4){ //渐进式搜索直接=
+					
+					sql.append("='");
+					sql.append(value[1]);
+					sql.append("'");
+				}				
+
+			}
+		} 
+
+		return sql.toString();
+	}
+	
+
+
+	public IGoodsTypeManager getGoodsTypeManager() {
+		return goodsTypeManager;
+	}
+
+	public void setGoodsTypeManager(IGoodsTypeManager goodsTypeManager) {
+		this.goodsTypeManager = goodsTypeManager;
+	}
+
+}

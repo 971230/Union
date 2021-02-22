@@ -1,0 +1,694 @@
+package com.ztesoft.net.mall.core.action.backend;
+
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import net.sf.json.JSONArray;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.struts2.ServletActionContext;
+
+import params.ZteResponse;
+import params.adminuser.req.SmsValidCodeGetReq;
+import params.adminuser.resp.SmsValidCodeGetResp;
+import zte.net.ecsord.params.ecaop.req.AopSmsSendReq;
+import zte.net.ecsord.params.ecaop.resp.AopSmsSendResp;
+import zte.net.iservice.IEcsServices;
+import zte.params.order.req.SmsSendReq;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.app.base.core.service.auth.IAdminUserManager;
+import com.ztesoft.net.app.base.core.service.auth.IAppPermissionManager;
+import com.ztesoft.net.consts.MblConsts;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.context.webcontext.WebSessionContext;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.MblLoginLogVO;
+import com.ztesoft.net.mall.core.service.IMblLogManager;
+import com.ztesoft.net.mall.core.service.ISmsCode;
+import com.ztesoft.net.mall.core.util.HttpSessionContextHolder;
+import com.ztesoft.net.mall.core.utils.CacheUtil;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.remote.pojo.AppInfo;
+
+import consts.ConstsCore;
+/**
+ * 登录
+ * @作者 MoChunrun
+ * @创建日期 2013-10-31 
+ * @版本 V 1.0
+ */
+public class SysLoginAction extends WWAction{
+
+	private ISmsCode smsCode;
+	private String staff_code;
+	private String password;
+	private IAdminUserManager adminUserManager;
+	private String sms_code;
+	private IMblLogManager mblLogManager;
+	private String cur_type;
+	private String user_name;
+	private List<AppInfo> appList;
+	private IAppPermissionManager appPermissionManager;
+	private IEcsServices ecsServices;
+	
+	//短信发送号码，配置有连连标识，则发送到联系人号码，其他的发送至用户手机号码---add by musoon
+	CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+	String smsCodeSendFlag = cacheUtil.getConfigInfo("SMS_CODE_SEND_FLAG");
+	
+	/**
+	 * 申请验证码
+	 * @作者 MoChunrun
+	 * @创建日期 2013-10-31 
+	 * @return
+	 */
+	public String applySmsCode(){
+		String json = "";
+		HttpSession session = ServletActionContext.getRequest().getSession();
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		Object obj = session.getAttribute(ISmsCode.SESSION_SMS_CODE_APPLY_TIME);
+		if(obj!=null){
+			long lastApplyCode = Long.parseLong(obj.toString());
+			if(System.currentTimeMillis()-lastApplyCode<1000*60){
+				json = "{status:2,msg:'1分钟内只能申请一次验证码'}";
+				try {
+					response.getWriter().print(json);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				return null;
+			}
+		}
+		try{
+			AdminUser user = adminUserManager.getAdminUserByUserName(staff_code);
+			String login_fail_time = user==null?null:user.getLast_loginfail_time();
+			if(login_fail_time!=null && login_fail_time.length()>10)
+				login_fail_time = login_fail_time.substring(0,10);
+			DateFormat ddf = new SimpleDateFormat("yyyy-MM-dd");
+			String now = ddf.format(new Date());
+			boolean flag = false;
+			if(user==null || 1!=user.getState()){
+				json = "{status:2,msg:'您的登录信息输入有误，请重新输入。'}";
+			}else if(now.equals(login_fail_time) && user.getFail_logincount()>=3){
+				json = "{status:1,msg:'您连续输入错误的密码三次，今天不能再登录。'}";
+			}else if(Consts.CURR_FOUNDER3==user.getFounder()){
+				//分销商
+				if(smsCode.partenerIsLogAble(user)){
+					json = "{status:2,msg:'您的账号已被注销，不能登录。'}";
+				}else if(smsCode.partenerIsLock(user)){
+					json = "{status:2,msg:'您的账号已被锁定，不能登录。'}";
+				}else{
+					
+					if(smsCode.checkUser(staff_code, password)){
+						////user.setPassword(password);
+						session.setAttribute("loginPassword", password);
+						flag = true;
+					}else{
+						adminUserManager.updateCountAndLoginTime(Consts.loginFail_type, user);
+						json = "{status:2,msg:'您的登录信息输入有误，请重新输入。'}";
+					}
+				}
+			}else if(Consts.CURR_FOUNDER0==user.getFounder()){
+				//员工
+				if(password!=null && StringUtil.md5(password).equals(user.getPassword())){
+					flag = true;
+				}else{
+					adminUserManager.updateCountAndLoginTime(Consts.loginFail_type, user);
+					json = "{status:2,msg:'您的登录信息输入有误，请重新输入。'}";
+				}
+			}
+			if(flag){
+				String randcode = smsCode.createRandCode();
+				json = "{status:0,msg:'您将收到短信验证码，请稍后。"+randcode+"'}";//30秒内
+				//smsCode.sendSmsCode(user.getPhone_num(),randcode);
+				
+				String recPhoneNum = user.getPhone_num();
+				if ("llkj".equals(smsCodeSendFlag)) recPhoneNum = user.getContact_tel();
+				
+				//发送短信
+				smsCode.sendSmsCode(recPhoneNum, randcode);
+				
+				
+				session.setAttribute(ISmsCode.SESSION_SMS_CODE, randcode);
+				session.setAttribute(ISmsCode.SESSION_SMS_CODE_APPLY_TIME, System.currentTimeMillis());
+				user.setPassword(password);
+				
+				session.setAttribute(ISmsCode.TMP_ADMIN_USER, user);
+				
+				
+			}
+		}catch(Exception ex){
+			ex.printStackTrace();
+			json = "{status:1,msg:'发送失败,请稍后重试。'}";
+		}
+		
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public String checkIsLogin(){
+		HttpSession session = ServletActionContext.getRequest().getSession();
+		AdminUser user = (AdminUser) session.getAttribute(ISmsCode.TMP_ADMIN_USER);
+		String json = "";
+		if(user==null){
+			json = "{status:2,msg:'请先获取短信验证码'}";
+		}else{
+			if(!smsCode.isMultiOnline() && user.getLogin_status()==1){
+				json = "{status:1,msg:'已在线'}";
+			}else{
+				json = "{status:0,msg:'不在线'}";
+			}
+		}
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 分销商登录
+	 * @作者 MoChunrun
+	 * @创建日期 2013-10-31 
+	 * @return
+	 */
+	public String login(){
+		String json = "";
+		HttpSession session = ServletActionContext.getRequest().getSession();
+		try{
+			AdminUser user = (AdminUser) session.getAttribute(ISmsCode.TMP_ADMIN_USER);
+				//adminUserManager.getAdminUserByUserName(staff_code);
+			String login_fail_time = user==null?null:user.getLast_loginfail_time();
+			if(login_fail_time!=null && login_fail_time.length()>10)
+				login_fail_time = login_fail_time.substring(0,10);
+			DateFormat ddf = new SimpleDateFormat("yyyy-MM-dd");
+			String now = ddf.format(new Date());
+			boolean flag = false;
+			if(user==null){
+				json = "{status:1,msg:'请先获取短信验证码'}";
+			}else if(sms_code==null || "".equals(sms_code)){
+				json = "{status:1,msg:'请输入验证码'}";
+			}else if(!user.getUsername().equals(staff_code)){
+				json = "{status:1,msg:'您输入的验证码有误,请重新获取'}";
+			}else if(now.equals(login_fail_time) && user.getFail_logincount()>=3){
+				json = "{status:1,msg:'您连续输入错误的密码三次，今天不能再登录。'}";
+			}else if(!smsCode.checkSmsCode(session, sms_code)){
+				json = "{status:2,msg:'您的短信验证码输入有误，请1分钟后重新获取'}";
+				session.removeAttribute(ISmsCode.TMP_ADMIN_USER);
+				adminUserManager.updateCountAndLoginTime(Consts.loginFail_type, user);
+			}else if(Consts.CURR_FOUNDER3==user.getFounder()){
+				if(1!=user.getState()){
+					json = "{status:2,msg:'您的登录信息输入有误，请重新输入。'}";
+				}else if(smsCode.partenerIsLogAble(user)){
+					json = "{status:2,msg:'您的账号已被注销，不能登录。'}";
+				}else if(smsCode.partenerIsLock(user)){
+					json = "{status:2,msg:'您的账号已被锁定，不能登录。'}";
+				}else{
+					flag = true;
+				}
+			}else{
+				flag = true;
+			}
+			if(flag){
+				adminUserManager.partnerLogin(user);
+				//清空失败次数
+				adminUserManager.clearLoginFailTimes(user.getUserid());
+				//ThreadContextHolder.getSessionContext().setAttribute("admin_user_key", user);
+				session.removeAttribute(ISmsCode.SESSION_SMS_CODE);
+				session.removeAttribute(ISmsCode.SESSION_SMS_CODE_APPLY_TIME);
+				//session.removeAttribute(ISmsCode.TMP_ADMIN_USER);
+				json = "{status:0,msg:'成功'}";
+				MblLoginLogVO log = new MblLoginLogVO();
+				log.setCity(user.getCity());
+				log.setIp(ServletActionContext.getRequest().getRemoteAddr());
+				log.setCreate_time(DBTUtil.current());
+				log.setKind("0");
+				log.setMobile(user.getPhone_num());
+				log.setSource_from(user.getSource_from());
+				log.setStaff_code(user.getUsername());
+				log.setStation(user.getUser_level());
+				log.setLan_code(user.getLan_id());
+				log.setStaff_name(user.getRealname());
+				mblLogManager.addLogin(log);
+				DateFormat df = new SimpleDateFormat("HH时mm分ss秒");
+				//下线别一个在用户
+				if(!smsCode.isMultiOnline()){
+					if(user.getCurrent_sessionid()!=null && !session.getId().equals(user.getCurrent_sessionid()))
+						HttpSessionContextHolder.getInstance().invalidateSession(user.getCurrent_sessionid());
+					adminUserManager.updateLoginStatus(user.getUserid(), session.getId(), 1);
+				}
+				HttpSessionContextHolder.getInstance().putHttpSession(session);
+				Map map = new HashMap();
+				map.put("userName", user.getUsername());
+				map.put("NowTime", df.format(new Date()));
+				//smsCode.sendMsg(user.getPhone_num(), map, ISmsCode.LOGIN_SUCESS_MSG);
+				
+				String recPhoneNum = user.getPhone_num();
+				if ("llkj".equals(smsCodeSendFlag)) recPhoneNum = user.getContact_tel();
+				
+				//发送短信
+				smsCode.sendMsg(recPhoneNum, map, ISmsCode.LOGIN_SUCESS_MSG);
+				
+				//smsCode.sendSmsCode(user.getPhone_num(),"尊敬的"+user.getUsername()+"，您好，您于"+df.format(new Date())+"登录了互联网分销专区，如果你的帐号有任何异常，请编辑“LOCK”到10086锁定帐号。");
+			}
+		}catch(RuntimeException ex){
+			json = "{status:1,msg:'"+ex.getMessage()+"'}";
+		}catch(Exception ex){
+			json = "{status:1,msg:'登录失败，请重试'}";
+		}
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public List<AppInfo> filterAppp(List<AppInfo> appInfos){
+		List<AppInfo> cappInfos =new ArrayList<AppInfo>();
+		CacheUtil cacheUtil=SpringContextHolder.getBean("cacheUtil");//PLATFORM_APPKEY_LIMIT
+		String cf_value = cacheUtil.getConfigInfo("P_APPKEY_LIMIT");
+		if(StringUtil.isEmpty(cf_value))
+			return appInfos;
+		String cf_value_arr [] = cf_value.split(",");
+		for (AppInfo appInfo :appInfos) {
+			String appkey =appInfo.getAppKey();
+			for (int i = 0; i < cf_value_arr.length; i++) {
+				String limit_app_key = cf_value_arr[i];
+				if(appkey.equals(limit_app_key))
+				{
+					cappInfos.add(appInfo);
+					break;
+				}
+			}
+		
+		}
+		return cappInfos;
+	}
+	public String getUserApp(){
+		try{
+			//List<AppInfo> userAppList = appPermissionManager.getUserAppList(user_name);
+			List<AppInfo> userAppList = appPermissionManager.getAllAppList();
+			if(!ListUtil.isEmpty(userAppList) && userAppList.size() ==1) //add by wui平台一个，缺省设置session
+				ThreadContextHolder.getSessionContext().setAttribute(MblConsts.CURRENT_APP_INFO, userAppList.get(0));
+			userAppList = filterAppp(userAppList); // 根据限制过滤
+			JSONArray appArray = JSONArray.fromObject(userAppList);
+			
+			//特定账户强制使用验证码登录---zengxianlian
+			if("admin".equals(user_name)){
+				json = "{status:1,list:" + appArray.toString() + ",specName:1}";
+			}else{
+				json = "{status:1,list:" + appArray.toString() + "}";
+			}
+		}catch(Exception e){
+			json = "{status:0,msg:'获取用户应用权限异常'}";
+			e.printStackTrace();
+		}
+		
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public String sendUserSms(){
+		if(StringUtils.isEmpty(user_name)){
+			json = "{status:0, message:'请输入用户名'}";
+		}else{
+			try{
+				 AdminUser user = adminUserManager.getAdminUserByUserName(user_name);
+				 if(user == null){
+					 json = "{status:0, message:'请输入有效的用户名'}";
+				 }else{
+					 if(StringUtils.isEmpty(user.getPhone_num())){
+						 json = "{status:0, message:'此代理商未配置短信电话'}";
+					 }else{
+						 HttpSession session = ServletActionContext.getRequest().getSession();
+						 Object obj = session.getAttribute(ISmsCode.SESSION_SMS_CODE_APPLY_TIME);
+						if (obj != null) {
+								long lastApplyCode = Long.parseLong(obj.toString());
+								if(System.currentTimeMillis() - lastApplyCode < 1*1000*60){
+									json = "{status:0, message:'1分钟内只能申请一次验证码'}";
+								}else{
+									String randcode = smsCode.createRandCode();
+									String recPhoneNum = user.getPhone_num();
+									if ("llkj".equals(smsCodeSendFlag)) recPhoneNum = user.getContact_tel();
+									
+									//发送短信
+									smsCode.sendSmsCode(recPhoneNum, randcode);
+//									json = "{status:1, message:'您将收到短信验证码，请稍后。"+randcode+"', random_code:'"+randcode+"'}";//30秒内
+									json = "{status:1, message:'您将收到短信验证码，请稍后。'}";//30秒内
+
+									session.setAttribute(ISmsCode.SESSION_SMS_CODE_APPLY_TIME, System.currentTimeMillis());
+									WebSessionContext sessionContext = ThreadContextHolder.getSessionContext();
+									sessionContext.setAttribute(ISmsCode.SESSION_SMS_CODE, randcode);
+									ThreadContextHolder.getHttpSessionContext().setAttribute(ISmsCode.SESSION_SMS_CODE, randcode);
+								}
+						} else {
+								String randcode = smsCode.createRandCode();
+								String recPhoneNum = user.getPhone_num();
+								if ("llkj".equals(smsCodeSendFlag)) recPhoneNum = user.getContact_tel();
+								
+								//发送短信
+								smsCode.sendSmsCode(recPhoneNum, randcode);
+//								json = "{status:1, message:'您将收到短信验证码，请稍后。"+randcode+"', random_code:'"+randcode+"'}";//30秒内
+								json = "{status:1, message:'您将收到短信验证码，请稍后。'}";//30秒内
+
+								session.setAttribute(ISmsCode.SESSION_SMS_CODE_APPLY_TIME, System.currentTimeMillis());
+								WebSessionContext sessionContext = ThreadContextHolder.getSessionContext();
+								sessionContext.setAttribute(ISmsCode.SESSION_SMS_CODE, randcode);
+								ThreadContextHolder.getHttpSessionContext().setAttribute(ISmsCode.SESSION_SMS_CODE, randcode);
+							}
+					 }
+				 }
+			}catch(Exception e){
+				json = "{status:0,message:'发送短信验证码异常'}";
+				e.printStackTrace();
+			}
+		}
+	
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 发送短信验证码给用户
+	 * @作者 zengxianlian
+	 * @创建日期 2015-06-29
+	 */
+	public String sendSmsToUser(){
+		if(StringUtils.isEmpty(user_name)){
+			json = "{status:0, message:'请输入用户名'}";
+		}else{
+			try{
+				 AdminUser user = adminUserManager.getAdminUserByUserName(user_name);
+				 if(user == null){
+					 json = "{status:0, message:'请输入有效的用户名'}";
+				 }else{
+					 if(StringUtils.isEmpty(user.getPhone_num())){
+						 json = "{status:0, message:'此工号未配置短信电话'}";
+					 }else{
+						 HttpSession session = ServletActionContext.getRequest().getSession();
+						 Object obj = session.getAttribute(ISmsCode.SESSION_SMS_CODE_APPLY_TIME);
+						 
+						if (obj != null) {
+								long lastApplyCode = Long.parseLong(obj.toString());
+								if(System.currentTimeMillis() - lastApplyCode < 1000*60){
+									json = "{status:0, message:'1分钟内只能申请一次验证码'}";
+								}else{
+									json = sendSms(user);
+								}
+						} else {
+							json = sendSms(user);
+						}
+					 }
+				 }
+			}catch(Exception e){
+				json = "{status:0,message:'发送短信验证码异常'}";
+				e.printStackTrace();
+			}
+		}
+	
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public String getSmsValidCode(){
+		
+		
+		SmsValidCodeGetReq req = new SmsValidCodeGetReq();
+		req.setUser_name(this.user_name);
+		SmsValidCodeGetResp resp = adminUserManager.getSmsValidCode(req);
+		
+
+		if(ConstsCore.ERROR_SUCC.equals(resp.getError_code())){//如果返回成功
+			final String receive_PhoneNum=resp.getReceive_phone();
+			final String valid_CodeNum=resp.getValid_code();
+			/*new Thread(new Runnable(){
+				private String json;
+
+				public void run() {
+					ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+					AopSmsSendReq smsSendReq = new AopSmsSendReq();
+					smsSendReq.setService_num(receive_PhoneNum);
+					smsSendReq.setSms_data(valid_CodeNum);
+					
+					ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+					String bill_num=cacheUtil.getConfigInfo("SMS_BILL_NUM");
+					smsSendReq.setBill_num(bill_num);//短信发现号码
+					AopSmsSendResp smsSendResp = client.execute(smsSendReq, AopSmsSendResp.class);
+					
+					if(smsSendResp!=null&&ConstsCore.ERROR_SUCC.equals(smsSendResp.getError_code())){
+
+						logger.info("短信验证码发送成功，1分钟内有效");
+					}
+					
+					else{
+						logger.info("短信验证码发送失败");
+					}
+				}
+			}).start();*/
+			this.json = "{result:0,message:'短信验证码发送成功，1分钟内有效，请注意查收',timeInterval:'"+resp.getTime_interval()+"'}";
+			
+
+			
+		  }else{
+			this.json = "{result:1,message:'"+resp.getError_msg()+"',timeInterval:'0'}";
+		  }
+		
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 发送短信验证码给用户
+	 * @作者 zengxianlian
+	 * @创建日期 2015-06-29
+	 */
+	private String sendSms(AdminUser user){
+		
+		HttpSession session = ServletActionContext.getRequest().getSession();
+		Object obj = session.getAttribute(ISmsCode.SMS_SEND_NO);
+		WebSessionContext sessionContext = ThreadContextHolder.getSessionContext();
+		ZteResponse zteRes =new ZteResponse();
+		
+		try {
+			
+			if(null != obj){//把原有短信置为无效
+				String sendNos = obj.toString();
+				String sendNo = sendNos;
+				if(sendNos.contains(",")){
+					sendNo = sendNos.substring(sendNos.lastIndexOf(",")+1, sendNos.length());
+				}
+				smsCode.updateState(sendNo);
+			}
+			
+			String randcode = smsCode.createRandCode();
+			String recPhoneNum = user.getPhone_num();
+			String smsContent = smsCode.getSmsContent(randcode);
+			String sendNo = smsCode.sendSms(recPhoneNum, randcode);
+			
+			SmsSendReq smsSendReq = new SmsSendReq();
+			smsSendReq.setAcc_nbr(recPhoneNum);
+			smsSendReq.setSmsContent(smsContent);
+			zteRes = ecsServices.smsSend(smsSendReq);
+
+			session.setAttribute(ISmsCode.SESSION_SMS_CODE_APPLY_TIME, System.currentTimeMillis());
+			session.setAttribute(ISmsCode.SESSION_SMS_CODE, randcode);
+			ThreadContextHolder.getHttpSessionContext().setAttribute(ISmsCode.SESSION_SMS_CODE, randcode);
+			
+			if(null != obj){
+				String sendNos = obj.toString();
+				sendNos = sendNos+","+sendNo;
+				session.setAttribute(ISmsCode.SMS_SEND_NO, sendNos);
+				ThreadContextHolder.getHttpSessionContext().setAttribute(ISmsCode.SMS_SEND_NO, sendNos);
+			}else{
+				session.setAttribute(ISmsCode.SMS_SEND_NO, sendNo);
+				ThreadContextHolder.getHttpSessionContext().setAttribute(ISmsCode.SMS_SEND_NO, sendNo);
+			}
+			json = "{status:1, message:'短信发送成功,请查收!',sms_phone:'"+recPhoneNum+"',sms_content:'"+smsContent+"'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return json;
+	}
+	
+	/**
+	 * 失效短信
+	 * @作者 zengxianlian
+	 * @创建日期 2015-06-30
+	 */
+	public String updateSmsState(){
+		
+		HttpSession session = ServletActionContext.getRequest().getSession();
+		Object obj = session.getAttribute(ISmsCode.SMS_SEND_NO);
+		WebSessionContext sessionContext = ThreadContextHolder.getSessionContext();
+		ZteResponse zteRes =new ZteResponse();
+		
+		try {
+			if(null != obj){//把原有短信置为无效
+				String sendNos = obj.toString();
+				String sendNo = sendNos;
+				if(sendNos.contains(",")){
+					sendNo = sendNos.substring(sendNos.lastIndexOf(",")+1, sendNos.length());
+				}
+				smsCode.updateState(sendNo);
+			}
+			json = "{status:1,message:'短信已经失效,请重新发送!'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			json = "{status:0,message:'发送短信验证码异常'}";
+		}
+		
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
+	public String localLogin(){
+		return "loginpage";
+	}
+
+	public ISmsCode getSmsCode() {
+		return smsCode;
+	}
+
+	public void setSmsCode(ISmsCode smsCode) {
+		this.smsCode = smsCode;
+	}
+
+	public String getStaff_code() {
+		return staff_code;
+	}
+
+	public void setStaff_code(String staff_code) {
+		this.staff_code = staff_code;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public IAdminUserManager getAdminUserManager() {
+		return adminUserManager;
+	}
+
+	public void setAdminUserManager(IAdminUserManager adminUserManager) {
+		this.adminUserManager = adminUserManager;
+	}
+
+	public String getSms_code() {
+		return sms_code;
+	}
+
+	public void setSms_code(String sms_code) {
+		this.sms_code = sms_code;
+	}
+
+	public IMblLogManager getMblLogManager() {
+		return mblLogManager;
+	}
+
+	public void setMblLogManager(IMblLogManager mblLogManager) {
+		this.mblLogManager = mblLogManager;
+	}
+
+	public String getCur_type() {
+		return cur_type;
+	}
+
+	public void setCur_type(String cur_type) {
+		this.cur_type = cur_type;
+	}
+
+	public String getUser_name() {
+		return user_name;
+	}
+
+	public void setUser_name(String user_name) {
+		this.user_name = user_name;
+	}
+	
+	public List<AppInfo> getAppList() {
+		return appList;
+	}
+
+	public void setAppList(List<AppInfo> appList) {
+		this.appList = appList;
+	}
+	public IAppPermissionManager getAppPermissionManager() {
+		return appPermissionManager;
+	}
+
+	public void setAppPermissionManager(IAppPermissionManager appPermissionManager) {
+		this.appPermissionManager = appPermissionManager;
+	}
+
+	public IEcsServices getEcsServices() {
+		return ecsServices;
+	}
+
+	public void setEcsServices(IEcsServices ecsServices) {
+		this.ecsServices = ecsServices;
+	}
+}

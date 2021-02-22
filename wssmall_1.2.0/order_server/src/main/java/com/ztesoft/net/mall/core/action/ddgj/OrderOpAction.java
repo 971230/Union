@@ -1,0 +1,548 @@
+package com.ztesoft.net.mall.core.action.ddgj;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.tools.ant.types.resources.selectors.Date;
+
+import params.bank.req.BankListReq;
+import params.bank.resp.BankListResp;
+import services.BankInf;
+import zte.net.iservice.IOrderApplyService;
+import zte.net.iservice.IOrderServices;
+import zte.params.order.req.OrderApplyPageListReq;
+import zte.params.order.req.OrderCountGetReq;
+import zte.params.order.req.OrderExceptionReq;
+import zte.params.order.req.OrderItemListReq;
+import zte.params.order.resp.OrderApplyPageListResp;
+import zte.params.order.resp.OrderCountGetResp;
+import zte.params.order.resp.OrderItemListResp;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderApply;
+import com.ztesoft.net.mall.core.model.OrderApplyItem;
+import com.ztesoft.net.mall.core.model.OrderComments;
+import com.ztesoft.net.mall.core.model.OrderExcepCollect;
+import com.ztesoft.net.mall.core.model.OrderQueryParam;
+import com.ztesoft.net.mall.core.service.IOrderApplyManage;
+import com.ztesoft.net.mall.core.service.IOrderCommentManager;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+
+/**
+ * 订单操作action
+ * @author hu.yi
+ * @date 2014.05.22
+ */
+public class OrderOpAction extends WWAction{
+
+	private List exceptionList;	//异常状态list
+	private List orderExpList;	//订单异常选项list
+	private List orderComList;	//订单备注信息list
+	private List<Map> bankList;	//银行列表
+	private List<OrderApplyItem> applyItems;
+	private List<Map> orderItems;
+	private List<OrderApplyItem> exApplyItemList;
+	private List<Map> itemsList;
+	
+	private String order_id;
+	private String[] textfield;
+	private String action = "new";	//退换货申请标志action
+	private String isEdit = "no";	//是否可修改
+	private String service_type = OrderStatus.ORDER_TYPE_4;
+	private String apply_id;	
+	private String[] apply_proof;
+	private String apply_proof_1 = "no";
+	private String apply_proof_2 = "no";
+	private int isAdminUser;
+	
+	private Order orderInfo;
+	private OrderExcepCollect orderExcepCollect;
+	private OrderComments orderComments;
+	private OrderApply orderApply;
+	
+	
+	private IOrderManager orderManager;
+	private IOrderServices orderServices;
+	private IOrderCommentManager orderCommentManager;
+	private BankInf bankServ;
+	private IOrderApplyManage orderApplyManage;
+	private IOrderApplyService orderApplyService;
+
+	
+	/**
+	 * 添加异常单
+	 * @return
+	 */
+	public String addOrderExp(){
+		
+		this.exceptionList = this.orderManager.listException();
+		
+		return "order_exception";
+	}
+	
+	/**
+	 * 保存异常单
+	 * @return
+	 */
+	public String saveOrderExp(){
+		try {
+    		//OrderStatusEditReq orderStatusEditReq = new OrderStatusEditReq();
+    		//orderStatusEditReq.setOrder_id(orderExcepCollect.getOrder_id());
+    		//orderStatusEditReq.setOrder_status(OrderStatus.ORDER_EXCEPTION);
+    		//this.orderServices.editOrderStatus(orderStatusEditReq);
+			//修改异常状态=======mochunrun======2014-7-11====
+    		orderManager.updateExceptionStatus(orderExcepCollect.getOrder_id(), OrderStatus.ORDER_EXCEPTION_99);
+    		
+    		OrderExceptionReq orderExceptionReq = new OrderExceptionReq();
+    		orderExceptionReq.setOrderExcepCollect(orderExcepCollect);
+			this.orderServices.saveOrderFail(orderExceptionReq);
+			
+			this.json = "{result:1}";
+		} catch (Exception e) {
+			this.json = "{result:0,message:'"+e.getMessage()+"'}";
+		}
+		return WWAction.JSON_MESSAGE;
+	}
+	
+	
+	/**
+	 * 显示异常信息
+	 * @return
+	 */
+	public String getOrderExp(){
+		
+		this.orderExpList = this.orderCommentManager.listUnComments(order_id);
+		
+		return "order_exp_info";
+	}
+	
+	
+	/**
+	 * 保存订单补录信息
+	 * @return
+	 */
+	public String saveOrderSupply(){
+		
+		try {
+			this.orderManager.edit(this.orderInfo);
+			
+			this.json = "{result:1}";
+		} catch (Exception e) {
+			this.json = "{result:0,message:'"+e.getMessage()+"'}";
+		}
+		
+		return WWAction.JSON_MESSAGE;
+	}
+	
+	
+	/**
+	 * 进入订单备注页面
+	 * @return
+	 */
+	public String addOrderComments(){
+		
+		return "order_comments";
+	}
+	
+	/**
+	 * 保存备注信息
+	 * @return
+	 */
+	public String saveOrderComments(){
+		try {
+			AdminUser adminUser = ManagerUtils.getAdminUser();
+			orderComments.setOpet_name(adminUser.getUsername());
+			orderComments.setOper_id(adminUser.getUserid());
+			orderComments.setFlag("0");
+			orderComments.setOper_time(DBTUtil.current());
+			orderComments.setSequ(String.valueOf(new Date().getMillis()));
+			orderComments.setSource_from(ManagerUtils.getSourceFrom());
+			this.orderCommentManager.add(this.orderComments);
+			
+			this.json = "{result:1}";
+		} catch (Exception e) {
+			this.json = "{result:0,message:'"+e.getMessage()+"'}";
+		}
+		return WWAction.JSON_MESSAGE;
+	}
+	
+	/**
+	 * 显示备注信息
+	 * @return
+	 */
+	public String getOrderCom(){
+		
+		this.orderComList = this.orderCommentManager.qryOrderComments(order_id);
+		
+		return "order_com_info";
+	}
+	
+	private String query_type;
+	
+	/**
+	 * 查询各类型订单的数量
+	 * @return
+	 */
+	public String getOrderCounts(){
+		
+		try {
+			Map<String, Object> map = new HashMap<String, Object>();
+			if(StringUtil.isEmpty(query_type) || "all".equals(query_type)){
+				map.put("exception", getCount("exception"));
+				map.put("audit", getCount("audit"));
+				map.put("pay", getCount("pay"));
+				map.put("package", getCount("package"));
+				//map.put("dispatch", getCount("dispatch"));
+				map.put("finish", getCount("finish"));
+				map.put("openAccount", getCount("openAccount"));
+				map.put("delivery", getCount("delivery"));
+				map.put("received", getCount("received"));
+				map.put("day", getCount("day"));
+				map.put("returned", getCount("returned"));
+				map.put("confirm", getCount("confirm"));
+				map.put("refund", getCount("refund"));
+				map.put("exchange", getCount("exchange"));
+				
+				//换货申请单
+				map.put("exchange_apply", orderApplyManage.countOrderApplyByTypeAndStatus(OrderStatus.ORDER_TYPE_3, OrderStatus.ORDER_APPLY_STATUS_0));
+				map.put("returned_apply", orderApplyManage.countOrderApplyByTypeAndStatus(OrderStatus.ORDER_TYPE_4, OrderStatus.ORDER_APPLY_STATUS_0));
+				map.put("refund_apply", orderApplyManage.countOrderApplyByTypeAndStatus(OrderStatus.ORDER_TYPE_2, OrderStatus.ORDER_APPLY_STATUS_0));
+			}else if("exchange_apply".equals(query_type)){
+				map.put("exchange_apply", orderApplyManage.countOrderApplyByTypeAndStatus(OrderStatus.ORDER_TYPE_3, OrderStatus.ORDER_APPLY_STATUS_0));
+			}else if("returned_apply".equals(query_type)){
+				map.put("returned_apply", orderApplyManage.countOrderApplyByTypeAndStatus(OrderStatus.ORDER_TYPE_4, OrderStatus.ORDER_APPLY_STATUS_0));
+			}else if("refund_apply".equals(query_type)){
+				map.put("refund_apply", orderApplyManage.countOrderApplyByTypeAndStatus(OrderStatus.ORDER_TYPE_2, OrderStatus.ORDER_APPLY_STATUS_0));
+			}else{
+				map.put(query_type, getCount(query_type));
+			}
+			
+			
+//			map.put("wp_type_5", getCount("wp_type_5"));
+//			map.put("wp_type_6", getCount("wp_type_6"));
+//			map.put("wait_accept", getCount("wait_accept"));
+			
+//			map.put("wait_finish", getCount("wait_finish"));
+//			map.put("cancel", getCount("cancel"));
+//			map.put("widhdraw", getCount("widhdraw"));
+//			map.put("refund", getCount("refund"));
+//			map.put("wait_change_ship", getCount("wait_change_ship"));
+//			map.put("wait_refund_ship", getCount("wait_refund_ship"));
+//			map.put("can_returned", getCount("can_returned"));
+			//map.put("all", getCount("all"));
+			
+			JSONObject js = JSONObject.fromObject(map);
+			
+			this.json = "{result:1,countMap:'"+js+"'}";
+		} catch (Exception e) {
+			this.json = "{result:0,message:'"+e.getMessage()+"'}";
+		}
+		
+		return WWAction.JSON_MESSAGE;
+	}
+	
+	private int monitor = 0;
+	/**
+	 * 调用api获取数量
+	 * @param action
+	 * @return
+	 */
+	private Long getCount(String action){
+		Long count = 0L;
+		OrderCountGetReq req = new OrderCountGetReq();
+		OrderQueryParam param = new OrderQueryParam();
+		param.setAction(action);
+		req.setEvent(monitor);
+		req.setOrderQueryParam(param);
+		OrderCountGetResp resp = this.orderServices.countOrders(req);
+		
+		if(resp != null){
+			count = resp.getCount();
+		}
+		return count;
+	};
+	
+	
+	/**
+	 * 退货申请单新增/修改
+	 * @return
+	 */
+	public String addOrderReturn(){
+		//查询订单信息
+		if(StringUtils.isNotEmpty(this.order_id)){
+			OrderItemListReq orderItemListReq = new OrderItemListReq();
+			orderItemListReq.setOrder_id(this.order_id);
+			OrderItemListResp orderItemListResp = this.orderServices.listOrderItems(orderItemListReq);
+			this.itemsList = orderItemListResp.getOrderItems();
+		}
+				
+		BankListResp resp = bankServ.qryBankList(new BankListReq());
+		this.bankList = resp.getBankList();
+		if(!"new".equals(action)){
+			orderApply = orderApplyManage.getOrderApply(apply_id);
+			applyItems = orderApplyManage.queryApplyItems(apply_id, null);
+			orderItems = orderManager.listGoodsItems(orderApply.getA_order_item_id());
+			order_id = orderApply.getA_order_item_id();
+			for(Map oi:orderItems){
+				for(OrderApplyItem oai:applyItems){
+					if(OrderStatus.ORDER_TYPE_4.equals(oai.getItem_type()) && oi.get("item_id").toString().equals(oai.getOld_order_item_id())){
+						oi.put("isChecked", "checked");
+						oi.put("return_num", oai.getNum()==null?oi.get("ship_num"):oai.getNum());
+					}
+				}
+			}
+			if(!StringUtils.isEmpty(orderApply.getApply_proof())){
+				apply_proof = (String[]) JSONArray.toArray(JSONArray.fromObject(orderApply.getApply_proof()), String.class);
+				for(String s:apply_proof){
+					if("1".equals(s)){
+						apply_proof_1 = "yes";
+					}
+					if("2".equals(s)){
+						apply_proof_2 = "yes";
+					}
+				}
+			}
+			
+			if(OrderStatus.ORDER_TYPE_3.equals(service_type)){
+				exApplyItemList = orderApplyManage.queryApplyItems(apply_id, OrderStatus.ORDER_TYPE_3);
+			}
+		}else{
+			orderApply = new OrderApply();
+		}
+		if("audit".equals(action) || (!OrderStatus.ORDER_APPLY_REL_STATE_0.equals(orderApply.getApply_state()) && !StringUtils.isEmpty(orderApply.getApply_state()))){
+			isEdit = "yes";
+		}
+		return "order_return_apply";
+	}
+	
+	
+	/**
+	 * 查询退换货申请单
+	 * @return
+	 */
+	public String queryApplyPage(){
+		OrderApplyPageListReq req = new OrderApplyPageListReq();
+		req.setService_type(service_type);
+		req.setApply_id(apply_id);
+		req.setOrder_id(order_id);
+		req.setPageNo(getPage());
+		req.setPageSize(getPageSize());
+		OrderApplyPageListResp resp = orderApplyService.queryOrderApplyForPage(req);
+		this.webpage = resp.getPage();
+		return "order_apply_list";
+	}
+	
+	
+	/**
+	 * 查询退费申请单
+	 * @return
+	 */
+	public String queryBackPage(){
+		if(ManagerUtils.isAdminUser()){
+			isAdminUser=1;
+		}
+		this.webpage=orderApplyManage.queryOrderApplyByType(service_type, null, null, null, this.getPage(), this.getPageSize());
+		return "order_back_list";
+	}
+	
+	
+	
+	
+	public List getExceptionList() {
+		return exceptionList;
+	}
+	public void setExceptionList(List exceptionList) {
+		this.exceptionList = exceptionList;
+	}
+	public IOrderManager getOrderManager() {
+		return orderManager;
+	}
+	public void setOrderManager(IOrderManager orderManager) {
+		this.orderManager = orderManager;
+	}
+	public OrderExcepCollect getOrderExcepCollect() {
+		return orderExcepCollect;
+	}
+	public void setOrderExcepCollect(OrderExcepCollect orderExcepCollect) {
+		this.orderExcepCollect = orderExcepCollect;
+	}
+	public IOrderServices getOrderServices() {
+		return orderServices;
+	}
+	public void setOrderServices(IOrderServices orderServices) {
+		this.orderServices = orderServices;
+	}
+	public IOrderCommentManager getOrderCommentManager() {
+		return orderCommentManager;
+	}
+	public void setOrderCommentManager(IOrderCommentManager orderCommentManager) {
+		this.orderCommentManager = orderCommentManager;
+	}
+	public List getOrderExpList() {
+		return orderExpList;
+	}
+	public void setOrderExpList(List orderExpList) {
+		this.orderExpList = orderExpList;
+	}
+	public Order getOrderInfo() {
+		return orderInfo;
+	}
+	public void setOrderInfo(Order orderInfo) {
+		this.orderInfo = orderInfo;
+	}
+	public String getOrder_id() {
+		return order_id;
+	}
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+	public String[] getTextfield() {
+		return textfield;
+	}
+	public void setTextfield(String[] textfield) {
+		this.textfield = textfield;
+	}
+	public OrderComments getOrderComments() {
+		return orderComments;
+	}
+	public void setOrderComments(OrderComments orderComments) {
+		this.orderComments = orderComments;
+	}
+	public List getOrderComList() {
+		return orderComList;
+	}
+	public void setOrderComList(List orderComList) {
+		this.orderComList = orderComList;
+	}
+	public List<Map> getBankList() {
+		return bankList;
+	}
+	public void setBankList(List<Map> bankList) {
+		this.bankList = bankList;
+	}
+	public List<OrderApplyItem> getApplyItems() {
+		return applyItems;
+	}
+	public void setApplyItems(List<OrderApplyItem> applyItems) {
+		this.applyItems = applyItems;
+	}
+	public List<Map> getOrderItems() {
+		return orderItems;
+	}
+	public void setOrderItems(List<Map> orderItems) {
+		this.orderItems = orderItems;
+	}
+	public List<OrderApplyItem> getExApplyItemList() {
+		return exApplyItemList;
+	}
+	public void setExApplyItemList(List<OrderApplyItem> exApplyItemList) {
+		this.exApplyItemList = exApplyItemList;
+	}
+	public String getAction() {
+		return action;
+	}
+	public void setAction(String action) {
+		this.action = action;
+	}
+	public String getIsEdit() {
+		return isEdit;
+	}
+	public void setIsEdit(String isEdit) {
+		this.isEdit = isEdit;
+	}
+	public String getService_type() {
+		return service_type;
+	}
+	public void setService_type(String service_type) {
+		this.service_type = service_type;
+	}
+	public String getApply_id() {
+		return apply_id;
+	}
+	public void setApply_id(String apply_id) {
+		this.apply_id = apply_id;
+	}
+	public String[] getApply_proof() {
+		return apply_proof;
+	}
+	public void setApply_proof(String[] apply_proof) {
+		this.apply_proof = apply_proof;
+	}
+	public String getApply_proof_1() {
+		return apply_proof_1;
+	}
+	public void setApply_proof_1(String apply_proof_1) {
+		this.apply_proof_1 = apply_proof_1;
+	}
+	public String getApply_proof_2() {
+		return apply_proof_2;
+	}
+	public void setApply_proof_2(String apply_proof_2) {
+		this.apply_proof_2 = apply_proof_2;
+	}
+	public OrderApply getOrderApply() {
+		return orderApply;
+	}
+	public void setOrderApply(OrderApply orderApply) {
+		this.orderApply = orderApply;
+	}
+	public BankInf getBankServ() {
+		return bankServ;
+	}
+	public void setBankServ(BankInf bankServ) {
+		this.bankServ = bankServ;
+	}
+	public IOrderApplyManage getOrderApplyManage() {
+		return orderApplyManage;
+	}
+	public void setOrderApplyManage(IOrderApplyManage orderApplyManage) {
+		this.orderApplyManage = orderApplyManage;
+	}
+	public List<Map> getItemsList() {
+		return itemsList;
+	}
+	public void setItemsList(List<Map> itemsList) {
+		this.itemsList = itemsList;
+	}
+	public IOrderApplyService getOrderApplyService() {
+		return orderApplyService;
+	}
+	public void setOrderApplyService(IOrderApplyService orderApplyService) {
+		this.orderApplyService = orderApplyService;
+	}
+	public int getIsAdminUser() {
+		return isAdminUser;
+	}
+	public void setIsAdminUser(int isAdminUser) {
+		this.isAdminUser = isAdminUser;
+	}
+
+	public String getQuery_type() {
+		return query_type;
+	}
+
+	public void setQuery_type(String query_type) {
+		this.query_type = query_type;
+	}
+
+	public int getMonitor() {
+		return monitor;
+	}
+
+	public void setMonitor(int monitor) {
+		this.monitor = monitor;
+	}
+	
+}

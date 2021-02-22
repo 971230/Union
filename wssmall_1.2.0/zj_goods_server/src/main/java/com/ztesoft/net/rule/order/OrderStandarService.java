@@ -1,0 +1,182 @@
+package com.ztesoft.net.rule.order;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import services.OrderActionRuleInf;
+import services.OrderSyInf;
+import services.ProductInf;
+import zte.net.iservice.IOrderServices;
+import zte.params.order.req.OrderCollect;
+import zte.params.order.req.OrderOuterAttrQueryReq;
+import zte.params.order.req.OrderSyncReq;
+import zte.params.order.resp.OrderAddResp;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.ReflectionUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.AttrInst;
+import com.ztesoft.net.model.Outer;
+import com.ztesoft.net.model.OuterItem;
+import com.ztesoft.net.outter.inf.model.LocalOrderAttr;
+
+public class OrderStandarService extends BaseSupport{
+
+	@Resource
+    private ProductInf proudctServ;
+	@Resource
+	private OrderSyInf orderSyServ;
+	@Resource
+	private OrderActionRuleInf orderActionRuleServ;
+	@Resource
+	private IOrderServices orderServices;
+	
+	public OrderAddResp syncOrderStandardizing(OrderCollect oc,String userSessionId,String service_code) throws ApiBusiException {
+		OrderAddResp resp =new OrderAddResp();
+		try{
+			OrderSyncReq req = this.createReq(oc,service_code);
+			req.setUserSessionId(userSessionId); //设计用户会话
+			//订单同步处理
+			for(OrderOuter or:oc.getOrderOuterList()){
+				or.setCreate_type("1");
+				or.setOrder_type("1");
+				//add by wui新标准化
+				if(Consts.SERVICE_CODE_CO_GUIJI_NEW.equals(service_code))
+					or.setService_code(com.ztesoft.ibss.common.util.Const.ORDER_STAND_AUTO_SERVICE_CODE);
+				else
+					or.setService_code(com.ztesoft.ibss.common.util.Const.ORDERSTANDARDIZE_CODE);
+				or.setP_order_amount(or.getOrder_amount());
+				or.setApp_key(or.getOrder_from());
+				or.setAppKey(or.getOrder_from());
+				or.setStatus("2");//不以淘宝的状态为准
+				OrderOuterAttrQueryReq reqs = new OrderOuterAttrQueryReq();
+				reqs.setUserSessionId(userSessionId);
+				reqs.setOrder_id(or.getOrder_id());
+				String sending_type = oc.getOuter().getSending_type();
+				
+				//非现场交付订单插入数据,整个系统替换后需要屏蔽
+//				if(!EcsOrderConsts.SHIPPING_TYPE_XJ.equals(sending_type)){ //老订单需要写入
+//					String sql = "select * from es_outer_attr_inst where order_id = '"+reqs.getOrder_id()+"'";
+//					List<AttrInst> attrInsts =  this.baseDaoSupport.queryForList(sql, AttrInst.class);
+//					or.setOuterAttrInsts(attrInsts);
+//				}
+					
+				if(Consts.SERVICE_CODE_CO_GUIJI.equals(service_code)){ //老订单需要写入
+					String sql = "select * from es_outer_attr_inst where order_id = '"+reqs.getOrder_id()+"'";
+					List<AttrInst> attrInsts =  this.baseDaoSupport.queryForList(sql, AttrInst.class);
+					or.setOuterAttrInsts(attrInsts);
+				}
+			}
+			
+			oc.getOrderOuterList().get(0).getOuterAttrInsts();
+			req.setOrderOuterList(oc.getOrderOuterList());
+			req.setWarehousePurorder(oc.getOuter().getWarehousePurorder());
+			resp = orderServices.syncAddOrder(req);
+			
+			
+			//非现场交付订单插入数据,整个系统替换后需要屏蔽
+//			if("0".equals(resp.getError_code())){
+//				List<Order> list = resp.getOrderList();
+//				for(Order od:list){
+//					LocalOrderAttr loa = (LocalOrderAttr) oc.getOuter().getLocalObject();
+//					if(loa!=null && !EcsOrderConsts.SHIPPING_TYPE_XJ.equals(od.getShipping_type())){ //非现场交付
+//						loa.setOrder_id(od.getOrder_id());
+//						this.baseDaoSupport.insert("es_local_order_attr", loa);
+//					}
+//				}
+//			}
+			if("0".equals(resp.getError_code()) && !Consts.SERVICE_CODE_CO_GUIJI_NEW.equals(service_code)){
+				List<Order> list = resp.getOrderList();
+				for(Order od:list){
+					LocalOrderAttr loa = (LocalOrderAttr) oc.getOuter().getLocalObject();
+					if(loa!=null){
+						loa.setOrder_id(od.getOrder_id());
+						this.baseDaoSupport.insert("es_local_order_attr", loa);
+					}
+				}
+			}
+		}catch(ApiBusiException e) //add bu wui,订单归集业务异常，则整个事物回滚，抛出运行时异常。因为数据还在对列表，通过执行队列处理任务 //TODO后续可做开关控制处理
+		{
+			if(Consts.SERVICE_CODE_CO_GUIJI.equals(service_code)) //现网订单归集整个回滚，因为对列表有一份同样的数据
+				throw new RuntimeException(e);
+			else { //新订单归集不回滚，因为有资料补录界面补录信息
+				throw e;
+			}
+			
+		}
+		return  resp;
+	}
+	
+	public OrderSyncReq createReq(OrderCollect oc,String service_code) throws ApiBusiException{
+		List<Map> mapList = new ArrayList<Map>();
+		List<OuterItem> list = oc.getOuter().getItemList();
+		OrderOuter outer = oc.getOrderOuterList().get(0);
+		Outer ot = oc.getOuter();
+		Map map_all = new HashMap();
+		Map otMap = ReflectionUtil.po2Map(ot);
+		if(ot.getExtMap()!=null && ot.getExtMap().size()>0)
+			map_all.putAll(ot.getExtMap());
+		if(ot.getLocalObject()!=null)
+			map_all.putAll(ReflectionUtil.po2Map(ot.getLocalObject()));
+		map_all.putAll(otMap);
+		for(OuterItem ci:list){
+			Map map = new HashMap();
+			map.putAll(ReflectionUtil.po2Map(outer));
+			map.putAll(otMap);
+			map.putAll(ReflectionUtil.po2Map(ci));
+			map.putAll(map_all);
+			map.put("shipping_id", outer.getShipping_id());
+			map.put("ship_mobile", outer.getShip_mobile());
+			map.put("ship_addr", outer.getShip_addr());
+			map.put("ship_tel", outer.getShip_tel());
+			map.put("ship_zip", outer.getShip_zip());
+			map.put("province_id", outer.getProvince_id());
+			map.put("city_id", outer.getCity_id());
+			map.put("region_id", outer.getRegion_id());
+			map.put("province", outer.getProvince());
+			map.put("city", outer.getCity());
+			map.put("region", outer.getRegion());
+			map.put("ship_name", outer.getShip_name());
+			map.put("remark", outer.getRemark());
+			//发票信息
+			map.put("invoice_title", outer.getInvoice_title());
+			map.put("invoice_title_desc", outer.getInvoice_title());
+			map.put("invoice_type", outer.getInvoice_type());
+			map.put("house_id", ci.getHouse_id());
+			outer.setHouse_id(ci.getHouse_id());
+			outer.setOrg_id(ci.getOrg_id());
+			
+			map.put("item_type", Consts.ITEM_TYPE_0);
+			map.put("product_id", ci.getProduct_id());// 150 201310113208001326 //156
+			map.put("goods_num", ci.getPro_num());
+			//if(StringUtil.isEmpty(outer.getPayment_id()))
+			outer.setPayment_id("ZXZF");
+			map.put("payment_id", outer.getPayment_id());
+			//if(StringUtil.isEmpty(outer.getShipping_id()))
+			outer.setShipping_id("PY");
+			map.put("source_from", ManagerUtils.getSourceFrom());
+			map.put("goods_name", ci.getPro_name());
+			
+			mapList.add(map);
+		}
+		OrderSyncReq oreq = new OrderSyncReq();
+		oreq.setParamsl(mapList);
+		oreq.setCreate_type("1");
+		
+		if(Consts.SERVICE_CODE_CO_GUIJI_NEW.equals(service_code))
+			oreq.setService_code(com.ztesoft.ibss.common.util.Const.ORDER_STAND_AUTO_SERVICE_CODE);
+		else
+			oreq.setService_code(com.ztesoft.ibss.common.util.Const.ORDERSTANDARDIZE_CODE);
+		
+		return oreq;
+	}
+	
+}

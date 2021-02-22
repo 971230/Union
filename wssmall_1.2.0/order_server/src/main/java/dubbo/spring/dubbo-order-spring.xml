@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+		http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-autowire="byName" default-lazy-init="false">
+
+
+    <bean class="services.OrderServ" id="orderServ"/>
+    <bean class="services.AcceptServ" id="acceptServ"/>
+    <bean class="services.DeliveryServ" id="deliveryServ"/>
+    <bean class="services.CartService" id="cartServ"/>
+    <bean class="services.OrderActionRuleServ" id="orderActionRuleServ"/>
+    <bean class="services.OrderOuterServ" id="orderOuterServ"/>
+    <bean class="services.OrderSyServ" id="orderSyServ"/>
+    <bean class="services.PaymentServ" id="paymentServ"/>
+    <bean class="services.PromotionServ" id="promotionServ"/>
+    <bean class="services.OrderRuleServ" id="orderRuleServ"/>
+    <bean class="zte.service.OrderServices" id="orderServices"/>
+    <bean class="zte.service.PaymentServices" id="paymentServices"/>
+    <bean class="zte.service.CartServices" id="cartServices"/>
+    <bean class="zte.service.DlyTypeAddressService" id="dlyTypeAddressService"/>
+    <bean class="zte.service.OrderApplyService" id="orderApplyService"/>
+    <bean class="zte.service.CoQueueService" id="coQueueService"/>
+    <bean id="orderManager" class="com.ztesoft.net.mall.core.service.impl.OrderManager" parent="baseSupport"></bean>	
+</beans>

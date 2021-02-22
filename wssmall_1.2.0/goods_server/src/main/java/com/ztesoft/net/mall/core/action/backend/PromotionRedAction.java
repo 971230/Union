@@ -1,0 +1,202 @@
+/**
+ * 
+ */
+package com.ztesoft.net.mall.core.action.backend;
+
+import java.util.List;
+
+import zte.params.order.resp.GrabRedPkgResp;
+
+import com.alibaba.fastjson.JSON;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.model.CouponsRedPackageSearch;
+import com.ztesoft.net.mall.core.model.PromotionRedPkg;
+import com.ztesoft.net.mall.core.model.PromotionRedPkgDetail;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+import com.ztesoft.net.mall.core.service.IPromotionRedManager;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+
+/**
+ * @author ZX
+ * PromotionRedAction.java
+ * 2015-3-16
+ */
+public class PromotionRedAction extends WWAction {
+	
+	private static final long serialVersionUID = 1L;
+	private IDcPublicInfoManager dcPublicInfoManager;
+	private IPromotionRedManager promotionRedManager;
+	
+	private CouponsRedPackageSearch redSearch;
+	private PromotionRedPkg promotionRedPkg; // 红包基础表
+	private List redTypeList; // 红包类型
+	private String red_id; // 红包ID
+	private String red_ids; // 删除红包ID
+	private String order;
+	private String member_id; // 会员ID
+	private List<PromotionRedPkgDetail> cpnsList; // 优惠券列表
+	
+	/**
+	 * 红包列表
+	 * @return
+	 */
+	public String redlist() {
+		if (redSearch == null) {
+			redSearch = new CouponsRedPackageSearch();
+		}
+		this.webpage = promotionRedManager.redlist(redSearch, this.getPage(), this.getPageSize(), order);
+		return "red_package_list";
+	}
+	/**
+	 * 添加红包
+	 */
+	public String redadd() {
+		DcPublicInfoCacheProxy dcPublicCache = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+        redTypeList = dcPublicCache.getList("201503131046");
+		return "red_package_add";
+	}
+	public String redaddsave() {
+		if (promotionRedPkg != null) {
+			String id = promotionRedManager.addredbypage(promotionRedPkg);
+			if (id != null && !id.trim().equals("")) {
+				json = "{'res':0,'msg':'操作成功！', 'data':'"+id+"'}";
+			} else {
+				json = "{'res':1,'msg':'操作失败！'}";
+			}
+		}
+		return JSON_MESSAGE;
+	}
+	public String redview() {
+		DcPublicInfoCacheProxy dcPublicCache = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+        redTypeList = dcPublicCache.getList("201503131046");
+		promotionRedPkg = promotionRedManager.redview(red_id);
+		cpnsList = promotionRedManager.redCpnsList(red_id);
+		return "red_package_view";
+	}
+	/**
+	 * 修改红包信息
+	 * @return
+	 */
+	public String rededit() {
+		DcPublicInfoCacheProxy dcPublicCache = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+        redTypeList = dcPublicCache.getList("201503131046");
+		promotionRedPkg = promotionRedManager.redview(red_id);
+		return "red_package_edit";
+	}
+	public String rededitsave() {
+		promotionRedPkg = promotionRedManager.rededit(red_id, promotionRedPkg.getName(), promotionRedPkg.getMemo());
+		json = JSON.toJSONString(promotionRedPkg);
+		return JSON_MESSAGE;
+	}
+	/**
+	 * 生成红包
+	 * @return
+	 */
+	public String redcreate() {
+		
+		String flag = promotionRedManager.redcreate(red_id);
+		
+		if (flag.equals("0")) {
+			json = "{'res':0,'msg':'成功！'}";
+		} else if (flag.equals("-1")) {
+			json = "{'res':-1,'msg':'失败！'}";
+		}
+		
+		return JSON_MESSAGE;
+	}
+	/**
+	 * 
+	 * @return
+	 */
+	public String reddel() {
+		
+		if (red_ids != null && !red_ids.equals("")) {
+			String res = promotionRedManager.reddel(red_ids);
+			if (res.equals("0")) {
+				json = "{'res':0,'msg':'删除成功！'}";
+			} else {
+				json = "{'res':-1,'msg':'删除失败！"+res+" 已生成优惠券不能删除！'}";
+			}
+		}
+		
+		return JSON_MESSAGE;
+	}
+	
+	public String testGrabRedPkg() {
+		GrabRedPkgResp resp = new GrabRedPkgResp();
+		promotionRedManager.grabredpkg(red_id, member_id, resp);
+		json = "{'res':"+resp.getError_code()+", 'msg':'"+resp.getError_msg()+"'}";
+		return JSON_MESSAGE;
+	}
+	
+	public String getRed_ids() {
+		return red_ids;
+	}
+	public void setRed_ids(String red_ids) {
+		this.red_ids = red_ids;
+	}
+	public String getRed_id() {
+		return red_id;
+	}
+	public void setRed_id(String red_id) {
+		this.red_id = red_id;
+	}
+
+	public String getOrder() {
+		return order;
+	}
+
+	public void setOrder(String order) {
+		this.order = order;
+	}
+
+	public List getRedTypeList() {
+		return redTypeList;
+	}
+
+	public void setRedTypeList(List redTypeList) {
+		this.redTypeList = redTypeList;
+	}
+
+	public PromotionRedPkg getPromotionRedPkg() {
+		return promotionRedPkg;
+	}
+
+	public void setPromotionRedPkg(PromotionRedPkg promotionRedPkg) {
+		this.promotionRedPkg = promotionRedPkg;
+	}
+
+	public CouponsRedPackageSearch getRedSearch() {
+		return redSearch;
+	}
+
+	public void setRedSearch(CouponsRedPackageSearch redSearch) {
+		this.redSearch = redSearch;
+	}
+
+	public IDcPublicInfoManager getDcPublicInfoManager() {
+		return dcPublicInfoManager;
+	}
+	public void setDcPublicInfoManager(IDcPublicInfoManager dcPublicInfoManager) {
+		this.dcPublicInfoManager = dcPublicInfoManager;
+	}
+	public String getMember_id() {
+		return member_id;
+	}
+	public void setMember_id(String member_id) {
+		this.member_id = member_id;
+	}
+	public List<PromotionRedPkgDetail> getCpnsList() {
+		return cpnsList;
+	}
+	public void setCpnsList(List<PromotionRedPkgDetail> cpnsList) {
+		this.cpnsList = cpnsList;
+	}
+	public IPromotionRedManager getPromotionRedManager() {
+		return promotionRedManager;
+	}
+	public void setPromotionRedManager(IPromotionRedManager promotionRedManager) {
+		this.promotionRedManager = promotionRedManager;
+	}
+	
+}

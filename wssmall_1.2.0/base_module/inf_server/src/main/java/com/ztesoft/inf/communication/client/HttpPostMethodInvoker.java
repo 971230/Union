@@ -1,0 +1,131 @@
+package com.ztesoft.inf.communication.client;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.methods.ByteArrayRequestEntity;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.log4j.Logger;
+
+import params.ZteResponse;
+
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.common.util.date.DateUtil;
+import com.ztesoft.ibss.common.util.DateFormatUtils;
+import com.ztesoft.inf.communication.client.exception.HttpTimeOutException;
+/**
+ * 
+ * @author sguo 
+ * <p>
+ * 	联通南都http接口
+ * </p>
+ * 
+ */
+public class HttpPostMethodInvoker extends Invoker {
+	
+	protected Logger logger = Logger.getLogger(HttpPostMethodInvoker.class);
+	
+    static MultiThreadedHttpConnectionManager connectionManager =
+            new MultiThreadedHttpConnectionManager();
+    
+    static {
+    	/** 
+    	 * add by shusx 2016-08-10
+    	 * 下面两个参数使用说明:
+    	 * 如果该多线程连接池不对多个host使用时，MaxTotalConnections = MaxConnectionsPerHost
+    	 * 如果该多线程连接池对多个host使用时，MaxTotalConnections = n(host) * MaxConnectionsPerHost
+    	 */
+        connectionManager.setMaxConnectionsPerHost(60);
+        connectionManager.setMaxTotalConnections(60);
+    }
+    
+    private static HttpClient client = new HttpClient(connectionManager);
+	
+	@Override
+	public Object invoke(InvokeContext context) throws Exception {
+		context.setRequestTime(DateUtil.currentTime());
+		//链接超时
+		client.getHttpConnectionManager().getParams().setConnectionTimeout(http_post_time_out);  
+		//读取超时
+		client.getHttpConnectionManager().getParams().setSoTimeout(http_read_time_out);
+		
+		String _content = generateRequestString(context);
+		context.setRequestString(_content);
+		context.setEndpoint(endpoint);
+		PostMethod postMethod = new PostMethod(endpoint);
+		try{
+			byte[] bytes = _content.getBytes("UTF-8");
+	        ByteArrayRequestEntity bare = new ByteArrayRequestEntity(bytes);
+	        postMethod.setRequestEntity(bare);        	
+	        /** 调用前先打印连接池使用情况  */
+        	logger.info("HttpPostMethodInvoker==pool,"+DateFormatUtils.formatDate("yyyy-MM-dd HH:mm:ss")
+        			+",connectionsInPool:"+connectionManager.getConnectionsInPool()
+        			+",connectionsInUse:"+connectionManager.getConnectionsInUse()
+        			+",maxConnectionsPerHost:"+connectionManager.getMaxConnectionsPerHost()
+        			+",maxTotalConnections:"+connectionManager.getMaxTotalConnections());
+	        int statusCode = client.executeMethod(postMethod);
+	        if(TIME_OUT_STATUS==statusCode)throw new HttpTimeOutException("超时异常");
+	        if(OK_STATUS_200!=statusCode && OK_STATUS_201!=statusCode && OK_STATUS_202!=statusCode && OK_STATUS_203!=statusCode && OK_STATUS_204!=statusCode && OK_STATUS_205!=statusCode && OK_STATUS_206!=statusCode)
+	        	throw new HttpException("接口异常");
+	        String resContent =  getResponseContent(postMethod.getResponseBodyAsStream());
+	        HashMap param = JsonUtil.fromJson(resContent, HashMap.class);
+	        context.setResultString(param.toString());
+	        context.setResponeString(param.toString());
+	        context.setResponseTime(DateUtil.currentTime());
+	        return param;
+		}catch(HttpException ex){
+			ex.printStackTrace();
+			throw new HttpException("接口异常");
+		}catch(Exception ex){
+			ex.printStackTrace();
+			throw new IOException("接口异常");
+		} finally {
+            if (postMethod != null) {
+    	        postMethod.releaseConnection();
+            }
+        }
+		
+	}
+	
+	@Override
+	public Object invokeTest(InvokeContext context) throws Exception {
+		context.setRequestTime(DateUtil.currentTime());
+		String _content = generateRequestString(context);
+		context.setRequestString(_content);
+		context.setEndpoint(endpoint);
+		ZteResponse resp = null;
+		Class<?> clazz = null;
+		try {
+			clazz = Class.forName(rspPath);
+			resp = (ZteResponse) JsonUtil.fromJson(transform, clazz);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		context.setResultString(transform);
+		context.setResponeString(transform);
+		context.setResponseTime(DateUtil.currentTime());
+		return resp;
+	}	
+	@Override
+	protected String generateRequestString(InvokeContext context) {
+		Object params = context.getParameters();
+		return JsonUtil.toJson(params);
+	}
+	
+    public String getResponseContent(final InputStream input) throws IOException {
+    	BufferedReader reader = new BufferedReader(new InputStreamReader(input, "utf-8"));
+		StringBuilder buffer = new StringBuilder();
+		String line = null;
+		while ((line = reader.readLine()) != null) {
+			buffer.append(line);
+		}
+        return buffer.toString();
+    }
+
+}

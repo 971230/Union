@@ -1,0 +1,82 @@
+/**
+ Error Code :5012
+ EJB模式目前只有北方电信项目还在使用，因此主要考虑兼容原来的应用模式
+ modifyed on 2005.1
+ */
+package com.powerise.ibss.framework.ejb;
+
+import com.powerise.ibss.framework.ActionDispatch;
+import com.powerise.ibss.framework.DynamicDict;
+import com.powerise.ibss.util.SysSet;
+import org.apache.log4j.Logger;
+
+import javax.ejb.CreateException;
+import javax.ejb.SessionBean;
+import javax.ejb.SessionContext;
+import java.util.HashMap;
+
+public class DispatchEJBBean implements SessionBean {
+    /**
+     * Comment for <code>serialVersionUID</code>
+     */
+    private static final long serialVersionUID = 2612796226935704921L;
+    private static Logger m_Logger = Logger.getLogger(DispatchEJBBean.class);;
+
+    SessionContext sessionContext;
+    ActionDispatch act;
+
+    int err_code;
+
+    String err_msg;
+
+    String err_exp;
+
+    public void ejbCreate() throws CreateException {
+        /** 完成系统初始参数的初始化 */
+        try {
+            SysSet.initSystem();
+        } catch (Exception e) {
+        	m_Logger.info("App 层系统初始化失败:" + e.getMessage());
+            //logger.info("App 层系统初始化失败:" + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void ejbRemove() {
+        /** @todo Complete this method */
+    }
+
+    public void ejbActivate() {
+        /** @todo Complete this method */
+    }
+
+    public void ejbPassivate() {
+        /** @todo Complete this method */
+    }
+
+    public void setSessionContext(SessionContext sessionContext) {
+        this.sessionContext = sessionContext;
+    }
+
+    public DynamicDict perform(DynamicDict p_dynamic_dict) {
+        DynamicDict dict =ActionDispatch.dispatch(p_dynamic_dict);
+        return dict;
+      
+    }
+
+    /**
+     * 给Servlet调用，由于在打包的过程中需要连数据库，为了防止在Servlet端连数据库， 所以其返回的结果已经为具有XML格式的字符串。
+     */
+    public String performServlet(DynamicDict p_dynamic_dict) {
+        return ActionDispatch.performServlet(p_dynamic_dict,null);
+    }
+
+    public String performServletDynamicAction(String p_input, HashMap p_staff_info) {
+        return ActionDispatch.performServletDynamicAction(p_input, p_staff_info);
+    }
+
+    public DynamicDict performWEBDynamicAction(DynamicDict p_dynamic_dict) {
+        return ActionDispatch.performWEBDynamicAction(p_dynamic_dict);
+    }
+
+}

@@ -1,0 +1,52 @@
+package com.ztesoft.net.mall.core.action.backend;
+
+import com.opensymphony.xwork2.Action;
+import com.ztesoft.net.app.base.core.model.Seo;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.service.ISeoManager;
+
+/**
+ * SEO
+ * 
+ * @author 李志富 lzf<br/>
+ *         2010-1-19 上午10:41:04<br/>
+ *         version 1.0<br/>
+ * <br/>
+ */
+public class SeoAction extends WWAction {
+	
+	private ISeoManager seoManager;
+	private Seo seo;
+
+	
+	@Override
+	public String execute() throws Exception {
+		seo = seoManager.getSeo();
+		return Action.SUCCESS;
+	}
+	
+	public String save() throws Exception {
+		seoManager.update(seo);
+		this.msgs.add("SEO信息修改成功");
+		this.urls.put("SEO信息", "seo.do");
+		return WWAction.MESSAGE;
+	}
+
+	public ISeoManager getSeoManager() {
+		return seoManager;
+	}
+
+	public void setSeoManager(ISeoManager seoManager) {
+		this.seoManager = seoManager;
+	}
+
+	public Seo getSeo() {
+		return seo;
+	}
+
+	public void setSeo(Seo seo) {
+		this.seo = seo;
+	}
+
+	
+}

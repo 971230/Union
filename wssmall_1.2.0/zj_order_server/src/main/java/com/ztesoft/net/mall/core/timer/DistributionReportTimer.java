@@ -1,0 +1,142 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.jdbc.core.RowMapper;
+
+import com.jcraft.jsch.ChannelSftp;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.service.impl.MakeExcel;
+import com.ztesoft.net.sqls.SF;
+import com.ztesoft.net.util.SFTPChannel;
+
+public class DistributionReportTimer {
+
+	private ChannelSftp sftpchannel;
+	private SFTPChannel channel;
+	
+	public void run(){
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "run")) {
+  			return;
+		}
+		String sql_total = SF.ecsordSql("ORDER_DISTIBUTION_REPORT_HEAD_LIST");
+		String sql = SF.ecsordSql("ORDER_DISTIBUTION_REPORT_LIST");
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
+        Date date = new Date();
+        int int2 = Integer.parseInt(sdf.format(date));
+        sdf = new SimpleDateFormat("MM");
+		int int1 = Integer.parseInt(sdf.format(date));
+		String begin_time = "";
+		if(int1==1){
+			int2 = int2-1;
+			begin_time = int2+"-12-01 00:00:00";
+		}else{
+			String a = "";
+			int1 = int1-1;
+			if(int1<10){
+				a = "0"+int1;
+			}else{
+				a = int1+"";
+			}
+			begin_time = int2+"-"+a+"-01 00:00:00";
+		}
+		sql += " and eoe.tid_time >= to_date('"+begin_time+"','yyyy-mm-dd hh24:mi:ss') ";
+		// 过滤作废单---
+				sql += " and (eoe.order_if_cancel ='0' or eoe.order_if_cancel is null)";
+				// sql_his += " and (eoe.order_if_cancel ='0' or eoe.order_if_cancel is null)";
+
+				// 按稽和完成的条件查询单子
+				sql += " and eoe.flow_trace_id in('H','L','J')";
+
+				// 排序
+				sql += "order by  eost.f_end_time desc";
+
+				String new_sql = sql_total + " from(" + sql + ") ord ";
+				IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+				//System.out.println(new_sql);
+				List list = baseDaoSupport.queryForList(new_sql, new RowMapper() {
+					@Override
+					public Object mapRow(ResultSet rs, int c) throws SQLException {
+						Map data = new HashMap();
+						// data.put("out_tid", rs.getString("out_tid"));
+
+						data.put("序号", rs.getString("sequence_id"));
+						data.put("订单编号", rs.getString("out_order_id"));
+						data.put("订单状态", rs.getString("status"));
+						data.put("发货人", rs.getString("opname"));
+						data.put("发货时间", rs.getString("h_end_time"));
+						data.put("商品名称", rs.getString("goodsname"));
+						data.put("手机型号", rs.getString("specificatio_nname"));
+						data.put("手机串号", rs.getString("terminal_num"));
+						data.put("成交时间", rs.getTimestamp("tid_time"));
+						data.put("稽核人", rs.getString("lock_user_name"));
+						data.put("稽核时间", rs.getTimestamp("lock_time"));
+						data.put("新老用户", rs.getString("is_old"));
+						data.put("入网姓名", rs.getString("phone_owner_name"));
+						data.put("入网号码", rs.getString("phone_num"));
+						data.put("联系人姓名", rs.getString("ship_name"));
+						data.put("联系电话", rs.getString("ship_tel"));
+						data.put("物流单号", rs.getString("logi_no"));
+						data.put("返回单号", rs.getString("receipt_no"));
+						data.put("物流地址", rs.getString("ship_addr"));
+
+						data.put("物流公司", rs.getString("shipping_company")); // 物流公司
+						data.put("付款方式", rs.getString("pay_method")); // 付款方式
+						data.put("金额", rs.getString("fee")); // 金额
+						data.put("发货批次", rs.getString("ship_batch")); // 发货批次
+						data.put("发货人", rs.getString("goods_shipper")); // 发货人
+						data.put("发货时间", rs.getString("goods_send_time")); // 发货时间
+						data.put("入网证件", rs.getString("net_certi")); // 入网证件
+						data.put("受理协议", rs.getString("accept_agree")); // 受理协议
+						data.put("靓号协议", rs.getString("liang_agree")); // 靓号协议
+						data.put("存档编号", rs.getString("receive_num")); // 存档编号
+						data.put("资料归档人", rs.getString("j_op_id")); // 资料归档人
+						data.put("资料归档时间", rs.getString("archive_time")); // 资料归档时间
+
+						return data;
+					}
+				}, null);
+				List<String> ll=new ArrayList();
+				String[] title = new String[] { "序号", "订单编号", "订单状态", "发货人", "发货时间", "商品名称", "手机型号", "手机串号", "成交时间", "稽核人",
+						"稽核时间", "新老用户", "入网姓名", "入网号码", "联系人姓名", "联系电话", "物流单号", "返回单号", "物流地址", "物流公司", "付款方式", "金额", "发货批次",
+						"发货人", "发货时间", "入网证件", "受理协议", "靓号协议", "存档编号", "资料归档人", "资料归档时间" };
+				for (int i = 0; i < title.length; i++) {
+					ll.add(title[i]);
+				}
+				try {
+					ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+					String url = cacheUtil.getConfigInfo("DistributionReportURL");
+					MakeExcel.CreateExcelFile(list, new File(url),ll,"");
+					String params = cacheUtil.getConfigInfo("VOX2WAV_PARAM");
+					net.sf.json.JSONObject jsonobj = net.sf.json.JSONObject.fromObject(params);
+					Map<String,String> login_map = new HashMap<String,String>();
+					login_map.put("ip", jsonobj.getString("ip"));
+					login_map.put("port", jsonobj.getString("port"));
+					login_map.put("userName", jsonobj.getString("userName"));
+					login_map.put("passWord", jsonobj.getString("passWord"));
+					channel = new SFTPChannel();
+					sftpchannel = channel.getChannel(login_map, 200000);
+					String uplod_url = jsonobj.getString("uplod_url");
+					File file = new File(url);
+					FileInputStream in = new FileInputStream(file);
+					sftpchannel.cd(uplod_url);
+					sftpchannel.put(in,url.substring(url.lastIndexOf("/")+1));
+					in.close();
+					channel.deleteFile(url);
+		        } catch (Exception e) {
+		            // TODO Auto-generated catch block
+		            e.printStackTrace();
+		        } 
+	}
+}

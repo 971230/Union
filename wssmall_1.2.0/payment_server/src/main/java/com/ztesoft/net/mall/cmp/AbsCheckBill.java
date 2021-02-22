@@ -1,0 +1,133 @@
+package com.ztesoft.net.mall.cmp;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.springframework.web.util.FTPUtil;
+
+import params.checkacctconfig.req.CheckAcctConfigReq;
+import params.checkacctconfig.resp.CheckAcctConfigResp;
+
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.CheckAcctConfig;
+import com.ztesoft.net.mall.core.model.TransDetailVo;
+import com.ztesoft.net.mall.core.model.TransMainVo;
+
+public abstract class AbsCheckBill implements ICheckBill{
+
+    public Logger imlog = Logger.getLogger(AbsCheckBill.class);
+
+    @Override
+	@SuppressWarnings("unchecked")
+    public int bestCheckBill(CheckAcctConfigReq checkAcctConfigReq,CheckAcctConfigResp checkAcctConfigResp){
+
+        CheckAcctConfig acctconfig = checkAcctConfigReq.getCheckAcctConfig();
+        CompBillResult compBillResult = checkAcctConfigResp.getCompBillResult();
+
+
+        String strFileName =acctconfig.getA_shop_no()+ acctconfig.getA_file_tail();
+        strFileName = acctconfig.getAccounts_id()+ strFileName ;
+        acctconfig.setA_file_name(strFileName);
+
+        FileReader fr = null;
+        BufferedReader br = null;
+
+        try {
+            String remoteFile = acctconfig.getA_file_remote_path() + strFileName;
+            String localFile = acctconfig.getA_file_local_path()+ strFileName;
+
+            imlog.debug("远程文件" + remoteFile);
+
+            //下载对账文件
+            Map ftpConfig = new HashMap();
+            ftpConfig.put("ip", acctconfig.getUp_ftp_addr());
+            ftpConfig.put("port", acctconfig.getUp_ftp_port());
+            ftpConfig.put("userName", acctconfig.getUp_ftp_user());
+            ftpConfig.put("passWord", acctconfig.getUp_ftp_passwd());
+
+            FTPUtil.download(remoteFile, localFile, ftpConfig);
+
+            fr = new FileReader(localFile);		//创建FileReader对象，用来读取字符流
+            br = new BufferedReader(fr);    	//缓冲指定文件的输入
+
+            int i = 0;
+            List<TransDetailVo> details =  new ArrayList<TransDetailVo>();
+            String myreadline = "";
+
+            //add by wui 按格式解析数据
+            TransMainVo transMainVo = null;
+            while (br.ready()) {
+
+                myreadline = br.readLine();			//读取一行
+                imlog.info(myreadline);		//在屏幕上输出
+                if (i==0){
+                    transMainVo = parseMain(myreadline);
+                    if(!transMainVo.getShopNo().equals(acctconfig.getA_shop_no())){
+                        throw new RuntimeException("对账文件不正确，商户号对不上号，请检查商户号是否正确");
+                    }
+                    //解析对账文件主记录
+                    checkAcctConfigResp.setTransMainVo(transMainVo);
+
+                }else{
+                    TransDetailVo detialVo = parseDetial(myreadline);
+                    //if("001".equals(detialVo.getPayType())){
+                    if(detialVo!=null){
+                        details.add(detialVo);
+                    }
+                }
+                i++;
+            }
+            checkAcctConfigResp.setDetails(details);
+            transMainVo.setIcount(new Long(i-1));
+            br.close();
+            fr.close();
+
+        } catch (IOException e) {
+            compBillResult.setErr_type(Consts.COMP_BILL_ERROR_00C);
+            compBillResult.setErr_message("处理翼支付对帐文件失败");
+            e.printStackTrace();
+            throw new RuntimeException("处理翼支付对帐文件失败:" + e.getMessage());
+        }finally{
+
+            if (br!=null){
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (fr!=null){
+                try {
+                    fr.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 解析头
+     * @作者 MoChunrun
+     * @创建日期 2013-10-22
+     * @param mainLine
+     * @return
+     */
+    public abstract TransMainVo parseMain(String mainLine);
+
+    /**
+     * 解析明细
+     * @作者 MoChunrun
+     * @创建日期 2013-10-22
+     * @param detialLine
+     * @return
+     */
+    public abstract TransDetailVo parseDetial(String detialLine);
+}

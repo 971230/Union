@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>电商平台 - API详情</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="shortcut icon" href="" type="image/x-icon">
+<link rel="stylesheet" href="css/base-min.css">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/error.css">
+<link rel="stylesheet" href="css/open-base.css">
+<link rel="stylesheet" href="css/sh.css">
+<link rel="stylesheet" href="css/editor-pkg-min-datauri.css" >
+<link rel="stylesheet" href="css/right-tools.css">
+<script src="js/jquery-1.4.2.min.js"></script>
+</head>
+<body>
+	<div class="top-header-menu">
+		<div class="top-menu-cont">
+			<h1 class="top-logo" style="display:none;">
+				<a class="top-logo-link" href="http://open.taobao.com/" alt="淘宝开放平台"></a>
+			</h1>
+			<!-- 搜索start -->
+			<div class="search-wrap">
+				<div class="search">
+					<div id="search">
+						<div class="default"><span class="initText">请输入您要搜索的内容</span></div>
+						<div class="actived">
+							<input autocomplete="off" class="searchText" id="searchText" t="api" onkeypress="EnterPress()" onkeydown="EnterPress(event)" type="text"> 
+							<a class="sBtn" onclick="searchapi()"></a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- 搜索end -->
+			<ul class="top-nav-menu clearfix">
+				<li><a href="#">文档</a></li>
+				<li class="selected"><a href="index.html">API<iclass="reddot"></i></a></li>
+			</ul>
+		</div>
+	</div>
+	<!-- header end -->
+
+	<!--header end-->
+	<!--面包屑 begin-->
+	<div class="crumbs">
+		<a href="index.html">用户API</a>
+		<a class="last" href="#">zte.net.iservice.IGoodsService</a>
+		<!--class with "last"-->
+	</div>
+	<!--面包屑 end-->
+
+	<div class="container grid-s165m0 layout">
+		<!--正文区 begin-->
+		<div class="col-main bg_line">
+			<div class="main-wrap">
+				<div class="title-wrap">
+					<h1 class="open-bg title">
+						zte.net.iservice.IGoodsService 商品管理API 
+					</h1>
+
+					<ul class="api-sub-title layout clearfix">
+						<li class="sub-title"><a class="link" href="#param-in-h2">函数输入参数</a></li>
+						<li class="sub-title last"><a class="link" href="#param-out-h2">函数输出参数</a></li>
+					</ul>
+				</div>
+
+				<div class="api-detail-bd" id="bd">
+					<div>
+						<p class="title-intro">商品管理API[查询商品基本信息 查询商品价格 查询品牌商品（门户展示）查询分类商品（门户展示一级分类下所有商品）查询商品详情信息]</p>
+						<!-- 函数入参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-in-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-in')"> 函数输入参数<font color="blue"><b>class zte.params.goods.req.GoodsTerminalReq</b></font>
+							</h2>
+							<div id="param-in" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">商品ID</td>
+											<td class="middle"><font color='red'>goods_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">goods_id：查询终端关联计划商品ID，如201403044106001706， 不能为空。</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">API方法标识</td>
+											<td class="middle"><font color='red'>com.goodsService.goods.terminal.get</font></td>
+											<td class="middle">String</td>
+											<td class="middle"></td>
+											<td class="left">ApiMethodName，在注册中心中唯一</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数入参>>end -->
+						<!-- 函数出参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-out-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-out')"> 函数输出参<font color="blue"><b>class zte.params.goods.resp.GoodsListResp</b></font>
+							</h2>
+							<div id="param-out" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>										
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">分页器</td>
+											<td class="middle"><font color='red'>goodsPage</font></td>
+											<td class="middle">com.ztesoft.net.framework.database.Page</td>
+											<td class="middle">N</td>
+											<td class="left">分页器：goodsPage.getResult()获取商品信息列表数据，商品信息：goods_id：商品ID，name：商品名称，sn：商品编码，brand_id：品牌id，cat_id：商品目录，type_id：商品类型ID，goods_type：商品类型，weight：重量，market_enable：上下架状态（1上架、0下架），brief：产品简述，price：销售价，mktprice：市场价，view_count：查看次数，buy_count：购买数，store：库存，point：积分，specifications：规格信息等</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数出参>>end -->						
+					</div>
+					
+				</div>
+			</div>
+		</div>
+		<!--正文区 end-->
+		<!--左侧导航栏 begin-->
+		<div class="col-sub">
+			<div class="APIgory">
+				<ul id="leftnavigation">
+					<li>
+						<div class="APIgory-title">
+							<a href="index.html">返回&nbsp;<span class="APIgory-sub-title">zte.net.iservice.IGoodsService</span></a>
+						</div>
+					</li>
+						<li url="zte.net.iservice.IGoodsService.modifyStatus.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.modifyStatus.html" title="modifyStatus">zte.net.iservice.IGoodsService.modifyStatus</a>
+									<p class="APIgory-intro info-overflow">发布状态更新</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getGoods.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getGoods.html" title="getGoods">zte.net.iservice.IGoodsService.getGoods</a>
+									<p class="APIgory-intro info-overflow">根据product_id获取货品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getGroupBuy.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getGroupBuy.html" title="getGroupBuy">zte.net.iservice.IGoodsService.getGroupBuy</a>
+									<p class="APIgory-intro info-overflow">获取团购信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getAcceptPrice.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getAcceptPrice.html" title="getAcceptPrice">zte.net.iservice.IGoodsService.getAcceptPrice</a>
+									<p class="APIgory-intro info-overflow">查询商品受理价格</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listComplex.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listComplex.html" title="listComplex">zte.net.iservice.IGoodsService.listComplex</a>
+									<p class="APIgory-intro info-overflow">根据商品Id获取相关商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listProducts.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listProducts.html" title="listProducts">zte.net.iservice.IGoodsService.listProducts</a>
+									<p class="APIgory-intro info-overflow">获取商品下的货品列表</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getProductByGoodsId.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getProductByGoodsId.html" title="getProductByGoodsId">zte.net.iservice.IGoodsService.getProductByGoodsId</a>
+									<p class="APIgory-intro info-overflow">根据商品id获取产品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getGoodsStore.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getGoodsStore.html" title="getGoodsStore">zte.net.iservice.IGoodsService.getGoodsStore</a>
+									<p class="APIgory-intro info-overflow">查询商品库存</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.qryGoodsRanking.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.qryGoodsRanking.html" title="qryGoodsRanking">zte.net.iservice.IGoodsService.qryGoodsRanking</a>
+									<p class="APIgory-intro info-overflow">商品排行榜</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getPromotionByGoodsId.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getPromotionByGoodsId.html" title="getPromotionByGoodsId">zte.net.iservice.IGoodsService.getPromotionByGoodsId</a>
+									<p class="APIgory-intro info-overflow">获取商品优惠促销</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getGoodsScore.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getGoodsScore.html" title="getGoodsScore">zte.net.iservice.IGoodsService.getGoodsScore</a>
+									<p class="APIgory-intro info-overflow">获取商品评分和评论数</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getGoodsDetail.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getGoodsDetail.html" title="getGoodsDetail">zte.net.iservice.IGoodsService.getGoodsDetail</a>
+									<p class="APIgory-intro info-overflow">获取商品详情</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.checkGoodsHasSpec.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.checkGoodsHasSpec.html" title="checkGoodsHasSpec">zte.net.iservice.IGoodsService.checkGoodsHasSpec</a>
+									<p class="APIgory-intro info-overflow">判断商品是否开启规格</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsByIdsAndName.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsByIdsAndName.html" title="queryGoodsByIdsAndName">zte.net.iservice.IGoodsService.queryGoodsByIdsAndName</a>
+									<p class="APIgory-intro info-overflow">商品搜索</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listOfferChange.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listOfferChange.html" title="listOfferChange">zte.net.iservice.IGoodsService.listOfferChange</a>
+									<p class="APIgory-intro info-overflow">获取变更信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getGoodsInfo.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getGoodsInfo.html" title="getGoodsInfo">zte.net.iservice.IGoodsService.getGoodsInfo</a>
+									<p class="APIgory-intro info-overflow">根据商品ID获取商品信息，用于数据同步</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getGoodsCatPath.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getGoodsCatPath.html" title="getGoodsCatPath">zte.net.iservice.IGoodsService.getGoodsCatPath</a>
+									<p class="APIgory-intro info-overflow">获取商品类别id</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getcolConfig.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getcolConfig.html" title="getcolConfig">zte.net.iservice.IGoodsService.getcolConfig</a>
+									<p class="APIgory-intro info-overflow">获得规格配置信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getProductInfo.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getProductInfo.html" title="getProductInfo">zte.net.iservice.IGoodsService.getProductInfo</a>
+									<p class="APIgory-intro info-overflow">根据货品ID获取货品信息，用于数据同步</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.qryGoodsByIds.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.qryGoodsByIds.html" title="qryGoodsByIds">zte.net.iservice.IGoodsService.qryGoodsByIds</a>
+									<p class="APIgory-intro info-overflow">根据商品或产品id查询商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listGroupBuy.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listGroupBuy.html" title="listGroupBuy">zte.net.iservice.IGoodsService.listGroupBuy</a>
+									<p class="APIgory-intro info-overflow">获取所有未到截止时间的团购信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listLimitBuy.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listLimitBuy.html" title="listLimitBuy">zte.net.iservice.IGoodsService.listLimitBuy</a>
+									<p class="APIgory-intro info-overflow">可用的限时抢购列表及其商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGroupBuy.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGroupBuy.html" title="queryGroupBuy">zte.net.iservice.IGoodsService.queryGroupBuy</a>
+									<p class="APIgory-intro info-overflow">获取团购信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.updateGroupByCount.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.updateGroupByCount.html" title="updateGroupByCount">zte.net.iservice.IGoodsService.updateGroupByCount</a>
+									<p class="APIgory-intro info-overflow">获取秒杀活动</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryLimitBuy.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryLimitBuy.html" title="queryLimitBuy">zte.net.iservice.IGoodsService.queryLimitBuy</a>
+									<p class="APIgory-intro info-overflow">获取秒杀活动</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.modLimitBuy.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.modLimitBuy.html" title="modLimitBuy">zte.net.iservice.IGoodsService.modLimitBuy</a>
+									<p class="APIgory-intro info-overflow">更新秒杀信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsBaseInfo.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsBaseInfo.html" title="queryGoodsBaseInfo">zte.net.iservice.IGoodsService.queryGoodsBaseInfo</a>
+									<p class="APIgory-intro info-overflow">查询商品基本信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsPriceList.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsPriceList.html" title="queryGoodsPriceList">zte.net.iservice.IGoodsService.queryGoodsPriceList</a>
+									<p class="APIgory-intro info-overflow">查询商品价格</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsByServ.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsByServ.html" title="queryGoodsByServ">zte.net.iservice.IGoodsService.queryGoodsByServ</a>
+									<p class="APIgory-intro info-overflow">查询服务商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsCatList.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsCatList.html" title="queryGoodsCatList">zte.net.iservice.IGoodsService.queryGoodsCatList</a>
+									<p class="APIgory-intro info-overflow">查询分类商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listAttrDef.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listAttrDef.html" title="listAttrDef">zte.net.iservice.IGoodsService.listAttrDef</a>
+									<p class="APIgory-intro info-overflow">查询商品业务属性</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsIntro.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsIntro.html" title="queryGoodsIntro">zte.net.iservice.IGoodsService.queryGoodsIntro</a>
+									<p class="APIgory-intro info-overflow">查询商品详情信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsForPage.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsForPage.html" title="queryGoodsForPage">zte.net.iservice.IGoodsService.queryGoodsForPage</a>
+									<p class="APIgory-intro info-overflow">商品搜索</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryTerminalRelPlan.html">
+							<div class="APIgory-list focus ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryTerminalRelPlan.html" title="queryTerminalRelPlan">zte.net.iservice.IGoodsService.queryTerminalRelPlan</a>
+									<p class="APIgory-intro info-overflow">查询终端关联计划</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryPlanRelOffer.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryPlanRelOffer.html" title="queryPlanRelOffer">zte.net.iservice.IGoodsService.queryPlanRelOffer</a>
+									<p class="APIgory-intro info-overflow">查询计划关联套餐</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryOfferRelContract.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryOfferRelContract.html" title="queryOfferRelContract">zte.net.iservice.IGoodsService.queryOfferRelContract</a>
+									<p class="APIgory-intro info-overflow">查询套餐关联合约</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryTerminalRelTerminal.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryTerminalRelTerminal.html" title="queryTerminalRelTerminal">zte.net.iservice.IGoodsService.queryTerminalRelTerminal</a>
+									<p class="APIgory-intro info-overflow">查询商品绑定商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsRelAdjunct.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsRelAdjunct.html" title="queryGoodsRelAdjunct">zte.net.iservice.IGoodsService.queryGoodsRelAdjunct</a>
+									<p class="APIgory-intro info-overflow">查询商品配件</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsInfo.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsInfo.html" title="queryGoodsInfo">zte.net.iservice.IGoodsService.queryGoodsInfo</a>
+									<p class="APIgory-intro info-overflow">查询商品详情</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsAcceptInfo.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsAcceptInfo.html" title="queryGoodsAcceptInfo">zte.net.iservice.IGoodsService.queryGoodsAcceptInfo</a>
+									<p class="APIgory-intro info-overflow">查询商品受理详情</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listGoodsSpec.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listGoodsSpec.html" title="listGoodsSpec">zte.net.iservice.IGoodsService.listGoodsSpec</a>
+									<p class="APIgory-intro info-overflow">获取商品规格列表</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsByTypeId.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsByTypeId.html" title="queryGoodsByTypeId">zte.net.iservice.IGoodsService.queryGoodsByTypeId</a>
+									<p class="APIgory-intro info-overflow">根据类型Id查商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listLimitBuyGoods.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listLimitBuyGoods.html" title="listLimitBuyGoods">zte.net.iservice.IGoodsService.listLimitBuyGoods</a>
+									<p class="APIgory-intro info-overflow">获取限制抢购商品及价格</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listGoodsPage.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listGoodsPage.html" title="listGoodsPage">zte.net.iservice.IGoodsService.listGoodsPage</a>
+									<p class="APIgory-intro info-overflow">根据关联商品ID和关联类型（如终端关联计划TERMINAL_PLAN）获取商品分页</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listProductIds.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listProductIds.html" title="listProductIds">zte.net.iservice.IGoodsService.listProductIds</a>
+									<p class="APIgory-intro info-overflow">根据服务ID获取产品ID列表</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.listComplexByGoods_id.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.listComplexByGoods_id.html" title="listComplexByGoods_id">zte.net.iservice.IGoodsService.listComplexByGoods_id</a>
+									<p class="APIgory-intro info-overflow">获取商品的相关商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.getGoodsSpecificationInfo.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.getGoodsSpecificationInfo.html" title="getGoodsSpecificationInfo">zte.net.iservice.IGoodsService.getGoodsSpecificationInfo</a>
+									<p class="APIgory-intro info-overflow">获取商品规则信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.queryGoodsForPageEcs.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.queryGoodsForPageEcs.html" title="queryGoodsForPageEcs">zte.net.iservice.IGoodsService.queryGoodsForPageEcs</a>
+									<p class="APIgory-intro info-overflow">广东联通：查询商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.updateGroupBuyDisabled.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.updateGroupBuyDisabled.html" title="updateGroupBuyDisabled">zte.net.iservice.IGoodsService.updateGroupBuyDisabled</a>
+									<p class="APIgory-intro info-overflow">修改团购活动状态</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsService.updateLimitBuyDisabled.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsService.updateLimitBuyDisabled.html" title="updateLimitBuyDisabled">zte.net.iservice.IGoodsService.updateLimitBuyDisabled</a>
+									<p class="APIgory-intro info-overflow">修改秒杀活动状态</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+				</ul>
+			</div>
+		</div>
+		<!--左侧导航栏 end-->
+	</div>
+
+	<script type="text/javascript">
+		function changeHide(imgDom, contentDivId) {
+			var contentDiv = document.getElementById(contentDivId);
+			if (contentDiv.style.display == "none") {
+				contentDiv.style.display = "";
+				imgDom.src = "image/tri_down.png";
+			} else {
+				contentDiv.style.display = "none";
+				imgDom.src = "image/tri_right.png";
+			}
+		}
+		
+		$(function(){
+				$($("#leftnavigation").find("li")).each(function(){
+					$(this).bind("click",function(){
+						 window.location.href=$(this).attr("url");
+					});	
+					
+				});
+		
+		})
+	</script>
+	<!--footer begin-->
+	<div id="footer">
+		<div class="footer">
+			<div class="contact">
+				<a class="weibo" href="#" target="_blank">电商平台</a> 
+			</div>
+
+			<div class="about">
+				<span class="copyright">Copyright ? 2003-2012 ZteSoft 版权所有</span>
+				<span class="links">
+				 <a href="#" target="_blank">关于我们</a>
+				</span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

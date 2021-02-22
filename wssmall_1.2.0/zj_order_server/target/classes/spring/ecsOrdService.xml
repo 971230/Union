@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+
+	<!-- <bean id="zteEcsOrdOpenService" class="com.ztesoft.zteopen.service.ecsord.ZteEcsOrdOpenService" /> -->
+
+   <!-- 订单流程处理Action -->
+	<bean id="orderFlowAction" class="com.ztesoft.net.action.OrderFlowAction" scope="prototype"></bean>
+	<!-- 意向单处理 -->
+	<bean id="orderIntentAction" class="com.ztesoft.net.action.OrderIntentAction" scope="prototype"></bean>
+	
+	<bean id="invoicePrintAction" class="com.ztesoft.net.action.InvoicePrintAction" scope="prototype"></bean>
+	<bean id="orderWarningAction" class="com.ztesoft.net.action.OrderWarningAction" scope="prototype"></bean>
+	
+	
+	<!-- 订单批量导入 -->
+	<bean id="orderBatchImportAction" class="com.ztesoft.net.action.OrderBatchImportAction" scope="prototype"></bean>
+	<bean id="orderAutoAction" class="com.ztesoft.net.action.OrderAutoAction" scope="prototype"></bean>
+	<bean id="businessRefreshAction" class="com.ztesoft.net.action.BusinessRefreshAction" scope="prototype"></bean>
+	<bean id="ordPrtAction" class="com.ztesoft.net.action.OrderPrintAction" scope="prototype"></bean>
+	<bean id="outOrderPrintAction" class="com.ztesoft.net.action.OutOrderPrintAction" scope="prototype"></bean>
+	<bean id="orderReturnedAction" class="com.ztesoft.net.action.OrderReturnedAction" scope="prototype"></bean>
+	<bean id="orderSupplyAction" class="com.ztesoft.net.action.OrderSupplyAction" scope="prototype"></bean>
+	<bean id="orderRefreshTreeAttrAction" class="com.ztesoft.net.action.OrderRefreshTreeAttrAction" scope="prototype"></bean>
+	<bean id="orderGuijiAction" class="com.ztesoft.net.action.OrderGuijiAction" scope="prototype"/>
+	<bean id="gonghaoBindAction" class="com.ztesoft.net.action.gonghaoBindAction" scope="prototype"/>
+    <bean id="orderPostPrintAction" class="com.ztesoft.net.action.OrderPostPrintAction" scope="prototype"></bean> <!-- 物流单打印 action-->
+	<bean id="orderInfAction" class="com.ztesoft.net.action.OrderInfAction"></bean>
+	<bean id="queueCardMateManagerAction" class="com.ztesoft.net.action.QueueCardMateManagerAction"></bean>
+		
+    <bean id="ordPostModePrintAction" class="com.ztesoft.net.action.OrderPostModePrintAction" scope="prototype"></bean> <!-- 物流单打印 action-->
+    <bean id="moneyAuditAction" class="com.ztesoft.net.action.MoneyAuditAction" scope="prototype"></bean>
+
+	<bean id="noMatchFlowAction" class="com.ztesoft.net.action.NoMatchFlowAction" scope="prototype"></bean>
+
+    <bean id="systemPageAction" class="com.ztesoft.net.action.SystemPageAction" scope="prototype"></bean>
+
+	<bean id="auditZBAction" class="com.ztesoft.net.action.AuditZBAction" scope="prototype"></bean>
+	<bean id="orderCrawlerAction" class="com.ztesoft.net.action.OrderCrawlerAction" scope="prototype"></bean>
+	<bean id="calllogAction" class="com.ztesoft.net.action.OrderCalllogAction" scope="prototype"></bean>
+
+    <!--Manager  -->
+	<bean id="ecsOrdManager" class="com.ztesoft.net.service.impl.EcsOrdManager" scope="prototype"></bean>
+	<bean id="ordPrtManager" class="com.ztesoft.net.service.impl.OrdPrtManager" ></bean>
+	<bean id="postModePrintManager" class="com.ztesoft.net.service.impl.OrdPostModePrintManager" ></bean>
+	
+	<bean id="iOrderSupplyManager" class="com.ztesoft.net.service.impl.OrderSupplyManager" ></bean>
+
+	<bean id="ordExceptionHandleImpl" class="rule.impl.OrdExceptionHandleImpl" ></bean>
+	
+	<bean id="ordFlowManager" class="com.ztesoft.net.service.impl.OrderFlowManager" scope="prototype"></bean>
+	
+	<bean id="invoicePrintManager" class="com.ztesoft.net.service.impl.InvoicePrintManager" scope="prototype"></bean>
+	<bean id="ordWarningManager" class="com.ztesoft.net.service.impl.OrdWarningManagerImpl" scope="prototype"></bean>
+	<bean id="moneyAuditManagerImpl" class="com.ztesoft.net.service.impl.MoneyAuditManagerImpl" ></bean>
+	<bean id="noMatchFlowManagerImpl" class="com.ztesoft.net.service.impl.NoMatchFlowManagerImpl" ></bean>
+	<bean id="auditZBManager" class="com.ztesoft.net.service.impl.AuditZBManager" ></bean>
+	<!-- 订单批量导入 -->
+	<bean id="orderBatchImportManager" class="com.ztesoft.net.service.impl.OrderBatchImportManager"></bean>
+	
+	
+
+	<bean id="unimallOrderQueryManager" class="com.ztesoft.net.service.impl.UnimallOrderQueryManager"  ></bean>
+	<bean id="ordArchiveManager" class="com.ztesoft.net.service.impl.OrdArchiveManager" ></bean>
+	<bean id="unimallOrderLocalManager" class="com.ztesoft.net.service.impl.UnimallOrderLocalManager" parent="baseSupport" ></bean>
+	<bean id="deliveryPrintsManager" class="com.ztesoft.net.service.impl.DeliveryPrintsManager" parent="baseSupport" ></bean>
+	<bean id="unimallOrderLocalManagerT" class="com.ztesoft.net.service.impl.UnimallOrderLocalManagerT" parent="baseSupport" ></bean>
+	<bean id="orderExtManager" class="com.ztesoft.net.service.impl.OrderExtManager"  ></bean>
+	<bean id="agentMoneyManager" class="com.ztesoft.net.service.impl.AgentMoneyManager" parent="baseSupport" ></bean>
+	<bean id="payAssureManager" class="com.ztesoft.net.service.impl.PayAssureManager" parent="baseSupport" ></bean>
+
+	<!-- 环节业务处理类 开始 -->
+	<bean id="ordVisitTacheManager" class="com.ztesoft.net.service.impl.OrdVisitTacheManager" ></bean>
+	<bean id="ordOpenAccountTacheManager" class="com.ztesoft.net.service.impl.OrdOpenAccountTacheManager" ></bean>
+	<bean id="commonManager" class="com.ztesoft.net.service.impl.CommonManager" ></bean>
+	<bean id="ordPickingTacheManager" class="com.ztesoft.net.service.impl.OrdPickingTacheManager" ></bean>
+	<bean id="ordWriteCardTacheManager" class="com.ztesoft.net.service.impl.OrdWriteCardTacheManager" ></bean>
+	<bean id="ordQualityTacheManager" class="com.ztesoft.net.service.impl.OrdQualityTacheManager" ></bean>
+	<bean id="ordShipTacheManager" class="com.ztesoft.net.service.impl.OrdShipTacheManager" ></bean>
+	<bean id="ordBackTacheManager" class="com.ztesoft.net.service.impl.OrdBackTacheManager" ></bean>
+	<bean id="ordCollectManager" class="com.ztesoft.net.service.impl.OrdCollectManager" ></bean>
+	<bean id="ordBSSTacheManager" class="com.ztesoft.net.service.impl.OrdBSSTacheManager" ></bean>
+	<bean id="ordArchiveTacheManager" class="com.ztesoft.net.service.impl.OrdArchiveTacheManager" ></bean>
+	<bean id="businessRefreshManager" class="com.ztesoft.net.service.impl.BusinessRefreshManager"></bean>
+	<bean id="vOX2WAVManager" class="com.ztesoft.net.service.impl.VOX2WAVManager"  ></bean>
+	<!-- 环节业务处理类 结束 -->
+	<bean id="orderSDSModelManager" class="com.ztesoft.net.service.impl.OrderSDSModelManager" ></bean><!-- 闪电送日志处理类 -->
+	 <bean id="ordPostPrintManager" class="com.ztesoft.net.service.impl.OrdPostPrintManager" ></bean><!-- 物流单打印处理类 -->
+	<bean id="orderGuijiManager" class="com.ztesoft.net.service.impl.OrderGuijiManager"></bean>
+	<bean id="gonghaoBindManager" class="com.ztesoft.net.service.impl.GonghaoBindManager"></bean>
+	<bean id="orderCrawlerManager" class="com.ztesoft.net.service.impl.OrderCrawlerManager"></bean>
+	<!-- 属性处理器配置开始 -->
+	<bean id="commonAttrHander" class="com.ztesoft.net.attr.hander.CommonAttrHandler"/>
+	<bean id="activeSortNameHandler" class="com.ztesoft.net.attr.hander.ActiveSortNameHandler" ></bean>
+	<bean id="activityListHandler" class="com.ztesoft.net.attr.hander.ActivityListHandler" ></bean>
+	<bean id="billMailTypeHandler" class="com.ztesoft.net.attr.hander.BillMailTypeHandler" ></bean>
+	<bean id="billTypeHandler" class="com.ztesoft.net.attr.hander.BillTypeHandler" ></bean>
+	<bean id="platformStatusHandler" class="com.ztesoft.net.attr.hander.PlatformStatusHandler" ></bean>
+    <bean id="brandNameHandler" class="com.ztesoft.net.attr.hander.BrandNameHandler" ></bean>
+	<bean id="brandNumberHandler" class="com.ztesoft.net.attr.hander.BrandNumberHandler" ></bean>
+	<bean id="cardSpeciesHandler" class="com.ztesoft.net.attr.hander.CardSpeciesHandler" ></bean>
+	<bean id="certAddressHandler" class="com.ztesoft.net.attr.hander.CertAddressHandler" ></bean>
+	<bean id="certCardNationHandler" class="com.ztesoft.net.attr.hander.CertCardNationHandler" ></bean>
+	
+	<bean id="cardTypeHandler" class="com.ztesoft.net.attr.hander.CardTypeHandler" ></bean>
+	<bean id="isCustomizedHandler" class="com.ztesoft.net.attr.hander.IsCustomizedHandler" ></bean>
+	<bean id="certiTypeHandler" class="com.ztesoft.net.attr.hander.CertiTypeHandler" ></bean>
+	<bean id="colorCodeHandler" class="com.ztesoft.net.attr.hander.ColorCodeHandler" ></bean>
+	<bean id="customerTypeHandler" class="com.ztesoft.net.attr.hander.CustomerTypeHandler" ></bean>
+	<bean id="deliveryStatusHandler" class="com.ztesoft.net.attr.hander.DeliveryStatusHandler" ></bean>
+	
+	<bean id="developmentCodeHandler" class="com.ztesoft.net.attr.hander.DevelopmentCodeHandler" ></bean>
+	<bean id="developmentNameHandler" class="com.ztesoft.net.attr.hander.DevelopmentNameHandler" ></bean>
+	<bean id="disacountRangeHandler" class="com.ztesoft.net.attr.hander.DisacountRangeHandler" ></bean>
+	<bean id="discountIdHandler" class="com.ztesoft.net.attr.hander.DiscountIdHandler" ></bean>
+	<bean id="discountInfosHandler" class="com.ztesoft.net.attr.hander.DiscountInfosHandler" ></bean>
+	
+	<bean id="discountNameHandler" class="com.ztesoft.net.attr.hander.DiscountNameHandler" ></bean>
+	<bean id="disfeeSelectHandler" class="com.ztesoft.net.attr.hander.DisfeeSelectHandler" ></bean>
+	<bean id="feeInfoHandler" class="com.ztesoft.net.attr.hander.FeeInfoHandler" ></bean>
+	<bean id="broadinfoHandler" class="com.ztesoft.net.attr.hander.BroadinfoHandler" ></bean>
+	<bean id="internetPhoneinfoHandler" class="com.ztesoft.net.attr.hander.InternetPhoneinfoHandler" ></bean>
+	<bean id="rHBroadinfoHandler" class="com.ztesoft.net.attr.hander.RHBroadinfoHandler" ></bean>
+	<bean id="orderSubOtherInfoHandler" class="com.ztesoft.net.attr.hander.OrderSubOtherInfoHandler" ></bean>
+	<bean id="orderSubProdInfoHandler" class="com.ztesoft.net.attr.hander.OrderSubProdInfoHandler" ></bean>
+	<bean id="firstFeeTypeNameHandler" class="com.ztesoft.net.attr.hander.FirstFeeTypeNameHandler" ></bean>
+	<bean id="giftInfosHandler" class="com.ztesoft.net.attr.hander.GiftInfosHandler" ></bean>
+	
+	<bean id="goodsNameHandler" class="com.ztesoft.net.attr.hander.GoodsNameHandler" ></bean>
+	<!--<bean id="productNameHandler" class="com.ztesoft.net.attr.hander.ProductNameHandler" ></bean>  -->
+	<bean id="guarantorHandler" class="com.ztesoft.net.attr.hander.GuarantorHandler" ></bean>
+	<bean id="inventoryNameHandler" class="com.ztesoft.net.attr.hander.InventoryNameHandler" ></bean>
+	<bean id="invoicePrintTypeHandler" class="com.ztesoft.net.attr.hander.InvoicePrintTypeHandler" ></bean>
+	<bean id="isGiftsHandler" class="com.ztesoft.net.attr.hander.IsGiftsHandler" ></bean>
+	
+	<bean id="isGroupContractHandler" class="com.ztesoft.net.attr.hander.IsGroupContractHandler" ></bean>
+	<bean id="isLiangHandler" class="com.ztesoft.net.attr.hander.IsLiangHandler" ></bean>
+	<bean id="isSendGoodsHandler" class="com.ztesoft.net.attr.hander.IsSendGoodsHandler" ></bean>
+	<bean id="liangPriceHandler" class="com.ztesoft.net.attr.hander.LiangPriceHandler" ></bean>
+	<bean id="mallPackagesHandler" class="com.ztesoft.net.attr.hander.MallPackagesHandler" ></bean>
+	
+	<bean id="modelCodeHandler" class="com.ztesoft.net.attr.hander.ModelCodeHandler" ></bean>
+	<bean id="modelNameHandler" class="com.ztesoft.net.attr.hander.ModelNameHandler" ></bean>
+	<bean id="netRegionHandler" class="com.ztesoft.net.attr.hander.NetRegionHandler" ></bean>
+	<bean id="nShippingAmountHandler" class="com.ztesoft.net.attr.hander.NShippingAmountHandler" ></bean>
+	
+	<bean id="orderCityCodeHandler" class="com.ztesoft.net.attr.hander.OrderCityCodeHandler" ></bean>
+	<bean id="orderJoinCategoryHandler" class="com.ztesoft.net.attr.hander.OrderJoinCategoryHandler" ></bean>
+	<bean id="outPackageIdHandler" class="com.ztesoft.net.attr.hander.OutPackageIdHandler" ></bean>
+	<bean id="outPlanIdBssHandler" class="com.ztesoft.net.attr.hander.OutPlanIdBssHandler" ></bean>
+	
+	<bean id="outPlanIdEssHandler" class="com.ztesoft.net.attr.hander.OutPlanIdEssHandler" ></bean>
+	<bean id="packageSaleHandler" class="com.ztesoft.net.attr.hander.PackageSaleHandler" ></bean>
+	<bean id="payTypeHandler" class="com.ztesoft.net.attr.hander.PayTypeHandler" ></bean>
+	<bean id="phoneDepositHandler" class="com.ztesoft.net.attr.hander.PhoneDepositHandler" ></bean>
+	
+	<bean id="planTitleHandler" class="com.ztesoft.net.attr.hander.PlanTitleHandler" ></bean>
+	<bean id="platformStatusNameHandler" class="com.ztesoft.net.attr.hander.PlatformStatusNameHandler" ></bean>
+	<bean id="prodBrandHandler" class="com.ztesoft.net.attr.hander.ProdBrandHandler" ></bean>
+	<bean id="sendingTypeHandler" class="com.ztesoft.net.attr.hander.SendingTypeHandler" ></bean>
+	<bean id="shipAddrHandler" class="com.ztesoft.net.attr.hander.ShipAddrHandler" ></bean>
+	
+	<bean id="simTypeHandler" class="com.ztesoft.net.attr.hander.SimTypeHandler" ></bean>
+	<bean id="specificationCodeHandler" class="com.ztesoft.net.attr.hander.SpecificationCodeHandler" ></bean>
+	<bean id="specificationNameHandler" class="com.ztesoft.net.attr.hander.SpecificationNameHandler" ></bean>
+	<bean id="tidCategoryHandler" class="com.ztesoft.net.attr.hander.TidCategoryHandler" ></bean>
+	
+	<bean id="isWriteCardHandler" class="com.ztesoft.net.attr.hander.IsWriteCardHandler" ></bean>
+	<bean id="whiteCartTypeHandler" class="com.ztesoft.net.attr.hander.WhiteCartTypeHandler" ></bean>
+	<bean id="zbPackagesHandler" class="com.ztesoft.net.attr.hander.ZbPackagesHandler" ></bean>
+	<bean id="isPhysicsHandler" class="com.ztesoft.net.attr.hander.IsPhysicsHandler" ></bean>
+	<bean id="isEasyAccountHandler" class="com.ztesoft.net.attr.hander.IsEasyAccountHandler" ></bean>
+	<bean id="shippingQuickHandler" class="com.ztesoft.net.attr.hander.ShippingQuickHandler" ></bean>
+	<bean id="shippingCompanyNameHandler" class="com.ztesoft.net.attr.hander.ShippingCompanyNameHandler" ></bean>
+	
+	<bean id="isIphonePlanHandler" class="com.ztesoft.net.attr.hander.IsIphonePlanHandler"></bean>
+	<bean id="prodCatIdHandler" class="com.ztesoft.net.attr.hander.ProdCatIdHandler"></bean>
+	<bean id="abnormalStatusHandler" class="com.ztesoft.net.attr.hander.AbnormalStatusHandler"></bean>
+	<bean id="payMethodHandler" class="com.ztesoft.net.attr.hander.PayMethodHandler"></bean>
+	<bean id="goodsTypeHandler" class="com.ztesoft.net.attr.hander.GoodsTypeHandler"></bean>
+	
+	<bean id="specialBusiTypeHandler" class="com.ztesoft.net.attr.hander.SpecialBusiTypeHandler"></bean>
+	<bean id="isAccountHandler" class="com.ztesoft.net.attr.hander.IsAccountHandler"></bean>
+	<bean id="goodsCatIdHandler" class="com.ztesoft.net.attr.hander.GoodsCatIdHandler"></bean>
+	<bean id="collectionHandler" class="com.ztesoft.net.attr.hander.CollectionHandler"></bean>
+	
+	<bean id="payStatusHandler" class="com.ztesoft.net.attr.hander.PayStatusHandler"></bean>
+	<bean id="districtHandler" class="com.ztesoft.net.attr.hander.DistrictHandler"></bean>
+	<bean id="cityHandler" class="com.ztesoft.net.attr.hander.CityHandler"></bean>
+	<bean id="provinceHandler" class="com.ztesoft.net.attr.hander.ProvinceHandler"></bean>
+	<bean id="discountValueHandler" class="com.ztesoft.net.attr.hander.DiscountValueHandler"></bean>
+	
+	<bean id="wmIsreservationFromHandler" class="com.ztesoft.net.attr.hander.WmIsreservationFromHandler"></bean>
+	<bean id="isSendZbHandler" class="com.ztesoft.net.attr.hander.IsSendZbHandler"></bean>
+	<bean id="invoiceTypeHandler" class="com.ztesoft.net.attr.hander.InvoiceTypeHandler"></bean>
+	<bean id="invoiceTitleHandler" class="com.ztesoft.net.attr.hander.InvoiceTitleHandler"></bean>
+	<bean id="orderFromHandler" class="com.ztesoft.net.attr.hander.OrderFromHandler"></bean>
+	
+	<bean id="orderTypeHandler" class="com.ztesoft.net.attr.hander.OrderTypeHandler"></bean>
+	<bean id="platTypeHandler" class="com.ztesoft.net.attr.hander.PlatTypeHandler"></bean>
+	<bean id="registTypeHandler" class="com.ztesoft.net.attr.hander.RegistTypeHandler"></bean>
+	<bean id="sourceTypeHandler" class="com.ztesoft.net.attr.hander.SourceTypeHandler"></bean>
+	
+	<bean id="bssOperAttrHander" class="com.ztesoft.net.attr.hander.BssOperAttrHander"></bean>
+	<bean id="ossOperAttrHander" class="com.ztesoft.net.attr.hander.OssOperAttrHander"></bean>
+	<bean id="packTypeHandler" class="com.ztesoft.net.attr.hander.PackTypeHandler"></bean>
+	<bean id="lanCodeHandler" class="com.ztesoft.net.attr.hander.LanCodeHandler"></bean>
+	<bean id="reliefPresFlagHandler" class="com.ztesoft.net.attr.hander.ReliefPresFlagHandler"></bean>
+	
+	<bean id="orderOriginHandler" class="com.ztesoft.net.attr.hander.OrderOriginHandler"></bean>
+	<bean id="zbInfIdHandler" class="com.ztesoft.net.attr.hander.ZbInfIdHandler"></bean>
+	<bean id="netTypeHandler" class="com.ztesoft.net.attr.hander.NetTypeHandler"></bean>
+	<bean id="channelMarkHandler" class="com.ztesoft.net.attr.hander.ChannelMarkHandler"></bean>
+	<bean id="isDiyPlanHandler" class="com.ztesoft.net.attr.hander.IsDiyPlanHandler"></bean>
+	<bean id="bssInfIdHandler" class="com.ztesoft.net.attr.hander.BssInfIdHandler"></bean>
+	<bean id="businessPackageHandler" class="com.ztesoft.net.attr.hander.BusinessPackageHandler"></bean>
+	
+	<bean id="acceptanceFormHandler" class="com.ztesoft.net.attr.hander.AcceptanceFormHandler"></bean>
+	<bean id="isSendWmsHandler" class="com.ztesoft.net.attr.hander.IsSendWmsHandler"></bean>
+	<bean id="simCardSkuHandler" class="com.ztesoft.net.attr.hander.SimCardSkuHandler"></bean>
+	<bean id="terminalNumHandler" class="com.ztesoft.net.attr.hander.TerminalNumHandler"></bean>
+	<bean id="leagueInfoHandler" class="com.ztesoft.net.attr.hander.LeagueInfoHandler"></bean>
+    <bean id="isAopHandler" class="com.ztesoft.net.attr.hander.IsAopHandler" ></bean>
+    <bean id="contactAddrHandler" class="com.ztesoft.net.attr.hander.ContactAddrHandler" ></bean>
+	
+	<!-- 属性处理器配置结束 -->
+	
+    <!-- 环节属性处理类-->
+    <bean id="prePickHander" class="com.ztesoft.net.attr.hander.PrePickHander"></bean>
+    <bean id="groupCodeHader" class="com.ztesoft.net.attr.hander.GroupCodeHader"></bean>
+    <bean id="groupNameHander" class="com.ztesoft.net.attr.hander.GroupNameHander"></bean>
+    <bean id="baiDuIdHander" class="com.ztesoft.net.attr.hander.BaiDuIdHander"></bean>
+    <bean id="freezeTranNoHander" class="com.ztesoft.net.attr.hander.FreezeTranNoHander"></bean>
+    <bean id="freezeFreeHander" class="com.ztesoft.net.attr.hander.FreezeFreeHander"></bean>
+    <bean id="reserve5Hander" class="com.ztesoft.net.attr.hander.Reserve5Hander" ></bean>
+    <bean id="reserve6Hander" class="com.ztesoft.net.attr.hander.Reserve6Hander" ></bean>
+    <bean id="certCardNumHander" class="com.ztesoft.net.attr.hander.CertCardNumHander"></bean>
+    <bean id="phoneOwnerNameHander" class="com.ztesoft.net.attr.hander.PhoneOwnerNameHander"></bean>
+    <bean id="certFailureTimeHander" class="com.ztesoft.net.attr.hander.CertFailureTimeHander"></bean>
+    <bean id="bssOrderTypeHander" class="com.ztesoft.net.attr.hander.BssOrderTypeHander"></bean>
+    <bean id="phoneNumHander" class="com.ztesoft.net.attr.hander.PhoneNumHander"></bean>
+    <bean id="superiorsBankCodeHander" class="com.ztesoft.net.attr.hander.SuperiorsBankCodeHander"></bean>
+    <bean id="bankAccountHander" class="com.ztesoft.net.attr.hander.BankAccountHander"></bean>
+    <bean id="bankCodeHander" class="com.ztesoft.net.attr.hander.BankCodeHander"></bean>
+    <bean id="bankUserHander" class="com.ztesoft.net.attr.hander.BankUserHander"></bean>
+    <bean id="orderDisfeeHandler" class="com.ztesoft.net.attr.hander.OrderDisfeeHandler"></bean>
+    <bean id="proRealFeeHander" class="com.ztesoft.net.attr.hander.ProRealFeeHander"></bean>
+    <bean id="payTimeHandler" class="com.ztesoft.net.attr.hander.PayTimeHandler"></bean>
+    <bean id="shippingCompanyHandler" class='com.ztesoft.net.attr.hander.ShippingCompanyHandler'></bean>
+    <bean id="shipNameHandler" class='com.ztesoft.net.attr.hander.ShipNameHandler'></bean>
+    <bean id="shippingTimeHandler" class='com.ztesoft.net.attr.hander.ShippingTimeHandler'></bean>
+     <bean id="supplierHandler" class='com.ztesoft.net.attr.hander.SupplierHandler'></bean>
+    <bean id="postFeeHandler" class='com.ztesoft.net.attr.hander.PostFeeHandler'></bean>
+    <bean id="receiverMobileHandler" class='com.ztesoft.net.attr.hander.ReceiverMobileHandler'></bean>
+    <bean id="cheDeliLogiHandler" class='com.ztesoft.net.attr.hander.CheDeliLogiHandler'></bean>
+    <bean id="needReceiptHandler" class="com.ztesoft.net.attr.hander.NeedReceiptHandler" ></bean>
+    <bean id="isZHWJHandler" class="com.ztesoft.net.attr.hander.IsZHWJHandler" ></bean>
+    <bean id="phoneInfoHandler" class="com.ztesoft.net.attr.hander.PhoneInfoHandler" ></bean>
+    <bean id="terminalHandler" class="com.ztesoft.net.attr.hander.TerminalHandler" ></bean>
+    <bean id="proActivityHandler" class="com.ztesoft.net.attr.hander.ProActivityHandler" ></bean>
+    <bean id="activeNoHandler" class="com.ztesoft.net.attr.hander.ActiveNoHandler" ></bean>
+    <bean id="virtualProNumHandler" class="com.ztesoft.net.attr.hander.VirtualProNumHandler" ></bean>
+    <bean id="shipZipHandler" class="com.ztesoft.net.attr.hander.ShipZipHandler" ></bean>
+    <bean id="couponslistHandler" class="com.ztesoft.net.attr.hander.CouponslistHandler" ></bean>
+	<bean id="zbZhuFuKaHandler" class="com.ztesoft.net.attr.hander.ZbZhuFuKaHandler" ></bean>
+	<bean id="zbSubProdHandler" class="com.ztesoft.net.attr.hander.ZbSubProdHandler" ></bean>
+	<bean id="zbActivityHandler" class="com.ztesoft.net.attr.hander.ZbActivityHandler" ></bean>
+	<bean id="hsOrderHandler" class="com.ztesoft.net.attr.hander.HSOrderHandler" ></bean>
+	<bean id="bssTimeTypeHandler" class="com.ztesoft.net.attr.hander.BssTimeTypeHandler" ></bean>
+	<bean id="bssStatusHandler" class="com.ztesoft.net.attr.hander.BssStatusHandler" ></bean>
+	<bean id="orderRealNameHandler" class="com.ztesoft.net.attr.hander.OrderRealNameHandler" ></bean>
+	<bean id="ICCIDAttrHandler" class="com.ztesoft.net.attr.hander.ICCIDAttrHandler" ></bean>
+	<bean id="wmsKeyInfoHandler" class="com.ztesoft.net.attr.hander.WMSKeyInfoHandler" ></bean>
+	<bean id="essMoneyHandler" class="com.ztesoft.net.attr.hander.EssMoneyHandler" ></bean>
+	<bean id="busiMoneyHandler" class="com.ztesoft.net.attr.hander.BusiMoneyHandler" ></bean>
+	<bean id="zhwqInfoHandler" class="com.ztesoft.net.attr.hander.ZhwqInfoHandler" ></bean>
+	<bean id="isProtectHandler" class="com.ztesoft.net.attr.hander.IsProtectHandler" ></bean>
+	<bean id="auditMoneyStatusAttrHandler" class="com.ztesoft.net.attr.hander.AuditMoneyStatusAttrHandler" ></bean>
+	<bean id="cancelStatusAttrHandler" class="com.ztesoft.net.attr.hander.CancelStatusAttrHandler" ></bean>
+
+
+	<bean id="iOrderInvoiceManager" class="com.ztesoft.net.service.impl.OrderInvoiceManagerImpl"></bean>
+
+	<bean id="zteEcsOrdOpenService" class="com.ztesoft.zteopen.service.ecsord.ZteEcsOrdOpenService" />
+
+	<bean id="refreshPlanRuleManager" class="com.ztesoft.net.service.impl.RefreshPlanRuleManager"></bean>
+
+	<bean id="orderInfManager" class="com.ztesoft.net.service.impl.OrderInfManager"></bean>
+	
+	<bean id="wareHouseManager" class="com.ztesoft.net.service.impl.WareHouseManager" scope="prototype"></bean>
+	
+	<bean id="infLogMonitManagerAction" class="com.ztesoft.net.action.InfLogMonitManagerAction"></bean>
+	<bean id="iInfLogMonitManager" class="com.ztesoft.net.service.impl.InfLogMonitManagerImpl"></bean>
+	
+	<bean id="orderTimeHandler" class="com.ztesoft.net.attr.hander.OrderTimeHandler"></bean>
+	<bean id="orderExpStatisticsAction" class="com.ztesoft.net.action.OrderExpStatisticsAction"></bean>
+	<bean id="orderWorkPlatformAction" class="com.ztesoft.net.action.OrderWorkPlatformAction"></bean>
+	<bean id="orderStatisticManager" class="com.ztesoft.net.service.impl.OrderStatisticManager" ></bean>
+	   <bean id="systemPageManager" class='com.ztesoft.net.service.impl.SystemPageManager' scope="prototype"></bean>
+	 <!-- 短信发送 -->  
+	<bean id="sendSmsImpl" class='com.ztesoft.net.service.impl.ZJSendSmsImpl' ></bean>
+	<bean id="queueCardMateManager" class="com.ztesoft.net.service.impl.QueueCardMateManager" ></bean>	   
+	<!-- 浙江本地INFServices -->
+	<bean id="zteZJInfOpenService" class="zte.net.iservice.impl.ZteZJInfOpenService" ></bean>
+	<!--工号池Action  -->
+    <bean id="workerPoolAction" class="com.ztesoft.net.action.WorkerPoolAction" scope="prototype"></bean>
+	<!--工号池manager  -->
+	<bean id="workPoolManager" class="com.ztesoft.net.service.impl.WorkPoolManager"></bean>
+	
+	<!--工单处理逻辑      -->
+	<bean id="ordWorkManager" class="com.ztesoft.net.service.impl.OrdWorkManager"></bean>
+	<!--意向单处理逻辑      -->
+	<bean id="ordIntentManager" class="com.ztesoft.net.service.impl.OrdIntentManager"></bean>
+	
+	<!-- 工单自定义配置 -->
+	<bean id="WorkCustomAction" class="com.ztesoft.net.action.WorkCustomAction" scope="prototype"></bean>
+	<bean id="workCustomCfgManager" class="com.ztesoft.net.service.workCustom.impl.WorkCustomCfgManager"  ></bean>
+	<bean id="WorkCustomEngine" class="com.ztesoft.net.service.workCustom.impl.WorkCustomEngine"  ></bean>
+    <bean id="teamAction" class="com.ztesoft.net.action.TeamCustomAction" scope="prototype"></bean>
+	<bean id="teamCustomManager" class="com.ztesoft.net.service.workCustom.impl.TeamCustomManager"  ></bean>
+	
+	<!-- 自定流程业务处理BEAN -->
+	<bean id="RuleBusiBean" class="zte.net.workCustomBean.common.RuleBusiBean" ></bean>
+	<bean id="JSBusiBean" class="zte.net.workCustomBean.common.JSBusiBean" ></bean>
+	<bean id="TestBusiBean" class="zte.net.workCustomBean.common.TestBusiBean" ></bean>
+	<bean id="CancelOrderIntentBean" class="zte.net.workCustomBean.intent.CancelOrderIntentBean" ></bean>
+	<bean id="UpdateOrderBean" class="zte.net.workCustomBean.common.UpdateOrderBean" ></bean>
+	<bean id="OrderAllArchiveBean" class="zte.net.workCustomBean.common.OrderAllArchiveBean" ></bean>
+	<bean id="UpdateIsAopAop" class="zte.net.workCustomBean.common.UpdateIsAopAop" ></bean>
+	<bean id="UpdateIsAopBss" class="zte.net.workCustomBean.common.UpdateIsAopBss" ></bean>
+	<bean id="UpdateOrderModel11" class="zte.net.workCustomBean.common.UpdateOrderModel11" ></bean>
+	<bean id="UpdateOrderModel2" class="zte.net.workCustomBean.common.UpdateOrderModel2" ></bean>
+	<!-- 泛智能终端翻转状态 -->
+	<bean id="UpdateFZNIsPay" class="zte.net.workCustomBean.common.UpdateFZNIsPay" ></bean>
+	<bean id="ChangeIntentStatusOnline" class="zte.net.workCustomBean.common.ChangeIntentStatusOnline" ></bean>
+	<bean id="CloseOrderBean" class="zte.net.workCustomBean.common.CloseOrderBean"></bean>
+	<bean id="PhoneStoreBean" class="zte.net.workCustomBean.common.PhoneStoreBean"></bean>
+	<bean id="WaitUpdateOrderBean" class="zte.net.workCustomBean.common.WaitUpdateOrderBean"></bean>
+	<bean id="IsOrNotPayBean" class="zte.net.workCustomBean.common.IsOrNotPayBean"></bean>
+	<bean id="CheckBssOrderBackBean" class="zte.net.workCustomBean.common.CheckBssOrderBackBean"></bean>
+	<!-- BSS业务 -->
+	<bean id="BssGetCardInfoBean" class="zte.net.workCustomBean.bss.BssGetCardInfoBean" ></bean>
+	<bean id="BssMobilePreCommitBean" class="zte.net.workCustomBean.bss.BssMobilePreCommitBean" ></bean>
+	<bean id="BssWaitPayBean" class="zte.net.workCustomBean.bss.BssWaitPayBean" ></bean>
+	<bean id="BssWriteCardResultBean" class="zte.net.workCustomBean.bss.BssWriteCardResultBean" ></bean>
+	<bean id="BssFileArchive" class="zte.net.workCustomBean.bss.BssFileArchive" ></bean>
+	<bean id="WaitWriteCardSuccessBean" class="zte.net.workCustomBean.common.WaitWriteCardSuccessBean" ></bean>
+	
+	<!-- CBSS业务 -->
+	<bean id="CBSSGetCardInfoBean" class="zte.net.workCustomBean.cbss.CBSSGetCardInfoBean" ></bean>
+	<bean id="CBssMobilePreCommitBean" class="zte.net.workCustomBean.cbss.CBssMobilePreCommitBean" ></bean>
+	<bean id="CBssWriteCardResultBean" class="zte.net.workCustomBean.cbss.CBssWriteCardResultBean" ></bean>
+	<bean id="AopMobilePreCommitBean" class="zte.net.workCustomBean.cbss.AopMobilePreCommitBean"></bean>
+	
+	<!-- 支付更新公共业务 -->
+   <bean id="CommonUpdateWaitPayBean" class="zte.net.workCustomBean.common.CommonUpdateWaitPayBean" ></bean>
+   
+   <!-- 物流信息跟新环节 -->
+   <bean id="WenZhouGetDeliveryInfoBean" class="zte.net.workCustomBean.common.WenZhouGetDeliveryInfoBean"></bean>
+   <!-- 处理方式 -->
+   <bean id="UpdateOrderDealMethod" class="zte.net.workCustomBean.common.UpdateOrderDealMethod"></bean>
+
+	<bean id="AutomaticBean" class="zte.net.workCustomBean.common.AutomaticBean" ></bean>
+	<bean id="MobPhoneBean" class="zte.net.workCustomBean.common.MobPhoneBean" ></bean>
+	<bean id="IsResourceReleaseBean" class="zte.net.workCustomBean.common.IsResourceReleaseBean" ></bean>
+	<bean id="ResourceReleaseBean" class="zte.net.workCustomBean.common.ResourceReleaseBean" ></bean>
+	<bean id="OrderDealMethodBean" class="zte.net.workCustomBean.common.OrderDealMethodBean" ></bean>
+	<bean id="UpdateMobileNameBean" class="zte.net.workCustomBean.common.UpdateMobileNameBean" ></bean>
+	<bean id="UpdateOutDealerBean" class="zte.net.workCustomBean.common.UpdateOutDealerBean" ></bean>
+	
+	<!-- add by cqq 20181217 自定义流程 -->
+	<bean id="CustomMatchIsAOPBean" class="zte.net.workCustomBean.intent.CustomMatchIsAOPBean" ></bean>
+	<bean id="CustomMatchOrderModelBean" class="zte.net.workCustomBean.intent.CustomMatchOrderModelBean" ></bean>
+	<bean id="CustomCreateIntentOrderBean" class="zte.net.workCustomBean.intent.CustomCreateIntentOrderBean" ></bean>
+	<!-- 流量包加速包正式提交 -->
+	<bean id="ProductSubBean" class="zte.net.workCustomBean.common.ProductSubBean" ></bean>
+</beans>	

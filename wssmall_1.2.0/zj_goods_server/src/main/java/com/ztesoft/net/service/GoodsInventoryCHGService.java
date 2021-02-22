@@ -1,0 +1,98 @@
+package com.ztesoft.net.service;
+
+import org.apache.log4j.Logger;
+
+import net.sf.json.JSONObject;
+import zte.params.store.req.GoodsInventoryCHGReq;
+import zte.params.store.resp.GoodsInventoryCHGResp;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+public class GoodsInventoryCHGService {
+	private static Logger logger = Logger.getLogger(GoodsInventoryCHGService.class);
+//	@Resource
+//	IOrderServiceLocal orderServiceLocal;
+	
+	public String goodsInventoryCHG(String jsonStr) {
+		logger.info("wms同步库存数据："+jsonStr);
+		String ret_msgString = "{\"inventory_info_resp\":{\"resp_code\":\"0\",\"resp_msg\":\"同步成功!\"}}";
+		jsonStr = jsonStr.replaceAll("\n", "");
+		try{
+			String error_msg = checkReqJson(jsonStr);
+			if(!"".equals(error_msg)){//请求报文错误，返回错误
+				ret_msgString = "{\"inventory_info_resp\":{\"resp_code\":\"1\",\"resp_msg\":\""+error_msg+"\"}}";
+				return ret_msgString;
+			}
+			
+			JSONObject jsonObject = JSONObject.fromObject(jsonStr);
+			String inventory_info_req = jsonObject.get("inventory_info_req").toString();
+			JSONObject jsonObject_inventory_info_req = JSONObject.fromObject(inventory_info_req);
+			
+			GoodsInventoryCHGReq req = new GoodsInventoryCHGReq();
+			req.setCompany_code(jsonObject_inventory_info_req.get("company_code").toString());
+			req.setHouse_id(jsonObject_inventory_info_req.get("inventory_code").toString());
+			req.setProduct_id(jsonObject_inventory_info_req.get("sku").toString());
+			req.setSku(jsonObject_inventory_info_req.get("sku").toString());
+			//req.setAction_code(jsonObject_inventory_info_req.get("action").toString());
+			req.setChg_num(jsonObject_inventory_info_req.get("inventory_num").toString());
+			req.setChg_reason(jsonObject_inventory_info_req.get("change_type").toString());
+			req.setAction(jsonObject_inventory_info_req.get("action").toString());
+			if (!("PI".equals(req.getAction())||"DI".equals(req.getAction()))) return "{\"inventory_info_resp\":{\"resp_code\":\"0\",\"resp_msg\":\"同步成功!\"}}";
+			//DefaultZteRopClient client = new DefaultZteRopClient("http://10.123.99.69:7001/router", "wssmall_ecs","123456");
+			ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+			GoodsInventoryCHGResp response=client.execute(req, GoodsInventoryCHGResp.class);
+			
+			logger.info("异常单返回---"+response.getError_msg());
+//		Assert.assertEquals(response.getError_code(), "0");
+			if(!"0".equalsIgnoreCase(response.getError_code())){
+				ret_msgString = "{\"inventory_info_resp\":{\"resp_code\":\""+response.getError_code()+"\",\"resp_msg\":\""+response.getError_msg()+"\"}}";
+			}
+		}catch(Exception e){
+			ret_msgString = "{\"inventory_info_resp\":{\"resp_code\":\"1\",\"resp_msg\":\""+e.getMessage()+"\"}}";
+		}
+		return ret_msgString;
+	}
+	
+	private String checkReqJson(String jsonStr){//校验请求报文
+		String error_msg = "";
+
+		JSONObject jsonObject = null;
+		try{
+			jsonObject =  JSONObject.fromObject(jsonStr);
+		}catch(Exception e){
+			e.printStackTrace();
+			error_msg += "请求报文不符合json格式;";
+			return error_msg;
+		}
+		
+		if(!jsonObject.containsKey("inventory_info_req")){
+			error_msg += "缺少节点inventory_info_req;";
+			return error_msg;
+		}
+		String inventory_info_req = jsonObject.get("inventory_info_req").toString();
+		JSONObject jsonObject_inventory_info_req = JSONObject.fromObject(inventory_info_req);
+
+		if(!jsonObject_inventory_info_req.containsKey("company_code")){
+			error_msg += "缺少节点company_code;"; 
+		}
+		if(!jsonObject_inventory_info_req.containsKey("inventory_code")){
+			error_msg += "缺少节点inventory_code;"; 
+		}
+		if(!jsonObject_inventory_info_req.containsKey("sku")){
+			error_msg += "缺少节点sku;"; 
+		}
+		if(!jsonObject_inventory_info_req.containsKey("inventory_num")){
+			error_msg += "缺少节点inventory_num;"; 
+		}
+		if(!jsonObject_inventory_info_req.containsKey("change_type")){
+			error_msg += "缺少节点change_type;"; 
+		}
+		if(!jsonObject_inventory_info_req.containsKey("action")){
+			error_msg += "缺少节点action;"; 
+		}
+		return error_msg;
+	}
+	
+}

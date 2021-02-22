@@ -1,0 +1,47 @@
+package com.ztesoft.net.mall.core.action.order.service.contract;
+
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.order.dilvery.CommonDilveryHander;
+import com.ztesoft.net.mall.core.consts.Consts;
+
+
+public  class ContractDilveryHander extends CommonDilveryHander{
+
+	@Override
+	public void display() {
+		//合约机不需要展示按钮
+	}
+
+	/**
+	 * 物流处理 合约机自动物流跳转
+	 */
+	public void execute(){
+		
+		//淘宝订单物流送货，配货处理
+		if(isTaobaoAgent()){
+			if(getOrderRequst().getShip_action().equals(OrderStatus.SHIP_ACTION_SHIP))
+				super.ship();
+		}else{
+			if(StringUtil.isEmpty(getOrderRequst().getShip_action()) || OrderStatus.SHIP_ACTION_SHIP.equals(getOrderRequst().getShip_action())){
+				orderNFlowManager.ship_auto(getOrder().getOrder_id());
+			}
+		}
+		
+		if(OrderStatus.SHIP_ACTION_CONFIRM_SHIP.equals(getOrderRequst().getShip_action()))
+		{	
+			orderNFlowManager.confirm_ship(getOrder().getOrder_id());
+			
+			//发货后更新卡状态可展示
+			accNbrManager.updateAccNbrByOrderId(getOrder().getOrder_id(), Consts.SHIP_STATE_5); //确认收货
+			
+		}
+		
+	}
+	@Override
+	public boolean isCanExecute() {
+		return this.getOrderRequst().isCan_execute();
+	}
+
+
+}

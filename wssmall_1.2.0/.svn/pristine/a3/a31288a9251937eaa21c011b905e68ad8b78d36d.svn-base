@@ -1,0 +1,86 @@
+package com.ztesoft.factory;
+
+import com.ztesoft.config.Constants;
+import com.ztesoft.config.ParamsConfig;
+
+/**
+ * 接口实例工厂
+ * 
+ * @author Yao Min
+ * 
+ */
+public class PlatFactory {
+	/**
+	 * 获取接口实例
+	 * 
+	 * @param cla
+	 *            接口类class
+	 * @param debug
+	 *            true获取*Test调试类,false获取生产类
+	 * @return 返回类实例
+	 * @throws Exception
+	 */
+
+	public static <T> T getInstance(Class<T> cla) throws Exception {
+		String debug_tag = "";
+		String className = cla.getName();
+		T t = null;
+		Class claName = null;
+
+		if (ParamsConfig.isDebug()) {
+			debug_tag = "Test";
+			String classNameLocal = className + debug_tag;
+			try {
+				claName = Class.forName(classNameLocal);
+			} catch (Exception e) {
+				System.err.println("没有找到调试接口实例类:" + "/n" + e.getMessage());
+			}
+		}
+
+		try {
+			if (claName == null) {
+				claName = Class.forName(className);
+			}
+		} catch (Exception e) {
+			System.err.println("没有找到接口实例类:" + "/n" + e.getMessage());
+		}
+
+		if (claName != null)
+			t = (T) claName.newInstance();
+
+		return t;
+
+	}
+
+	public static <T> T getInstance(Class<T> cla, boolean is_debug)
+			throws Exception {
+		String debug_tag = "";
+		String className = cla.getName();
+		T t = null;
+		Class claName = null;
+
+		if (is_debug) {
+			debug_tag = "Test";
+			String classNameLocal = className + debug_tag;
+			try {
+				claName = Class.forName(classNameLocal);
+			} catch (Exception e) {
+				System.err.println("没有找到调试接口实例类:" + "/n" + e.getMessage());
+			}
+		}
+
+		try {
+			if (claName == null) {
+				claName = Class.forName(className);
+			}
+		} catch (Exception e) {
+			System.err.println("没有找到接口实例类:" + "/n" + e.getMessage());
+		}
+
+		if (claName != null)
+			t = (T) claName.newInstance();
+
+		return t;
+
+	}
+}

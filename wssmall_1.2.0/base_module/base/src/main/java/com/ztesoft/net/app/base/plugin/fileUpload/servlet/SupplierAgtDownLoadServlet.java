@@ -1,0 +1,121 @@
+package com.ztesoft.net.app.base.plugin.fileUpload.servlet;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+
+public class SupplierAgtDownLoadServlet extends HttpServlet {
+
+    /**
+     * Constructor of the object.
+     */
+    public SupplierAgtDownLoadServlet() {
+        super();
+    }
+
+    /**
+     * Destruction of the servlet. <br>
+     */
+    @Override
+	public void destroy() {
+        super.destroy(); // Just puts "destroy" string in log
+        // Put your code here
+    }
+
+    /**
+     * The doGet method of the servlet. <br>
+     *
+     * This method is called when a form has its tag value method equals to get.
+     *
+     * @param request
+     *            the request send by the client to the server
+     * @param response
+     *            the response send by the server to the client
+     * @throws ServletException
+     *             if an error occurred
+     * @throws IOException
+     *             if an error occurred
+     */
+    @Override
+	public void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // String path = request.getRealPath("publics/attachment/supper/a.pdf");
+        String path = "publics/attachment/supper/"
+                + request.getParameter("fileName").toString();
+        String fullPath = request.getRealPath(path);
+        String fileType = request.getParameter("fileType").toString();
+        this.download(fullPath, fileType, response);
+    }
+
+    /**
+     * The doPost method of the servlet. <br>
+     *
+     * This method is called when a form has its tag value method equals to
+     * post.
+     *
+     * @param request
+     *            the request send by the client to the server
+     * @param response
+     *            the response send by the server to the client
+     * @throws ServletException
+     *             if an error occurred
+     * @throws IOException
+     *             if an error occurred
+     */
+    @Override
+	public void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String path = "publics/attachment/supper/"
+                + request.getParameter("fileName").toString();
+        String fullPath = request.getRealPath(path);
+        String fileType = request.getParameter("fileType").toString();
+        this.download(fullPath, fileType, response);
+    }
+
+    /**
+     * Initialization of the servlet. <br>
+     *
+     * @throws ServletException
+     *             if an error occurs
+     */
+    @Override
+	public void init() throws ServletException {
+        // Put your code here
+    }
+
+    public HttpServletResponse download(String path, String filetype,
+                                        HttpServletResponse response) {
+
+        try {
+            // path是指欲下载的文件的路径。
+            File file = new File(path);
+            // 取得文件名。
+            String filename = file.getName();
+            // 取得文件的后缀名。
+            String ext = filename.substring(filename.lastIndexOf(".") + 1)
+                    .toUpperCase();
+            // 以流的形式下载文件。
+            InputStream fis = new BufferedInputStream(new FileInputStream(path));
+            byte[] buffer = new byte[fis.available()];
+            fis.read(buffer);
+            fis.close();
+            // 清空response
+            response.reset();
+            // 设置response的Header
+            response.addHeader("Content-Disposition", "attachment;filename="
+                    + new String(filename.getBytes()));
+            response.addHeader("Content-Length", "" + file.length());
+            OutputStream toClient = new BufferedOutputStream(response
+                    .getOutputStream());
+            response.setContentType("application/" + filetype);
+            toClient.write(buffer);
+            toClient.flush();
+            toClient.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return response;
+    }
+}

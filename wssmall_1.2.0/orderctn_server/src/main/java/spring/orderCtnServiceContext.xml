@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+
+	<bean id="orderCtnService" class="com.ztesoft.net.mall.service.impl.OrderCtnService"  parent="baseSupport" />
+	
+	<bean id="orderQueueCtnManager" class="com.ztesoft.net.mall.manager.impl.OrderQueueCtnManager"  parent="baseSupport" />
+	
+	<bean id="orderInfHeadCtnManager" class="com.ztesoft.net.mall.manager.impl.OrderInfHeadCtnManager"  parent="baseSupport" />
+	
+	<bean id="outerInfCtnTimerService" class="com.ztesoft.net.mall.core.timer.OuterInfCtnTimerService" scope="singleton"/>
+	
+	<bean id="outterECSTmplCtnManager" class="com.ztesoft.net.mall.outter.inf.service.OutterECSTmplCtnManager" parent="baseSupport"></bean>
+	
+	<!-- <bean id="outerOrderSync" class="com.ztesoft.net.mall.outter.inf.abs.OuterOrderSync"/> -->
+	
+	<bean id="outerOrderSyncCtn" class="com.ztesoft.net.mall.outter.inf.abs.OuterOrderSync"/>
+	
+	<bean id="taobaoCtnService" class="com.ztesoft.net.mall.server.servlet.TaobaoCtnService"/>
+	<bean id="taobaoTianjiCtnService" class="com.ztesoft.net.mall.server.servlet.TaobaoTianjiCtnService"/>
+	<bean id="taobaoErrorCtnService" class="com.ztesoft.net.mall.server.servlet.TaobaoErrorCtnService"/>
+	<!-- 
+	<bean id ="cacheAction" class = "com.ztesoft.net.mall.core.action.cache.CacheAction" scope ="prototype"></bean>
+	 -->
+	
+</beans>	

@@ -1,0 +1,34 @@
+package zte.net.iservice.impl;
+
+import zte.net.iservice.ISupplierService;
+import zte.params.supplier.req.SupplierGetReq;
+import zte.params.supplier.req.SupplierListReq;
+import zte.params.supplier.resp.SupplierGetResp;
+import zte.params.supplier.resp.SupplierListResp;
+
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+@ServiceMethodBean(version="1.0")
+public class ZteSupplierOpenService {
+
+//	@Resource
+	private ISupplierService supplierService;
+	
+	private void init(){
+		this.supplierService = ApiContextHolder.getBean("supplierService");
+	}
+	@ServiceMethod(method="com.supplierService.supplier.list",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public SupplierListResp listSupplier(SupplierListReq req){
+		this.init();
+		return this.supplierService.listSupplier(req);
+	}
+	
+	@ServiceMethod(method="com.supplierService.supplier.get",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public SupplierGetResp getSupplier(SupplierGetReq req){
+		this.init();
+		return this.supplierService.getSupplier(req);
+	}
+}

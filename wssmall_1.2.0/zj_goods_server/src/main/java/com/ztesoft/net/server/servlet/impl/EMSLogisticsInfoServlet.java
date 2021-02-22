@@ -1,0 +1,304 @@
+package com.ztesoft.net.server.servlet.impl;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderDeliveryBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderRouteLogBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.rule.tache.TacheFact;
+import zte.net.params.req.PlanRuleTreeExeReq;
+import zte.net.params.resp.PlanRuleTreeExeResp;
+import zte.params.ecsord.req.GetOrderByLogiNoReq;
+import zte.params.ecsord.resp.GetOrderByLogiNoResp;
+
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.common.util.date.DateUtil;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.model.CoQueue;
+import com.ztesoft.net.mall.core.service.ICoQueueManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.server.servlet.ICommonServlet;
+
+import commons.CommonTools;
+import consts.ConstsCore;
+
+/**
+ * EMS推送路由信息处理
+ */
+public class EMSLogisticsInfoServlet  implements ICommonServlet {
+
+	private final static Logger logger = Logger.getLogger(EMSLogisticsInfoServlet.class);
+	
+	private  static String interfaceName="【EMS推送路由信息】";
+	@Override
+	public String service(String reqString) throws Exception {
+		String mailnum = null;
+		String order_id = null;
+		OrderTreeBusiRequest orderTree = null;
+		@SuppressWarnings("rawtypes")
+		IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+		try {
+			JSONObject obj = JSONObject.fromObject(reqString);
+			JSONArray mails= (JSONArray) obj.get("listexpressmail");
+			if(mails == null || mails.size()==0){
+				return getResultStr(null,EcsOrderConsts.EMS_INF_FAIL_CODE,"请求报文内容为空!");
+			}
+			for (int i=0;i<mails.size();i++) {
+				JSONObject mail = mails.getJSONObject(i);
+				try {
+					GetOrderByLogiNoReq oreq = new GetOrderByLogiNoReq();
+					mailnum = mail.getString("mailnum");//物流单号
+					//mailnum = "1100190630900_TEST";
+					oreq.setLogi_no(mailnum);
+					// 接口调用-业务处理
+					ZteClient client= ClientFactory.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ECSORD);
+					GetOrderByLogiNoResp oresp = client.execute(oreq, GetOrderByLogiNoResp.class);
+					order_id = oresp.getOrder_id();
+					if(StringUtils.isEmpty(order_id)){
+						//CommonTools.addBusiError(EcsOrderConsts.SF_INF_FAIL_CODE,"根据物流单号找不到订单！");
+						throw new Exception("根据物流单号找不到订单！");
+					}
+					orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+				} catch (Exception e) {
+					logger.info(interfaceName+"接口调用错误:"+e.getMessage());
+					e.printStackTrace();
+					return getResultStr(mailnum,EcsOrderConsts.EMS_INF_FAIL_CODE,"接口调用错误:"+e.getMessage());
+				}
+				//保存路由信息
+				String emsStatus = mail.getString("action");
+				OrderRouteLogBusiRequest route = new OrderRouteLogBusiRequest();
+				String order_route_id = baseDaoSupport.getSequences("ES_ORDER_ROUTE_LOG_SEQ");
+				route.setId(order_route_id);
+				route.setOrder_id(order_id);
+				route.setRoute_id(mail.getString("serialnumber"));
+				route.setMail_no(mailnum);
+				route.setOp_code(mail.getString("action"));
+				SimpleDateFormat sdf1 = new SimpleDateFormat("yyyyMMddHHmmss");  
+				Date date = sdf1.parse(mail.getString("procdate")+mail.getString("proctime"));  
+				SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");  
+				String route_acceptime = sdf2.format(date);
+				route.setRoute_acceptime(route_acceptime);
+				route.setRoute_acceptadress(mail.getString("orgfullname"));
+				route.setRoute_remark(mail.getString("description"));
+				route.setEffect(mail.getString("effect"));
+				route.setCreate_time(DateUtil.currentDateTime());
+				route.setCreate_user("root");
+				route.setSource_from(ManagerUtils.getSourceFrom());
+				route.setDb_action(ConstsCore.DB_ACTION_INSERT);
+				route.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+				route.store();
+				
+				// 更新物流签收状态
+				updateOrderDeliveryStatus(mail, orderTree);
+				// 自动回单
+				//autoReceipt(mail, orderTree);
+				//总部订单，判断是否EMS签收成功，如果是，则添加定时任务到队列
+				if(EcsOrderConsts.EMS_ORDER_DEAL_STATUS_10.equals(emsStatus)){
+					String emsProperdelivery = mail.getString("properdelivery");
+					if((EcsOrderConsts.EMS_ORDER_DEAL_STATUS_10.equals(emsProperdelivery) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_11.equals(emsProperdelivery) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_12.equals(emsProperdelivery) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_11.equals(emsProperdelivery)) && StringUtils.equals(orderTree.getOrderExtBusiRequest().getOrder_from(), EcsOrderConsts.ORDER_FROM_10003)){
+						try {
+							// 添加到定时任务队列
+							CoQueue queBak = new CoQueue();
+							queBak.setService_code("CO_ROUTE_NOTIFY_ZB");	
+							queBak.setCo_id("");
+							queBak.setCo_name("订单路由明细同步总部商城");
+							queBak.setObject_id(order_id);
+							queBak.setObject_type("DINGDAN");
+							queBak.setStatus(Consts.CO_QUEUE_STATUS_WFS);
+							ICoQueueManager coQueueManager = SpringContextHolder.getBean("coQueueManager");
+							coQueueManager.add(queBak);
+							//数据归档
+							insertHis(order_id);
+						} catch (Exception e) {
+							e.printStackTrace();
+							CommonTools.addBusiError("-9999","es_co_queue定时任务插入失败;"+e.getMessage());
+						}
+					
+				  }
+				}
+			}
+			return getResultStr(null,EcsOrderConsts.EMS_INF_SUCC_CODE,"路由信息接收成功!");
+		} catch (Exception e) {
+			logger.info(interfaceName+"请求报文参数错误:"+e.getMessage());
+			e.printStackTrace();
+			return getResultStr(null,EcsOrderConsts.EMS_INF_FAIL_CODE,"请求报文参数错误!");
+		}
+		
+	}
+	
+	private void insertHis(String order_id){
+		IDaoSupport new_baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+		String insertSql = " insert into es_order_route_log_his(id,order_id,route_id,mail_no,op_code,route_acceptime, "
+				+ " route_acceptadress,route_remark,create_time,create_user,source_from,effect) "
+				+ " select id,order_id,route_id,mail_no,op_code,route_acceptime,route_acceptadress,route_remark, "
+				+ " create_time,create_user,source_from,effect from es_order_route_log "
+				+ " where order_id = ? and op_code <> '10' ";
+		String delSql = " delete from es_order_route_log t where t.order_id = ? and op_code <> '10' ";
+		
+		new_baseDaoSupport.execute(insertSql, order_id);
+		new_baseDaoSupport.execute(delSql, order_id);
+	}
+	
+	private void updateOrderDeliveryStatus(JSONObject mail, OrderTreeBusiRequest orderTree) {
+		List<OrderDeliveryBusiRequest> deliveryList = orderTree.getOrderDeliveryBusiRequests();
+		if (deliveryList != null && !deliveryList.isEmpty()) {
+			for (OrderDeliveryBusiRequest orderDeliveryBusiRequest : deliveryList) {
+				String emsAction = mail.getString("action");
+				String emsStatus = "0";
+				if(EcsOrderConsts.EMS_ORDER_DEAL_STATUS_10.equals(emsAction)){
+					emsStatus = mail.getString("properdelivery");
+				}
+				String mailnum = mail.getString("mailnum");
+				if (mailnum.equals(orderDeliveryBusiRequest.getLogi_no()) ) {//发货签收
+					if (EcsOrderConsts.SIGN_STATUS_1.equals(orderDeliveryBusiRequest.getSign_status())) {
+						break;
+					}
+					if (EcsOrderConsts.EMS_ORDER_DEAL_STATUS_10.equals(emsStatus) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_11.equals(emsStatus) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_12.equals(emsStatus)) {
+						orderDeliveryBusiRequest.setSign_status(EcsOrderConsts.SIGN_STATUS_1);						
+					}else if(!EcsOrderConsts.SIGN_STATUS_1.equals(orderDeliveryBusiRequest.getSign_status())){//已签收状态不允许变回未签收
+						orderDeliveryBusiRequest.setSign_status(EcsOrderConsts.SIGN_STATUS_0);
+					}
+				}
+				else if (mailnum.equals(orderDeliveryBusiRequest.getReceipt_no())) { //回单签收
+					if (EcsOrderConsts.SIGN_STATUS_1.equals(orderDeliveryBusiRequest.getReceipt_status())) {
+						break;
+					}
+					if (EcsOrderConsts.EMS_ORDER_DEAL_STATUS_10.equals(emsStatus) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_11.equals(emsStatus) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_12.equals(emsStatus)) {
+						orderDeliveryBusiRequest.setReceipt_status(EcsOrderConsts.SIGN_STATUS_1);
+					}else if(!EcsOrderConsts.SIGN_STATUS_1.equals(orderDeliveryBusiRequest.getReceipt_status())){//已签收状态不允许变回未签收
+						orderDeliveryBusiRequest.setReceipt_status(EcsOrderConsts.SIGN_STATUS_0);
+					}
+				}
+				if (mailnum.equals(orderDeliveryBusiRequest.getLogi_no()) || mailnum.equals(orderDeliveryBusiRequest.getReceipt_no())) {
+					orderDeliveryBusiRequest.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+					orderDeliveryBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+					orderDeliveryBusiRequest.store();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 满足条件时，自动执行回单方案
+	 * @param waybillRoute
+	 * @param orderTree
+	 */
+	private void autoReceipt(JSONObject mail, OrderTreeBusiRequest orderTree){//此方法尽量使逻辑易懂，牺牲一点效率
+		String order_id = orderTree.getOrder_id();
+		OrderDeliveryBusiRequest deliver = null;
+		List<OrderDeliveryBusiRequest> deliveryList = orderTree.getOrderDeliveryBusiRequests();
+		for(OrderDeliveryBusiRequest del : deliveryList){
+			if(EcsOrderConsts.LOGIS_NORMAL.equals(del.getDelivery_type())){//获得正常发货的记录
+				deliver = del;
+			}
+		}
+		String emsStatus = mail.getString("action");
+		String signStatus = "0";
+		if(EcsOrderConsts.EMS_ORDER_DEAL_STATUS_10.equals(emsStatus)){
+			signStatus = mail.getString("properdelivery");
+		}
+		String mailnum = mail.getString("mailnum");
+		String flow_trace_id = CommonDataFactory.getInstance().getOrderTree(order_id).getOrderExtBusiRequest().getFlow_trace_id();//订单环节
+		String order_from = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.ORDER_FROM);//订单来源
+		String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);//商品类型
+		String order_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.ORDER_TYPE);//订单类型
+		String later_active_flag = orderTree.getOrderRealNameInfoBusiRequest().getLater_active_flag();
+		if(EcsOrderConsts.EMS_ORDER_DEAL_STATUS_10.equals(emsStatus) && (EcsOrderConsts.EMS_ORDER_DEAL_STATUS_10.equals(signStatus) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_11.equals(signStatus) || EcsOrderConsts.EMS_ORDER_DEAL_STATUS_12.equals(signStatus))//用户签收
+				&&null!=deliver&&StringUtils.isNotEmpty(mailnum)&&StringUtils.equals(mailnum, deliver.getLogi_no())//正常发货记录的运单号
+				&&EcsOrderConsts.DIC_ORDER_NODE_L.equals(flow_trace_id) && EcsOrderConsts.NO_DEFAULT_VALUE.equals(later_active_flag)){//
+			
+			//自动回单
+			PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+			TacheFact fact = new TacheFact();
+			fact.setOrder_id(orderTree.getOrder_id());
+			req.setPlan_id(EcsOrderConsts.ORDER_ARCHIVE_PLAN);
+			req.setFact(fact);
+			req.setDeleteLogs(false);//不删除日志，不允许二次操作
+			req.setAuto_exe(-1);
+			PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+		}
+	}
+
+	/**
+	 * 根据返回对象拼装xml返回报文
+	 * @param serviceName
+	 * @param resp
+	 * @return
+	 */
+	public String getResultStr(String failMailNum,String successFlag,String remark) {
+		Map rtnMap = new HashMap();
+		rtnMap.put("success", successFlag);
+		rtnMap.put("remark", remark);
+		rtnMap.put("failmailnums", failMailNum);
+		Map contentMap = new HashMap();
+		contentMap.put("response", rtnMap);
+		return JsonUtil.toJson(contentMap);
+	}
+	
+	public static void main(String[] args){
+		//String reqString = "<?xml version=\"1.0\"  encoding=\"UTF-8\"?><listexpressmail><expressmail><serialnumber>157456549873254</serialnumber><mailnum>LK434266003CN</mailnum><procdate>20161102</procdate><proctime>20161101</proctime><orgfullname>湖北武汉市</orgfullname><action>50</action><description>武汉市安排投递（投递员：周杰伦）</description><effect>1</effect></expressmail><expressmail><serialnumber>157456549873254</serialnumber><mailnum>LK434266003CN</mailnum><procdate>20161102</procdate><proctime>20161101</proctime><orgfullname>湖北武汉市</orgfullname><action>50</action><description>武汉市安排投递（投递员：周杰伦）</description><effect>1</effect></expressmail></listexpressmail>";
+		String reqString = "{\"listexpressmail\": [ "+
+				"  { "+
+				"	\"serialnumber\":\"157456549873254\", "+
+				"    \"mailnum\": \"LK434266003CN\", "+
+				"    \"procdate\": \"20130702\", "+
+				"    \"proctime\": \"000100\", "+
+				"    \"orgfullname\": \"所在地名称\", "+
+				"    \"action\": 00, "+
+				"	\"description\": \"描述信息\", "+
+				"	\"effect\":\"1\", "+
+				"	\"properdelivery\":\"\", "+
+				"	\"notproperdelivery\":\"\" "+
+				"  }, "+
+				"  { "+
+				"	\"serialnumber\":\"157456549873255\", "+
+				"    \"mailnum\": \"LK434266003CN\", "+
+				"    \"procdate\": \"20130702\", "+
+				"    \"proctime\": \"000100\", "+
+				"    \"orgfullname\": \"所在地名称\", "+
+				"    \"action\": 30, "+
+				"	\"description\": \"描述信息\", "+
+				"	\"effect\":\"1\", "+
+				"	\"properdelivery\":\"\", "+
+				"	\"notproperdelivery\":\"\" "+
+				"  } "+
+				"]} ";
+		logger.info(reqString);
+		try {
+			//Map map = XmlUtils.xmlToMap(reqString);
+			JSONObject obj = JSONObject.fromObject(reqString);
+			JSONArray mails= (JSONArray) obj.get("listexpressmail");
+			for (int i=0;i<mails.size();i++) {
+				JSONObject mail = mails.getJSONObject(i);
+				SimpleDateFormat sdf1 = new SimpleDateFormat("yyyyMMddhhmmss");  
+				Date date = sdf1.parse(mail.getString("procdate")+mail.getString("proctime"));  
+				SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");  
+				System.out.print(sdf2.format(date));
+				logger.info("***************");
+			}
+			logger.info("***************");
+		} catch (Exception e) {
+			logger.info(interfaceName+"请求报文格式错误:"+e.getMessage());
+			e.printStackTrace();
+			
+		}
+	}
+}

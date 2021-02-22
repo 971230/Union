@@ -1,0 +1,15 @@
+@charset "UTF-8";
+/* CSS Document */
+
+/*标签样式*/
+.title_new{background:url(../images/titlenew.gif) repeat-x;height:30px; position:relative;}
+.tab_bar{height:24px;padding-left:40px; position:relative;}
+.tab_bar li{  float:left; position:relative; cursor:pointer; height:24px; line-height:24px; margin-right:-10px;}
+.tab_bar li a{ display:block; background:url(../images/tab_nor_l.png) left top no-repeat; padding-left:4px; color:#444;}
+.tab_bar li a span{ display:block; padding-left:15px; padding-right:60px; background:url(../images/tab_nor_r.png) right top no-repeat;}
+.tab_bar li.curr a{ color:#2a2a2a; background:url(../images/tab_curr_l.png) left top no-repeat;}
+.tab_bar li.curr a span{ background:url(../images/tab_curr_r.png) right top no-repeat;}
+.tab_bar li .tabClose{ background:url(../images/tabclose.png) no-repeat; width:16px; height:16px; position:absolute; right:25px; top:3px; text-indent:-9999px; overflow:hidden; display:block; padding:0px;}
+.tab_bar li .tabClose:hover, .tabBar li.curr .tabClose:hover{ background:url(../images/tabclosecurr.png) no-repeat;}
+.tab_bar li.curr .tabClose{background:url(../images/tabclosehover.png) no-repeat;}
+.tab_bar li.closeTrue span{ padding-right:60px;}

@@ -1,0 +1,25 @@
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                            http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 父模块坐标 -->
+    <groupId>com.ztesoft.crm.pass</groupId>
+    <artifactId>base_web</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>电商平台(联通版本)-生产构建</name>
+    <description>电商平台(联通版本)-生产构建</description>
+    
+    <!-- 定义子模块 -->
+    <modules>
+		<module>base</module>
+		<module>client</module>
+		<module>inf_server</module>
+		<module>rop_server</module>
+		<module>rule_server</module>
+		<module>sys_server</module>
+		<module>task_server</module>
+    </modules>
+</project>

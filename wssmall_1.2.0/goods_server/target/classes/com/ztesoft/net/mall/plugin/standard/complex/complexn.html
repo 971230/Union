@@ -1,0 +1,51 @@
+<div class="grid_n_cont" id="complexGoodsDiv">
+	<div class="btn_box">
+    	<a href="javascript:void(0);return false;" class="blue_b" style="margin-right:5px;" id="complexOpenDialog">新增</a>
+    	<a href="javascript:void(0);return false;" class="blue_b" style="margin-right:5px;display:none;">修改</a>
+    	<a href="javascript:void(0);return false;" class="blue_b" style="display:none;">删除</a>
+    </div>
+    <div class="btn_box">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_b_su">
+            <col class="span-4 ColColorGray">
+            <col class="span-2 ColColorOrange">
+            <col class="textleft">
+            <thead>
+            <tr>
+                <th>&nbsp;</th>
+                <th style='text-align:center;'>商品名称</th>
+                <th style='text-align:center;'>关联方式</th>
+                <th style='text-align:center;'>操作</th>
+            </tr>
+            </thead>
+            <tbody id="complexContent">
+            <#if listGoodsComplex?exists>
+                <#list listGoodsComplex as complex>
+                    <tr id="complex_${complex.goods_id}">
+                        <td><a style="display:none;" href="javascript:void(0);"><img class="delete" src="../shop/admin/images/transparent.gif">
+                        </a></td>
+                        <td style="text-align:center;">${complex.name!''}<input type="hidden" name="goodsExtData.complex_goods_ids"
+                                                     value="${complex.goods_id}"/></td>
+                        <td style='text-align:center;'>
+                            <select class="ipttxt" name='goodsExtData.manual'>
+                                <option value='left'
+                                <#if complex.manual == 'left'>selected</#if>
+                                >单向相关</option>
+                                <option value='both'
+                                <#if complex.manual == 'both'>selected</#if>
+                                >双向相关</option></select>
+                        </td>
+                        <td style='text-align:center;'>
+                            <a href="goods!showGoodsMsg.do?goods_id=${goods.goods_id}"><img src="${ctx}/shop/admin/goodsN/images/ico_close.png" width="16" height="16" />删除</a>
+                        </td>
+                    </tr>
+                </#list>
+            </#if>
+            </tbody>
+        </table>
+    </div>
+    <#if have_complex == '0'>
+    <div id="complex_remind_n_div" class="remind_n_div"><span><img src="${ctx}/shop/admin/goodsN/images/ic_remind.png" width="16" height="16" /></span><p>您还没有绑定任何商品，请添加！</p></div>
+    </#if>
+</div>
+<div id="complex_selected"></div>
+<script type="text/javascript" src="js/complexn.js"></script>

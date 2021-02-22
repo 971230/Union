@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+      http://www.springframework.org/schema/tx
+      http://www.springframework.org/schema/tx/spring-tx-2.0.xsd"
+	default-autowire="byName" default-lazy-init="false">
+
+	<!-- 属性文件读入 -->
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>file:${CONFIG}dubbo.properties</value>
+				<value>file:${CONFIG}workflow.properties</value>
+				<!-- <value>classpath:crm_params.properties</value> -->
+			</list>
+		</property>
+	</bean>
+
+
+
+	<bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+		<property name="jndiName" value="${DEFAULT_JNDI}" />
+	</bean>
+<!-- 	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" -->
+<!-- 		destroy-method="close"> -->
+<!-- 		<property name="driverClass" value="${DEFAULT_Driver}" /> -->
+<!-- 		<property name="jdbcUrl" value="${DEFAULT_DBUrl}" /> -->
+<!-- 		<property name="user" value="${DEFAULT_DBUser}" /> -->
+<!-- 		<property name="password" value="${DEFAULT_DBPwd}" /> -->
+<!-- 	</bean> -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+	</bean>
+	<bean id="sqlFileExecutor"
+		class="com.ztesoft.net.framework.database.impl.DefaultSqlFileExecutor"></bean>
+	<bean id="springContextHolder"
+		class="com.ztesoft.net.framework.context.spring.SpringContextHolder"
+		lazy-init="false" />
+	<bean id="apiContextHolder" class="com.ztesoft.api.spring.ApiContextHolder"
+		lazy-init="false" />
+
+
+	<!-- 支持 @Transactional 标记 -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	<tx:advice id="transactionManagerAdivice"
+		transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="*" isolation="READ_COMMITTED" propagation="REQUIRED"
+				rollback-for="java.lang.RuntimeException" />
+		</tx:attributes>
+	</tx:advice>
+
+</beans>

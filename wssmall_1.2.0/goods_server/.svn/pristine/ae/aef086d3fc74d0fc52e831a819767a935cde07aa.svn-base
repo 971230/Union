@@ -1,0 +1,139 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.GoodsArea;
+import com.ztesoft.net.mall.core.service.IGoodsAreaManager;
+import com.ztesoft.net.sqls.SF;
+import org.apache.commons.beanutils.BeanUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class GoodsAreaManager extends BaseSupport<GoodsArea> implements
+		IGoodsAreaManager {
+	private JdbcTemplate jdbcTemplate;
+
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void add(GoodsArea area) {
+		this.baseDaoSupport.insert("goods_area", area);
+	}
+
+	
+	
+	@SuppressWarnings("unchecked")
+	public void deleteByLanIdAndGoodsId(GoodsArea area) {
+		
+		//判断是否存在，先删除再插入
+		List result = this.baseDaoSupport.queryForList(SF.goodsSql("GET_GOODS_AREA_LANID_GOODSID"), area.getGoods_id(),area.getLan_id());
+		if(!ListUtil.isEmpty(result) && result.size()>0)
+			this.baseDaoSupport.execute(SF.goodsSql("GOODS_AREA_DEL"), area.getGoods_id(),area.getLan_id());
+	}
+	
+	
+	/**
+	 * 审核商品后修改数据
+	 * 
+	 * @param area
+	 * 
+	 */
+	public void edit(GoodsArea area) {
+//		if (logger.isDebugEnabled()) {
+//			logger.debug("开始保存商品申请数据...");
+//		}
+//		AdminUser adminUser = ManagerUtils.getAdminUser(); // 获取登录用户
+//		area.setAudit_userid(adminUser.getUserid());
+//		area.setStatus_date(Consts.SYSDATE);
+//		Map goodsMap = this.po2Map(area);
+//		this.baseDaoSupport.update("goods_area", goodsMap, "goods_id="+ area.getGoods_id()+" and lan_id="+area.getLan_id());
+		
+		
+		//修改商品表数据
+		if(area != null){
+			String good_id = area.getGoods_id();
+			String state = "";
+			if(Consts.AREA_STATE_1.equals(area.getState())){
+				state = Consts.GOODS_AUDIT_SUC;
+			}else if(Consts.AREA_STATE_2.equals(area.getState())){
+				state = Consts.GOODS_AUDIT_FAIL;
+			}
+			String sql = SF.goodsSql("GOODS_STATE_UPDATE");
+			this.baseDaoSupport.execute(sql, state, good_id);
+		}
+		
+		if (logger.isDebugEnabled()) {
+			logger.debug("保存商品申请数据完成.");
+		}
+	}
+
+	public List<GoodsArea> serach(String goodsid) {
+		String sql = SF.goodsSql("GET_GOODS_AREA");
+		return this.baseDaoSupport.queryForList(sql, GoodsArea.class,Consts.AREA_STATE_2,goodsid);
+	}
+	
+	public Page serachGoodsAreaLog(String goodsid,int pageNo,int pageSize) {
+		String sql = SF.goodsSql("GET_GOODS_AREA_0");
+		return this.baseDaoSupport.queryForPage(sql, pageNo, pageSize, GoodsArea.class,goodsid);
+	}
+	public Page serachGoodsAreaSucc(String goodsid,int pageNo,int pageSize) {
+		String sql = SF.goodsSql("SERACH_GOODS_AREA_SUCC");
+		return this.baseDaoSupport.queryForPage(sql, pageNo, pageSize, GoodsArea.class,goodsid,Consts.AREA_STATE_1);
+	}
+	public Page serachGoodsWaitAudit(String goodsid,int pageNo,int pageSize) {
+		String sql = SF.goodsSql("SERACH_GOODS_WAITAUDIT");
+		return this.baseDaoSupport.queryForPage(sql, pageNo, pageSize, GoodsArea.class,goodsid);
+	}
+	/*
+	 * 根据goods_id和lan_id修改商品发布信息
+	 * @param lan_id,goods_id
+	 */
+	public void editAreaState(String lan_id, String goods_id) {
+		this.jdbcTemplate.update(SF.goodsSql("EDIT_AREA_STATE"),lan_id, goods_id);
+	}
+
+
+	public GoodsArea getGoodsAreaById(String goods_id, String lan_id) {
+		
+		String sql= SF.goodsSql("GET_GOODS_AREA_BYID");
+		return this.baseDaoSupport.queryForObject(sql, GoodsArea.class, goods_id,lan_id);
+	}
+	/**
+	 * 将po对象中有属性和值转换成map
+	 * 
+	 * @param po
+	 * @return
+	 */
+	protected Map po2Map(Object po) {
+		Map poMap = new HashMap();
+		Map map = new HashMap();
+		try {
+			map = BeanUtils.describe(po);
+		} catch (Exception ex) {
+		}
+		Object[] keyArray = map.keySet().toArray();
+		for (int i = 0; i < keyArray.length; i++) {
+			String str = keyArray[i].toString();
+			if (str != null && !str.equals("class")) {
+				if (map.get(str) != null) {
+					poMap.put(str, map.get(str));
+				}
+			}
+		}
+		return poMap;
+	}
+	
+	public JdbcTemplate getJdbcTemplate() {
+		return jdbcTemplate;
+	}
+
+	public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
+	}
+
+}

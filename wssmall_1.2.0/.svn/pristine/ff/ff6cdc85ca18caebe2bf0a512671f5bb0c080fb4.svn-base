@@ -1,0 +1,99 @@
+package services;
+
+import java.util.List;
+import java.util.Map;
+
+import com.ztesoft.net.app.base.core.model.RoleData;
+
+import params.adminuser.req.AuthActionAddReq;
+import params.adminuser.req.AuthActionEditReq;
+import params.adminuser.req.AuthDelReq;
+import params.adminuser.req.AuthListReq;
+import params.adminuser.req.AuthPageReq;
+import params.adminuser.req.AuthReq;
+import params.adminuser.req.RoleDataActionAddReq;
+import params.adminuser.resp.AuthActionEditResp;
+import params.adminuser.resp.AuthDelResp;
+import params.adminuser.resp.AuthEditResp;
+import params.adminuser.resp.AuthListResp;
+import params.adminuser.resp.AuthResp;
+
+/**
+ * 权限接口
+ * @author hu.yi
+ * @date 2013.12.23
+ */
+public interface AuthInf {
+
+	/**
+	 * 获取权限实体
+	 * @param authReq
+	 * @return
+	 */
+	public AuthResp getByRoleId(AuthReq authReq);
+	public AuthResp get(AuthReq authReq);
+	public AuthResp getListByRoleId(AuthReq authReq);
+	public AuthResp getList(AuthReq authReq);
+	
+	/**
+	 * 编辑权限
+	 * @param action
+	 */
+	public AuthActionEditResp edit(AuthActionEditReq authActionEditReq);
+	
+	/**
+	 * 新增权限
+	 * @param action
+	 */
+	public AuthEditResp add(AuthActionAddReq authActionAddReq);
+	
+	/**
+	 * 新增数据权限
+	 * @param action
+	 */
+	public AuthEditResp addAuthData(RoleDataActionAddReq req);	
+	
+	/**
+	 * 新增数据权限
+	 * @param action
+	 */
+	public AuthEditResp editAuthData(RoleDataActionAddReq req);	
+	
+	/**
+	 * 删除数据权限
+	 * @param action
+	 */	
+	public AuthDelResp deleteAuthData(RoleDataActionAddReq req);
+	
+	/**
+	 * 删除权限 
+	 */
+	public AuthDelResp delete(AuthDelReq authDelReq);
+	
+	
+	/**
+	 * 列出所有权限
+	 * @param str
+	 * @return
+	 */
+	public AuthListResp list(AuthListReq authListReq);
+	/**
+	 * 分页权限列表
+	 * @param authPageReq
+	 * @return
+	 */
+	public AuthListResp  authPage(AuthPageReq authPageReq);
+	/**
+	 * 分页数据权限列表
+	 * @param authPageReq
+	 * @return
+	 */
+	public AuthListResp authDataPage(AuthPageReq authPageReq);	
+	
+	/**
+	 * 角色类型分组
+	 * @return
+	 * @author GL
+	 */
+	public List<Map> roleGroupType();
+}

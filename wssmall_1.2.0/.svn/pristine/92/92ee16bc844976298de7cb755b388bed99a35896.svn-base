@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+ <!-- 
+	应用：网厅  代理商 统一平台
+	配置说明(以tomcat为例)：按顺序找到Window -> Preferences -> MyEclipse -> Servers -> Tomcat -> Tomcat 6.x -> JDK
+	在"Optional Java VM arguments:"配置 -DWEBCONFIG=classpath*:webconfig/app.xml
+ -->
+	<import resource="classpath*:spring/baseServiceContext.xml"/>
+	<import resource="classpath*:spring/dataAccessContext-jdbc.xml"/>
+	<import resource="classpath*:spring/TimerRopContext.xml"/>
+	<import resource="classpath*:spring/sdkOpenService.xml"/>
+	<import resource="classpath*:spring/dubbo-admin.xml"/>
+	<import resource="classpath*:/dubbo/rop/RopApplicationContext.xml"/>
+	<import resource="classpath*:/dubbo/rop/dubbo-rop-service.xml"/>
+	<import resource="classpath*:/dubbo/rop/dubbo-rop-spring.xml"/>
+	
+	<import resource="classpath*:dubbo/reference/dubbo-client-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-goods-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-info-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-member-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-order-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-partner-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-payment-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-sms-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-supplier-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-sys-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-workflow-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-cms-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-num-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-llkj-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-fj-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-ecs-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-logs-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-rules-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-inf-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-ecsord-reference.xml"/>
+	
+</beans>

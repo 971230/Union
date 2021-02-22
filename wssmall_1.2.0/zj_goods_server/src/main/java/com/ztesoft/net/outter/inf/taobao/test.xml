@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<fenxiao_orders_get_response>
+	<purchase_orders list="true">
+		<purchase_order>
+			<id>3899077944189</id>
+			<buyer_payment>79.80</buyer_payment>
+			<distributor_from>taobao</distributor_from>
+			<distributor_username>太阳能量</distributor_username>
+			<distributor_payment>0.00</distributor_payment>
+			<receiver>
+				<address>上海路星海名城一期6栋1单元</address>
+				<district>海城区</district>
+				<city>北海市</city>
+				<name>兰相隆</name>
+				<mobile_phone>15677953994</mobile_phone>
+				<zip>536000</zip>
+				<state>广西壮族自治区</state>
+			</receiver>
+			<end_time>2014-04-08 18:09:42</end_time>
+			<fenxiao_id>3899077944189</fenxiao_id>
+			<created>2014-04-05 18:09:41</created>
+			<modified>2014-04-08 18:09:42</modified>
+			<memo></memo>
+			<status>TRADE_CLOSED</status>
+			<alipay_no>null</alipay_no>
+			<pay_type>ALIPAY_SURETY</pay_type>
+			<post_fee>0.00</post_fee>
+			<shipping>SELLER</shipping>
+			<sub_purchase_orders list="true">
+				<sub_purchase_order>
+					<item_id>419191025273</item_id>
+					<item_outer_id>6901020100013</item_outer_id>
+					<auction_price>84.00</auction_price>
+					<sku_outer_id>6901020100013</sku_outer_id>
+					<sku_id>2191980935273</sku_id>
+					<bill_fee>79.80</bill_fee>
+					<num>1</num>
+					<buyer_payment>79.80</buyer_payment>
+					<discount_fee>0.00</discount_fee>
+					<distributor_payment>0.00</distributor_payment>
+					<total_fee>0.00</total_fee>
+					<fenxiao_id>3899077944189</fenxiao_id>
+					<created>2014-04-05 18:09:41</created>
+					<order_200_status>TRADE_CLOSED</order_200_status>
+					<price>84.00</price>
+					<promotion_type>0</promotion_type>
+					<refund_fee>0.00</refund_fee>
+					<sc_item_id>131220000322455349</sc_item_id>
+					<snapshot_url>http://gongxiao.tmall.com/product/product_snapshot.htm?subOrderId=3899077944189
+					</snapshot_url>
+					<status>TRADE_CLOSED</status>
+					<id>0</id>
+					<tc_order_id>602188837819263</tc_order_id>
+					<tc_adjust_fee>0</tc_adjust_fee>
+					<tc_discount_fee>420</tc_discount_fee>
+					<tc_preferential_type>优惠</tc_preferential_type>
+					<title>【5折抢购】广东联通3g手机卡 3G联通卡 流量卡 全国无漫游通用</title>
+				</sub_purchase_order>
+			</sub_purchase_orders>
+			<supplier_flag>0</supplier_flag>
+			<supplier_from>taobao</supplier_from>
+			<supplier_memo></supplier_memo>
+			<supplier_username>广东联通官方旗舰店</supplier_username>
+			<tc_order_id>602188837819263</tc_order_id>
+			<total_fee>0.00</total_fee>
+			<trade_type>AGENT</trade_type>
+		</purchase_order>
+		<purchase_order>
+			<id>3853886900342</id>
+			<buyer_payment>83.75</buyer_payment>
+			<consign_time>2014-04-04 19:11:05</consign_time>
+			<distributor_from>taobao</distributor_from>
+			<distributor_username>太阳能量</distributor_username>
+			<distributor_payment>84.00</distributor_payment>
+			<receiver>
+				<address>广东省台山市下川岛91024部队67分队</address>
+				<district>台山市</district>
+				<city>江门市</city>
+				<name>周凯</name>
+				<mobile_phone>18650237339</mobile_phone>
+				<zip>529266</zip>
+				<state>广东省</state>
+			</receiver>
+			<fenxiao_id>3853886900342</fenxiao_id>
+			<created>2014-04-01 20:54:12</created>
+			<modified>2014-04-11 17:35:46</modified>
+			<logistics_company_name>SF-FYZQYF</logistics_company_name>
+			<logistics_id>131816501769</logistics_id>
+			<memo>买家820792230(2014-04-01 20:54:12)(未付款)
+				:请发邮政快递！谢谢谢！。分销商太阳能量(2014-04-07 16:54:43)(已付款，已发货)
+				:对不起的,是顺丰的快递不可以派送到买家所在的地方,所以只好协商退款..还是谢谢朋友对我们的选择,对我们的支持,和等待的,不可以为你服务好.我们抱歉意..谢谢。
+			</memo>
+			<order_messages list="true">
+				<order_message>
+					<message_title>买家留言</message_title>
+					<message_content>请发邮政快递！谢谢谢！</message_content>
+					<message_time>2014-04-01 20:54:12</message_time>
+				</order_message>
+				<order_message>
+					<message_title>分销商留言</message_title>
+					<message_content>对不起的,是顺丰的快递不可以派送到买家所在的地方,所以只好协商退款..还是谢谢朋友对我们的选择,对我们的支持,和等待的,不可以为你服务好.我们抱歉意..谢谢
+					</message_content>
+					<message_time>2014-04-07 16:54:43</message_time>
+					<pic_url>null</pic_url>
+				</order_message>
+			</order_messages>
+			<status>WAIT_BUYER_CONFIRM_GOODS</status>
+			<alipay_no>2014040111001001830055737933</alipay_no>
+			<pay_time>2014-04-01 21:35:45</pay_time>
+			<pay_type>ALIPAY_SURETY</pay_type>
+			<post_fee>0.00</post_fee>
+			<shipping>SELLER</shipping>
+			<sub_purchase_orders list="true">
+				<sub_purchase_order>
+					<item_id>419191025273</item_id>
+					<item_outer_id>6901020100013</item_outer_id>
+					<auction_price>84.00</auction_price>
+					<sku_outer_id>6901020100013</sku_outer_id>
+					<sku_id>2191980935273</sku_id>
+					<bill_fee>83.75</bill_fee>
+					<num>1</num>
+					<buyer_payment>83.75</buyer_payment>
+					<discount_fee>0.00</discount_fee>
+					<distributor_payment>84.00</distributor_payment>
+					<total_fee>84.00</total_fee>
+					<fenxiao_id>3853886900342</fenxiao_id>
+					<created>2014-04-01 20:54:12</created>
+					<order_200_status>TRADE_CLOSED</order_200_status>
+					<price>84.00</price>
+					<promotion_type>0</promotion_type>
+					<refund_fee>84.00</refund_fee>
+					<sc_item_id>131220000322455349</sc_item_id>
+					<snapshot_url>http://gongxiao.tmall.com/product/product_snapshot.htm?subOrderId=3853886900342
+					</snapshot_url>
+					<status>TRADE_REFUNDING</status>
+					<id>597017607071996</id>
+					<tc_order_id>596431635103022</tc_order_id>
+					<tc_adjust_fee>0</tc_adjust_fee>
+					<tc_discount_fee>25</tc_discount_fee>
+					<tc_preferential_type>优惠</tc_preferential_type>
+					<title>【5折抢购】广东联通3g手机卡 3G联通卡 流量卡 全国无漫游通用</title>
+				</sub_purchase_order>
+			</sub_purchase_orders>
+			<supplier_flag>0</supplier_flag>
+			<supplier_from>taobao</supplier_from>
+			<supplier_memo></supplier_memo>
+			<supplier_username>广东联通官方旗舰店</supplier_username>
+			<tc_order_id>596431635103022</tc_order_id>
+			<total_fee>84.00</total_fee>
+			<trade_type>AGENT</trade_type>
+		</purchase_order>
+	</purchase_orders>
+	<total_results>2</total_results>
+</fenxiao_orders_get_response><!--top049061.cm4 -->

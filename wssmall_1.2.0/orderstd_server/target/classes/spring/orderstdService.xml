@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+<!-- 
+	<bean id="partnerExpScheduler" class="com.ztesoft.net.mall.core.timer.PartnerExpScheduler" />
+	 -->
+	 <bean id="stdOuterService" class="com.ztesoft.net.outter.inf.service.StdOuterService"/>
+	<bean id="orderStdMangerLocal" class="com.ztesoft.net.service.impl.OrderStdMangerLocal"/>
+	<bean id="orderStdServiceLocal" class="com.ztesoft.net.service.impl.OrderStdServiceLocal"/>
+	<bean id="outterStdTmplManager" class="com.ztesoft.net.outter.inf.service.OutterStdTmplManager"/>
+	<bean id="orderStdStandarService" class="com.ztesoft.net.server.OrderStdStandarService"/>
+	<bean id="sdbUtils" class="com.ztesoft.net.outter.inf.service.SDBUtils"/>
+	<bean id="outterSTmplManager" class="com.ztesoft.net.outter.inf.service.OutterSTmplManager"/>
+	
+	
+	<bean id="orderStandingManager" class="com.ztesoft.orderstd.service.impl.OrderStandingManagerImpl"/>
+	<bean id="orderStandingManagerImpl" class="com.ztesoft.newstd.service.impl.OrderStandingManagerImpl"/>
+	<bean id="newStdOrderService" class="com.ztesoft.newstd.service.NewStdOrderService"/>
+	<bean id="commonDataDao" class="com.ztesoft.newstd.dao.impl.CommonDataDao"/>
+	
+	<!-- <bean id="taobaoService" class="com.ztesoft.net.server.TaobaoService"/> -->
+	<bean id="taobaoOrderUtil" class="com.ztesoft.net.server.TaobaoOrderUtil"/>
+	<bean id="taobaoFenxiaoOrderUtil" class="com.ztesoft.net.server.TaobaoFenxiaoOrderUtil"/>
+	<bean id="taobaoTianjiOrderUtil" class="com.ztesoft.net.server.TaobaoTianjiOrderUtil"/>
+	<bean id="stdOrderServ" class="com.ztesoft.net.server.StdOrderServ"/>
+	<bean id="stdOrderService" class="com.ztesoft.net.server.StdOrderService"/>
+	<bean id="stdOrderActionRuleServ" class="com.ztesoft.net.server.StdOrderActionRuleServ"/>
+	<bean id="attrDefSManager" class="com.ztesoft.orderstd.service.impl.AttrDefSManager"/>
+	<bean id="tplInstSManager" class="com.ztesoft.net.mall.core.service.impl.TplInstSManager"/>
+	<bean id="orderSManager" class="com.ztesoft.orderstd.service.impl.OrderSManager"/>
+	<bean id="cartSManager" class="com.ztesoft.orderstd.service.impl.CartSManager"/>
+	<bean id="dlyTypeSManager" class="com.ztesoft.orderstd.service.impl.DlyTypeSManager"/>
+	<bean id="cartPluginSBundle" class="com.ztesoft.orderstd.service.impl.CartPluginSBundle"/>
+	<bean id="promotionSServ" class="com.ztesoft.net.server.PromotionSServ"/>
+	<bean id="promotionSManager" class="com.ztesoft.orderstd.service.impl.PromotionSManager"/>
+	<bean id="orderPluginSBundle" class="com.ztesoft.orderstd.plugin.OrderPluginSBundle"/>
+	
+	<bean id="orderQueueStdServices" class="com.ztesoft.net.mall.core.service.impl.OrderQueueStdServices"/>
+	<!-- 属性处理器开始 -->
+	<bean id="orderExtHandler" class="com.ztesoft.newstd.handler.OrderExtHandler" ></bean>
+	<bean id="deliveryHandler" class="com.ztesoft.newstd.handler.DeliveryHandler" ></bean>
+	<bean id="orderHandler" class="com.ztesoft.newstd.handler.OrderHandler" ></bean>
+	<bean id="orderItemsExtHandler" class="com.ztesoft.newstd.handler.OrderItemsExtHandler" ></bean>
+	<bean id="orderItemsProdExtHandler" class="com.ztesoft.newstd.handler.OrderItemsProdExtHandler" ></bean>
+	<bean id="paymentLogsHandler" class="com.ztesoft.newstd.handler.PaymentLogsHandler" ></bean>
+	<bean id="orderExtvtlHandler" class="com.ztesoft.newstd.handler.OrderExtvtlHandler" ></bean>
+	<bean id="attrDiscountInfoHandler" class="com.ztesoft.newstd.handler.AttrDiscountInfoHandler" ></bean>
+	<bean id="attrFeeInfoHandler" class="com.ztesoft.newstd.handler.AttrFeeInfoHandler" ></bean>
+	<bean id="attrPackageHandler" class="com.ztesoft.newstd.handler.AttrPackageHandler" ></bean>
+	<bean id="attrTerminalExtHandler" class="com.ztesoft.newstd.handler.AttrTerminalExtHandler" ></bean>
+	<bean id="huashengOrderHandler" class="com.ztesoft.newstd.handler.HuashengOrderHandler" ></bean>
+	<bean id="orderItemsAptPrintsHandler" class="com.ztesoft.newstd.handler.OrderItemsAptPrintsHandler" ></bean>
+	<bean id="orderPhoneInfoHandler" class="com.ztesoft.newstd.handler.OrderPhoneInfoHandler" ></bean>
+	<bean id="orderSubOtherInfoNewHandler" class="com.ztesoft.newstd.handler.OrderSubOtherInfoNewHandler" ></bean>
+	<bean id="orderSubProdInfoNewHandler" class="com.ztesoft.newstd.handler.OrderSubProdInfoNewHandler" ></bean>
+	<bean id="orderZhwqAdslHandler" class="com.ztesoft.newstd.handler.OrderZhwqAdslHandler" ></bean>
+	<bean id="attrGiftInfoHandler" class="com.ztesoft.newstd.handler.AttrGiftInfoHandler" ></bean>
+	<bean id="orderRealNameInfoHandler" class = "com.ztesoft.newstd.handler.OrderRealNameInfoHandler"></bean>
+    <bean id="orderWmsKeyInfoHandler" class="com.ztesoft.newstd.handler.OrderWmsKeyInfoHandler" ></bean>
+	<bean id="orderIntentInfoHandler" class="com.ztesoft.newstd.handler.OrderInternetInfoHandler" ></bean>
+	<!-- 属性处理器结束-->
+</beans>

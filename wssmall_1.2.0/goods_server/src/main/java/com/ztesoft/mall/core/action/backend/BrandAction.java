@@ -1,0 +1,348 @@
+package com.ztesoft.mall.core.action.backend;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.util.FileBaseUtil;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.Brand;
+import com.ztesoft.net.mall.core.service.IBrandManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+
+/**
+ * 品牌action 负责品牌的添加和修改
+ * 
+ * @author apexking
+ * 
+ */
+public class BrandAction extends WWAction {
+
+	private IBrandManager brandManager;
+
+	private Brand brand;
+
+	private File logo;
+
+	private String logoFileName;
+
+	private String oldlogo;
+
+	private String filePath;
+
+	private String order;
+
+	private String brand_id; // 读取详细时使用
+
+	private String id; // 批量删除时用
+	
+	private String type_id;
+	private String p_type_id;
+	private Map<String, String> params = new HashMap<String, String>(0);
+	
+    public Map<String, String> getParams() {
+		return params;
+	}
+
+	public void setParams(Map<String, String> params) {
+		this.params = params;
+	}
+
+	private String goodsAddBindType;
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+	
+	public String checkUsed(){
+		 if(this.brandManager.checkUsed(id) ){
+			 this.json="{result:1}"; 
+		 }else{
+			 this.json="{result:0}";
+		 }
+		 return WWAction.JSON_MESSAGE;
+	}
+
+	 public String checkname(){
+		//base.src.main.java.com.ztesoft.common.util.StringUtils.java
+		//校验并且替换字特殊符
+		 if(this.brandManager.checkname(StringUtils.repalceSpecialCharacter(brand.getName()),brand.getBrand_id())){
+			 this.json="{result:1}"; //存在返回1
+		 }else{
+			 this.json="{result:0}";
+		 }
+		 return WWAction.JSON_MESSAGE;
+	 }
+	public String add() {
+
+		return "add";
+	}
+	
+	public String edit(){
+		brand = this.brandManager.get(brand_id);
+		return "edit";
+	}
+	
+	// 后台品牌列表
+	public String list() {
+		
+		this.webpage = brandManager.list(order, this.getPage(), this.getPageSize());
+		return "list";
+	}
+
+	// 后台品牌回收站列表
+	public String trash_list() {
+	
+		this.webpage = this.brandManager.listTrash(order, this.getPage(),this.getPageSize());
+		return "trash_list";
+	}
+	
+	//跳转新增Ecs
+	public String addEcs() {
+
+		return "add_Ecs";
+	}
+
+	//修改品牌Ecs
+	public String editEcs(){
+		brand = this.brandManager.get(brand_id);
+		return "edit_Ecs";
+	}
+	
+	// 后台品牌列表Ecs
+	public String listEcs() {
+		
+		this.webpage = brandManager.list(order, this.getPage(), this.getPageSize());
+		return "list_Ecs";
+	}
+
+	// 后台品牌回收站列表Ecs
+	public String trash_list_Ecs() {
+	
+		this.webpage = this.brandManager.listTrash(order, this.getPage(),this.getPageSize());
+		return "trash_list_Ecs";
+	}
+	
+	
+	public String save() {
+		if (logo != null) {
+			if (FileBaseUtil.isAllowUp(logoFileName)) {
+		
+			} else {
+				this.msgs.add("不允许上传的文件格式，请上传gif,jpg,bmp格式文件。");
+				return WWAction.MESSAGE;
+			}
+			brand.setFile(this.logo);
+			brand.setFileFileName(this.logoFileName);
+		}
+		brand.setDisabled(0);
+		brand.setName(StringUtils.repalceSpecialCharacter(brand.getName()));
+		brandManager.add(brand);
+		if(!StringUtil.isEmpty(p_type_id)){
+		   try{
+			   brandManager.insertBrandType(brand.getBrand_id(),p_type_id);
+			   brandManager.updateBrandJoin(p_type_id);
+			   this.json = "{result:0,message:'品牌添加成功',brandid:'"+brand.getBrand_id()+"',name:'"+brand.getName()+"'}";
+			} catch (RuntimeException e) {
+			   this.json = "{result:1,message:'品牌添加失败'}";
+			}
+			
+			return WWAction.JSON_MESSAGE;
+		}else{
+			String url = "brand!list.do";  //核心版本页面
+			if(ManagerUtils.getSourceFrom().equals("ECS")){//广东联通新开列表页面
+				url = "brand!listEcs.do";
+			}
+			this.msgs.add("品牌添加成功");
+			this.urls.put("品牌列表", url);
+			return WWAction.MESSAGE;
+			}
+	}
+
+	//	
+	public String saveEdit() {
+		if (logo != null) {
+			if (FileBaseUtil.isAllowUp(logoFileName)) {
+
+
+			} else {
+				this.msgs.add("不允许上传的文件格式，请上传gif,jpg,bmp格式文件。");
+				return WWAction.MESSAGE;
+			}
+		}
+		
+		brand.setFile(this.logo);
+		brand.setFileFileName(this.logoFileName);
+		brandManager.update(brand);
+		this.msgs.add("品牌修改成功");
+		
+		String url = "brand!list.do";  //核心版本页面
+		if(ManagerUtils.getSourceFrom().equals("ECS")){//广东联通新开列表页面
+			url = "brand!listEcs.do";
+		}
+		this.urls.put("品牌列表", url);
+		return WWAction.MESSAGE;
+	}
+
+	/**
+	 * 将品牌放入回收站
+	 * 
+	 * @return
+	 */
+	public String delete() {
+		try {
+			this.brandManager.delete(id);
+			this.json = "{'result':0,'message':'删除成功'}";
+		} catch (RuntimeException e) {
+			this.json = "{'result':1,'message':'删除失败'}";
+		}
+		return WWAction.JSON_MESSAGE;
+	}
+
+	/**
+	 * 将品牌从回收站中还原
+	 * 
+	 * @return
+	 */
+	public String revert() {
+		try {
+			brandManager.revert(id);
+			this.json = "{'result':0,'message':'还原成功'}";
+		} catch (RuntimeException e) {
+			this.json = "{'result':1,'message':'删除失败'}";
+		}
+		return WWAction.JSON_MESSAGE;
+	}
+
+	/**
+	 * 清空回收站中的品牌
+	 * 
+	 * @return
+	 */
+	public String clean() {
+		try{
+			brandManager.clean(id);
+			this.json = "{'result':0,'message':'删除成功'}";
+		}catch(RuntimeException e){
+			 this.json="{'result':1,'message':'删除失败'}";
+		 }
+		return WWAction.JSON_MESSAGE;
+	}
+	
+	/**
+	 * 品牌发布
+	 * @return
+	 */
+	public String doPublish() {
+		
+		try {
+			
+			this.brandManager.doPublish(this.params);
+			this.json = "{'result':0,'message':'发布成功!'}";
+			
+		} catch (Exception e) {
+			this.json = "{'result':1,'message':'发布失败!'}";
+		}
+		
+		return WWAction.JSON_MESSAGE;
+	}
+
+	public Brand getBrand() {
+		return brand;
+	}
+
+	public void setBrand(Brand brand) {
+		this.brand = brand;
+	}
+
+	public File getLogo() {
+		return logo;
+	}
+
+	public void setLogo(File logo) {
+		this.logo = logo;
+	}
+
+	public String getLogoFileName() {
+		return logoFileName;
+	}
+
+	public void setLogoFileName(String logoFileName) {
+		this.logoFileName = logoFileName;
+	}
+
+
+	public void setBrandManager(IBrandManager brandManager) {
+		this.brandManager = brandManager;
+	}
+
+	public String getOldlogo() {
+		return oldlogo;
+	}
+
+	public void setOldlogo(String oldlogo) {
+		this.oldlogo = oldlogo;
+	}
+
+	public String getFilePath() {
+		return filePath;
+	}
+
+	public void setFilePath(String filePath) {
+		this.filePath = filePath;
+	}
+
+	public String getOrder() {
+		return order;
+	}
+
+	public void setOrder(String order) {
+		this.order = order;
+	}
+
+	public String getBrand_id() {
+		return brand_id;
+	}
+
+	public void setBrand_id(String brand_id) {
+		this.brand_id = brand_id;
+	}
+
+	public String getType_id() {
+		return type_id;
+	}
+
+	public void setType_id(String type_id) {
+		this.type_id = type_id;
+	}
+
+	public IBrandManager getBrandManager() {
+		return brandManager;
+	}
+
+	public String getP_type_id() {
+		return p_type_id;
+	}
+
+	public void setP_type_id(String p_type_id) {
+		this.p_type_id = p_type_id;
+	}
+
+	public String getGoodsAddBindType() {
+		return goodsAddBindType;
+	}
+
+	public void setGoodsAddBindType(String goodsAddBindType) {
+		this.goodsAddBindType = goodsAddBindType;
+	}
+
+ 
+	
+
+}

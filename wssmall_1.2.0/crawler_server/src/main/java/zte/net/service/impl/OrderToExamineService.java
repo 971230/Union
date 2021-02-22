@@ -1,0 +1,585 @@
+package zte.net.service.impl;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import params.req.ZbAuditOrderQueryReq;
+import params.req.ZbAuditSuccOrderQueryReq;
+import params.resp.ZbAuditOrderQueryResp;
+import params.resp.ZbAuditSuccOrderQueryResp;
+import zte.net.ecsord.common.LocalCrawlerUtil;
+import zte.net.ecsord.utils.SpecUtils;
+import zte.net.service.IOrderToExamineService;
+import zte.net.service.IStandardizationService;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.autoprocess.base.ClientPool;
+import com.ztesoft.autoprocess.base.ZBSystemClient;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.consts.CrawlerConsts;
+import com.ztesoft.net.mall.consts.ZBOrderUrlConsts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.utils.CrawlerSetting;
+import com.ztesoft.net.mall.utils.CrawlerUtils;
+
+public class OrderToExamineService implements IOrderToExamineService {
+
+	/** 日志记录器 */
+	private static final Log log = LogFactory.getLog(OrderToExamineService.class);
+	
+	/**缓存信息**/
+	static INetCache cache;
+	public  static int NAMESPACE = 433;
+	public static String HB_ZB_ORDER_ID = "HB_ZB_ORDER_ID_";
+	static {
+		cache = com.ztesoft.net.cache.common.CacheFactory.getCacheByType("");
+	}
+	@Resource
+	private IStandardizationService standardizationService;
+	
+	private ZBSystemClient init(){
+		ZBSystemClient client=null;
+		try {
+			String username = "";
+			if(ZBSystemClient.clientLogin!=null){
+				if(StringUtils.isNotBlank(ZBSystemClient.clientLogin.getLoginParam().getUsername())){
+					username = ZBSystemClient.clientLogin.getLoginParam().getUsername();
+					//log.info("=================分配获取登录的用户名："+username);
+				}else{
+					username = LocalCrawlerUtil.ZB_DEFAULT_ACCOUNT_CODE;//默认用户
+				}
+			}else{
+				username = LocalCrawlerUtil.ZB_DEFAULT_ACCOUNT_CODE;//默认用户
+			}
+			 client = ClientPool.get(username);//获取总商登录客户端对象
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("【总部系统-登陆系统异常】");
+		}
+		return client;
+	}
+	
+	/**
+	 * 标准化订单审核订单
+	 * @param threadName 线程名称
+	 * @param queryType 查询类型  queryOrder 订单查询，myOrder 我的订单
+	 */
+	@Override
+	public void parseOrderVerifyOrderCtn(String threadName, String queryType, Map<String, String> queryParams) throws Exception {
+		ZBSystemClient client =init();
+		if (client != null) {
+        	String ordersNoStr = "";//通过API获取订单编号的字符串
+        	List<String> ordersList = new ArrayList<String>();
+        	ZteClient zteclient = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+        	if("Y".equals(CrawlerSetting.IS_OUT_ID_CHECK)){
+        		ZbAuditOrderQueryReq req = new ZbAuditOrderQueryReq();
+            	ZbAuditOrderQueryResp resp = zteclient.execute(req, ZbAuditOrderQueryResp.class);
+            	if(resp!=null && !"-1".equals(resp.getError_code()) && resp.getOrders()!=null && resp.getOrders().size()>0){
+            		for(int j=0;j<resp.getOrders().size();j++){
+            			JSONObject json = JSONObject.fromObject(resp.getOrders().get(j).toString());//读取返回内容
+            			String orderNo = json.getString("out_tid");
+            			ordersNoStr = ordersNoStr + orderNo+",";
+            			ordersList.add(orderNo);
+            		}
+            	}
+        		log.info("=====[新用户标准化]获取导入的订单编码："+ordersNoStr);
+        	}
+        	//订单审核页面点击查询按钮链接
+        	Date d=new Date();   
+        	SimpleDateFormat df=new SimpleDateFormat("yyyy-MM-dd");   
+        	String beginDate = df.format(new Date(d.getTime() - (long)7 * 24 * 60 * 60 * 1000));
+        	String endDate = df.format(d);
+	        	
+			//String newUrl = ZBOrderUrlConsts.BATCH_QUERY_ZB_ORDER_URL;
+    		String newUrl = CrawlerSetting.OPERATION_URL_MAP.get(ZBOrderUrlConsts.BATCH_QUERY_ZB_ORDER_URL);
+    		
+    		if("Y".equals(CrawlerSetting.IS_OUT_ID_CHECK)){
+    			for (String noStr : ordersList) {
+    	        	String json = "{\"currPage\":1,\"pageSize\":\"100\",\"template\":\"order/artificialverify/list/artificialverifytable\",\"orderFrom\":\"\",\"orderType\":\"\",\"userTag\":\"1\",\"payType\":\"\",\"appArea\":\"\",\"netType\":\"\",\"businessType\":\"\",\"turnoverTimeTab\":\"\",\"startTime\":\""+beginDate+"\",\"endTime\":\""+endDate+"\",\"orderNo\":\""+noStr+"\",\"custName\":\"\",\"psptNo\":\"\",\"mobilePhone\":\"\"}";
+    	        	
+    	        	String newOrder = client.jsonPost(json, newUrl);
+    	        	log.info("======[线程："+threadName+"-订单审核查询返回报文开始]");
+    	        	log.info(newOrder);
+    	        	log.info("======[线程："+threadName+"-订单审核查询返回报文开始]");
+    	        	if(StringUtils.isNotBlank(newOrder)){
+    	        		parseOldNewOrderCtn(threadName,newOrder,ordersNoStr);//解析新户订单编号和订单ID执行审核操作
+    	        	}else{
+    	        		log.info("=====爬虫订单审核页面的订单信息返回为空");
+    	        	}
+				}
+    		}else{
+	        	//String json = "{\"currPage\":1,\"pageSize\":\"100\",\"template\":\"order/artificialverify/list/artificialverifytable\",\"orderFrom\":\"\",\"orderType\":\"\",\"userTag\":\"1\",\"payType\":\"\",\"appArea\":\"\",\"netType\":\"\",\"businessType\":\"\",\"turnoverTimeTab\":\"\",\"startTime\":\""+beginDate+"\",\"endTime\":\""+endDate+"\",\"orderNo\":\""+noStr+"\",\"custName\":\"\",\"psptNo\":\"\",\"mobilePhone\":\"\"}";
+
+    			//设置参数默认值
+    			Map<String, String> params =null; 
+				if(queryParams != null)
+					params = queryParams;
+				else
+					params=CrawlerSetting.ORDER_REVIEW_MAP.get(threadName);
+				
+    			String pageSize = params.get("pageSize");
+    			if(StringUtils.isEmpty(pageSize) || !CrawlerSetting.isNumeric(pageSize)){
+    				pageSize = "10";
+    			}
+    			String orderType = params.get("orderType");
+    			if(StringUtils.isEmpty(orderType)){
+    				orderType = "";
+    			}
+    			String userTag = params.get("userTag");
+    			if(StringUtils.isEmpty(userTag)){
+    				userTag = "";
+    			}
+    			String businessType = params.get("businessType");
+    			if(StringUtils.isEmpty(businessType)){
+    				businessType = "";
+    			}
+    			String psptNo = params.get("psptNo");
+    			if(StringUtils.isEmpty(psptNo)){
+    				psptNo = "";
+    			}
+    			String mobilePhone = params.get("mobilePhone");
+    			if(StringUtils.isEmpty(mobilePhone)){
+    				mobilePhone = "";
+    			}
+    			String orderFrom = params.get("orderFrom");
+    			if(StringUtils.isEmpty(orderFrom)){
+    				orderFrom = "";
+    			}
+    			String payType = params.get("payType");
+    			if(StringUtil.isEmpty(payType)){
+    				payType = "";
+    			}
+    			String appArea = params.get("appArea");
+    			if(StringUtil.isEmpty("appArea")){
+    				appArea = "";
+    			}
+    			String netType = params.get("netType");
+    			if(StringUtil.isEmpty(netType)){
+    				netType = "";
+    			}
+    			String turnoverTimeTab = params.get("turnoverTimeTab");
+    			if(StringUtil.isEmpty(turnoverTimeTab)){
+    				turnoverTimeTab = "";
+    			}
+    			String orderNo = params.get("orderNo");
+    			if(StringUtil.isEmpty(orderNo)){
+    				orderNo = "";
+    			}
+    			String custName = params.get("custName");
+    			if(StringUtil.isEmpty(custName)){
+    				custName = "";
+    			}
+    			Integer currPage = Integer.valueOf(params.get("currPage")==null?"1":params.get("currPage"));
+    			
+    			//设置查询参数
+    			JSONObject jsonObj = new JSONObject();
+    			if(StringUtil.isEmpty(queryType) || CrawlerConsts.QUERY_ORDER.equals(queryType)){
+    				jsonObj.put("currPage", currPage);
+    	        	jsonObj.put("pageSize", pageSize);
+    	        	jsonObj.put("template", "order/artificialverify/list/artificialverifytable");
+    	        	jsonObj.put("orderFrom", orderFrom);
+    	        	jsonObj.put("orderType", orderType);
+    	        	jsonObj.put("userTag", userTag);
+    	        	jsonObj.put("payType", payType);
+    	        	jsonObj.put("appArea", appArea);
+    	        	jsonObj.put("netType", netType);
+    	        	jsonObj.put("businessType", businessType);
+    	        	jsonObj.put("turnoverTimeTab", turnoverTimeTab);
+    	        	jsonObj.put("startTime", beginDate);
+    	        	jsonObj.put("endTime", endDate);
+    	        	jsonObj.put("orderNo", orderNo);
+    	        	jsonObj.put("custName", custName);
+    	        	jsonObj.put("psptNo", psptNo);
+    	        	jsonObj.put("mobilePhone", mobilePhone);
+    			}else if(CrawlerConsts.MY_ORDER.equals(queryType)){
+    				jsonObj.put("currPage", "1");
+        	    	jsonObj.put("fastOrderNo", orderNo);
+        	    	jsonObj.put("pageSize", "1");
+        	    	jsonObj.put("template", "order/artificialverify/list/verifymyordertable");
+        	    	newUrl =  CrawlerSetting.OPERATION_URL_MAP.get(ZBOrderUrlConsts.BATCH_QUERY_ZB_MY_ORDER_URL);
+    			}else{
+    				log.info("======[线程："+threadName+"]爬虫抓取未设置查询类型");
+    				return;
+    			}
+    	    	String resultJson = client.jsonPost(jsonObj.toString(), newUrl);
+    	    	
+	        	if(StringUtils.isNotBlank(resultJson)){
+	        		parseOldNewOrderCtn(threadName,resultJson,ordersNoStr);//解析新户订单编号和订单ID执行审核操作
+	        		JSONObject json = JSONObject.fromObject(resultJson);
+	        		if( null != json.getJSONArray("pages") && json.getJSONArray("pages").size() == Integer.valueOf(pageSize)){
+	        			params.put("currPage", String.valueOf(currPage +1));
+	        			parseOrderVerifyOrderCtn(threadName,queryType,params);//查询总数等于最大查询条数时表示后面还有数据，继续查询
+	        		}
+	        	}else{
+	        		log.info("======[线程："+threadName+"]爬虫订单审核页面的订单信息返回为空");
+	        	}
+    		}
+        } else {
+            log.info("======[线程："+threadName+"]当前cookie已经失效!");
+        }
+	}
+
+	public void parseOldNewOrderCtn(String threadName, String resultJson,
+			String ordersNoStr) throws Exception {
+		ZBSystemClient client =init();
+		try {
+			if(client!=null && StringUtils.isNotBlank(resultJson) && CrawlerUtils.isJson(resultJson)){
+				JSONObject json = JSONObject.fromObject(resultJson);//读取返回内容
+				//获取订单列表
+				JSONArray jsonArr = json.getJSONArray("pages");
+				//获取订单基本信息
+				for (int i=0;i<jsonArr.size();i++) {
+					JSONObject orderJson = jsonArr.getJSONObject(i);
+					String orderId = orderJson.getString("oId");
+					String orderNo = orderJson.getString("orderNo");
+					
+					//做解析之前先拿到总商订单号做重复单校验
+					try{
+						String zbOrderId = (String)cache.get(NAMESPACE, HB_ZB_ORDER_ID + orderNo);
+						if(!StringUtil.isEmpty(zbOrderId)){
+							log.info("订单"+orderId+"已经存在,不再重复抓单****************************");
+							continue;//订单存在，不做处理
+						}
+							
+					}catch(Exception e){
+						e.printStackTrace();
+					}
+					
+					 String activeNo = SpecUtils.getActiveNo(true);//订单流水号
+					 String orderAccCode = EcsOrderConsts.CRAWLER_TYPE_MALL;//订单接入编码(默认爬虫来源)
+					 String orderAccType = EcsOrderConsts.CRAWLER_TYPE_MALL;//订单接入类型(默认爬虫来源)
+					 
+					 String orderSource = "EMALL";//订单来源 默认为网上商城
+					 String orderSourceStr = orderJson.getString("orderFrom");//订单来源字符串  这个有些特别
+					 if(StringUtils.isNotBlank(orderSourceStr)){
+						 orderSource = LocalCrawlerUtil.ORDERSRC.get(orderSourceStr);
+						 if(orderSource==null || "null".equals(orderSource) || StringUtils.isBlank(orderSource)){
+							 orderSource = "MOBILE";
+						 }
+					 }
+					 String numNet = "4G";//号码网别
+					 String userType = "NEW";//入网类型 NEW 新用户，OLD 老用户
+					 String userTypeStr = orderJson.getString("userTag");//入网类型字符串
+					
+					 if(StringUtils.isNotBlank(userTypeStr)){
+						 userType = LocalCrawlerUtil.USER_TYPE.get(userTypeStr);
+					 }
+					 //String phoneNum = "";//订购号码
+					 String orderCity = "";//订单地市
+					 String orderCityStr = orderJson.getString("cityName");//订单地市字符串
+					 
+					 if(StringUtils.isNotBlank(orderCityStr)){
+						 orderCity = LocalCrawlerUtil.AREAIDBACK.get(orderCityStr);//订单地市
+					 }
+					 String orderOperType = "01";//是否闪电送 01 非闪电送 02 闪电送
+					 String orderProvince = orderJson.getString("provinceCode");//订单省份
+					 String preSale = "1";//预售标识
+					 log.info("================解析文件获取的订单编号："+orderNo+"\t"+orderId+"\t"+orderSourceStr+"\t"+numNet+"\t"+orderAccType+"\t"+orderCity+"\t"+userType);
+					 Map<String, Object> orderMap = new HashMap<String, Object>();
+					 orderMap.put("ActiveNo", activeNo);//流水号
+					 orderMap.put("ClientIP", "");//卖家ip --留空
+					 orderMap.put("CustomerId", "9015091867693272");//卖家标识 --留空
+					 orderMap.put("OrderSource", orderSource);//订单来源 --默认
+					 orderMap.put("RegisterName", "");//卖家昵称 --留空
+					 orderMap.put("OrderAccCode", orderAccCode);//订单接入类型 --默认
+					 orderMap.put("OrderAccType", orderAccType);//订单接入类型 --默认
+					 orderMap.put("OrderProvince", orderProvince);//订单省份 --默认
+					 orderMap.put("OrderCity", orderCity);//订单地市 --从详情取
+					 orderMap.put("OrderId", orderNo);//订单id --列表取
+					 orderMap.put("OrderOperType",orderOperType);//是否闪电送
+					 orderMap.put("PreSale",preSale);//预售标识 --定值
+					 orderMap.put("OrderNum", orderId);//总商长订单号 --订单查询取
+					 //以下参数是做传递数据
+					 Map<String, Object> commonMap = new HashMap<String, Object>();
+					 commonMap.put("numNet", numNet);
+					 commonMap.put("userType", userType);
+					 //commonMap.put("phoneNum", phoneNum);
+					 
+					 String stdResult = standardizationService.parseDetailFileOrderCtn(threadName,orderMap,commonMap);
+					 log.info("======[线程："+threadName+"]新用户标准化入库返回结果："+stdResult);
+				}
+			}else{
+				log.info("======[线程："+threadName+"]解析订单审核返回的内容为空或不为json格式");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("======[线程："+threadName+"]解析订单审核文件异常，返回报文："+resultJson);
+		}
+	}
+
+	/**
+	 * 标准化订单分配订单
+	 * @param threadName 线程名称
+	 */
+	@Override
+	public void getOrderAllocationInfoOrderCtn(String threadName) {
+		try {
+			ZBSystemClient client =init();
+			//==========================（在订单分配页面抓取订单信息）开始===================================
+        	//订单分配页面查询按钮链接
+        	//String oldUrl = ZBOrderUrlConsts.QUERY_ALLOCATION_ZB_ORDER_URL;
+    		String oldUrl = CrawlerSetting.OPERATION_URL_MAP.get(ZBOrderUrlConsts.QUERY_ALLOCATION_ZB_ORDER_URL);
+    		
+        	Date d=new Date();   
+        	SimpleDateFormat df=new SimpleDateFormat("yyyy-MM-dd");   
+        	String maxTime = df.format(d);
+    		
+        	ZteClient zteclient = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+        	List<String> ordersList = new ArrayList<String>();
+        	String ordersNoStr = "";//通过API获取订单编号的字符串
+        	if("Y".equals(CrawlerSetting.IS_OUT_ID_CHECK)){
+        		ZbAuditSuccOrderQueryReq req = new ZbAuditSuccOrderQueryReq();
+            	ZbAuditSuccOrderQueryResp resp = zteclient.execute(req, ZbAuditSuccOrderQueryResp.class);
+            	if(resp!=null && !"-1".equals(resp.getError_code()) && resp.getOrders()!=null && resp.getOrders().size()>0){
+            		for(int j=0;j<resp.getOrders().size();j++){
+            			JSONObject json = JSONObject.fromObject(resp.getOrders().get(j).toString());//读取返回内容
+            			String noStr = json.getString("out_tid");
+            			ordersNoStr = ordersNoStr + noStr +",";
+            			ordersList.add(noStr);
+            		}
+            	}
+        		log.info("======[线程："+threadName+"]获取导入的订单编码："+ordersNoStr);
+        	}
+        	
+    		if("Y".equals(CrawlerSetting.IS_OUT_ID_CHECK)){
+	    		for (String orderNo : ordersList) {
+	    			List<NameValuePair> formparams = new ArrayList<NameValuePair>();
+	    			
+	    			formparams.add(new BasicNameValuePair("selProvinceCode",LocalCrawlerUtil.ZB_PROVINCE_CODE));
+	        		formparams.add(new BasicNameValuePair("pageSize", "100"));
+	        		formparams.add(new BasicNameValuePair("page.webPager.action", "refresh"));
+	        		formparams.add(new BasicNameValuePair("page.webPager.pageInfo.pageSize", "100"));
+	        		formparams.add(new BasicNameValuePair("page.webPager.pageInfo.totalSize", "1000"));
+	        		formparams.add(new BasicNameValuePair("page.webPager.currentPage", "1"));
+	        		formparams.add(new BasicNameValuePair("orderNo", orderNo));
+	        		formparams.add(new BasicNameValuePair("userTag", "2"));
+	        		if(client!=null){
+	        			String oldOrder = client.post(formparams, oldUrl);//爬虫老用户订单信息
+	        			
+	                	if(StringUtils.isNotBlank(oldOrder)){//爬虫到的内容不为空把内容生成到文件里面
+	                		parseOldOrderCtn(threadName,oldOrder);//解析老用户订单标准化入库
+	                	}else{
+	                		log.info("======[线程："+threadName+"]在订单分配页面没有爬虫到订单信息");
+	                	}
+	        		}else{
+	        			log.info("======[线程："+threadName+"]在订单分配抓取订单时自动登录客户端对象为空，请检查自动登录的cookie是否已失效!");
+	        		}
+				}
+    		}else{
+    			List<NameValuePair> formparams = new ArrayList<NameValuePair>();
+
+    			formparams.add(new BasicNameValuePair("selProvinceCode",LocalCrawlerUtil.ZB_PROVINCE_CODE));
+    			formparams.add(new BasicNameValuePair("page.webPager.action", "refresh"));
+        		formparams.add(new BasicNameValuePair("page.webPager.pageInfo.totalSize", "1000"));
+        		formparams.add(new BasicNameValuePair("page.webPager.currentPage", "1"));
+        		formparams.add(new BasicNameValuePair("userTag", "2"));
+        		
+        		//String threadName = Thread.currentThread().getName();
+        		Map<String, String> params = CrawlerSetting.ORDER_ALLOCATION_MAP.get(threadName);
+        		Set<String> keys = params.keySet();
+        		for (String str : keys) {
+					if(!StringUtil.isEmpty(params.get(str))){
+		        		formparams.add(new BasicNameValuePair(str, params.get(str)));
+					}
+				}
+        		
+        		if(params.containsKey("pageSize") == false){
+        			formparams.add(new BasicNameValuePair("pageSize", "10"));
+        			formparams.add(new BasicNameValuePair("page.webPager.pageInfo.pageSize", "10"));
+        		}else{
+        			formparams.add(new BasicNameValuePair("page.webPager.pageInfo.pageSize", params.get("pageSize")));
+        		}
+        		if(params.containsKey("maxTime") == false){
+        			formparams.add(new BasicNameValuePair("maxTime", maxTime));
+        		}
+        		
+        		if(client!=null){
+        			String oldOrder = client.post(formparams, oldUrl);//爬虫老用户订单信息
+					
+                	if(StringUtils.isNotBlank(oldOrder)){//爬虫到的内容不为空把内容生成到文件里面
+
+                		parseOldOrderCtn(threadName,oldOrder);//解析老用户订单标准化入库
+                	}else{
+                		log.info("======[线程："+threadName+"]在订单分配页面没有爬虫到订单信息");
+                	}
+        		}else{
+        			log.info("======[线程："+threadName+"]在订单分配抓取订单时自动登录客户端对象为空，请检查自动登录的cookie是否已失效!");
+        		}
+    		}
+    		
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("[总部系统-抓取订单分配页面订单信息]任务出错", e);
+		}
+		
+	}
+
+	public void parseOldOrderCtn(String threadName,String orderDetail) {
+		try {
+			Document doc =  Jsoup.parse(orderDetail);//getFile("allocation","",oldFileName);
+			//&nbsp;空格特殊处理
+			String spaceStr = Jsoup.parse("&nbsp;").text();
+			
+			if(doc!=null){
+				
+				Elements elements = doc.select("table[class=singleOrder]");
+				if(elements!=null && elements.size()>0){
+					//int count = CrawlerSetting.ORDER_ALLOCATION_COUNT;//用于防止批量分配实际分配数量大于可分配数量问题
+					for(Element element:elements){
+						 String orderNo = "";//订单编号(短订单ID)
+						 String orderId = "";//订单ID(长订单ID)
+						 String orderAccTypeStr ="";//接入类型字符串
+						 String custId = "9015091867693272";//买家标识 
+						 String custIp = "";//客户IP
+						 String cityCode = "";
+						 String provinceCode = "";
+
+							 String activeNo = SpecUtils.getActiveNo(true);//订单流水号
+							 Elements orderNoElements = element.select("p:contains(订单编号：)");
+							 if(orderNoElements!=null && orderNoElements.size()>0){
+								 orderNo = orderNoElements.text().trim();
+								 if(StringUtils.isNotBlank(orderNo) && orderNo.indexOf("：")!=-1){
+									 orderNo = orderNo.substring(orderNo.indexOf("：")+1, orderNo.length());
+								 }
+							 }
+							 Elements orderAccTypeElements = element.select("p:contains(推广渠道：)");
+							 if(orderAccTypeElements!=null && orderAccTypeElements.size()>0){
+								 orderAccTypeStr = orderAccTypeElements.text().trim();
+								 if(StringUtils.isNotBlank(orderAccTypeStr) && orderAccTypeStr.indexOf("：")!=-1){
+									 orderAccTypeStr = orderAccTypeStr.substring(orderAccTypeStr.indexOf("：")+1, orderAccTypeStr.length());
+								 }
+							 }
+							 String orderAccCode = EcsOrderConsts.CRAWLER_TYPE_MALL;//订单接入编码(默认爬虫来源)
+							 String orderAccType = EcsOrderConsts.CRAWLER_TYPE_MALL;//订单接入类型(默认爬虫来源)
+
+							 Element checkElement = element.getElementById("checkbox");
+							 if(checkElement!=null){
+								 orderId = checkElement.val();
+							 }
+							 
+							 String orderSource = "EMALL";//订单来源 默认为网上商城
+							 String orderSourceStr = "";//订单来源字符串
+							 Elements sourceElements = element.select("dd[class=nowrap]").select("label");//这个有些特别
+							 if(sourceElements!=null && sourceElements.size()>0){
+								 orderSourceStr = sourceElements.text().trim();
+							 }
+							 if(StringUtils.isNotBlank(orderSourceStr)){
+								 orderSource = LocalCrawlerUtil.ORDERSRC.get(orderSourceStr);
+								 if(orderSource==null || "null".equals(orderSource) || StringUtils.isBlank(orderSource)){
+									 orderSource = "MOBILE";
+								 }
+							 }
+							 String numNet = "4G";//号码网别
+							 Elements numNetElements = element.select("td[class=third]").select("p");
+							 if(numNetElements!=null && numNetElements.size()>0){
+								 String numNetStr = numNetElements.get(1).text().trim();
+								 if(numNetStr.indexOf("号码")!=-1){
+									 numNet = numNetStr.substring(0, numNetStr.indexOf("号码"));
+								 }
+							 }
+							 String clientIp = "127.0.0.1";//买家登录IP
+							 String registerName = "";//买家昵称
+							 Elements clientIpElements = element.select("td[class=fourth]").select("p");
+							 if(clientIpElements!=null && clientIpElements.size()>0){
+								 String registerNameStr = clientIpElements.get(0).text().replace(spaceStr, "").trim();
+								 registerName = registerNameStr.substring(0, registerNameStr.indexOf("(")).trim();
+								 String clientIpStr = clientIpElements.get(1).text().trim();
+								 clientIp = clientIpStr.substring(0, clientIpStr.indexOf("(")).trim();
+							 }
+							 String userType = "NEW";//入网类型 NEW 新用户，OLD 老用户
+							 String userTypeStr = "";//入网类型字符串
+							 Elements userTypeElements = element.getElementsByClass("iconOlduser");		 
+							 if(userTypeElements!=null && userTypeElements.size()>0){
+								 userTypeStr = userTypeElements.text().trim();
+							 }
+							 if(StringUtils.isNotBlank(userTypeStr)){
+								 userType = LocalCrawlerUtil.USER_TYPE.get(userTypeStr);
+							 }
+							 String phoneNum = "";//订购号码
+							 String orderCity = "";//订单地市
+							 String orderCityStr = "";//订单地市字符串
+							 Elements numListWElements = element.getElementsByClass("numListW").select("li");
+							 if(numListWElements!=null && numListWElements.size()>0){
+								 String phoneNumStr = numListWElements.text().trim();
+								 if(StringUtils.isNotBlank(phoneNumStr) && phoneNumStr.indexOf("(")!=-1 && phoneNumStr.indexOf(")")!=-1){
+									 phoneNum = phoneNumStr.substring(0, phoneNumStr.indexOf("(")).trim();//订购号码
+									 orderCityStr = phoneNumStr.substring(phoneNumStr.indexOf("(")+1,phoneNumStr.indexOf(")")).trim();
+								 }else{
+									 phoneNum = phoneNumStr;
+								 }
+							 }
+							 if(StringUtils.isNotBlank(orderCityStr)){
+								 orderCity = LocalCrawlerUtil.AREAIDBACK.get(orderCityStr);//订单地市
+							 }
+							 String orderOperType = "01";//是否闪电送 01 非闪电送 02 闪电送
+							 String orderProvince = LocalCrawlerUtil.ZB_PROVINCE_CODE;//订单省份
+							 String preSale = "1";//预售标识
+							 log.info("======[线程："+threadName+"]解析文件获取的订单编号："+orderNo+"\t"+orderId+"\t"+orderSourceStr+"\t"+numNet+"\t"+clientIp+"\t"+orderAccType+phoneNum+"\t"+orderCity+"\t"+userType+"\t"+registerName);
+							 Map<String, Object> orderMap = new HashMap<String, Object>();
+							 orderMap.put("ActiveNo", activeNo);//流水号
+							 orderMap.put("ClientIP", clientIp);//卖家ip --订单分配补录
+							 orderMap.put("CustomerId", custId);//卖家标识 --订单分配补录
+							 orderMap.put("OrderSource", orderSource);//订单来源 --默认
+							 orderMap.put("RegisterName", registerName);//卖家昵称 --订单分配补录
+							 orderMap.put("OrderAccCode", orderAccCode);//订单接入类型 --默认
+							 orderMap.put("OrderAccType", orderAccType);//订单接入类型 --默认
+							 orderMap.put("OrderProvince", orderProvince);//订单省份 --默认
+							 orderMap.put("OrderCity", orderCity);//订单地市 --从详情取
+							 orderMap.put("OrderId", orderNo);//订单id --列表取
+							 orderMap.put("OrderOperType",orderOperType);//是否闪电送
+							 orderMap.put("PreSale",preSale);//预售标识 --定值
+							 orderMap.put("OrderNum", orderId);//总商长订单号 --订单查询取
+							 //以下参数是做传递数据
+							 Map<String, Object> commonMap = new HashMap<String, Object>();
+							 commonMap.put("numNet", numNet);
+							 commonMap.put("userType", userType);
+							 commonMap.put("phoneNum", phoneNum);
+							 
+							 if(StringUtils.isNotBlank(orderNo) && StringUtils.isNotBlank(orderId)){
+
+								 String stdResult = standardizationService.parseDetailFileOrderCtn(threadName,orderMap,commonMap);
+
+								 log.info("======[线程："+threadName+"]老用户标准化入库返回结果："+stdResult);
+								
+							 }else{
+								 log.info("======[线程："+threadName+"]抓取到的订单信息订单号为空");
+							 }
+					}
+					
+				}else{
+					log.info("======[线程："+threadName+"]没有抓取到订单信息");
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("======[线程："+threadName+"]解析订单文件出错");
+		}
+		
+	}
+
+	
+	
+}

@@ -1,0 +1,166 @@
+package com.ztesoft.mall.core.action.backend;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.struts2.StrutsStatics;
+
+import com.opensymphony.xwork2.ActionContext;
+import com.ztesoft.net.framework.action.WWAction;
+
+public class BatchGoodAction extends WWAction {
+	private File fileName;//上传文件名
+	private String fileNameFileName;//
+	private int model_choose;
+	
+
+	public int getModel_choose() {
+		return model_choose;
+	}
+
+	public void setModel_choose(int model_choose) {
+		this.model_choose = model_choose;
+	}
+
+	public File getFileName() {
+		return fileName;
+	}
+
+	public void setFileName(File fileName) {
+		this.fileName = fileName;
+	}
+
+	public String getFileNameFileName() {
+		return fileNameFileName;
+	}
+
+	public void setFileNameFileName(String fileNameFileName) {
+		this.fileNameFileName = fileNameFileName;
+	}
+//	/*
+//	 * 批量添加商品信息
+//	 */
+//	public String batchAddDetails(){
+//		if (fileName != null) {
+//			if (FileUtil.isAllowUpXls(fileNameFileName)) {
+//		
+//			} else {
+//				this.json="不允许上传的文件格式，请上传xlsx,xls格式文件。";
+//				return this.RESULT_MESSAGE;
+//			}
+//			
+////			brand.setFile(this.logo);
+////			brand.setFileFileName(this.logoFileName);
+//		}else {
+//			this.json="请上传商品";
+//			return this.RESULT_MESSAGE;
+//		}
+//		
+//		String path=fileName.getPath();
+//		XlsPaser paser=XlsPaser.getInstance();
+//		try{
+//			List<Goods> list=paser.paseXls(path);
+//			String role_type= null;
+//			String normal_price=null ;
+//			String silver_price =null;
+//			String gold_price =null;
+////			GoodsUsers goodsUser=new GoodsUsers();
+//			String detail=null;
+//			
+//			for (Goods gs:list) {
+//				detail=gs.getJson();
+//				gs.setJson(null);
+//				role_type=gs.getRole_type();
+//				normal_price=gs.getNormal_price();
+//				silver_price =gs.getSilver_price();
+//				gold_price = gs.getGold_price();
+//				gs.setRole_type(null);
+//				gs.setNormal_price(null);
+//				gs.setSilver_price(null);
+//				gs.setGold_price(null);
+//				goods=gs;
+//				saveAdd();
+//				this.goodsManager.addGoodsPrice(gs,role_type,normal_price,silver_price,gold_price);
+//				this.goodsManager.editGoods(detail,gs.getGoods_id());
+//				
+//				//设置商品工号   默认选择订购服务类型，受理和确认选择否
+//				
+////				assembleGoodsUser(goodsUser);
+//			}
+//			this.json = "商品添加成功";
+////			this.msgs.add("商品添加成功");
+//		}catch(Exception e ){
+//			e.printStackTrace();
+//			this.json = "商品添加失败";
+////			this.msgs.add("商品添加失败");
+//			
+//		}
+////		return this.MESSAGE;
+//		return this.RESULT_MESSAGE;
+//		
+//	}
+	/*
+	 *得到下载模板 
+	 */
+	public void getModel(){
+		ServletContext  servletContext =(ServletContext) ActionContext.getContext().get(StrutsStatics.SERVLET_CONTEXT);
+//		String fileName = new String(request.getParameter("model_choose").getBytes(
+//				"ISO-8859-1"), "UTF-8");
+		
+		logger.info(servletContext.getRealPath("WEB-INF\\classes\\model"));
+		ActionContext ctx = ActionContext.getContext();
+		HttpServletRequest request = (HttpServletRequest)ctx.get(StrutsStatics.HTTP_REQUEST);
+		HttpServletResponse response = (HttpServletResponse)ctx.get(StrutsStatics.HTTP_RESPONSE);
+		String modelFile="";
+		switch (model_choose){
+			case 0:modelFile="手机";
+			case 1:modelFile="电脑";
+		}
+		modelFile += "模板.xls";
+		FileInputStream fis =null;
+		ServletOutputStream sos = null;
+		try {
+			fis= new FileInputStream(new File(servletContext.getRealPath("WEB-INF\\classes\\model")+"\\"+modelFile));
+		
+			logger.info("客户端类型：" + request.getHeader("User-Agent"));
+			logger.info(request.getHeaderNames());
+	
+			if (request.getHeader("User-Agent").contains("Firefox")) {
+				response.addHeader("content-disposition", "attachment;filename="
+						+ modelFile);
+			} else if (request.getHeader("User-Agent").contains("MSIE")) {
+				response.addHeader("content-disposition", "attachment;filename="
+						+ java.net.URLEncoder.encode(modelFile, "UTF-8"));
+			}
+			//相应的逻辑操作
+			
+			sos = response.getOutputStream();
+
+			int count = 0;
+
+			byte[] bytes = new byte[1024];
+
+			while ((count = fis.read(bytes)) != -1) {
+				sos.write(bytes, 0, count);
+			}
+
+		}
+		catch (Exception e ){
+			e.printStackTrace();
+		}finally{
+			try {
+				sos.flush();
+				sos.close();
+				if(fis!=null)fis.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+	}
+}

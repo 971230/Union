@@ -1,0 +1,245 @@
+/*     */ package com.ztesoft.crm.report.generator.html.elements;
+/*     */ 
+/*     */ import com.ztesoft.crm.report.ReportContext;
+/*     */ import com.ztesoft.crm.report.actions.ParameterMap;
+/*     */ import com.ztesoft.crm.report.config.elements.Event;
+/*     */ import com.ztesoft.crm.report.config.elements.Field;
+/*     */ import com.ztesoft.crm.report.config.elements.Panel;
+/*     */ import com.ztesoft.crm.report.config.elements.Row;
+/*     */ import com.ztesoft.crm.report.lang.ArrayListEx;
+/*     */ import com.ztesoft.crm.report.lang.Utils;
+/*     */ import java.util.Iterator;
+/*     */ import java.util.List;
+/*     */ 
+/*     */ public class HTMLForm extends HTMLNode
+/*     */ {
+/*     */   public HTMLForm()
+/*     */   {
+/*  27 */     super("div");
+/*  28 */     setStyle("overflow-x:hidden;overflow-y:hidden;overflow:hidden;");
+/*     */   }
+/*     */ 
+/*     */   private String jsession(StringBuffer url, ParameterMap map)
+/*     */   {
+/*  33 */     if (url.toString().toLowerCase().startsWith("http:"))
+/*  34 */       return url.toString();
+/*  35 */     int s = url.indexOf("?");
+/*  36 */     if (s > 0)
+/*  37 */       url.insert(s, 
+/*  38 */         ";" + ReportContext.getContext().getSessionName() + "=" + 
+/*  39 */         map.getSessionId());
+/*     */     else {
+/*  41 */       url.append(
+/*  42 */         ";" + ReportContext.getContext().getSessionName() + "=" + 
+/*  43 */         map.getSessionId());
+/*     */     }
+/*  45 */     return url.toString();
+/*     */   }
+/*     */ 
+/*     */   private HTMLNode createField(Field f, ParameterMap map) {
+/*  49 */     HTMLNode iput = null;
+/*  50 */     String s = map.getString(f.getName());
+/*  51 */     String t = map.getString(f.getTextName());
+/*  52 */     if (s != null)
+/*  53 */       s = s.replaceAll("[']", "");
+/*  54 */     if ("textarea".equalsIgnoreCase(f.getType())) {
+/*  55 */       HTMLNode tx = new HTMLNode("textarea");
+/*  56 */       tx.setHeight(f.getHeight());
+/*  57 */       tx.setInnerHTML(s);
+/*  58 */       iput = tx;
+/*     */     }
+/*     */ 
+/*  61 */     if ("link".equals(f.getType())) {
+/*  62 */       HTMLNode link = new HTMLNode("A");
+/*  63 */       link.setAttribute("id", f.getId());
+/*  64 */       link.setStyle(f.getStyle());
+/*  65 */       String url = f.getUrl();
+/*  66 */       link.setInnerHTML(f.getContent());
+/*  67 */       if (Utils.isEmpty(url)) {
+/*  68 */         List arr = f.getElements(Event.class);
+/*  69 */         Event e = null;
+/*  70 */         for (Iterator objs = arr.iterator(); objs.hasNext(); ) {
+/*  71 */           e = (Event)objs.next();
+/*  72 */           if ("click".equals(e.getName())) {
+/*  73 */             url = "javascript:" + 
+/*  74 */               e.getFunctionName() + 
+/*  74 */               "();";
+/*     */           }
+/*     */         }
+/*     */ 
+/*     */       }
+/*     */ 
+/*  80 */       if ((Utils.isEmpty(url)) && (url.indexOf("javascript:") < 0)) {
+/*  81 */         url = Utils.format(jsession(new StringBuffer(url), map), map);
+/*     */       }
+/*  83 */       link.setAttribute("href", url);
+/*     */ 
+/*  85 */       return link;
+/*     */     }
+/*     */ 
+/*  89 */     if ("label".equals(f.getType())) {
+/*  90 */       iput = new HTMLNode("SPAN");
+/*  91 */       iput.setInnerHTML((Utils.isEmpty(f.getValue())) ? s : f.getValue());
+/*     */     }
+/*     */ 
+/*  94 */     if ("button,submit,reset,excel,chartset,prompt,print".indexOf(
+/*  95 */       f.getType().toLowerCase()) >= 0) {
+/*  96 */       HTMLNode button = new HTMLNode("button");
+/*  97 */       button.setClassName("rpt-button");
+/*     */ 
+/* 100 */       StringBuffer str = new StringBuffer();
+/* 101 */       str
+/* 102 */         .append("<table cellspacing='0' cellpadding='0' border='0'><tr>");
+/* 103 */       str.append("<td class='rpt-button-left'></td>");
+/* 104 */       str
+/* 105 */         .append("<td class='rpt-button-center' align='center'><span class='rpt-button-icon'></span>{0}</td>");
+/* 106 */       str.append("<td class='rpt-button-right'></td>");
+/* 107 */       str.append("</tr></table>");
+/* 108 */       button.setInnerHTML(
+/* 109 */         Utils.format(str.toString(), new String[] { 
+/* 109 */         f.getText() }));
+/*     */ 
+/* 111 */       iput = button;
+/* 112 */       iput.setWidth(f.getWidth());
+/*     */     }
+/*     */ 
+/* 115 */     if (iput == null) {
+/* 116 */       iput = new HTMLNode("input");
+/* 117 */       iput.setWidth((Utils.isEmpty(f.getWidth())) ? "120px" : 
+/* 118 */         f.getWidth());
+/*     */     }
+/*     */ 
+/* 122 */     iput.setId(f.getId());
+/* 123 */     iput.setAttribute("name", f.getName());
+/* 124 */     iput.setStyle(f.getStyle());
+/* 125 */     iput.setAttribute("xtype", f.getType());
+/* 126 */     iput.setAttribute("format", f.getFormat());
+/* 127 */     iput.setAttribute("url", f.getUrl());
+/* 128 */     iput.setAttribute("label", f.getLabel());
+/* 129 */     iput.setAttribute("dataType", f.getDataType());
+/* 130 */     iput.setAttribute("sqlParameter", f.getSqlParameter());
+/* 131 */     iput.setAttribute("initValue", (Utils.isEmpty(f.getValue())) ? s : 
+/* 132 */       f.getValue());
+/* 133 */     iput.setAttribute("rootValue", f.getRoot());
+/* 134 */     iput.setAttribute("empty", f.getEmpty());
+/* 135 */     iput.setAttribute("emptyText", f.getEmptyText());
+/* 136 */     iput.setAttribute("maxSize", f.getMaxSize());
+/* 137 */     iput.setAttribute("minSize", f.getMinSize());
+/* 138 */     iput.setAttribute("initText", (!(Utils.isEmpty(f.getText()))) ? 
+/* 139 */       f.getText() : t);
+/* 140 */     iput.setAttribute("depend", f.getDepend());
+/* 141 */     iput.setAttribute("dialogWidth", f.getDialogWidth());
+/* 142 */     iput.setAttribute("dialogHeight", f.getDialogHeight());
+/* 143 */     iput.setAttribute("minValue", (Utils.isEmpty(f.getMinValue())) ? 
+/* 144 */       map.getString(f.getMinParameter()) : f.getMinValue());
+/* 145 */     iput.setAttribute("maxValue", (Utils.isEmpty(f.getMaxValue())) ? 
+/* 146 */       map.getString(f.getMaxParameter()) : f.getMaxValue());
+/*     */ 
+/* 148 */     iput.setAttribute("dropdown", f.getDropdown());
+/*     */ 
+/* 150 */     if (!(Utils.isEmpty(f.getAttrCode())))
+/* 151 */       iput.setAttribute("url", 
+/* 152 */         "attrCode.st" + "?attrCode=" + f.getAttrCode());
+/* 153 */     if (!(Utils.isEmpty(f.getUrl())))
+/* 154 */       iput.setAttribute("url", 
+/* 155 */         jsession(new StringBuffer(f.getUrl()), map));
+/* 156 */     return iput;
+/*     */   }
+/*     */ 
+/*     */   private int getMaxLabelWidth(Panel p) {
+/* 160 */     int width = 0;
+/* 161 */     for (Iterator rows = p.childs().iterator(); rows.hasNext(); ) {
+/* 162 */       Row row = (Row)rows.next();
+/* 163 */       for (Iterator objs = row.childs().iterator(); objs.hasNext(); ) {
+/* 164 */         Field f = (Field)objs.next();
+/* 165 */         int w = ((f.getLabel() != null) ? f.getLabel().length() : 0) * 15;
+/* 166 */         if (w > width) {
+/* 167 */           width = w;
+/*     */         }
+/*     */       }
+/*     */     }
+/* 171 */     int w = 0;
+/* 172 */     if (p.getLabelWidth() != null) {
+/* 173 */       w = Utils.parseInt(p.getLabelWidth().replaceAll("px", ""), 0);
+/*     */     }
+/*     */ 
+/* 176 */     return ((w <= 0) ? width : w);
+/*     */   }
+/*     */ 
+/*     */   public void layout(Panel p, ParameterMap map)
+/*     */   {
+/* 181 */     setAttribute("target", p.getTarget());
+/* 182 */     setAttribute("type", p.getType());
+/* 183 */     String lw = getMaxLabelWidth(p) + "px";
+/*     */ 
+/* 187 */     for (Iterator rows = p.childs().iterator(); rows.hasNext(); ) {
+/* 188 */       HTMLNode formRow = addChild("DIV");
+/* 189 */       HTMLNode tab = HTMLTags.createTable(null);
+/*     */ 
+/* 191 */       Row row = (Row)rows.next();
+/*     */ 
+/* 193 */       HTMLNode tr = tab.addChild("TR");
+/* 194 */       formRow.setAttribute("verticalFill", row.getVerticalFill());
+/*     */ 
+/* 197 */       formRow.setClassName("form-row-cell");
+/* 198 */       formRow.setAttribute("rowHeight", row.getHeight());
+/* 199 */       formRow.setAttribute("align", row.getAlign());
+/* 200 */       formRow.add(tab);
+/* 201 */       formRow
+/* 202 */         .setStyle("overflow-x:hidden;overflow-y:hidden;overflow:hidden");
+/*     */       Iterator objs;
+/*     */       Field f;
+/* 207 */       if (Utils.isTrue(row.getButtons())) {
+/* 208 */         HTMLNode btd = tr.addChild("TD");
+/* 209 */         for (objs = row.childs().iterator(); objs.hasNext(); ) {
+/* 210 */           f = (Field)objs.next();
+/* 211 */           btd.add(createField(f, map));
+/*     */         }
+/*     */ 
+/*     */       }
+/*     */       else
+/*     */       {
+/* 217 */         int w = 0;
+/* 218 */         if (Utils.isTrue(p.getColumnEqualWidth())) {
+/* 219 */           w = 100 / row.childs().size();
+/*     */         }
+/* 221 */         for (objs = row.childs().iterator(); objs.hasNext(); ) {
+/* 222 */           f = (Field)objs.next();
+/* 223 */           if ((Utils.isTrue(p.getLabelVisiable())) && 
+/* 224 */             (!(Utils.isEmpty(f.getLabel())))) {
+/* 225 */             HTMLNode l = tr.addChild("TD");
+/* 226 */             l.setStyle("vertical-align", "middle");
+/* 227 */             l.setStyle("line-height", "21px");
+/* 228 */             l.setAttribute("vAlign", "middle");
+/* 229 */             l.setInnerHTML(
+/* 230 */               f.getLabel() + p.getLabelSeparator());
+/* 231 */             l.setAttribute("nowrap", "");
+/* 232 */             l.setStyle("white-space", "nowrap");
+/* 233 */             l.setId(
+/* 234 */               f.getId() + "_label");
+/* 235 */             l.setWidth(lw);
+/* 236 */             l.setWidth(p.getLabelWidth());
+/*     */           }
+/*     */ 
+/* 241 */           HTMLNode td = tr.addChild("TD");
+/* 242 */           HTMLNode hf = createField(f, map);
+/* 243 */           hf.setAttribute("formId", p.getId());
+/* 244 */           td.add(hf);
+/* 245 */           if (w > 0) {
+/* 246 */             td.setWidth(w + "%");
+/*     */           }
+/* 248 */           if (objs.hasNext()) {
+/* 249 */             HTMLNode a = tr.addChild("TD");
+/* 250 */             a.setInnerHTML("&nbsp;");
+/* 251 */             a.setClassName("table-td-separater");
+/*     */           }
+/*     */         }
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.generator.html.elements.HTMLForm
+ * JD-Core Version:    0.5.3
+ */

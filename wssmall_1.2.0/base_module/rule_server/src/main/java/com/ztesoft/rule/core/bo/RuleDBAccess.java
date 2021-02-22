@@ -1,0 +1,530 @@
+package com.ztesoft.rule.core.bo;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.common.util.BaseTools;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.rule.core.module.cfg.BizPlan;
+import com.ztesoft.rule.core.module.cfg.ConfigData;
+import com.ztesoft.rule.core.module.cfg.EntityRel;
+import com.ztesoft.rule.core.module.cfg.MidDataConfig;
+import com.ztesoft.rule.core.module.cfg.RetryInfo;
+import com.ztesoft.rule.core.module.cfg.RuleConfig;
+import com.ztesoft.rule.core.util.Const;
+
+public class RuleDBAccess extends BaseSupport implements IRuleDBAccess {
+
+	public static final String defaultPattern = "yyyy-MM-dd HH:mm:ss";
+
+	public static Date current() {
+		return new java.sql.Date(System.currentTimeMillis());
+	}
+
+	public static String currentDate() {
+		return formatDate(current());
+	}
+
+	public static String formatDate(Date date) {
+		return formatDate(date, defaultPattern);
+	}
+
+	public static String formatDate(Date date, String pattern) {
+		if (date == null)
+			return null;
+		if (pattern == null) {
+			throw new IllegalArgumentException("pattern is null");
+		} else {
+			SimpleDateFormat formatter = new SimpleDateFormat(pattern);
+			return formatter.format(date);
+		}
+	}
+
+	@Override
+	public ConfigData loadConfigData(String plan_code) {
+		BizPlan plan = getBizPlansByCode(plan_code);
+
+		ConfigData data = new ConfigData();
+		data.setBizPlan(plan);
+
+		data.setRuleConfigs(loadRuleConfigs(plan.getPlan_id()));
+		data.setMdConfigs(loadMidDataConfigs(plan.getPlan_id()) , plan);
+		// // TODO：参与者转化问题
+		// data.setPartners(loadPartners(plan.getPlan_id()));
+
+		return data;
+	}
+
+	/**
+	 * 加载参与方案${plan_id}对应的参与实体数据
+	 * 
+	 * @param plan_id
+	 *            方案标识
+	 * @return
+	 */
+	@Override
+	public List loadPartners(BizPlan plan) {
+
+		List<Map> partners = new ArrayList<Map>();
+		String sql = getPartnersSql(plan);
+		if(!StringUtils.isEmpty(sql)){
+			if (plan.getParamMap() != null && !plan.getParamMap().isEmpty()) {
+				partners = baseDaoSupport.queryForListByMap(sql, plan.toMap());
+			} else {
+				partners = baseDaoSupport.queryForList(sql);
+			}
+		}/*else if(plan.getParamMap()!=null && plan.getParamMap().size()>0){
+			//2014-2-25 mochunrun修改
+			//如果没有查询到数据库有配置参与者 返回传过来的参数   在DefDroolsRuleExecutor.factsInserter方法中添加
+			Map map = new HashMap();
+			partners.add(map);
+		}*/
+		return partners;
+	}
+
+	/**
+	 * 拼凑参与者SQL
+	 * @param plan
+	 * @return
+	 */
+	private String getPartnersSql(BizPlan plan) {
+		String sql = "select a.rel_id,a.rel_type,a.entity_type,a.entity_id,a.plan_id,"
+				+ "( select s.sql_script from es_rule_sql s where s.sql_code=a.entity_sql) entity_sql"
+				+ " from es_rule_plan_entity_rel a"
+				+ " where eff_date<=to_date(?, 'yyyy-mm-dd hh24:mi:ss') and exp_date>=to_date(?, 'yyyy-mm-dd hh24:mi:ss') "
+				+ " and a.status_cd='00A' and a.plan_id=? ";
+
+		String currentDate = formatDate(current());
+
+		List<EntityRel> rels = baseDaoSupport.queryForList(sql,
+				EntityRel.class, currentDate, currentDate, plan.getPlan_id());
+
+		StringBuilder sqlBuf = new StringBuilder();
+		for (EntityRel rc : rels) {
+			if (sqlBuf.length() > 0) {
+				sqlBuf.append(" union ");
+			}
+			if (plan.getParamMap() != null) {
+				sqlBuf.append(rc.getEntity_sql());
+			} else {
+				sqlBuf.append("select * from " + rc.getEntity_type()
+						+ " where " + rc.getRel_type() + "="
+						+ rc.getEntity_id());
+			}
+		}
+		return sqlBuf.toString();
+	}
+
+	
+	private String getScriptOrJavaBeanStr(String type, String code) {
+		String result = null;
+		if (Const.SQL.equals(type)) {
+			Map<String, String> data = baseDaoSupport
+					.queryForMap(
+							"select s.sql_code ,s.sql_script  from es_rule_sql  s  where sql_code=?",
+							code);
+			result = data.get("sql_script");
+		} else if (Const.JAVABEAN.equals(type)) {
+			Map<String, String> data = baseDaoSupport
+					.queryForMap(
+							"select j.java_code ,j.java_bean  from es_rule_java j where java_code=? ",
+							code);
+			result = data.get("java_bean");
+		}
+		return result;
+	}
+
+	@Override
+	public List<MidDataConfig> loadMidDataConfigs(String planId) {
+		String sql = " select c.mid_data_code,c.mid_data_id,c.cal_type , c.cal_logic , c.fact_java_class,c.need_process_data, "
+				+ " d.list_cal_type , d.list_cal_logic , d.detail_cal_type ,d.detail_cal_logic "
+				+ "  from es_rule_mid_data_config c ,es_rule_process_data d "
+				+ "  where c.mid_data_id=d.mid_data_code and c.status_cd='00A' and c.plan_id=? and c.source_from=?";
+		List<MidDataConfig> midConfigs = baseDaoSupport.queryForList(sql,
+				MidDataConfig.class, planId,ManagerUtils.getSourceFrom());
+		for (MidDataConfig mid : midConfigs) {
+			mid.setCal_logic(getScriptOrJavaBeanStr(mid.getCal_type(), mid
+					.getCal_logic()));
+			if (Const.TRUE.equals(mid.getNeed_process_data())) {
+				if (StringUtils.isNotEmpty(mid.getDetail_cal_logic())
+						&& StringUtils.isNotEmpty(mid.getDetail_cal_type())) {
+					mid.setDetail_cal_logic(getScriptOrJavaBeanStr(mid
+							.getDetail_cal_type(), mid.getDetail_cal_logic()));
+				}
+				if (StringUtils.isNotEmpty(mid.getList_cal_logic())
+						&& StringUtils.isNotEmpty(mid.getDetail_cal_type())) {
+					mid.setList_cal_logic(getScriptOrJavaBeanStr(mid
+							.getList_cal_type(), mid.getList_cal_logic()));
+				}
+			}
+		}
+		return midConfigs;
+	}
+
+	@Override
+	public List<RuleConfig> loadRuleConfigs(String planId) {
+		String sql = " select c.rule_id,c.rule_code,c.rule_name,a.priority,c.resource_type,c.impl_type,c.rule_script, "
+				+ "  a.no_loop,a.ruleflow_group,a.activation_group,a.agenda_group,a.auto_focus  "
+				+ " from es_rule_config c ,es_plan_rule_attr a "
+				+ " where a.rule_id=c.rule_id  and c.status_cd='00A'"
+				+ " and eff_date<=to_date(?, 'yyyy-mm-dd hh24:mi:ss') and exp_date>=to_date(?, 'yyyy-mm-dd hh24:mi:ss')  and  a.plan_id=? and a.source_from=? order by a.priority desc ";
+
+		String currentDate = formatDate(current());
+
+		List<RuleConfig> rules = baseDaoSupport.queryForList(sql,
+				RuleConfig.class, currentDate, currentDate, planId,ManagerUtils.getSourceFrom());
+
+		return rules;
+	}
+
+	@Override
+	/**
+	 * 
+	 * 加载可执行有效方案
+	 * 
+	 */
+	public List<BizPlan> loadExecBizPlans() {
+
+		String sql = " select a.plan_id,a.plan_code,a.plan_name,a.exec_time,a.cycle_id,a.ctrl_type,a.ctrl_val,exec_cycle,status_cd,thread_num "
+				+ " from es_rule_biz_plan a  "
+				+ "  where eff_date<=to_date(?, 'yyyy-mm-dd hh24:mi:ss') and exp_date>=to_date(?, 'yyyy-mm-dd hh24:mi:ss') and a.exec_time<=to_date(?, 'yyyy-mm-dd hh24:mi:ss')"
+				+ " and a.status_cd='00A' and a.run_type='T' ";
+
+		String currentDate = formatDate(current());
+		List<BizPlan> plans = baseDaoSupport.queryForList(sql, BizPlan.class,
+				currentDate, currentDate, currentDate);
+		for (BizPlan plan : plans) {
+			if (StringUtils.isNotEmpty(plan.getCtrl_type())
+					&& StringUtils.isNotEmpty(plan.getCtrl_val())) {
+				plan.setCtrl_val(getScriptOrJavaBeanStr(plan.getCtrl_type(),
+						plan.getCtrl_val()));
+			}
+		}
+		return plans;
+	}
+
+	@Override
+	/**
+	 * 
+	 * 根据方案编码加载方案信息
+	 * 
+	 */
+	public BizPlan getBizPlansByCode(String planCode) {
+
+		String sql = " select a.plan_id,a.plan_code,a.plan_name,a.exec_time,a.cycle_id,a.ctrl_type,a.ctrl_val,exec_cycle,status_cd,thread_num  from es_rule_biz_plan a  "
+				+ "  where   a.status_cd='00A' and  a.plan_code=?";
+		Map m = new HashMap();
+		m.put("plan_code", planCode);
+		BizPlan plan = (BizPlan) baseDaoSupport.queryForObject(sql,
+				BizPlan.class, planCode);
+		if (StringUtils.isNotEmpty(plan.getCtrl_type())
+				&& StringUtils.isNotEmpty(plan.getCtrl_val())) {
+			plan.setCtrl_val(getScriptOrJavaBeanStr(plan.getCtrl_type(), plan
+					.getCtrl_val()));
+		}
+		return plan;
+	}
+
+	@Override
+	public List<Map<String, String>> loadFactDataConfigs(String planCode) {
+		String sql = "select a.fact_code,a.data_load_mode,"
+				+ "(select s.sql_script from es_rule_sql s where s.sql_code=a.data_load_impl) data_load_impl"
+				+ " from es_rule_fact_data a where a.data_load_mode='SQL' and a.status_cd='00A' and a.plan_code=? "
+				+ " union all "
+				+ " select a.fact_code,a.data_load_mode,"
+				+ "(select j.java_bean from es_rule_java j where j.java_code=a.data_load_impl) data_load_impl "
+				+ " from es_rule_fact_data a where  a.data_load_mode='JAVA' and a.status_cd='00A' and a.plan_code=? ";
+
+		return baseDaoSupport.queryForList(sql, planCode, planCode);
+	}
+
+	@Override
+	public List<String> loadFactFilterConfigs(String planId) {
+		String sql = "select f.filter_handler from es_rule_fact_filter f where f.plan_id=? and f.status_cd='00A' ";
+
+		List<Map> cfgMaps = baseDaoSupport.queryForList(sql, planId);
+		List<String> cfgs = new ArrayList<String>(cfgMaps.size());
+		for (Map m : cfgMaps) {
+			cfgs.add(getScriptOrJavaBeanStr(Const.JAVABEAN, (String) m
+					.get("filter_handler")));
+		}
+		return cfgs;
+	}
+
+	@Override
+	public List<Map> loadRuleObjConfigs() {
+		String sql = "select * from es_rule_obj f where  f.status_cd='00A' ";
+
+		List<Map> cfgMaps = baseDaoSupport.queryForList(sql);
+
+		return cfgMaps;
+	}
+
+	@Override
+	public List<Map> loadRuleObjAttrConfigs() {
+		String sql = "select f.*,(select clazz from es_rule_obj b where b.obj_id=f.obj_id) clazz from es_rule_obj_attr f where  f.status_cd='00A' ";
+
+		List<Map> cfgMaps = baseDaoSupport.queryForList(sql);
+
+		return cfgMaps;
+	}
+
+	// -------------------------------------后续移植到前台处理----------------------------------------------------------//
+	@Override
+	public void updateRuleObj(List<Map> ruleObjs) {
+		// String sql = "update es_rule_obj_attr set attr_name=? ,
+		// attr_type=?,status_date=sysdate where attr_id=? " ;
+		for (Map ruleObj : ruleObjs) {
+			Map where = new HashMap();
+			where.put("obj_id", ruleObj.get("obj_id"));
+			baseDaoSupport.update("es_rule_obj", ruleObj, where);
+		}
+	}
+
+	@Override
+	public void insertRuleObj(List<Map> ruleObjs) {
+		// String sql = " insert into
+		// es_rule_obj(obj_id,clazz,obj_name,obj_type,ext_pack,status_cd,create_date,remark)
+		// "+
+		// "
+		// values(:obj_id,:clazz,:obj_name,'fact',:ext_pack,'00A',sysdate,:remark)
+		// " ;
+		for (Map ruleObj : ruleObjs)
+			baseDaoSupport.insert("es_rule_obj", ruleObj);
+	}
+
+	@Override
+	public void updateRuleObjAttr(List<Map> ruleObjAttrs) {
+		String sql = "update es_rule_obj_attr set attr_name=? , attr_type=?,status_date=sysdate  where attr_id=? ";
+		for (Map ruleObjAttr : ruleObjAttrs) {
+			Map where = new HashMap();
+			where.put("attr_id", ruleObjAttr.get("attr_id"));
+			baseDaoSupport.update("es_rule_obj_attr", ruleObjAttr, where);
+		}
+	}
+
+	@Override
+	public void insertRuleObjAttr(List<Map> ruleObjAttrs) {
+		// insert into
+		// es_rule_obj_attr(attr_id,obj_id,attr_code,attr_name,attr_type,status_cd,create_date,remark)
+		// values(:attr_id,:obj_id,:attr_code,:attr_name,:attr_type,'00A',sysdate,:remark)
+		// ;
+		for (Map ruleObjAttr : ruleObjAttrs)
+			baseDaoSupport.insert("es_rule_obj_attr", ruleObjAttr);
+	}
+
+	@Override
+	public String nextVal(String seqName) {
+		return baseDaoSupport.getSequences(seqName);
+	}
+
+	@Override
+	public List<RetryInfo> loadRetryInfo() {
+		String sql = "select a.retry_id,a.rel_type,a.entity_type , a.entity_id,a.plan_id ,a.exec_cycle from es_rule_retry a where a.status_cd='00A'";
+
+		return baseDaoSupport.queryForList(sql, RetryInfo.class);
+	}
+
+	@Override
+	public List<Map> loadPartners(BizPlan plan, int pi, int ps) {
+
+		List partners = null;
+		String sql =
+			" select * "+
+			"   from (select a.*, rownum rn"+
+			"           from (select *"+
+			"                   from ("+getPartnersSql(plan)+")"+
+			"                  where rownum < "+(pi+ps)+")  a)"+
+			"          where rn >= "+pi;
+		
+		if (plan.getParamMap() != null && !plan.getParamMap().isEmpty()) {
+			partners = baseDaoSupport.queryForListByMap(sql, plan.toMap());
+		} else {
+			partners = baseDaoSupport.queryForList(sql);
+		}
+
+		return partners;
+	}
+
+	@Override
+	/**
+	 * 满足条件的参与者数量(做分页使用)
+	 */
+	public int partnersSize(BizPlan plan) {
+		int num = 0;
+		String table = getPartnersSql(plan);
+		if(!StringUtils.isEmpty(table)){
+			String sql ="select count(1) from("+ table+") ";
+			
+			if (plan.getParamMap() != null && !plan.getParamMap().isEmpty()) {
+				num = baseDaoSupport.queryForIntByMap(sql, plan.toMap());
+			} else {
+				num = baseDaoSupport.queryForInt(sql);
+			}
+		}
+		return num;
+	}
+
+
+	@Override
+	/**
+	 * 满足条件的参与者数量(做分页使用)
+	 */
+	public int partnersSize(BizPlan plan , int mold) {
+		int num = 0;
+		String table = getPartnersSql(plan);
+		//修改，当table为空时直接返回0 2014-2-26 mochunrun
+		if(!StringUtils.isEmpty(table)){
+			//由于mysql不支持rownum需要修改
+			//String sql ="select count(1) from(select a.*,mod(rownum ,"+plan.getThread_num()+" ) xn from("+ table+") a ) where xn= "+mold;
+			//改为统计所有需要处理的数量   2014-2-27 mochunrun
+			String sql = "select count(*) from ("+table+") a";
+			
+			if (plan.getParamMap() != null && !plan.getParamMap().isEmpty()) {
+				num = baseDaoSupport.queryForIntByMap(sql, plan.toMap());
+			} else {
+				num = baseDaoSupport.queryForInt(sql);
+			}
+		}
+		return num;
+	}
+	
+	@Override
+	public void updateBizPlan(BizPlan plan) {
+		//String sql = "update es_rule_biz_plan set exec_cycle=?,exec_time=?,status_date="+DBTUtil.current()+",status_cd='00A' where plan_id=?" ;
+		//baseDaoSupport.update(sql, plan.getFreshMap()) ;
+		//2014-2-26 修改 mochunrun
+		String exec_time = (String) plan.getFreshMap().get("exec_time");
+		String sql = "update es_rule_biz_plan set exec_time="+DBTUtil.to_date(exec_time, 2)+",status_date="+DBTUtil.current()+",status_cd='00A' where plan_id=?" ;
+		baseDaoSupport.execute(sql, plan.getPlan_id()) ;
+	}
+
+	@Override
+	public boolean takeUpBizPlan(String planId , String stateCd) {
+		
+		String sql = "update es_rule_biz_plan set status_cd='00R',status_date=sysdate where plan_id=? and status_cd in('00A' , '00E')" ;
+		Map fields = new HashMap() ;
+		fields.put("status_cd", "00R") ;
+		fields.put("status_date", "sysdate") ;
+		
+		String where = "plan_id='"+planId+"' and status_cd in('"+stateCd+"')" ;
+		
+		return baseDaoSupport.update("es_rule_biz_plan", fields, where,null) > 0 ;
+	}
+
+	@Override
+	/**
+	 * 
+	 * inner_id host_name host_ip port
+	 */
+	@Transactional(propagation = Propagation.REQUIRED,rollbackFor=Exception.class)
+	public int saveRes(Map data){
+		int seq = baseDaoSupport.nextVal("seq_es_rule_res") ;
+		String sql = " insert into es_rule_res(res_id,inner_id,host_name,host_ip,port,status_cd,last_heart_beat,self_update,start_date,status_date) "+
+									"  values(:res_id,:inner_id,:host_name,:host_ip,:port,'00A',sysdate,'T',sysdate,sysdate) " ;
+		data.put("res_id", seq) ;
+		baseDaoSupport.update(sql, data) ;
+		return seq ;
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED,rollbackFor=Exception.class)
+	public void updateResStatus(long resId , String statusCd){
+		String sql = "update es_rule_res set self_update='T' , last_heart_beat=sysdate,status_cd=?,status_date=sysdate where res_id=?" ;
+		baseDaoSupport.execute(sql, statusCd ,resId) ;
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED,rollbackFor=Exception.class)
+	public void updateFailRes(){
+		String sql = " update es_rule_res set self_update='F' , status_cd='00T',status_date=sysdate "+
+		 					" where (sysdate-last_heart_beat)*24*3600>120 and status_cd='00A' " ;
+		baseDaoSupport.execute(sql) ;
+	}
+
+	@Override
+	public boolean releaseBizPlan(String planId , String stateCd) {
+		String sql = "update es_rule_biz_plan set status_cd='00R',status_date=sysdate where plan_id=? and status_cd in('00A' , '00E')" ;
+		Map fields = new HashMap() ;
+		fields.put("status_cd", stateCd) ;
+		fields.put("status_date", "sysdate") ;
+		
+		String where = "plan_id='"+planId+"' and status_cd in('00R')" ;
+		
+		return baseDaoSupport.update("es_rule_biz_plan", fields, where,null) > 0 ;
+	}
+
+	@Override
+	/**
+	 *  res_id plan_id exec_cycle
+	 */
+	public String insertPlanLog(Map data) {
+		String val = String.valueOf(baseDaoSupport.nextVal("seq_es_rule_res_log")) ;
+		String sql = " insert into es_rule_res_log(log_id,res_id,plan_id,exec_cycle,begin_date,status_cd) "+
+		 				" values(:val,:res_id,:plan_id,:exec_cycle,sysdate,'00R')" ;
+		data.put("val", val) ;
+		baseDaoSupport.update(sql, data);
+		return val ;
+	}
+	
+	@Override
+	/**
+	 *  log_id status_cd
+	 */
+	public void updatePlanLog(Map data) {
+		String sql = " update es_rule_res_log set status_cd=:status_cd , end_date=sysdate where log_id=:log_id" ;
+		baseDaoSupport.update(sql, data);
+	}
+
+	@Override
+	public List<Map> loadPartners(BizPlan plan, int mold, int pi, int ps) {
+		List partners = null;
+		/*String sql = "select * from (select xx.*,mod(rownum ,"+plan.getThread_num()+" ) xn from (select distinct uucall.* from("+getPartnersSql(plan)+") uucall ) xx) where xn= "+mold ;
+		sql =
+			" select * "+
+			"   from (select a.*, rownum rn"+
+			"           from (select *"+
+			"                   from ("+sql+")"+
+			"                  where rownum < "+((pi+1)*ps+1)+")  a)"+
+			"          where rn >= "+(pi*ps+1);*/
+		
+		
+		//2014-2-27 修改为分页查询     mochunrun
+		String table = getPartnersSql(plan);
+		String sql =   " select * "+
+				"   from (select a.*, rownum rn"+
+				"           from (select *"+
+				"                   from ("+table+")"+
+				"                  where rownum <= "+(pi*ps)+")  a)"+
+				"          where rn > "+((pi-1)*ps);
+		if(!DBTUtil.DB_TYPE_ORACLE.equals(BaseTools.getDatabaseType())) {
+			sql = "select * from ("+table+") ett limit "+((pi-1)*ps)+","+ps;
+		}
+		
+		
+		if (plan.getParamMap() != null && !plan.getParamMap().isEmpty()) {
+			partners = baseDaoSupport.queryForListByMap(sql, plan.toMap());
+		} else {
+			partners = baseDaoSupport.queryForList(sql);
+		}
+
+		return partners;
+	}
+	
+	@Override
+	public int getPlanEntityCount(String plan_id) {
+		String sql = "select count(*) from es_rule_plan_entity_rel t where t.plan_id=?";
+		return this.baseDaoSupport.queryForInt(sql, plan_id);
+	}
+	
+}

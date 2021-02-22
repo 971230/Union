@@ -1,0 +1,128 @@
+/*     */ package com.ztesoft.crm.report.generator;
+/*     */ 
+/*     */ import com.ztesoft.crm.report.actions.ParameterMap;
+/*     */ import com.ztesoft.crm.report.config.elements.Box;
+/*     */ import com.ztesoft.crm.report.config.elements.Element;
+/*     */ import com.ztesoft.crm.report.config.elements.Panel;
+/*     */ import com.ztesoft.crm.report.config.elements.Report;
+/*     */ import com.ztesoft.crm.report.document.Document;
+/*     */ import com.ztesoft.crm.report.document.DocumentFactory;
+/*     */ import com.ztesoft.crm.report.document.Node;
+/*     */ import com.ztesoft.crm.report.generator.excel.BoxExcelGenerator;
+/*     */ import com.ztesoft.crm.report.generator.excel.CrosstabExcelGenerator;
+/*     */ import com.ztesoft.crm.report.generator.excel.FormExcelGenertor;
+/*     */ import com.ztesoft.crm.report.generator.excel.ListtabExcelGenerator;
+/*     */ import com.ztesoft.crm.report.generator.html.BoxHTMLGenerator;
+/*     */ import com.ztesoft.crm.report.generator.html.ChartHTMLGenerator;
+/*     */ import com.ztesoft.crm.report.generator.html.CrosstabHTMLGenerator;
+/*     */ import com.ztesoft.crm.report.generator.html.FormHTMLGenerator;
+/*     */ import com.ztesoft.crm.report.generator.html.ListtabHTMLGenerator;
+/*     */ import com.ztesoft.crm.report.generator.html.SimpleHTMLGenerator;
+/*     */ import com.ztesoft.crm.report.generator.json.ListtabJsonGenerator;
+/*     */ import com.ztesoft.crm.report.generator.xml.ChartXMLGenerator;
+/*     */ import com.ztesoft.crm.report.log.ReportLogger;
+/*     */ import java.util.HashMap;
+/*     */ import java.util.Iterator;
+/*     */ 
+/*     */ public class GeneratorFactory
+/*     */ {
+/*  37 */   private static final HashMap generators = new HashMap();
+/*     */ 
+/*     */   static { add("box", "html", 
+/*  40 */       BoxHTMLGenerator.class.getName());
+/*  41 */     add("box", "excel", 
+/*  42 */       BoxExcelGenerator.class.getName());
+/*     */ 
+/*  44 */     add("crosstab", "excel", 
+/*  45 */       CrosstabExcelGenerator.class.getName());
+/*     */ 
+/*  47 */     add("crosstab", "html", 
+/*  48 */       CrosstabHTMLGenerator.class.getName());
+/*     */ 
+/*  50 */     add("listtab", "excel", 
+/*  51 */       ListtabExcelGenerator.class.getName());
+/*  52 */     add("listtab", "html", 
+/*  53 */       ListtabHTMLGenerator.class.getName());
+/*  54 */     add("listtab", "json", 
+/*  55 */       ListtabJsonGenerator.class.getName());
+/*     */ 
+/*  58 */     add("form", "html", 
+/*  59 */       FormHTMLGenerator.class.getName());
+/*  60 */     add("form", "excel", 
+/*  61 */       FormExcelGenertor.class.getName());
+/*     */ 
+/*  64 */     add("chart", "excel", 
+/*  65 */       BoxExcelGenerator.class.getName());
+/*  66 */     add("chart", "html", 
+/*  67 */       ChartHTMLGenerator.class.getName());
+/*  68 */     add("chart", "chart", 
+/*  69 */       ChartXMLGenerator.class.getName());
+/*     */ 
+/*  72 */     add("simplechart", "excel", 
+/*  73 */       BoxExcelGenerator.class.getName());
+/*  74 */     add("simplechart", "html", 
+/*  75 */       SimpleHTMLGenerator.class.getName());
+/*  76 */     add("simplechart", "chart", 
+/*  77 */       ChartXMLGenerator.class.getName());
+/*     */   }
+/*     */ 
+/*     */   private static final void add(String elementType, String replyType, String className)
+/*     */   {
+/*  83 */     generators.put(
+/*  84 */       elementType + "_" + replyType, className);
+/*     */   }
+/*     */ 
+/*     */   public static final Node generate(Report report, Element el, ParameterMap map) throws Exception
+/*     */   {
+/*  89 */     String elementType = "listtab";
+/*  90 */     Generator g = null;
+/*  91 */     if (el instanceof Box) {
+/*  92 */       elementType = "box";
+/*     */     }
+/*  94 */     if (el instanceof Panel) {
+/*  95 */       elementType = ((Panel)el).getType();
+/*  96 */       ((Panel)el).setReportPath(report.getPath());
+/*     */     }
+/*     */ 
+/* 100 */     String className = get(elementType, map.getReplyType());
+/*     */ 
+/* 102 */     if (className == null)
+/* 103 */       return null;
+/* 104 */     g = (Generator)Class.forName(className).newInstance();
+/*     */ 
+/* 106 */     return g.generate(report, el, map);
+/*     */   }
+/*     */ 
+/*     */   public static final Document generate(Report report, ParameterMap map)
+/*     */   {
+/*     */     try
+/*     */     {
+/* 119 */       Document doc = DocumentFactory.createDocument(map.getReplyType(), 
+/* 120 */         map.getReplyEncoding());
+/*     */ 
+/* 122 */       doc.init(report, map);
+/* 123 */       if (report.getBoxs() == null)
+/* 124 */         return doc;
+/* 125 */       for (Iterator objs = report.getBoxs().iterator(); objs.hasNext(); ) {
+/* 126 */         Element e = (Element)objs.next();
+/*     */ 
+/* 128 */         doc.add(generate(report, e, map));
+/*     */       }
+/* 130 */       return doc;
+/*     */     }
+/*     */     catch (Exception e) {
+/* 133 */       ReportLogger.getLogger().error("生成报表失败:", e);
+/*     */     }
+/* 135 */     return null;
+/*     */   }
+/*     */ 
+/*     */   private static final String get(String elementType, String replyType) {
+/* 139 */     return ((String)generators.get(
+/* 140 */       elementType + "_" + replyType));
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.generator.GeneratorFactory
+ * JD-Core Version:    0.5.3
+ */

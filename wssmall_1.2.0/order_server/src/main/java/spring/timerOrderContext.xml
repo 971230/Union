@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+
+    <!-- ********************取消订单扫描开始******************** -->
+    <bean id="canelOrderJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="orderCanel"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>canel</value>
+        </property>
+    </bean>
+
+    <!-- 取消订单扫描时间   0 0 3 * * ? 每天3点  0 0/1 * * * ? 每分钟-->
+    <bean id="canelOrderTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="canelOrderJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0 0 3 * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************取消订单扫描结束******************** -->
+    
+    
+    <!-- ********************订单归档扫描开始******************** -->
+    <bean id="orderHistoryTimerJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="orderHistoryTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>startOrderHistoryThread</value>
+        </property>
+    </bean>
+
+    <!-- 订单归档扫描时间   0 0 3 * * ? 每天3点 ; 0 0/1 * * * ? 每分钟-->
+    <bean id="orderHistoryTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="orderHistoryTimerJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+        	<!-- <value>0 0/1 * * * ?</value> -->
+            <value>0 0 02 ? * SUN</value>
+        </property>
+    </bean>
+    <!-- ********************订单归档扫描结束******************** -->
+    
+    <!-- ********************定时任务-订单标准化消息队列开始******************** -->
+    <bean id="orderStandardizeJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="orderStandardizeTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>standardize</value>
+        </property>
+    </bean>
+    
+    <!-- ********************定时任务-生产订单标准化消息队列开始******************** -->
+    <bean id="gPordOrderStandardizeJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="orderStandardizeTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>standardize</value>
+        </property>
+    </bean>
+    
+    <!-- ********************定时任务-生产库订单标准化消息队列开始******************** -->
+    <bean id="gProdOrderStandardizeJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="gProdOrderStandardizeTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>standardize</value>
+        </property>
+    </bean>
+
+    <!-- 订单归档扫描时间   0 0 3 * * ? 每天3点  0 0/1 * * * ? 每分钟-->
+    <bean id="orderStandardizeTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="orderStandardizeJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/20 * * * * ?</value>
+        </property>
+    </bean>
+    
+    <!-- 订单归档扫描时间   0 0 3 * * ? 每天3点  0 0/1 * * * ? 每分钟-->
+    <bean id="gProdOrderStandardizeTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="gProdOrderStandardizeJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/20 * * * * ?</value>
+        </property>
+    </bean>
+    
+   
+    
+    <!-- ********************定时任务-订单标准化消息队列结束******************** -->
+    
+    
+     <!-- ********************处理订单失败队列表数据开始******************** -->
+    <bean id="orderFailQueueTimer" class="com.ztesoft.net.mall.core.timer.OrderFailQueueTimer"/>
+    <bean id="orderFailQueueTimerJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="orderFailQueueTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点 ; 0 0/1 * * * ? 每分钟-->
+    <bean id="orderFailQueueTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="orderFailQueueTimerJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+        	 <value>0 0/1 * * * ?</value> 
+           <!--  <value>0 0 02 ? * SUN</value> -->
+        </property>
+    </bean>
+    <!-- ********************处理订单失败队列表数据结束******************** -->
+    
+    
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="triggers">
+            <list>
+                <!-- <ref bean="canelOrderTime"/> -->
+                 <ref bean="orderHistoryTime"/>
+                 <ref bean="orderStandardizeTime"/>
+                 <ref bean="gProdOrderStandardizeTime"/>
+                 <ref bean="orderFailQueueTime"/>
+            </list>
+        </property>
+    </bean>
+    
+</beans>

@@ -1,0 +1,646 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+
+import params.req.PartnerShopListReq;
+import params.req.PartnerWdEditReq;
+import params.resp.PartnerShopListResp;
+import params.resp.PartnerWdEditResp;
+
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.app.base.core.model.Partner;
+import com.ztesoft.net.app.base.core.model.PartnerAccount;
+import com.ztesoft.net.app.base.core.model.PartnerShop;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.blog.IStoreProcesser;
+import com.ztesoft.net.framework.blog.StoreProcesser;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.ReflectionUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.service.IPartnerAccountManager;
+import com.ztesoft.net.mall.core.service.IPartnerManager;
+import com.ztesoft.net.mall.core.service.IPartnerShopManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import consts.ConstsCore;
+/**
+ * 分销商网店
+ * @author dengxiuping
+ *
+ */
+public class PartnerShopManager extends BaseSupport<PartnerShop> implements IPartnerShopManager{
+	private static Logger logger = Logger.getLogger(PartnerShopManager.class);
+	private IPartnerManager partnerManager;
+	@Resource
+	private IPartnerAccountManager partneraccountManager;
+	
+	public String db_table_name(){
+		return this.getTableName("partner_shop");
+	}
+	 /**
+     * 
+     */
+    @Override
+	public List getLastUpdateDate(String partnerId){
+    	String sql="select  audit_idea,last_update_date from "+db_table_name()+" where partner_id='"+partnerId.trim()+"' and sequ=-2 and state='1' ";
+    	
+    	return this.baseDaoSupport.queryForList(sql);
+    }
+	/**
+	 * 查找审核字段
+	 * @param partid
+	 * @param sequ
+	 * @return
+	 
+	public List columnAuditList(){
+		
+		 List list=this.baseDaoSupport.queryForList("select p.pkey,p.pname  from es_dc_public p where p.stype="+Consts.DC_PUBLIC_STYPE_8017);
+		
+		 return list;
+	}*/
+	
+	@Override
+	public int add(PartnerShop partShopView) {
+		
+		partShopView.setCreate_date(Consts.SYSDATE);
+		partShopView.setState(Consts.PARTNER_STATE_APPLY);//申请
+		partShopView.setSequ(Consts.PARTNER_SEQ_W1);//待审核
+		
+		this.baseDaoSupport.insert(db_table_name(), partShopView);
+		return 1;
+	}
+	//根据id得到对象 (很少用该方法了)
+	@Override
+	public PartnerShop getPartnerShopByParId(String id){
+		String sql="select * from "+db_table_name()+" where partner_id=? ";
+		return this.baseDaoSupport.queryForObject(sql, PartnerShop.class, id);
+	}
+	/**
+	 * 获取数据
+	 */
+	@Override
+	public PartnerShop getPartnerShop(String partner_id,String state,Integer sequ){
+		PartnerShop partnerShop = null;
+		String sql="select * from "+db_table_name()+" where partner_id=? ";
+		if(state!=null){
+			sql+=" and state="+state;
+		}
+		if(sequ!=null){
+			sql+=" and sequ="+sequ;
+		}
+		
+		partnerShop =  this.baseDaoSupport.queryForObject(sql, PartnerShop.class, partner_id);
+		if(partnerShop!=null){
+			String obj = partnerShop.getShop_desc();
+	        if(null != obj && !"".equals(obj)){
+	        	IStoreProcesser  netBlog  = null;
+	        	netBlog = StoreProcesser.getProcesser("es_goods_plantform_info","other_intors",partnerShop.getSource_from(),obj);
+	        	obj = netBlog.getFileUrl(obj);
+				partnerShop.setShop_desc(obj);
+	    	}
+			
+		}
+		return partnerShop;
+	}
+	
+	/**
+	 * 获取有效正常状态数据
+	 */
+	public PartnerShop getPartner(String partner_id){
+		String sql="select * from "+db_table_name()+" where partner_id=? ";
+		return this.baseDaoSupport.queryForObject(sql, PartnerShop.class, partner_id);
+	}
+	
+	/**
+	 * 获取有效正常状态数据
+	 */
+	@Override
+	public PartnerShop getPartnerShop(String partner_id){
+		String sql="select * from "+db_table_name()+" where partner_id=? and state=1 and sequ=0 ";
+		
+		return this.baseDaoSupport.queryForObject(sql, PartnerShop.class, partner_id);
+	}
+	
+	/**
+	 * 获取待审核数据
+	 */
+	@Override
+	public PartnerShop getPartnerShopSequM1AndState0(String partner_id){
+		String sql="select * from "+db_table_name()+" where partner_id=? and state=0 and sequ=-1 ";
+		return this.baseDaoSupport.queryForObject(sql, PartnerShop.class, partner_id);
+	}
+	/**
+	 * 获取待审核数据
+	 */
+	@Override
+	public PartnerShop getPartnerShop(String partner_id,String state){
+		String sql="select * from "+db_table_name()+" where partner_id=? and sequ=0 ";
+		return this.baseDaoSupport.queryForObject(sql, PartnerShop.class, partner_id);
+	}
+	/*//列表
+	public Page shopHistorylist(PartnerShop obj,String type, int page, int pageSize) {
+		String userid=ManagerUtils.getUserId();
+		int sequ=0;
+		String appstr="";
+		//////////查看权限/////////
+		if(type.equals(Consts.A_0)){//管理员 待审核
+			sequ=Consts.PARTNER_SEQ_W1;
+			appstr=" and u.founder="+Consts.CURR_FOUNDER_3+" ";
+		}else if(type.equals(Consts.B_0)){//一级 待审
+			sequ=Consts.PARTNER_SEQ_W1;
+			appstr=" and (u.userid in (select userid from es_adminuser uu where uu.paruserid='"+userid+"'))";
+		}else if(type.equals(Consts.B_1)){//一级 处理中
+			sequ=Consts.PARTNER_SEQ_W1;
+			appstr=" and u.userid='"+userid+"' ";
+		}else if(type.equals(Consts.B_2)){//一级 不通过
+			sequ=Consts.PARTNER_SEQ_W2;
+			appstr=" and u.userid='"+userid+"' ";
+		}else if(type.equals(Consts.C_1)){//二级 处理中
+			sequ=Consts.PARTNER_SEQ_W1;
+			appstr=" and u.userid='"+userid+"' ";
+		}else if(type.equals(Consts.C_2)){//二级 不通过
+			sequ=Consts.PARTNER_SEQ_W2;
+			appstr=" and u.userid='"+userid+"' ";
+		}else {
+			appstr=" and 1=2 ";
+		}
+		ArrayList arr=new ArrayList();
+		String sql="select a.*,p.partner_name partner_name_desc,(select p.pname from  es_dc_public p where p.pkey=a.star and p.stype='8008' )star_desc  from ";
+			   
+        String whereSql= " es_partner_shop a left join es_partner p on p.partner_id=a.partner_id left join es_adminuser u " +
+        		" on u.userid=p.userid"+
+	    		" where p.sequ in(0,-1) and p.state=1 and a.state=1 and a.sequ="+sequ+" "+appstr;
+        sql+=whereSql;
+		if(obj!=null){
+			if(obj.getPartner_id()!=null && obj.getPartner_id().trim().length()>0){
+				sql+=" and a.partner_id like ? ";
+				arr.add(obj.getPartner_id()+"%");
+			}
+			
+		}
+		
+		sql+=" order by a.partner_id desc ";
+		String countSql = "select count(*) from "+whereSql;
+	    Page webpage = this.daoSupport.queryForCPage(sql, page, pageSize,PartnerShop.class,countSql,arr.toArray());
+	    
+	  return webpage;
+	}
+	*/
+	/**
+	 * 查找变更前后历时记录
+	 
+	public List shopHistroyList(List columnNamelist,String partnerid){
+		String querySql ="select ";
+		 for(Map dcMap : (List<Map>)columnNamelist){
+			 String field_name = (String)dcMap.get("pkey");
+			 querySql+=field_name+" ,";
+		 }
+		 int maxsequ=this.getMaxPartnerShopSequ(partnerid);
+		 querySql=querySql.substring(0,querySql.length()-1);
+		 querySql+="from es_partner_shop where (sequ="+maxsequ+" or sequ=-1) and partner_id = ? order by sequ desc ";
+		return this.baseDaoSupport.queryForList(querySql, partnerid);
+	}*/
+	/**
+	 * 审核 变更字段
+	 * @return
+	 
+	public int saveAuditAlterPartnerShop(PartnerShop shop){
+		
+		String state=Consts.PARTNER_STATE_NORMAL;
+		int sequ= Consts.PARTNER_SEQ_W1;
+		
+		PartnerShop old=this.getPartnerShop(shop.getPartner_id(), state,sequ); //基本信息
+		
+		if(old!=null){
+			
+			old.setLast_update_date(Consts.SYSDATE);
+			old.setAudit_idea(shop.getAudit_idea());
+			
+			if(shop.getSequ().equals(Consts.PARTNER_SEQ_0)){//通过
+				old.setSequ(Consts.PARTNER_SEQ_0);//0
+			}else{//不通过
+				old.setSequ(Consts.PARTNER_SEQ_W2);//-2
+			}
+			this.editPartnerShop(old,state,sequ);
+		}
+		
+		
+		return  1;
+	}*/
+	
+	/**
+	 * 审核
+	 * @return
+	 */
+	@Override
+	public int saveAuditPartnerShop(Partner partner){
+		
+		PartnerShop old=this.getPartnerShopSequM1AndState0(partner.getPartner_id()); //基本信息
+		
+		if(old!=null){
+			
+			old.setState(partner.getState());
+			
+			if(partner.getState().equals(Consts.PARTNER_STATE_NORMAL)){//通过
+				old.setSequ(Consts.PARTNER_SEQ_0);//0
+			}else{//不通过
+				old.setSequ(Consts.PARTNER_SEQ_W2);//-2
+			}
+			this.editPartnerShop(old);//修改未审核
+		}
+		
+		
+		return  1;
+	}
+	/**
+	 * 恢复
+	 * @return
+	 */
+	@Override
+	public int saveRenewPartnerShop(Partner partner){
+		
+		PartnerShop old=this.getPartnerShop(partner.getPartner_id()); //基本信息
+		
+		if(old!=null){
+			
+			old.setState(Consts.PARTNER_STATE_APPLY);
+			old.setSequ(Consts.PARTNER_SEQ_W1);
+			this.editUpdatePartnerShop(ReflectionUtil.po2Map(old),old.getPartner_id());//修改为待审核
+		}
+		
+		
+		return  1;
+	}
+	
+	//修改
+	@Override
+	public int edit(PartnerShop partner){
+		
+		//如果是审核后修改
+		if(Consts.PARTNER_STATE_NORMAL.equals(partner.getState())){
+			
+			PartnerShop oldshop=this.getPartnerShop(partner.getPartner_id());
+			if(oldshop!=null){
+				
+				boolean is_address=true;//网店地址
+				boolean is_name=true;
+				boolean is_net_type=true;
+				boolean is_area_code=true;
+				boolean is_star=true;
+				boolean is_channel_type=true;
+				boolean is_sub_channel_type=true;
+				boolean is_linknam=true;
+				boolean is_phone_no=true;
+				boolean is_send_address=true;
+				boolean is_eff_date=true;//生效
+				boolean is_exp_date=true;//失效
+				
+				 //查找待审核字段
+				  List list=this.baseDaoSupport.queryForList("select p.pkey  from es_dc_public p where p.stype=8017");
+				  Map key=null;
+				  /////////如有修改 请记得修改PartnerAction.showAuditAlter()方法
+				  for (int i = 0; i < list.size(); i++) {
+					  key=(Map) list.get(i);
+					  if("address".equals(key.get("pkey"))){
+							 is_address=partner.getAddress().equals(oldshop.getAddress())?true:false;//网店地址
+						 }else if(("name").equals(key.get("pkey"))){
+							 is_name=partner.getName().equals(oldshop.getName())?true:false;
+						 }else if(("net_type").equals(key.get("pkey"))){
+							 is_net_type=partner.getNet_type().equals(oldshop.getNet_type())?true:false;
+						 }else if(("area_code").equals(key.get("pkey"))){
+							 is_area_code=partner.getArea_code().equals(oldshop.getArea_code())?true:false;
+						 }else if(("star").equals(key.get("pkey"))){
+							 is_star=partner.getStar().equals(oldshop.getStar())?true:false;
+						 }else if(("channel_type").equals(key.get("pkey"))){
+							 is_channel_type=partner.getChannel_type().equals(oldshop.getChannel_type())?true:false;
+						 }else if(("sub_channel_type").equals(key.get("pkey"))){
+							 is_sub_channel_type=partner.getSub_channel_type().equals(oldshop.getSub_channel_type())?true:false;
+						 }else if(("linknam").equals(key.get("pkey"))){
+							 is_linknam=partner.getLinknam().equals(oldshop.getLinknam())?true:false;
+						 }else if(("phone_no").equals(key.get("pkey"))){
+							 is_phone_no=partner.getPhone_no().equals(oldshop.getPhone_no())?true:false;
+						 }else if(("send_address").equals(key.get("pkey"))){
+							 is_send_address=partner.getSend_address().equals(oldshop.getSend_address())?true:false;
+						 }else if("eff_date".equals(key.get("pkey"))){
+							  is_eff_date=partner.getEff_date().equals(oldshop.getEff_date())?true:false;
+						  }else if("exp_date".equals(key.get("pkey"))){
+							  is_exp_date=partner.getExp_date().equals(oldshop.getExp_date())?true:false;
+						  }
+				  }
+				  
+				  
+				
+				
+				if(is_address && is_name && is_net_type && is_area_code && is_star && is_channel_type &&is_eff_date &&is_exp_date
+						&& is_sub_channel_type && is_linknam && is_phone_no && is_send_address){//无审核关键字
+					
+					//更新
+					partner.setSequ(Consts.PARTNER_SEQ_0);
+					Map edit = ReflectionUtil.po2Map(partner);
+					this.editUpdatePartnerShop(edit, partner.getPartner_id());
+					
+				}else{//有审核关键字
+					
+					//更新
+					String curloginpar=partnerManager.currentLoginPartnerId();
+				    if(curloginpar.equals(partner.getPartner_id())){ //
+				    	partner.setSequ(Consts.PARTNER_SEQ_W1);//修改自己的资料 需审核
+				    }else {
+				    	partner.setSequ(Consts.PARTNER_SEQ_0);
+				    }
+					Map edit = ReflectionUtil.po2Map(partner);
+					this.editUpdatePartnerShop(edit, partner.getPartner_id());
+					
+					 if(curloginpar.equals(partner.getPartner_id())){ //
+					    	this.bakOldPartnershop(oldshop, null, Consts.PARTNER_SEQ_0);
+					  }else {
+					    	this.bakOldPartnershop(oldshop, null, getMaxPartnerShopSequ(oldshop)+1);
+					    }
+					/*if(curloginpar.equals(partner.getPartner_id())){ 
+						partnerManager.bakPartner(partner.getPartner_id(), null, Consts.PARTNER_SEQ_W1);
+					}*/
+				}
+			}
+				
+		}else{
+			//未审核修改
+			
+			Map edit = ReflectionUtil.po2Map(partner);
+			this.editUpdatePartnerShop(edit, partner.getPartner_id());
+		}
+		
+		
+		return 1;
+	}
+	@Override
+	public void bakOldPartnershop(PartnerShop oldshop,String setState,Integer setSequ){
+		//备份
+		if(setSequ!=null){
+			oldshop.setSequ(setSequ);
+		}
+		if(setState!=null){
+			oldshop.setState(setState);
+		}
+		oldshop.setLast_update_date(Consts.SYSDATE);
+		this.baseDaoSupport.insert(db_table_name(),oldshop);
+		
+	}
+	public PartnerShop bakNormalPartnershop(PartnerShop oldshop,String setState,Integer setSequ,PartnerShop shop){
+			//备份
+			oldshop.setSequ(this.getMaxPartnerShopSequ(oldshop)+1);
+			oldshop.setLast_update_date(Consts.SYSDATE);
+			this.baseDaoSupport.insert(db_table_name(),oldshop);
+			
+			if(setState!=null){
+				shop.setState(setState);
+			}
+			if(setSequ!=null){
+				shop.setSequ(setSequ);
+			}
+			
+			shop.setLast_update_date(Consts.SYSDATE);
+			return shop;
+	}
+	@Override
+	public void bakNormalPartnershop(String partnerID,String setState,Integer setSequ){
+		PartnerShop oldshop =getPartnerShop(partnerID);
+		if(oldshop!=null){
+			//备份
+			oldshop.setSequ(this.getMaxPartnerShopSequ(partnerID)+1);
+			oldshop.setLast_update_date(Consts.SYSDATE);
+			this.baseDaoSupport.insert(db_table_name(),oldshop);
+			
+			if(setState!=null){
+				oldshop.setState(setState);
+			}
+			if(setSequ!=null){
+				oldshop.setSequ(setSequ);
+			}
+			
+			oldshop.setLast_update_date(Consts.SYSDATE);
+			editPartnerShop(oldshop, Consts.PARTNER_STATE_NORMAL, Consts.PARTNER_SEQ_0);
+		}
+	}
+	public static void main(String[] args) {
+		logger.info(("s_abc").indexOf("sa_"));
+	}
+	@Override
+	public int getMaxPartnerShopSequ(PartnerShop partnershop){
+		String sql="select max(a.sequ)  from "+db_table_name()+" a where a.partner_id=? ";
+		int maxsequ=this.baseDaoSupport.queryForInt(sql, partnershop.getPartner_id());
+		return maxsequ;
+	}
+	
+	@Override
+	public int getMaxPartnerShopSequ(String prid){
+		String sql="select max(a.sequ)  from "+db_table_name()+" a where a.partner_id=? ";
+		int maxsequ=this.baseDaoSupport.queryForInt(sql, prid);
+		return maxsequ;
+	}
+	/**
+	 * 修改 未审核的分销商数据
+	 */
+	@Override
+	public int editPartnerShop(PartnerShop partner){
+		this.baseDaoSupport.update(db_table_name(), partner, " partner_id='"+partner.getPartner_id()+"' and state='0' and sequ=-1 ");
+		return 1;
+	}
+	@Override
+	public int editPartnerShop(PartnerShop partner,String state,Integer sequ){
+		String sql=" partner_id='"+partner.getPartner_id()+"'";
+		if(state!=null){
+			sql+=" and state="+state+" ";
+		}
+		if(sequ!=null){
+			sql+=" and sequ="+sequ+" ";
+		}
+		this.baseDaoSupport.update(db_table_name(), partner, sql);
+		return 1;
+	}
+	
+	/**
+	 * 修改 已审核的分销商数据
+	 */
+	@Override
+	public int editUpdatePartnerShop(Map map,String parid){
+		this.baseDaoSupport.update(db_table_name(), map, " partner_id='"+parid+"' and state='1' and sequ=0 ");
+		return 1;
+	}
+	public int editUpdatePartnerShopSequ(Map map,String parid){
+		this.baseDaoSupport.update(db_table_name(), map, " partner_id='"+parid+"' and (sequ=-1 or sequ=0) ");
+		return 1;
+	}
+	@Override
+	public int countRowParByPid(String parid){
+		return this.baseDaoSupport.queryForInt("select count(partner_id) from "+db_table_name()+" where partner_id =?", parid);
+	}
+	//删除
+	@Override
+	public int delete(String id){
+		if(id==null || id.equals("")){
+			return 0;
+		}else{
+			String sql="delete from "+db_table_name()+" where partner_id in ("+id+") ";
+			this.baseDaoSupport.execute(sql);
+			return 1;
+		}
+	}
+	public IPartnerManager getPartnerManager() {
+		return partnerManager;
+	}
+	public void setPartnerManager(IPartnerManager partnerManager) {
+		this.partnerManager = partnerManager;
+	}
+	
+	public <T>Map beanToMap(T t){
+		Map map = new HashMap();
+		if(t==null)return map;
+		Method [] methods = t.getClass().getMethods();
+		for(Method m:methods){
+			String name = m.getName();
+			if(name.startsWith("get")&&!name.equalsIgnoreCase("getClass")){
+				try {
+					Object obj = m.invoke(t);
+					if((!(obj instanceof String)&&obj!=null)||(obj instanceof String) &&!StringUtil.isEmpty((String)obj) ){
+						String key = name.substring(3,name.length()).toLowerCase();
+						map.put(key, obj);
+					}
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return map;
+	}
+	
+	@Override
+	public PartnerWdEditResp editPartnerWd(PartnerWdEditReq req) {
+		PartnerWdEditResp resp = new PartnerWdEditResp();
+		PartnerShop partnerShop =  req.getPartnerShop();
+	  try{
+		    if(ManagerUtils.getAdminUser()==null){
+		    	resp.setError_code(ConstsCore.ERROR_FAIL);
+		    	resp.setError_msg("您还未登录");
+		    	return resp;
+		    }
+			String partner_id = partnerShop.getPartner_id();
+			//Map map = new HashMap();
+			//map = beanToMap(req.getPartnerShop());
+			Map whereMap = new HashMap();
+			whereMap.put("partner_id", partner_id);
+			this.baseDaoSupport.update("es_partner_shop", partnerShop, whereMap);
+		    //partnerShop = this.getPartnerShop(partner_id);
+			
+			Partner partnernew = this.partnerManager.getPartner(partner_id);
+			if(null != partnernew){
+				Partner partnerold = req.getPartner();
+				if(null != partnerold && !StringUtils.isEmpty(partnerold.getImage_file())){
+					partnernew.setImage_file(partnerold.getImage_file());
+					whereMap.put("sequ", "0");
+					whereMap.put("state", "1");
+					Map partnerMap = ReflectionUtil.po2Map(partnernew);
+					this.baseDaoSupport.update("es_partner", partnerMap, whereMap);
+				}
+			}
+			
+			PartnerAccount pa = this.partneraccountManager.getprimaryAccount(partner_id);
+			if(null == pa){
+			    PartnerAccount primaryAccount = req.getPrimaryAccount();
+			    if(null != primaryAccount && !StringUtils.isEmpty(primaryAccount.getAccount_id())){
+				    primaryAccount.setPartner_id(partner_id);
+				    primaryAccount.setAccount_type("00A");//账户类型：00A预存金账户 00B
+				    primaryAccount.setAccount_amount(0);//账户金额
+				    primaryAccount.setAccount_code("p");//分销商账户
+				    primaryAccount.setAccount_name("分销商账户");//账户名称
+				    primaryAccount.setCreate_date(Consts.SYSDATE);
+				    primaryAccount.setFrost_deposit(0);//预存冻存金额
+				    this.baseDaoSupport.insert("es_partner_account", primaryAccount);
+			    }
+			}else{
+			    PartnerAccount primaryAccount = req.getPrimaryAccount();
+			    if(null != primaryAccount && !StringUtils.isEmpty(primaryAccount.getAccount_id())){
+				    primaryAccount.setPartner_id(partner_id);
+				    primaryAccount.setAccount_type("00A");//账户类型：00A预存金账户 00B
+				    primaryAccount.setAccount_amount(0);//账户金额
+				    primaryAccount.setAccount_code("p");//分销商账户
+				    primaryAccount.setAccount_name("分销商账户");//账户名称
+				    primaryAccount.setCreate_date(Consts.SYSDATE);
+				    primaryAccount.setFrost_deposit(0);//预存冻存金额
+				    Map primaryWhereMap = new HashMap();
+				    primaryWhereMap.put("partner_id", partner_id);
+				    primaryWhereMap.put("account_code", "p");
+				    Map partnerMap = ReflectionUtil.po2Map(primaryAccount);
+				    this.baseDaoSupport.update("es_partner_account", partnerMap, primaryWhereMap);
+			    }
+			}
+			
+			PartnerAccount ps = this.partneraccountManager.getSecondaryAccount(partner_id);
+			if(null == ps){
+			 	PartnerAccount secondaryAccount = req.getSecondaryAccount();
+				if(null != secondaryAccount && !StringUtils.isEmpty(secondaryAccount.getAccount_id())){
+			    	secondaryAccount.setPartner_id(partner_id);
+			    	secondaryAccount.setAccount_type("00A");//账户类型：00A预存金账户 00B
+			    	secondaryAccount.setAccount_amount(0);//账户金额
+			    	secondaryAccount.setAccount_code("s");//分销商子账户
+			    	secondaryAccount.setAccount_name("分销商子账户");//账户名称
+			    	secondaryAccount.setCreate_date(Consts.SYSDATE);
+			    	secondaryAccount.setFrost_deposit(0);//预存冻存金额
+				    this.baseDaoSupport.insert("es_partner_account", secondaryAccount);
+			    }
+			}else{
+			 	PartnerAccount secondaryAccount = req.getSecondaryAccount();
+				if(null != secondaryAccount && !StringUtils.isEmpty(secondaryAccount.getAccount_id())){
+			    	secondaryAccount.setPartner_id(partner_id);
+			    	secondaryAccount.setAccount_type("00A");//账户类型：00A预存金账户 00B
+			    	secondaryAccount.setAccount_amount(0);//账户金额
+			    	secondaryAccount.setAccount_code("s");//分销商子账户
+			    	secondaryAccount.setAccount_name("分销商子账户");//账户名称
+			    	secondaryAccount.setCreate_date(Consts.SYSDATE);
+			    	secondaryAccount.setFrost_deposit(0);//预存冻存金额
+				    Map secondaryWhereMap = new HashMap();
+				    secondaryWhereMap.put("partner_id", partner_id);
+				    secondaryWhereMap.put("account_code", "s");
+				    Map partnerMap = ReflectionUtil.po2Map(secondaryAccount);
+				    this.baseDaoSupport.update("es_partner_account", partnerMap, secondaryWhereMap);
+			    }
+			}
+		   
+			resp.setPartnerShop(partnerShop);
+			resp.setError_code(ConstsCore.ERROR_SUCC);
+			resp.setError_msg("操作成功");
+	  }catch(Exception e){
+		  e.printStackTrace();
+		  resp.setError_code(ConstsCore.ERROR_FAIL);
+		  resp.setError_msg("操作失败："+e.getMessage());
+	  }	
+		return resp;
+	}
+	@Override
+	public PartnerShopListResp getPartnerShopPage(PartnerShopListReq req) {
+		PartnerShopListResp resp = new PartnerShopListResp();
+		String sql ="select * from es_partner_shop  where  state='1'";
+		Page page  = this.baseDaoSupport.queryForPage(sql, req.getPageNo(), req.getPageSize(),PartnerShop.class);
+		resp.setPartnerShopPage(page);
+		return resp;
+	}
+	
+	public IPartnerAccountManager getPartneraccountManager() {
+		return partneraccountManager;
+	}
+	public void setPartneraccountManager(IPartnerAccountManager partneraccountManager) {
+		this.partneraccountManager = partneraccountManager;
+	}
+}

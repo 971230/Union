@@ -1,0 +1,197 @@
+package services;
+
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.framework.database.Page;
+
+import commons.CommonTools;
+import params.attention.req.AttentionReq;
+import params.attention.resp.AttentionResp;
+
+/**
+ * 供货商服务类
+ * 
+ * @author wui
+ */
+public class AttentionServ extends ServiceBase implements AttentionInf {
+
+	private FavoriteInf favoriteServ;
+	
+	private void init(){
+		if(null == favoriteServ) favoriteServ = ApiContextHolder.getBean("favoriteServ");
+	}
+
+	/**
+	 * 添加我的收藏。
+	 * 
+	 * @param json
+	 * @return
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	public AttentionResp addFav(AttentionReq attentionReq) {
+		//初始化beans
+		init();
+		
+		AttentionResp attentionResp = new AttentionResp();
+		
+		// Member member = CommonTools.getLoginMember();
+		Member member = UserServiceFactory.getUserService().getCurrentMember();
+		if (member == null && null == attentionReq.getMember_id()) {
+			CommonTools.addFailError("尊敬的用户，你尚未登录，请先登录！");
+		}
+		String member_id = "";
+		if (member != null) {
+			member_id = member.getMember_id();
+		} else if (attentionReq.getMember_id() != null
+				&& !"".equals(attentionReq.getMember_id())) {
+			member_id = attentionReq.getMember_id();
+		}
+
+		int count = favoriteServ.countFav(attentionReq.getMember_id(),
+				attentionReq.getFav_obj_id(),attentionReq.getFav_type());
+		if (count > 0) {
+			attentionResp.setError_code("-10000");
+			attentionResp.setError_msg("你已经收藏了该类型。");
+			
+			return attentionResp;
+		}
+		favoriteServ.addFav(attentionReq.getFav_obj_id(), member_id,
+				attentionReq.getFav_type());
+		attentionResp.setError_code("0");
+		attentionResp.setError_msg("成功");
+		return attentionResp;
+	}
+
+	@Override
+	public AttentionResp addGoodsFav(AttentionReq attentionReq) {
+
+		attentionReq.setFav_type("goods");// 商品
+		AttentionResp attentionResp = addFav(attentionReq);
+		addReturn(attentionReq, attentionResp);
+		return attentionResp;
+
+	}
+
+	@Override
+	public AttentionResp addSupplerFav(AttentionReq attentionReq) {
+
+		attentionReq.setFav_type("suppler");// 供货商
+		AttentionResp attentionResp = addFav(attentionReq);
+		addReturn(attentionReq, attentionResp);
+		return attentionResp;
+	}
+
+	public AttentionResp addPartnerFav(AttentionReq attentionReq) {
+		attentionReq.setFav_type("partner");// 分销商
+		AttentionResp attentionResp = addFav(attentionReq);
+		addReturn(attentionReq, attentionResp);
+		return attentionResp;
+	}
+
+	// 查询关注商品
+	@Override
+	public AttentionResp queryGoodsFav(AttentionReq attentionReq) {
+		//初始化beans
+		init();
+		
+		Member member = CommonTools.getLoginMember();
+		if (member == null && null == attentionReq.getMember_id()) {
+			CommonTools.addFailError("尊敬的用户，你尚未登录，请先登录！");
+		}
+		String member_id = "11";
+		if (member != null) {
+			member_id = member.getMember_id();
+		} else if (attentionReq.getMember_id() != null
+				&& !"".equals(attentionReq.getMember_id())) {
+			member_id = attentionReq.getMember_id();
+		}
+
+		AttentionResp attentionResp = new AttentionResp();
+		Page webPage = favoriteServ.listFavGoods(member_id, new Integer(
+				attentionReq.getPage_index()).intValue(), new Integer(
+				attentionReq.getPage_size()).intValue());
+
+		attentionResp.setWebPage(webPage);
+
+		addReturn(attentionReq, attentionResp);
+
+		return attentionResp;
+	}
+
+	// 查询关注供货商
+	@Override
+	public AttentionResp querySupplerFav(AttentionReq attentionReq) {
+		//初始化beans
+		init();
+		
+		AttentionResp attentionResp = new AttentionResp();
+
+		Member member = CommonTools.getLoginMember();
+		if (member == null && null == attentionReq.getMember_id()) {
+			CommonTools.addFailError("尊敬的用户，你尚未登录，请先登录！");
+		}
+		String member_id = "11";
+		if (member != null) {
+			member_id = member.getMember_id();
+		} else if (attentionReq.getMember_id() != null
+				&& !"".equals(attentionReq.getMember_id())) {
+			member_id = attentionReq.getMember_id();
+		}
+
+		Page webPage = favoriteServ.listFavSuppler(member_id, new Integer(
+				attentionReq.getPage_index()).intValue(), new Integer(
+				attentionReq.getPage_size()).intValue());
+
+		attentionResp.setWebPage(webPage);
+
+		addReturn(attentionReq, attentionResp);
+
+		return attentionResp;
+	}
+
+	// 查询关注分销商
+	@Override
+	public AttentionResp queryPartnerFav(AttentionReq attentionReq) {
+		//初始化beans
+		init();
+		
+		AttentionResp attentionResp = new AttentionResp();
+
+		Member member = CommonTools.getLoginMember();
+		if (member == null && null == attentionReq.getMember_id()) {
+			CommonTools.addFailError("尊敬的用户，你尚未登录，请先登录！");
+		}
+		String member_id = "11";
+		if (member != null) {
+			member_id = member.getMember_id();
+		} else if (attentionReq.getMember_id() != null
+				&& !"".equals(attentionReq.getMember_id())) {
+			member_id = attentionReq.getMember_id();
+		}
+
+		Page webPage = favoriteServ.listFavPartner(member_id, new Integer(
+				attentionReq.getPage_index()).intValue(), new Integer(
+				attentionReq.getPage_size()).intValue());
+
+		attentionResp.setWebPage(webPage);
+
+		addReturn(attentionReq, attentionResp);
+
+		return attentionResp;
+	}
+
+	// 取消关注
+	@Override
+	public AttentionResp delete(AttentionReq attentionReq) {
+		//初始化beans
+		init();
+		
+		favoriteServ.delete(attentionReq.getFavorite_id());
+		AttentionResp attentionResp = new AttentionResp();
+		addReturn(attentionReq, attentionResp);
+		return attentionResp;
+	}
+
+}

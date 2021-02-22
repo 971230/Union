@@ -1,0 +1,11 @@
+.mall_floor i{
+    border: 2px solid #FFE037;
+    left: 0;
+    position: absolute;
+    display:none;
+    top: 0;
+    
+}
+.mall_floor div, .mall_pic div {
+    position: relative;
+}

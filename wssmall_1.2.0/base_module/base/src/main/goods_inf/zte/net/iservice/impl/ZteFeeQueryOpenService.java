@@ -1,0 +1,163 @@
+package zte.net.iservice.impl;
+
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.remote.basic.inf.IFeeQueryBasicService;
+import com.ztesoft.remote.basic.params.req.AccBalanceRequest;
+import com.ztesoft.remote.basic.params.req.ArrearageRequest;
+import com.ztesoft.remote.basic.params.req.CurrentPackageRequest;
+import com.ztesoft.remote.basic.params.req.DataUDRQueryRequest;
+import com.ztesoft.remote.basic.params.req.HisBillsRequest;
+import com.ztesoft.remote.basic.params.req.PackageUseRequest;
+import com.ztesoft.remote.basic.params.req.PayFeeRecordsRequest;
+import com.ztesoft.remote.basic.params.req.PaymentInformationRequest;
+import com.ztesoft.remote.basic.params.req.PreOrderRequest;
+import com.ztesoft.remote.basic.params.req.PukQryRequest;
+import com.ztesoft.remote.basic.params.req.QryProdInstListRequest;
+import com.ztesoft.remote.basic.params.req.QryProdInstRequest;
+import com.ztesoft.remote.basic.params.req.RealTimeFeeRequest;
+import com.ztesoft.remote.basic.params.req.SmsudrQueryRequest;
+import com.ztesoft.remote.basic.params.req.SpudrQueryRequest;
+import com.ztesoft.remote.basic.params.req.SubInstQryRequest;
+import com.ztesoft.remote.basic.params.req.VoiceUDRQueryRequest;
+import com.ztesoft.remote.basic.params.req.WalletBalanceRequest;
+import com.ztesoft.remote.basic.params.resp.AccBalanceResponse;
+import com.ztesoft.remote.basic.params.resp.ArrearageResponse;
+import com.ztesoft.remote.basic.params.resp.CurrentPackageResponse;
+import com.ztesoft.remote.basic.params.resp.DataUDRQueryResponse;
+import com.ztesoft.remote.basic.params.resp.HisBillsResponse;
+import com.ztesoft.remote.basic.params.resp.PackageUseResponse;
+import com.ztesoft.remote.basic.params.resp.PayFeeRecordsResponse;
+import com.ztesoft.remote.basic.params.resp.PaymentInformationResponse;
+import com.ztesoft.remote.basic.params.resp.PreOrderResponse;
+import com.ztesoft.remote.basic.params.resp.PukQryResponse;
+import com.ztesoft.remote.basic.params.resp.QryProdInstListResponse;
+import com.ztesoft.remote.basic.params.resp.QryProdInstResponse;
+import com.ztesoft.remote.basic.params.resp.RealTimeFeeResponse;
+import com.ztesoft.remote.basic.params.resp.SmsudrQueryResponse;
+import com.ztesoft.remote.basic.params.resp.SpudrQueryResponse;
+import com.ztesoft.remote.basic.params.resp.SubInstQryResponse;
+import com.ztesoft.remote.basic.params.resp.VoiceUDRQueryResponse;
+import com.ztesoft.remote.basic.params.resp.WalletBalanceResponse;
+import com.ztesoft.remote.basic.utils.BasicConst;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+@ServiceMethodBean(version = "1.0")
+public class ZteFeeQueryOpenService {
+
+//	@Resource
+	private IFeeQueryBasicService feeQueryBasicService;
+	
+	private void init() {
+		if (null == feeQueryBasicService) feeQueryBasicService = ApiContextHolder.getBean("feeQueryBasicService");
+	}
+
+	@ServiceMethod(method = BasicConst.API_PREFIX + "qryCurrentPackage", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public CurrentPackageResponse qryCurrentPackage(CurrentPackageRequest request) {
+		this.init();
+		return feeQueryBasicService.qryCurrentPackage(request);
+	}
+
+	@ServiceMethod(method = BasicConst.API_PREFIX + "realTimeFee", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public RealTimeFeeResponse realTimeFee(RealTimeFeeRequest request) {
+		this.init();
+		return feeQueryBasicService.realTimeFee(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "arrearage", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public ArrearageResponse arrearage(ArrearageRequest request) {
+		this.init();
+		return feeQueryBasicService.arrearage(request);
+	}
+
+	@ServiceMethod(method = BasicConst.API_PREFIX + "payFeeRecords", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PayFeeRecordsResponse payFeeRecords(PayFeeRecordsRequest request) {
+		this.init();
+		return feeQueryBasicService.payFeeRecords(request);
+	}
+
+	@ServiceMethod(method = BasicConst.API_PREFIX + "queryWalletBalance", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public WalletBalanceResponse queryWalletBalance(WalletBalanceRequest request) {
+		this.init();
+		return feeQueryBasicService.queryWalletBalance(request);
+	}
+
+	@ServiceMethod(method = BasicConst.API_PREFIX + "qryPackageUse", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PackageUseResponse qryPackageUse(PackageUseRequest request) {
+		this.init();
+		return feeQueryBasicService.qryPackageUse(request);
+	}
+
+	@ServiceMethod(method = BasicConst.API_PREFIX + "accBalance", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public AccBalanceResponse accBalance(AccBalanceRequest request) {
+		this.init();
+		return feeQueryBasicService.accBalance(request);
+	}
+
+	@ServiceMethod(method = BasicConst.API_PREFIX + "pukQry", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PukQryResponse pukQry(PukQryRequest request) {
+		this.init();
+		return feeQueryBasicService.pukQry(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "voiceUDRQuery", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public VoiceUDRQueryResponse VoiceUDRQuery(VoiceUDRQueryRequest request) {
+		this.init();
+		return feeQueryBasicService.voiceUDRQuery(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "smsudrQuery", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public SmsudrQueryResponse smsudrQuery(SmsudrQueryRequest request) {
+		this.init();
+		return feeQueryBasicService.smsudrQuery(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "dataUDRQuery", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public DataUDRQueryResponse dataUDRQuery(DataUDRQueryRequest request) {
+		this.init();
+		return feeQueryBasicService.dataUDRQuery(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "spudrQuery", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public SpudrQueryResponse spudrQuery(SpudrQueryRequest request) {
+		this.init();
+		return feeQueryBasicService.spudrQuery(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "qryProdInst", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public QryProdInstResponse qryProdInst(QryProdInstRequest request) {
+		this.init();
+		return feeQueryBasicService.qryProdInst(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "subInstQry", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public SubInstQryResponse subInstQry(SubInstQryRequest request) {
+		this.init();
+		return feeQueryBasicService.subInstQry(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "qryProdInstList", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public QryProdInstListResponse qryProdInstList(QryProdInstListRequest request) {
+		this.init();
+		return feeQueryBasicService.qryProdInstList(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "paymentInformation", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PaymentInformationResponse paymentInformationList(PaymentInformationRequest request) {
+		this.init();
+		return feeQueryBasicService.paymentInformationList(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "preOrder", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PreOrderResponse preOrderList(PreOrderRequest request) {
+		this.init();
+		return feeQueryBasicService.preOrderList(request);
+	}
+	
+	@ServiceMethod(method = BasicConst.API_PREFIX + "hisBills", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public HisBillsResponse hisBills(HisBillsRequest request) {
+		this.init();
+		return feeQueryBasicService.hisBills(request);
+	}
+}

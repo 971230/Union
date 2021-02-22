@@ -1,0 +1,34 @@
+package com.ztesoft.net.eop.processor.facade.support.widget;
+
+import java.util.Map;
+
+import com.ztesoft.net.eop.processor.widget.IWidgetParamParser;
+import com.ztesoft.net.eop.processor.widget.WidgetXmlUtil;
+import com.ztesoft.net.eop.resource.model.EopSite;
+import com.ztesoft.net.eop.sdk.context.EopContext;
+import com.ztesoft.net.eop.sdk.context.EopSetting;
+import com.ztesoft.net.framework.util.StringUtil;
+
+/**
+ *  SAAS式的xml挂件参数解析器
+ * @author kingapex
+ * 2010-2-4下午04:05:18
+ */
+public class XmlWidgetParamParser implements IWidgetParamParser {
+
+	 
+	
+	public Map<String, Map<String, Map<String,String>>> parse() {
+		EopSite  site  =EopContext.getContext().getCurrentSite();
+		String contextPath  = EopContext.getContext().getContextPath();
+		String path =
+		EopSetting.EOP_PATH	
+		+contextPath
+		+ EopSetting.THEMES_STORAGE_PATH_F+
+		"/" + StringUtil.getThemePath()+ "/widgets.xml"; 
+		
+		return WidgetXmlUtil.parse(path);
+	}
+	
+	
+}

@@ -1,0 +1,239 @@
+package com.ztesoft.net.app.base.core.action;
+
+import com.opensymphony.xwork2.Action;
+import com.ztesoft.net.app.base.core.service.IDStoreManager;
+import com.ztesoft.net.eop.sdk.utils.UploadUtil;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.blog.IStoreProcesser;
+import com.ztesoft.net.framework.blog.StoreProcesser;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.model.DStoreInst;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+import javax.annotation.Resource;
+import javax.imageio.ImageIO;
+
+/**
+ * ckeditor 文件上传 
+ * @author kingapex
+ * 2010-7-11上午09:46:00
+ */
+public class CkEditorUploadAction extends WWAction {
+	@Resource
+	IDStoreManager dStoreManager;
+	private File upload;
+	private String uploadFileName;
+	private String path;
+	private String funcNum;
+	//CMS增加内容 begin
+	private String ret_type;
+	//可以剪裁图片
+	private String qquuid;
+	private String qqtotalfilesize;
+	private File qqfile;
+	private String qqfilename;
+	//CMS增加内容 end
+	@Override
+	public String execute(){
+		if(null != qqfile){
+			ret_type = "JSONQQ";
+			upload = qqfile;
+			uploadFileName = qqfilename;
+		}
+		
+		funcNum = this.getRequest().getParameter("CKEditorFuncNum");
+		if(upload!=null  && uploadFileName!=null){
+			path = UploadUtil.upload(upload,uploadFileName,"ckeditor");
+			path = UploadUtil.replacePath(path);
+		}
+		
+		if(null == this.dStoreManager){
+			this.dStoreManager = SpringContextHolder.getBean("dStoreManager");
+		}
+		DStoreInst inst = new DStoreInst();
+		IStoreProcesser netBlog = StoreProcesser.getFileProcesser();
+		inst.setStore_type(netBlog.getStroeType());
+		inst.setFile_path(path);
+		this.dStoreManager.add(inst);
+		BufferedImage sourceImg = null;
+		String size="",h="",w="";
+		try {
+			sourceImg = ImageIO.read(new FileInputStream(upload));
+			size = String.valueOf(upload.length());
+			h=String.valueOf(sourceImg.getHeight());
+			w=String.valueOf(sourceImg.getWidth());
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}finally{
+			 sourceImg = null;
+		}
+		if("JSON".equals(ret_type)){
+			this.json = "{\"success\":true," +
+						 "\"photo\":{" +
+						 			"\"ExtensionData\":null," +
+						 			"\"CreateTime\":\"\\/Date(1403141247893)\\/\"," +
+						 			"\"Description\":null," +
+						 			"\"Domain\":\"img.zhuyun.cn\"," +
+						 			"\"FileName\":\"M00/F0/4D/wKgJNFOiPIiAVT2gAAAVzVEVJW8748.gif\"," +
+						 			"\"FileSize\":"+size+"," +
+						 			"\"FolderId\":38758," +
+						 			"\"Group\":\"group1\"," +
+						 			"\"Height\":"+h+"," +
+						 			"\"Id\":3101405," +
+						 			"\"IsTemp\":false," +
+						 			"\"Name\":\"20140613094049_2\"," +
+						 			"\"OriginalId\":0," +
+						 			//"\"Path\":\"http://img.zhuyun.cn/M00/F0/4D/wKgJNFOiPIiAVT2gAAAVzVEVJW8748.gif\"," +
+						 			"\"Path\":\""+path+"\"," +
+						 			"\"ReferCount\":1," +
+						 			"\"StoreId\":16528," +
+						 			"\"Thumbnail\":\"M00/F0/4D/wKgJNFOiPIiAWKhOAAAILSYkIAI413.jpg\"," +
+						 			"\"ThumbnailPath\":\"http://img.zhuyun.cn/M00/F0/4D/wKgJNFOiPIiAWKhOAAAILSYkIAI413.jpg\"," +
+						 			"\"TransformParameter\":{" +
+						 									"\"ExtensionData\":null," +
+						 									"\"crop\":{" +
+						 												"\"ExtensionData\":null," +
+						 												"\"x1\":0," +
+						 												"\"x2\":0," +
+						 												"\"y1\":0," +
+						 												"\"y2\":0" +
+						 												"}," +
+						 									"\"quality\":0," +
+						 									"\"size\":{" +
+						 												"\"ExtensionData\":null," +
+						 												"\"h\":0," +
+						 												"\"w\":0" +
+						 												"}" +
+						 									"},\"Width\":"+w+"" +
+						 			"}," +
+						   "\"error\":0" +
+						 "}";
+			return WWAction.JSON_MESSAGE;
+		}else if("JSONQQ".equals(ret_type)){
+			this.json = "{\"success\":true," +
+						 "\"photo\":{" +
+						 			"\"ExtensionData\":null," +
+						 			"\"CreateTime\":\"\\/Date(1403157079588)\\/\"," +
+						 			"\"Description\":null," +
+						 			"\"Domain\":\"img.zhuyun.cn\"," +
+						 			"\"FileName\":\"M00/F0/FA/wKgJNFOiemCAAssxAAAVzVEVJW8738.gif\"," +
+						 			"\"FileSize\":"+size+"," +
+						 			"\"FolderId\":0," +
+						 			"\"Group\":\"group1\"," +
+						 			"\"Height\":"+h+"," +
+						 			"\"Id\":\""+inst.getSeq()+"\"," +
+						 			"\"IsTemp\":true," +
+						 			"\"Name\":\"20140613094049_2\"," +
+						 			"\"OriginalId\":0," +
+						 			"\"Path\":\""+path+"\"," +
+						 			"\"ReferCount\":1," +
+						 			"\"StoreId\":16528," +
+						 			"\"Thumbnail\":\"M00/F0/F9/wKgJNFOiemCAOLPfAAAILSYkIAI978.jpg\"," +
+						 			"\"ThumbnailPath\":\"http://img.zhuyun.cn/M00/F0/F9/wKgJNFOiemCAOLPfAAAILSYkIAI978.jpg\"," +
+						 			"\"TransformParameter\":{" +
+						 									"\"ExtensionData\":null," +
+						 									"\"crop\":{" +
+							 											"\"ExtensionData\":null," +
+							 											"\"x1\":0," +
+							 											"\"x2\":0," +
+							 											"\"y1\":0," +
+							 											"\"y2\":0" +
+							 										  "}," +
+							 								"\"quality\":0," +
+							 								"\"size\":{" +
+								 										"\"ExtensionData\":null," +
+								 										"\"h\":0," +
+								 										"\"w\":0" +
+							 										"}" +
+							 								"}," +
+							 		"\"Width\":"+w+"" +
+							 	"}," +
+							"\"error\":0" +
+					"}";
+		return WWAction.JSON_MESSAGE;
+	}else{
+			return Action.SUCCESS;
+		}
+		
+	}
+
+	public File getUpload() {
+		return upload;
+	}
+
+	public void setUpload(File upload) {
+		this.upload = upload;
+	}
+
+	public String getUploadFileName() {
+		return uploadFileName;
+	}
+
+	public void setUploadFileName(String uploadFileName) {
+		this.uploadFileName = uploadFileName;
+	}
+
+	public String getPath() {
+		return path;
+	}
+
+	public void setPath(String path) {
+		this.path = path;
+	}
+
+	public String getFuncNum() {
+		return funcNum;
+	}
+
+	public void setFuncNum(String funcNum) {
+		this.funcNum = funcNum;
+	}
+
+	public String getRet_type() {
+		return ret_type;
+	}
+
+	public void setRet_type(String ret_type) {
+		this.ret_type = ret_type;
+	}
+
+	public String getQquuid() {
+		return qquuid;
+	}
+
+	public void setQquuid(String qquuid) {
+		this.qquuid = qquuid;
+	}
+
+	public String getQqtotalfilesize() {
+		return qqtotalfilesize;
+	}
+
+	public void setQqtotalfilesize(String qqtotalfilesize) {
+		this.qqtotalfilesize = qqtotalfilesize;
+	}
+
+	public File getQqfile() {
+		return qqfile;
+	}
+
+	public void setQqfile(File qqfile) {
+		this.qqfile = qqfile;
+	}
+
+	public String getQqfilename() {
+		return qqfilename;
+	}
+
+	public void setQqfilename(String qqfilename) {
+		this.qqfilename = qqfilename;
+	}
+	
+}

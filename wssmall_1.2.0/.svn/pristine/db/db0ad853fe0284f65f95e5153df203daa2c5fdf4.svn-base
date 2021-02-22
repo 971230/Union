@@ -1,0 +1,160 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+
+import com.ztesoft.net.consts.MblConsts;
+import com.ztesoft.net.eop.resource.model.Access;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.CallLog;
+import com.ztesoft.net.mall.core.model.MblLoginLogVO;
+import com.ztesoft.net.mall.core.model.OfferVo;
+import com.ztesoft.net.mall.core.service.IMblLogManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import params.adminuser.req.MblWorkLogVO;
+
+import java.util.ArrayList;
+import java.util.List;
+public class MblLogManager extends BaseSupport implements IMblLogManager {
+
+	public Page workLogList(String business_name,String service_offer_name,String business_status,String phoneno,String username,String city,String start_time,String end_time,int page,int pageSize) {
+		    AdminUser user=ManagerUtils.getAdminUser();
+		   // String sql="select w.*,s.service_offer_name from es_works_log w,es_service_offer s where w.business_type=s.service_offer_name";
+			String sql="select w.seq,w.business_name,w.business_status,w.price,(substr(w.username,1,length(trim(w.username))-1)||'*')username,w.phoneno,w.brand,w.city,w.op_name,w.accept_time from es_works_log w where 1=1";
+
+		    List param = new ArrayList();
+		    if(MblConsts.priv.equals(user.getLan_id())){
+		    	sql+=" and lan_code in(select l.lan_id from es_lan l where l.prov_id=?)";
+		    	param.add(user.getLan_id());
+		    }
+		    else{
+		    	sql+=" and lan_code=?";
+		    	param.add(user.getLan_id());
+		    }
+		    if(business_name!=null && !"".equals(business_name)){
+		    	sql+=" and business_name like'%"+business_name+"%'";
+		    }
+			if(business_status!=null && !"".equals(business_status)){
+				sql+=" and business_status like'%"+business_status+"%'";
+			}
+			if(phoneno!=null && !"".equals(phoneno)){
+				sql+=" and phoneno like'%"+phoneno+"%'";
+			}
+			if(username!=null && !"".equals(username)){
+				sql+=" and username like'%"+username+"%' ";
+			}
+	        if (!StringUtil.isEmpty(start_time)) {
+
+				sql+=" and accept_time >= to_date( '"+ start_time +"' " +"||'00:00:00', 'yyyy-mm-dd hh24:mi:ss')";
+			}
+			if (!StringUtil.isEmpty(end_time)) {
+				sql+=" and accept_time <= to_date( '"+ end_time +"' " +
+						"||'23:59:59', 'yyyy-mm-dd hh24:mi:ss')";
+			}
+			sql+=" order by accept_time desc";
+		Page webpage = this.baseDaoSupport.queryForPage(sql, page, pageSize, MblWorkLogVO.class, param.toArray());
+		return webpage;
+		}
+
+	/*分销商工号查询
+	 * (non-Javadoc)
+	 * @see com.enation.mall.core.service.IMblLogManager#staffList(java.lang.String, int, int)
+	 */
+
+	public Page staffList(String username, int page, int pageSize) {
+		//String  sql=" select * from (select distinct a.* , l.staff_code from es_adminuser a ,es_login_log l where l.staff_code=a.username";
+		String sql="select  * from es_adminuser where founder='3'";
+		if(username!=null && !"".equals(username)){
+			sql+=" and username like '%"+username+"%'";
+		}
+//		sql += " )";
+		return this.baseDaoSupport.queryForPage(sql, page, pageSize);
+		
+	}
+
+	public Page workList(String username, int page, int pageSize) {
+		String  sql=" select  * from es_adminuser where founder='3'";
+		if(username!=null && !"".equals(username)){
+			sql+=" and username like '%"+username+"%'";
+		}
+		return this.baseDaoSupport.queryForPage(sql, page, pageSize);
+	}
+
+
+    public Page loginLogList(String staff_name,String mobile,String staff_code, String  start_time,
+    		String end_time, int page, int pageSize) {
+        AdminUser user = ManagerUtils.getAdminUser();
+        List param = new ArrayList();
+        //String sql = "select *　from es_login_log where 1=1";
+        String sql="select seq,staff_name,staff_code,station,mobile,city,ip,create_time from es_login_log where 1=1";
+        if (MblConsts.priv.equals(user.getLan_id())) {
+            sql += " and lan_code in(select l.lan_id from es_lan l where l.prov_id=?)";
+            param.add(user.getLan_id());
+        } else {
+            sql += " and lan_code=?";
+            param.add(user.getLan_id());
+        }
+        if (staff_name != null && !"".equals(staff_name)) {
+            sql += "and staff_name like '%" + staff_name + "%'";
+        }
+
+        if (mobile != null && !"".equals(mobile)) {
+            sql += "and mobile like '%" + mobile + "%'";
+        }
+        if (staff_code != null && !"".equals(staff_code)) {
+            sql += "and staff_code like '%" + staff_code + "%'";
+        }
+        
+        if (!StringUtil.isEmpty(start_time)) {
+
+			sql+=" and create_time >= to_date( '"+ start_time +"' " +"||'00:00:00', 'yyyy-mm-dd hh24:mi:ss')";
+
+		}
+		if (!StringUtil.isEmpty(end_time)) {
+			sql+=" and create_time <= to_date( '"+ end_time +"' " +
+					"||'23:59:59', 'yyyy-mm-dd hh24:mi:ss') ";
+
+		}
+        sql += " order by create_time desc";
+        Page pag = this.baseDaoSupport.queryForPage(sql, page, pageSize, MblLoginLogVO.class, param.toArray());
+        return pag;
+    }
+    
+    public Page callerLog(String  start_time,String end_time, int page, int pageSize){
+    	String sql="select * from inf_comm_client_calllog where 1=1";
+        if (!StringUtil.isEmpty(start_time)) {
+
+			sql+=" and req_time >= to_date( '"+ start_time +"' " +"||'00:00:00', 'yyyy-mm-dd hh24:mi:ss')";
+		}
+		if (!StringUtil.isEmpty(end_time)) {
+			sql+=" and rsp_time <= to_date( '"+ end_time +"' " +
+					"||'23:59:59', 'yyyy-mm-dd hh24:mi:ss')";
+		}
+		sql+=" order by req_time desc";
+    	
+    	List param = new ArrayList();
+        Page pag = this.baseDaoSupport.qryForPage(sql, page, pageSize, CallLog.class, param.toArray());
+        return pag;	
+    }
+
+    public void addLogin(MblLoginLogVO log) {
+        this.baseDaoSupport.insert("es_login_log", log);
+    }
+
+    public void addWork(MblWorkLogVO work) {
+        this.baseDaoSupport.insert("es_works_log", work);
+    }
+    
+    public void addAccessLog(Access access){
+    	this.baseDaoSupport.insert("es_access", access);
+    }
+
+	@Override
+	public List<OfferVo> listType() {
+		return this.baseDaoSupport.queryForList("select * from es_service_offer order by service_id", OfferVo.class);
+	
+	}
+
+}

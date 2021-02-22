@@ -1,0 +1,139 @@
+package com.ztesoft.net.mall.core.util;
+
+import java.util.Map;
+
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.struts2.ServletActionContext;
+
+import com.ztesoft.net.app.base.core.service.auth.IAdminUserManager;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.context.webcontext.WebSessionContext;
+import com.ztesoft.net.mall.core.consts.Consts;
+
+
+public class SysUtils   extends BaseSupport implements ISysUtils{
+	
+	private IAdminUserManager adminUserManager;
+	//获取登录用户信息
+	@SuppressWarnings("unchecked")
+	public Map getAgentSystemUser(String staff_code){
+		
+		if(isSecondPartner())
+		{
+			String parent_userid =getAdminUser().getParuserid();
+			AdminUser pAdminUser = this.getAdminUserById(parent_userid);
+			staff_code =pAdminUser.getRelcode();// 获取父级工号
+		}
+		
+		String querySql ="select distinct sys.*,  org.union_org_code, org.org_code from es_system_user sys, es_staff s, es_organization org "
+		+" where sys.staff_code = s.staff_code  and s.org_id = org.party_id and org.org_type_id = 8 "
+		+" and sys.party_id = s.party_id  and s.status_cd = '00A' and org.lan_id = '731' and org.status_cd = '00A'"
+		+" and sys.STAFF_CODE = ?";
+		return this.baseDaoSupport.queryForMap(querySql,staff_code);
+	}
+	
+
+	@Override
+	public AdminUser getAdminUserById(String userid) {
+		return adminUserManager.get(userid);
+	}
+
+	public IAdminUserManager getAdminUserManager() {
+		return adminUserManager;
+	}
+
+	public void setAdminUserManager(IAdminUserManager adminUserManager) {
+		this.adminUserManager = adminUserManager;
+	}
+	
+	
+	public static AdminUser getAdminUser(){
+		 WebSessionContext<AdminUser> sessonContext = ThreadContextHolder.getSessionContext();	
+		 AdminUser adminUser = sessonContext.getAttribute("admin_user_key");
+		 if(adminUser == null)
+			 adminUser = (AdminUser)ThreadContextHolder.getHttpSessionContext().getAttribute("admin_user_key");
+		 return adminUser;
+	}
+	public static String getPassword(){
+		HttpSession session = ServletActionContext.getRequest().getSession();	
+		String password = (String) session.getAttribute("loginPassword");
+		return password;
+	}
+	
+	public static int getFounder(){
+		return getAdminUser().getFounder();
+	}
+	//得到用户id
+	public static String getUserId(){
+		return getAdminUser().getUserid();
+	}
+	
+	//得到用户区域lan_id
+	public static String getLanId() {
+		return getAdminUser().getLan_id();
+	}
+	
+	public static boolean isAdminUser(){
+		AdminUser adminUser = getAdminUser();
+		if(adminUser==null)
+			return false;
+		int founder = adminUser.getFounder();
+		if(founder == 0 || founder == 1)//0:电信员工 1：超级管理员
+			return true;
+		return false;
+	}
+	
+	//一级
+	public static boolean isFirstPartner(){
+		return Consts.CURR_FOUNDER_3.equals(getAdminUser().getFounder()+"");
+	}
+	
+	//二级
+	public static boolean isSecondPartner(){
+		return Consts.CURR_FOUNDER_2.equals(getAdminUser().getFounder()+"");
+	}
+	
+	//超级管理 或 电信管理员
+	public static boolean isNetStaff(){
+		return Consts.CURR_FOUNDER_0.equals(getAdminUser().getFounder()+"") ||  Consts.CURR_FOUNDER_1.equals(getAdminUser().getFounder()+"");
+	}
+	
+	/**
+	 * 供货商
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-12 
+	 * @return
+	 */
+	public static boolean isSupplier(){
+		return Consts.SUPPLIER_FOUNDER==getAdminUser().getFounder();
+	}
+	
+	public static boolean isProvStaff(){  // && 优先级比 || 高
+		return ( Consts.CURR_FOUNDER_0.equals(getAdminUser().getFounder()+"") 
+				|| Consts.CURR_FOUNDER_1.equals(getAdminUser().getFounder()+"") )
+		&& Consts.LAN_PROV.equals(getAdminUser().getLan_id());
+	}
+	
+	public static boolean isLanStaff(){
+		return ( Consts.CURR_FOUNDER_0.equals(getAdminUser().getFounder()+"") 
+					||  Consts.CURR_FOUNDER_1.equals(getAdminUser().getFounder()+"") )
+		&& !StringUtils.isEmpty(getAdminUser().getLan_id())
+		&& !Consts.LAN_PROV.equals(getAdminUser().getLan_id()) ;
+	}
+	
+	//获取父级分销商id
+	public static String getParentAdminUserId(){
+		if(isFirstPartner()){
+			return getAdminUser().getUserid();
+		}else if(isSecondPartner()){
+			return getAdminUser().getParuserid();
+		}
+		return "";
+	}
+	
+	
+}

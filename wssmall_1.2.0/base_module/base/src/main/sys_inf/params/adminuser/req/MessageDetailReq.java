@@ -1,0 +1,48 @@
+package params.adminuser.req;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import params.ZteRequest;
+
+public class MessageDetailReq  extends ZteRequest{
+	@ZteSoftCommentAnnotationParam(name="信息id",type="String",isNecessary="Y",desc="m_id:信息id")
+	private String m_id;
+	@ZteSoftCommentAnnotationParam(name="用户id",type="String",isNecessary="Y",desc="user_id:用户id")
+	private String user_id;
+
+	
+
+	public String getM_id() {
+		return m_id;
+	}
+
+	public void setM_id(String m_id) {
+		this.m_id = m_id;
+	}
+
+	public String getUser_id() {
+		return user_id;
+	}
+
+	public void setUser_id(String user_id) {
+		this.user_id = user_id;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+		if(null == m_id){
+			throw new ApiRuleException("-1","m_id不能为空");
+		}
+		if(null == this.user_id){
+			throw new ApiRuleException("-1","user_id不能为空");
+		}
+
+	}
+
+	@Override
+	public String getApiMethodName() {
+		return "messageServ.getMessageDetail";
+	}
+	
+	
+}

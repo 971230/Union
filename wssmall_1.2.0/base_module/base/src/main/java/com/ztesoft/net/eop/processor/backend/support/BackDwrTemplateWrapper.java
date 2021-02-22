@@ -1,0 +1,29 @@
+package com.ztesoft.net.eop.processor.backend.support;
+
+import com.ztesoft.net.eop.processor.AbstractFacadePagetParser;
+import com.ztesoft.net.eop.processor.FacadePage;
+import com.ztesoft.net.eop.processor.core.Request;
+import com.ztesoft.net.eop.processor.core.Response;
+import com.ztesoft.net.eop.sdk.utils.JspUtil;
+
+/**
+ * 后台dwr页面包装器<br>
+ * 用/admin/main_frame.jsp包装业务页面 <br>
+ * @author wui
+ * 2010-9-13下午12:17:04
+ */
+public class BackDwrTemplateWrapper extends AbstractFacadePagetParser {
+	
+	public BackDwrTemplateWrapper(FacadePage page, Request request) {
+		super(page, request);
+	}
+
+	@Override
+	protected Response parse(Response response) {
+		httpRequest.setAttribute("content", response.getContent());
+		String content  = JspUtil.getJspOutput("/mgWeb/main_frame_dwr.jsp", httpRequest, httpResponse);
+		response.setContent(content);
+		return response;
+	}
+
+}

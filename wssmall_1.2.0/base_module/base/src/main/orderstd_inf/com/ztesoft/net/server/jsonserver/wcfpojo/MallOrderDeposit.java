@@ -1,0 +1,415 @@
+package com.ztesoft.net.server.jsonserver.wcfpojo;
+
+public class MallOrderDeposit {
+
+	private String serial_no; //序列号
+	private String create_time;  //时间
+	private String source_system;  //发起方系统标识
+	private String source_system_type;  //发起方系统标识分类
+	private String out_order_id;  //外系统单号
+	private String order_province_code;  //订单归属省份
+	private String order_city_code;  //订单归属地市
+	private String order_county_code;  //订单归属县分
+	private String service_num;  //业务号码
+	private String prod_offer_code;  //商品编码
+	private String prod_offer_type;  //商品大类
+	private String prod_offer_name;  //商品名称
+	private String is_pay;  //是否收费
+	private String pay_type;  //支付类型
+	private String pay_method;  //支付方式
+	private String fee_type;  //押金项目
+	private String orig_fee;  //应收费用
+	private String relief_fee;  //减免费用
+	private String real_fee;  //实收费用
+	private String fee_rule_id;  //费用规则id
+	private String can_cancel_date;  //可退押金时间
+	private String deal_operator;  //办理操作员
+	private String deal_office_id;  //办理操作点
+	private String order_remark;  //备注
+	
+	
+	
+	public String getSerial_no() {
+		return serial_no;
+	}
+
+	public void setSerial_no(String serial_no) {
+		this.serial_no = serial_no;
+	}
+
+	public String getCreate_time() {
+		return create_time;
+	}
+
+	public void setCreate_time(String create_time) {
+		this.create_time = create_time;
+	}
+
+	public String getSource_system() {
+		return source_system;
+	}
+
+	public void setSource_system(String source_system) {
+		this.source_system = source_system;
+	}
+
+	public String getSource_system_type() {
+		return source_system_type;
+	}
+
+	public void setSource_system_type(String source_system_type) {
+		this.source_system_type = source_system_type;
+	}
+
+	public String getOut_order_id() {
+		return out_order_id;
+	}
+
+	public void setOut_order_id(String out_order_id) {
+		this.out_order_id = out_order_id;
+	}
+
+	public String getIs_pay() {
+		return is_pay;
+	}
+
+	public void setIs_pay(String is_pay) {
+		this.is_pay = is_pay;
+	}
+	
+	public String getOrder_province_code() {
+		return order_province_code;
+	}
+
+	public void setOrder_province_code(String order_province_code) {
+		this.order_province_code = order_province_code;
+	}
+
+	public String getOrder_city_code() {
+		return order_city_code;
+	}
+
+	public void setOrder_city_code(String order_city_code) {
+		this.order_city_code = order_city_code;
+	}
+
+	public String getOrder_county_code() {
+		return order_county_code;
+	}
+
+	public void setOrder_county_code(String order_county_code) {
+		this.order_county_code = order_county_code;
+	}
+
+	public String getService_num() {
+		return service_num;
+	}
+
+	public void setService_num(String service_num) {
+		this.service_num = service_num;
+	}
+
+	public String getProd_offer_code() {
+		return prod_offer_code;
+	}
+
+	public void setProd_offer_code(String prod_offer_code) {
+		this.prod_offer_code = prod_offer_code;
+	}
+
+	public String getProd_offer_type() {
+		return prod_offer_type;
+	}
+
+	public void setProd_offer_type(String prod_offer_type) {
+		this.prod_offer_type = prod_offer_type;
+	}
+
+	public String getProd_offer_name() {
+		return prod_offer_name;
+	}
+
+	public void setProd_offer_name(String prod_offer_name) {
+		this.prod_offer_name = prod_offer_name;
+	}
+
+	public String getPay_type() {
+		return pay_type;
+	}
+
+	public void setPay_type(String pay_type) {
+		this.pay_type = pay_type;
+	}
+
+	public String getPay_method() {
+		return pay_method;
+	}
+
+	public void setPay_method(String pay_method) {
+		this.pay_method = pay_method;
+	}
+
+	public String getFee_type() {
+		return fee_type;
+	}
+
+	public void setFee_type(String fee_type) {
+		this.fee_type = fee_type;
+	}
+
+	public String getOrig_fee() {
+		return orig_fee;
+	}
+
+	public void setOrig_fee(String orig_fee) {
+		this.orig_fee = orig_fee;
+	}
+
+	public String getRelief_fee() {
+		return relief_fee;
+	}
+
+	public void setRelief_fee(String relief_fee) {
+		this.relief_fee = relief_fee;
+	}
+
+	public String getReal_fee() {
+		return real_fee;
+	}
+
+	public void setReal_fee(String real_fee) {
+		this.real_fee = real_fee;
+	}
+
+	public String getFee_rule_id() {
+		return fee_rule_id;
+	}
+
+	public void setFee_rule_id(String fee_rule_id) {
+		this.fee_rule_id = fee_rule_id;
+	}
+
+	public String getCan_cancel_date() {
+		return can_cancel_date;
+	}
+
+	public void setCan_cancel_date(String can_cancel_date) {
+		this.can_cancel_date = can_cancel_date;
+	}
+
+	public String getDeal_operator() {
+		return deal_operator;
+	}
+
+	public void setDeal_operator(String deal_operator) {
+		this.deal_operator = deal_operator;
+	}
+
+	public String getDeal_office_id() {
+		return deal_office_id;
+	}
+
+	public void setDeal_office_id(String deal_office_id) {
+		this.deal_office_id = deal_office_id;
+	}
+
+	public String getOrder_remark() {
+		return order_remark;
+	}
+
+	public void setOrder_remark(String order_remark) {
+		this.order_remark = order_remark;
+	}
+
+	/**
+	 * 获取订单来源的中文名称
+	 *
+	 * @param source_from
+	 * @return
+	 */
+	public String getSourceFromName(String source_from) {
+		if ("10001".equals(source_from)) {
+			return "淘宝";
+		} else if ("10002".equals(source_from)) {
+			return "联通商城";
+		} else if ("10003".equals(source_from)) {
+			return "总部商城";
+		} else if ("10004".equals(source_from)) {
+			return "网盟店铺";
+		} else if ("10005".equals(source_from)) {
+			return "拍拍";
+		} else if ("10006".equals(source_from)) {
+			return "农行商城";
+		} else if ("10007".equals(source_from)) {
+			return "360商城";
+		} else if ("10008".equals(source_from)) {
+			return "沃云购";
+		} else if ("10009".equals(source_from)) {
+			return "订单系统";
+		} else if ("10010".equals(source_from)) {
+			return "WMS";
+		} else if ("10011".equals(source_from)) {
+			return "商品管理系统";
+		} else if ("10012".equals(source_from)) {
+			return "淘宝分销";
+		} else if ("10036".equals(source_from)) {
+			return "沃商城";
+		} else if ("10037".equals(source_from)) {
+			return "CPS";
+		} else if ("10038".equals(source_from)) {
+			return "异业联盟";
+		} else if ("10039".equals(source_from)) {
+			return "百度担保";
+		} else if ("10015".equals(source_from)) {
+			return "电话商城";
+		} else if ("10030".equals(source_from)) {
+			return "微商城";
+		} else if ("10031".equals(source_from)) {
+			return "沃货架";
+		} else if ("10032".equals(source_from)) {
+			return "营业厅U惠站";
+		} else if ("10033".equals(source_from)) {
+			return "销售联盟";
+		} else if ("10034".equals(source_from)) {
+			return "vip商城";
+		} else if ("10035".equals(source_from)) {
+			return "电子沃店";
+		} else if ("10014".equals(source_from) || "10040".equals(source_from)) {
+			return "沃财富";
+		} else if ("10057".equals(source_from)) {
+			return "广州天猫";
+		} else if ("10053".equals(source_from)) {
+			return "B2B商城";
+		} else {
+			return "其他";
+		}
+	}
+
+	/**
+	 * 获取订单来源系统的中文名称
+	 *
+	 * @param source_from_system
+	 * @return
+	 */
+	public String getSourceFromSystemName(String source_from_system) {
+		if ("10001".equals(source_from_system)) {
+			return "淘宝";
+		} else if ("10002".equals(source_from_system)) {
+			return "联通商城";
+		} else if ("10003".equals(source_from_system)) {
+			return "总部商城";
+		} else if ("10004".equals(source_from_system)) {
+			return "网盟店铺";
+		} else if ("10005".equals(source_from_system)) {
+			return "拍拍";
+		} else if ("10006".equals(source_from_system)) {
+			return "农行商城";
+		} else if ("10007".equals(source_from_system)) {
+			return "360商城";
+		} else if ("10008".equals(source_from_system)) {
+			return "沃云购";
+		} else if ("10009".equals(source_from_system)) {
+			return "订单系统";
+		} else if ("10010".equals(source_from_system)) {
+			return "WMS";
+		} else if ("10011".equals(source_from_system)) {
+			return "商品管理系统";
+		} else if ("10012".equals(source_from_system)) {
+			return "淘宝分销";
+		} else if ("10036".equals(source_from_system)) {
+			return "沃商城";
+		} else if ("10037".equals(source_from_system)) {
+			return "CPS";
+		} else if ("10038".equals(source_from_system)) {
+			return "异业联盟";
+		} else if ("10015".equals(source_from_system)) {
+			return "电话商城";
+		} else if ("10030".equals(source_from_system)) {
+			return "微商城";
+		} else if ("10031".equals(source_from_system)) {
+			return "沃货架";
+		} else if ("10032".equals(source_from_system)) {
+			return "营业厅U惠站";
+		} else if ("10033".equals(source_from_system)) {
+			return "销售联盟";
+		} else if ("10034".equals(source_from_system)) {
+			return "vip商城";
+		} else if ("10035".equals(source_from_system)) {
+			return "电子沃店";
+		} else if ("10039".equals(source_from_system)) {
+			return "百度担保";
+		} else if ("10013".equals(source_from_system)) {
+			return "深圳联通商城";
+		} else if ("10057".equals(source_from_system)) {
+			return "广州天猫";
+		} else if ("10053".equals(source_from_system)) {
+			return "B2B商城";
+		} else {
+			return "其他";
+		}
+	}
+
+	/**
+	 * 获取配送方式
+	 *
+	 * @param shipping_type
+	 * @return
+	 */
+	public String getSendingType(String shipping_type) {
+		if ("KD".equalsIgnoreCase(shipping_type)) {
+			return "快递";
+		} else if ("SH".equalsIgnoreCase(shipping_type)) {
+			return "送货";
+		} else if ("ZT".equalsIgnoreCase(shipping_type)) {
+			return "自提";
+		} else if ("SDS".equalsIgnoreCase(shipping_type)) {
+			return "闪电送";
+		} else {
+			return "其他";
+		}
+	}
+
+	/**
+	 * 获取渠道类型中文名称
+	 *
+	 * @param channel_type
+	 * @return
+	 */
+	public String getChannelTypeName(String channel_type) {
+		if ("77".equals(channel_type)) {
+			return "自有渠道";
+		} else if ("97".equals(channel_type)) {
+			return "社会渠道";
+		} else if ("137".equals(channel_type)) {
+			return "其它渠道";
+		} else if ("0".equals(channel_type)) {
+			return "自营";
+		} else if ("1".equals(channel_type)) {
+			return "代理商";
+		} else if ("2".equals(channel_type)) {
+			return "店铺";
+		} else {
+			return "其他渠道";
+		}
+	}
+
+	/**
+	 * 获取卡类型
+	 *
+	 * @param card_type
+	 * @return
+	 */
+	public String getCardType(String card_type) {
+		if ("NM".equalsIgnoreCase(card_type)) {
+			return "1";
+		} else if ("MC".equalsIgnoreCase(card_type)) {
+			return "2";
+		} else if ("NN".equalsIgnoreCase(card_type)) {
+			return "3";
+		} else {
+			return card_type;
+		}
+	}
+
+	
+}

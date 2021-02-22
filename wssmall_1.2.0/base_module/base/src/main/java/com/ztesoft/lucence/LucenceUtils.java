@@ -1,0 +1,216 @@
+package com.ztesoft.lucence;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+//import org.apache.lucene.document.Fieldable;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LogByteSizeMergePolicy;
+import org.apache.lucene.index.LogMergePolicy;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.QueryScorer;
+import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
+import org.apache.lucene.store.Directory;
+import org.wltea.analyzer.lucene.IKAnalyzer;
+
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+
+public class LucenceUtils {
+
+	public static final Analyzer ANALYZER=new IKAnalyzer();
+	private static ReentrantLock lock = new ReentrantLock();
+	
+	public static Page search(Map<String,String> params,String lucencePath) throws Exception{
+		String pageSize = params.get("pageSize");
+		if(StringUtil.isEmpty(pageSize))pageSize="10";
+		int iSize = Integer.parseInt(pageSize);
+		/*String pageNo = (String) params.get("pageNo");
+		if(StringUtil.isEmpty(pageNo))pageNo="1";
+		int iNo = Integer.parseInt(pageNo);
+		int startRow = (iNo-1)*iSize;
+		int endRow = startRow + iSize;*/
+		Query query=null;
+        IndexReader reader = null;
+        IndexSearcher searcher = null;
+        try{
+        	if(getIndexPath(lucencePath).listAll().length>0){
+//        		reader=IndexReader.open(getIndexPath(lucencePath));
+        	}
+        	if(reader==null)throw new Exception("文件路径有误");
+        	searcher = new IndexSearcher(reader);
+        	BooleanQuery complexQuery = new BooleanQuery();
+//        	QueryParser parser = null;
+        	//keyword +id 联合混合搜索
+        	Iterator it = params.keySet().iterator();
+        	while(it.hasNext()){
+        		String key = (String) it.next();
+        		if("pageNo".equals(key) || "pageSize".equals(key))continue ;
+        		String keyword = params.get(key);
+//        		parser = new QueryParser(Version.LUCENE_36,key, ANALYZER);// MultiFieldQueryParser多字段解析,每个字段生成一个Query对象，然后之间进行BooleanQuery关联操作
+//        		parser.setDefaultOperator(QueryParser.AND_OPERATOR);
+//        		Query queryKey = parser.parse(keyword); // 按词条搜索 BooleanQuery 与或搜索,add query对象,Prefix前缀词条
+//        		complexQuery.add(queryKey, BooleanClause.Occur.MUST); //aaa  bbb ccc
+        	}
+    		
+    		//同时按id联合搜索
+    		//parser = new QueryParser(Version.LUCENE_36,ID, ANALYZER);// MultiFieldQueryParser多字段解析,每个字段生成一个Query对象，然后之间进行BooleanQuery关联操作
+    		//Query queryId = parser.parse(id);
+    		//complexQuery.add(queryId, BooleanClause.Occur.MUST);
+    		
+    		TopDocs topDocs = searcher.search(complexQuery,iSize); //混合搜索
+    		
+            int total = topDocs.totalHits;
+            //if(endRow>total)endRow=total;
+            ScoreDoc[] sd = topDocs.scoreDocs;
+            //Analyzer analyzer = ANALYZER;
+            
+            SimpleHTMLFormatter simpleHtmlFormatter = new SimpleHTMLFormatter("<font color=\"red\">", "</font>"); 
+            Highlighter hl = new Highlighter(simpleHtmlFormatter,new QueryScorer(query));  
+            
+            Document document = null;
+            List<Map> resultList = new ArrayList<Map>();
+            //for (int i=startRow; i <endRow; i++) {
+            for (int i=0; i <sd.length; i++) {
+                document = reader.document(sd[i].doc);
+                Map result = new HashMap();
+//                List<Fieldable> fields = document.getFields();
+//                for(Fieldable f:fields){
+//                	//logger.info(f.name()+"\t"+f.stringValue());
+//                	result.put(f.name(), f.stringValue());
+//                }
+            	resultList.add(result);
+            }
+            return new Page(0, total, iSize, resultList);
+        }catch(Exception ex){
+        	ex.printStackTrace();
+        	throw ex;
+        }finally{
+        	try{
+//        		if(searcher!=null)searcher.close();
+        	}catch(Exception e){
+        		e.printStackTrace();
+        	}
+        	try{
+        		if(reader!=null)reader.close();
+        	}catch(Exception e){
+        		e.printStackTrace();
+        	}
+        }
+	}
+	
+	/**
+	 * 创建搜索内容
+	 * @作者 MoChunrun
+	 * @创建日期 2014-7-31 
+	 * @param documents
+	 * @throws Exception
+	 */
+	public static void create(List<Document> documents,boolean isCreate,String lucencePath) throws Exception {
+        IndexWriter indexWriter = createIndexWriter(isCreate,lucencePath);
+        try {
+            lock.lock();
+            indexWriter.addDocuments(documents);
+            indexWriter.commit();
+        } catch (Exception e) {
+            try {
+                indexWriter.rollback();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+            e.printStackTrace();
+            throw e;
+        } finally {
+            try {
+                indexWriter.close();
+            } catch (IOException e) {
+                e.printStackTrace(); 
+            }
+            lock.unlock();
+        }
+    }
+	
+	public static IndexWriter createIndexWriter(boolean isCreate,String lucencePath) throws Exception{
+		IndexWriter indexWriter=null;
+//        IndexWriterConfig config=new IndexWriterConfig(Version.LUCENE_36,ANALYZER);
+        LogMergePolicy mergePolicy = new LogByteSizeMergePolicy();
+//	        mergePolicy.setMergeFactor(100);
+//	        mergePolicy.setMaxMergeDocs(1000);
+//        config.setMergePolicy(mergePolicy);
+//        //config.setMaxBufferedDocs(10);
+//        //mergePolicy.setUseCompoundFile(true);
+//        if(isCreate){
+//        	config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);//设置成新建索引模式
+//        }
+//        else{
+//        	config.setOpenMode(IndexWriterConfig.OpenMode.APPEND);//设置成增量索引模式
+//        }
+//        indexWriter=new IndexWriter(getIndexPath(lucencePath),config);
+//        
+//    	// 设置性能参数
+//        indexWriter.setMergeFactor(2000);
+//        indexWriter.setMaxMergeDocs(Integer.MAX_VALUE);
+//		// 使用复合索引,减少打开文件数量,提高性能
+//        indexWriter.setUseCompoundFile(true);
+//        if(isCreate)
+//        	indexWriter.commit() ;
+        return indexWriter;
+	}
+	
+	public static List<Document> createDocumentList(List<Map> list,LucenceConfig config){
+		List<Document> docs = new ArrayList<Document>();
+		for(Map map:list){
+			Document doc = mapToDocument(map,config);
+			if(doc!=null)docs.add(doc);
+		}
+		return docs;
+	}
+	
+	public static Document mapToDocument(Map map,LucenceConfig config){
+		if(map==null)return null;
+		Document document = new Document();
+		Iterator it = map.keySet().iterator();
+		while(it.hasNext()){
+			String key = (String) it.next();
+			String value = String.valueOf(map.get(key));
+			document.add(new Field(key, value,Field.Store.YES,Field.Index.ANALYZED));
+		}
+		//document.add(new Field(LINK_URL, config.getLink_url(),Field.Store.YES,Field.Index.NO));
+		//document.add(new Field(DATA_TYPE_CODE, config.getData_type_code(),Field.Store.YES,Field.Index.ANALYZED));
+		//document.add(new Field(DATA_TYPE, config.getData_type(),Field.Store.YES,Field.Index.NO));
+		return document;
+	}
+	
+	/**
+	 * 文档路径
+	 * @作者 MoChunrun
+	 * @创建日期 2014-7-31 
+	 * @param dir
+	 * @return
+	 * @throws IOException
+	 */
+	public static Directory getIndexPath(String dir) throws IOException {
+		Directory directory=null;
+    	String lucene_index_path = dir;
+        File file=new File(lucene_index_path);
+        if(!file.exists())file.mkdirs();
+//        directory=new SimpleFSDirectory(file);
+        return directory;
+	}
+	
+}

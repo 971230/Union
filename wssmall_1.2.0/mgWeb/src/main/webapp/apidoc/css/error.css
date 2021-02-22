@@ -1,0 +1,14 @@
+
+#error-divider{background-color:#F59500;height:3px;width:100%;font-size:0;margin-top:10px;clear:both;}
+#error-bd{margin:60px auto 20px 100px;}
+#error-notice{margin-bottom:30px;zoom:1;}
+#error-notice:after{content:'\0020';display:block;height:0;clear:both;}
+#error-notice .error1{margin-left:80px;}
+#error-notice .error2{margin-left:80px;}
+.ant-emotion{float:left;margin-left:-50%;width:50px;}
+.error-notice-text{float:left;width:50%;margin-left:350px;}
+.error-notice-text-wrap{position:relative;}
+.error-notice-hd{font-size:16px;font-weight:bold;margin-bottom:30px;}
+.error-notice-advice,.error-notice-info{line-height:2;}
+.error-notice-advice .you-can{margin-bottom:10px;}.error-notice-advice ol{margin-left:25px;}
+.error-notice-advice ol li{list-style-type:decimal;}

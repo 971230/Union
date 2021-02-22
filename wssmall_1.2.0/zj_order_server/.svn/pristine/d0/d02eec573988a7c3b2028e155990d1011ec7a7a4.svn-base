@@ -1,0 +1,179 @@
+package com.ztesoft.net.ecsord.params.ecaop.vo;
+
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+
+public class YwInFoVO {
+
+	private String is_new="";//是否新装
+	private String subs_id="";//用户ID
+	private String service_num="";//移网号码
+	private String sim="";//sim卡号
+	private String is_blankcard="";//是否白卡,0:否,1:是
+	private String is_main_number="";//是否主号码,0,否 1,是
+	private String number_level="";//靓号等级
+	private String scheme_id_l="";//靓号活动ID
+	private String product_id="";//产品ID
+	private String scheme_id;//活动ID
+	private String feelist;//费用清单：科目1&应收费用&减免费用&实收费用；科目2&应收费用&减免费用&实收费用；  费用精确到小数点2位
+	private String source_flag="";//号码来源,1:总部;0:省份
+	private String url_key="";//服务器地址配置标识
+	private String http_request="";//向资源中心发起的HTTP请求:预占
+	private String res_number="";//资源中心号码
+	private String http_request1="";//向资源中心发起的HTTP请求:占用
+	private String nomalize_flag="";//用户是否激活,1是,0否 
+	
+	//add by wcl
+	private String evdo_num = "";//evdo_num 无线宽带号码	否
+	private String user_knd = "";
+	private String imsi = "";
+	//add by sgf
+	private String sale_mode = "";//销售模式：01：免费租用 04-全额补贴（无线宽带目前只有这种）06：用户自购 07：用户自备用户自备    否
+	private String object_esn = "";//终端串码  否
+	private String object_id = "";//物品ID   否
+	private String is_backlog_order ="";
+	
+	public String getImsi() {
+		return imsi;
+	}
+	public void setImsi(String imsi) {
+		this.imsi = imsi;
+	}
+	public String getUser_knd() {
+		return user_knd;
+	}
+	public void setUser_knd(String user_knd) {
+		this.user_knd = user_knd;
+	}
+	public String getEvdo_num() {
+		return evdo_num;
+	}
+	public void setEvdo_num(String evdo_num) {
+		this.evdo_num = evdo_num;
+	}
+	public String getIs_new() {
+		return is_new;
+	}
+	public void setIs_new(String is_new) {
+		this.is_new = is_new;
+	}
+	public String getSubs_id() {
+		return subs_id;
+	}
+	public void setSubs_id(String subs_id) {
+		this.subs_id = subs_id;
+	}
+	public String getService_num() {
+		return service_num;
+	}
+	public void setService_num(String service_num) {
+		this.service_num = service_num;
+	}
+	public String getSim() {
+		return sim;
+	}
+	public void setSim(String sim) {
+		this.sim = sim;
+	}
+	public String getIs_blankcard() {
+		return is_blankcard;
+	}
+	public void setIs_blankcard(String is_blankcard) {
+		this.is_blankcard = is_blankcard;
+	}
+	public String getIs_main_number() {
+		return is_main_number;
+	}
+	public void setIs_main_number(String is_main_number) {
+		this.is_main_number = is_main_number;
+	}
+	public String getNumber_level() {
+		return number_level;
+	}
+	public void setNumber_level(String number_level) {
+		this.number_level = number_level;
+	}
+	public String getScheme_id_l() {
+		return scheme_id_l;
+	}
+	public void setScheme_id_l(String scheme_id_l) {
+		this.scheme_id_l = scheme_id_l;
+	}
+	public String getProduct_id() {
+		return product_id;
+	}
+	public void setProduct_id(String product_id) {
+		this.product_id = product_id;
+	}
+	public String getScheme_id() {
+		return scheme_id;
+	}
+	public void setScheme_id(String scheme_id) {
+		this.scheme_id = scheme_id;
+	}
+	public String getFeelist() {
+		return feelist;
+	}
+	public void setFeelist(String feelist) {
+		this.feelist = feelist;
+	}
+	public String getSource_flag() {
+		return source_flag;
+	}
+	public void setSource_flag(String source_flag) {
+		this.source_flag = source_flag;
+	}
+	public String getUrl_key() {
+		return url_key;
+	}
+	public void setUrl_key(String url_key) {
+		this.url_key = url_key;
+	}
+	public String getHttp_request() {
+		return http_request;
+	}
+	public void setHttp_request(String http_request) {
+		this.http_request = http_request;
+	}
+	public String getRes_number() {
+		return res_number;
+	}
+	public void setRes_number(String res_number) {
+		this.res_number = res_number;
+	}
+	public String getHttp_request1() {
+		return http_request1;
+	}
+	public void setHttp_request1(String http_request1) {
+		this.http_request1 = http_request1;
+	}
+	public String getNomalize_flag() {
+		return nomalize_flag;
+	}
+	public void setNomalize_flag(String nomalize_flag) {
+		this.nomalize_flag = nomalize_flag;
+	}
+    public String getSale_mode() {
+        return sale_mode;
+    }
+    public void setSale_mode(String sale_mode) {
+        this.sale_mode = sale_mode;
+    }
+    public String getObject_esn() {
+        return object_esn;
+    }
+    public void setObject_esn(String object_esn) {
+        this.object_esn = object_esn;
+    }
+    public String getObject_id() {
+        return object_id;
+    }
+    public void setObject_id(String object_id) {
+        this.object_id = object_id;
+    }
+    public String getIs_backlog_order() {
+        return is_backlog_order;
+    }
+    public void setIs_backlog_order(String is_backlog_order) {
+        this.is_backlog_order = is_backlog_order;
+    }
+}

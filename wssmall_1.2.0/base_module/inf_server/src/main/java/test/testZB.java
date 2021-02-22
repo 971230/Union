@@ -1,0 +1,164 @@
+package test;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
+import org.phw.eop.api.EopClient;
+import org.phw.eop.api.EopReq;
+import org.phw.eop.api.EopRsp;
+
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+
+import zte.net.ecsord.common.CommonDataFactory;
+
+/**
+ * aop接口连通测试
+ * @author chenjl
+ *
+ */
+@SuppressWarnings("all")
+public class testZB{
+	public static String appkey = "cmall.sub";
+	public static String bizkey = "SS-GG-001";//SS-CS-001 套餐变更 SS-GG-001老用户优惠购机一键开户、老用户优惠购机补换卡 TS-4G-001 23转4
+//	public static String url = "http://eop.mall.10010.com/phw-eop";	 
+	public static String url = "http://123.125.96.188:8101/kbb-phw-eop";	 
+	//证件查询
+	public static String method0 = "periphery.photoquery";	
+	
+	public static String method;
+	public static String jsonStr;
+	
+	public static void getMethodAndJsonStr(int num,String[] jsonStrs){
+		switch (num) {
+			case 0:
+				method = method0;
+				jsonStr = jsonStrs[0];
+				break;
+			default:
+				method = method0;
+				jsonStr = jsonStrs[0];
+				break;
+		}
+	}
+	public static String post(String url,String reqEncoding,String respEncoding,List<NameValuePair> param) {
+		HttpClient httpclient=new DefaultHttpClient();
+        String resStr = "";
+        // 创建httppost
+        HttpPost httppost = new HttpPost(url);
+        httppost.setHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+        httppost.setHeader("Accept-Language", "us");
+        httppost.setHeader("CONN_type", "SSL");
+        // 创建参数队列
+        List<NameValuePair> formparams = param;
+        UrlEncodedFormEntity uefEntity;
+        try {
+            uefEntity = new UrlEncodedFormEntity(formparams, reqEncoding);
+            httppost.setEntity(uefEntity);
+            HttpResponse response;
+            response = httpclient.execute(httppost);
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                resStr = EntityUtils.toString(entity,respEncoding);
+            }
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e1) {
+            e1.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            // 关闭连接,释放资源
+            httpclient.getConnectionManager().shutdown();
+        }
+        return resStr;
+    }
+	
+	public static String request(String apptx,String phoneBssOccupyRequestBean) throws Exception{	    
+       	DateFormat tempDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");           
+
+		String appCode = "6375BB381D7649A5A38108AB4CC746D0";
+		String signKey = "372817d8-6e54-49c4-9d95-29b31142902e";
+		String action = method;
+		String param_name = "REQ_STR";
+		
+		EopReq eopReq = new EopReq(action);
+		
+		String param_value = StringUtils.capitalized(phoneBssOccupyRequestBean);
+
+		eopReq.put(param_name, param_value);
+		EopRsp rsp = null;
+		try{
+	        System.out.println("请求报文："+param_value);
+			EopClient client = new EopClient(url, appCode, signKey);
+			rsp = client.execute(eopReq); 
+		}catch(Exception ex){
+			ex.printStackTrace();
+			throw new Exception("超时异常");
+		}
+		String rspStr = rsp.getResult().toString();
+        System.out.println("响应报文："+rspStr);    
+		
+        return rspStr;
+	}
+	
+	public static String makeJsonStr(int num)
+			throws Exception {
+		
+		//总部证件查询
+		String jsonStr0 = "{\"OrderId\":\""+orderId+"\"," +
+				"\"ActiveNo\":\""+activeNo+"\"" + //
+			"}";
+		
+		String[] jsonStrs = new String[]{jsonStr0};
+		
+		getMethodAndJsonStr(num,jsonStrs);
+		
+		return jsonStr;
+	}
+	
+	public static String getTime(){
+		DateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");  
+ 	    Date date = new Date();
+   	    Calendar c = Calendar.getInstance();
+   	    c.setTime(date);
+   	    c.add(Calendar.MINUTE, EcsOrderConsts.AOP_TERMINAL_OCCUPIED_TIME);
+	    String str = sdf.format(c.getTime());
+	    return str;
+	}
+
+	public static String orderId = "4626700358";
+	public static String activeNo = CommonDataFactory.getInstance().getActiveNo(true);
+	
+	public static void main(String[] args) throws Exception {
+		
+		DateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+		Date date = new Date();
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		c.add(Calendar.MINUTE, 270);
+		String str = sdf.format(c.getTime());	 
+		
+		String proKeyTmp = CommonDataFactory.getInstance().getActiveNo(false);
+		System.out.println("proKeyTmp："+proKeyTmp);		
+		String apptx = CommonDataFactory.getInstance().getActiveNo(true);
+		//System.out.println("apptx："+apptx);
+		
+		//0、总部照片查询
+		request(apptx,makeJsonStr(0));
+	}
+}

@@ -1,0 +1,95 @@
+package com.ztesoft.net.cms.plugin;
+
+import com.ztesoft.net.app.base.core.model.SiteMapUrl;
+import com.ztesoft.net.app.base.core.plugin.IRecreateMapEvent;
+import com.ztesoft.net.app.base.core.service.ISitemapManager;
+import com.ztesoft.net.cms.core.model.DataCat;
+import com.ztesoft.net.cms.core.service.IDataCatManager;
+import com.ztesoft.net.cms.core.service.IDataManager;
+import com.ztesoft.net.framework.plugin.AutoRegisterPlugin;
+
+import java.util.List;
+import java.util.Map;
+
+public class CmsRecreateMapPlugin extends AutoRegisterPlugin implements
+		IRecreateMapEvent {
+	
+	private ISitemapManager sitemapManager;
+	private IDataCatManager dataCatManager;
+	private IDataManager dataManager;
+
+	@Override
+	public void register() {
+
+	}
+
+	@Override
+	public void onRecreateMap() {
+		List<DataCat> listCat = this.dataCatManager.listAllChildren("0");
+		for(DataCat cat:listCat){
+			if(cat.getTositemap()==1){
+				List<Map> list = this.dataManager.list(cat.getCat_id());
+				for(Map map:list){
+					SiteMapUrl url = new SiteMapUrl();
+					url.setLoc("/" + cat.getDetail_url() + "-" + cat.getCat_id() + "-" + map.get("id") + ".html");
+					url.setLastmod(System.currentTimeMillis());
+					this.sitemapManager.addUrl(url);
+				}
+			}
+		}
+	}
+
+	@Override
+	public String getAuthor() {
+		return "lzf";
+	}
+
+	@Override
+	public String getId() {
+		return "CmsRecreateMap";
+	}
+
+	@Override
+	public String getName() {
+		return "内容发布-重建站点地图";
+	}
+
+	@Override
+	public String getType() {
+		return "CmsRecreateMap";
+	}
+
+	@Override
+	public String getVersion() {
+		return "v2.1.5";
+	}
+
+	@Override
+	public void perform(Object... params) {
+
+	}
+
+	public ISitemapManager getSitemapManager() {
+		return sitemapManager;
+	}
+
+	public void setSitemapManager(ISitemapManager sitemapManager) {
+		this.sitemapManager = sitemapManager;
+	}
+
+	public IDataCatManager getDataCatManager() {
+		return dataCatManager;
+	}
+
+	public void setDataCatManager(IDataCatManager dataCatManager) {
+		this.dataCatManager = dataCatManager;
+	}
+
+	public IDataManager getDataManager() {
+		return dataManager;
+	}
+
+	public void setDataManager(IDataManager dataManager) {
+		this.dataManager = dataManager;
+	}
+}

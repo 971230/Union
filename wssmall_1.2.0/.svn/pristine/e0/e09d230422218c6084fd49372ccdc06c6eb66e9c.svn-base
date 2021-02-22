@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry including="**/*.java" kind="src" output="target/classes" path="src/main/java">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry including="**/*.java" kind="src" path="src/main/task_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/sms_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/partner_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/workflow_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/goods_plugins_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/supplier_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/order_inf"/>
+	<classpathentry kind="src" path="src/main/resources"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/goods_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/sys_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/rule_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/uos_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/member_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/print_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/info_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/payment_inf"/>
+	<classpathentry kind="src" path="src/main/base_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/hound"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/orderctn_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/orderexp_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/ecc_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/logs_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/esearch_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/orderstd_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/local_inf"/>
+	<classpathentry including="**/*.java" kind="src" path="src/main/logs_server"/>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/java">
+		<attributes>
+			<attribute name="optional" value="true"/>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry excluding="**" kind="src" output="target/test-classes" path="src/test/resources">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="org.eclipse.jst.component.nondependency" value=""/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>

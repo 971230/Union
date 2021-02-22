@@ -1,0 +1,68 @@
+package params.req;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+
+import params.ZteRequest;
+import params.resp.ManualModifyBuyerInfoResp;
+
+public class ManualModifyBuyerInfoReq extends ZteRequest<ManualModifyBuyerInfoResp>{
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -6584059702079968248L;
+	@ZteSoftCommentAnnotationParam(name="外部订单号",type="String",isNecessary="Y",desc="外部订单号")
+	private String orderNo;
+	@ZteSoftCommentAnnotationParam(name="外部订单ID",type="String",isNecessary="Y",desc="外部订单ID")
+	private String orderId;
+	@ZteSoftCommentAnnotationParam(name="姓名",type="String",isNecessary="Y",desc="姓名")
+	private String receiverName;
+	@ZteSoftCommentAnnotationParam(name="电话",type="String",isNecessary="Y",desc="电话")
+	private String mobilePhone;
+	@ZteSoftCommentAnnotationParam(name="备注",type="String",isNecessary="Y",desc="备注")
+	private String custRemark;
+	
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "zte.net.iservice.impl.ZteCrawlerOpenService.manualModifyBuyerInfo";
+	}
+	
+	public String getOrderNo() {
+		return orderNo;
+	}
+	public void setOrderNo(String orderNo) {
+		this.orderNo = orderNo;
+	}
+	public String getOrderId() {
+		return orderId;
+	}
+	public void setOrderId(String orderId) {
+		this.orderId = orderId;
+	}
+	public String getReceiverName() {
+		return receiverName;
+	}
+	public void setReceiverName(String receiverName) {
+		this.receiverName = receiverName;
+	}
+	public String getMobilePhone() {
+		return mobilePhone;
+	}
+	public void setMobilePhone(String mobilePhone) {
+		this.mobilePhone = mobilePhone;
+	}
+	public String getCustRemark() {
+		return custRemark;
+	}
+	public void setCustRemark(String custRemark) {
+		this.custRemark = custRemark;
+	}
+
+}

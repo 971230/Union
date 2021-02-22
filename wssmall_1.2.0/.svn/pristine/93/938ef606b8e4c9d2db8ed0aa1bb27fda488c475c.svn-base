@@ -1,0 +1,118 @@
+package com.ztesoft.inf.communication.client;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.n3r.ecaop.client.EcAopClient;
+import org.n3r.ecaop.client.EcAopMethod;
+import org.n3r.ecaop.client.EcAopResult;
+import org.phw.eop.api.EopClient;
+import org.phw.eop.api.EopReq;
+
+import params.ZteResponse;
+
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.common.util.date.DateUtil;
+
+/**
+ * 
+ * @author sguo
+ * <p>
+ * 		联通国政通用户校验接口http接口，对端提供sdk包 提供对端的一些参数配置在inf_comm_client_request_user
+ * </p>
+ * 
+ */
+public class ECAOPSDKJsonInvoker extends Invoker {
+	
+	@Override
+	public Object invoke(InvokeContext context) throws Exception {
+		String serverUrl = endpoint;
+		context.setEndpoint(endpoint);
+		String appCode = reqUser.getUser_code();
+		String signKey = reqUser.getUser_pwd();
+		String action = context.getOperationCode();
+		String param_name = reqUser.getUser_param();
+		Object params = context.getParameters();
+		String param_value = JsonUtil.toJson(params);
+		param_value = StringUtils.capitalized(param_value);
+		context.setRequestTime(DateUtil.currentTime());
+		context.setRequestString(param_value);
+
+		EcAopClient  ecAopClient = new EcAopClient(serverUrl, appCode, signKey);
+		// 准备平台参数参数
+		Map<String, Object> inputMap = new HashMap<String, Object>();
+		//jsonString 为业务参数，请求时传入
+		inputMap.put("msg", param_value);
+		inputMap.put("apptx", getApptx());
+		inputMap.put("timestamp", DateUtil.formatDate(new Date()));
+		// 设置超时时间
+		ecAopClient.setTimeoutMillis(60000);
+		// 执行调用
+		EcAopMethod ecAopMethod = ecAopClient.createEcAopMethod(action, Map.class);
+ 		Map<String, Object> response = new HashMap<String, Object>();
+	 	EcAopResult result = ecAopMethod.exec(inputMap);
+		if(result.getStatusCode()==0){//异常
+			response.put("error_code","-1");
+			response.put("error_msg",result.getException().getMessage());
+			return response;
+		}else{
+			try {
+				BeanUtils.bean2Map(response, result.getResponse());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			response.put("error_code","0000");
+			return response;
+		}
+	}
+
+	
+	@Override
+	public Object invokeTest(InvokeContext context) throws Exception {
+		context.setEndpoint(endpoint);
+		Object params = context.getParameters();
+		String param_value = JsonUtil.toJson(params);
+		param_value = StringUtils.capitalized(param_value);
+		context.setRequestTime(DateUtil.currentTime());
+		context.setRequestString(param_value);
+		// 准备平台参数参数
+		Map<String, Object> inputMap = new HashMap<String, Object>();
+		//jsonString 为业务参数，请求时传入
+		inputMap.put("msg", param_value);
+		inputMap.put("apptx", getApptx());
+		inputMap.put("timestamp", DateUtil.formatDate(new Date()));
+		// 设置超时时间
+		// 执行调用
+		ZteResponse resp = null;
+		Class<?> clazz = null;
+		try {
+			clazz = Class.forName(rspPath);
+			resp = (ZteResponse) JsonUtil.fromJson(transform, clazz);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		context.setResultString(transform);
+		context.setResponeString(transform);
+		context.setResponseTime(DateUtil.currentTime());
+		return resp;
+	}
+	
+
+	//获得请求流水号
+	public static String getApptx(){
+		Calendar c = Calendar.getInstance();//可以对每个时间域单独修改
+		int year = c.get(Calendar.YEAR); 
+		int month = c.get(Calendar.MONTH); 
+		int date = c.get(Calendar.DATE); 
+		int hour = c.get(Calendar.HOUR_OF_DAY); 
+		int minute = c.get(Calendar.MINUTE); 
+		int second = c.get(Calendar.SECOND);
+		return year  + "" +  month + ""+  date+ "" + hour+ "" + minute + ""+ second+Math.round(Math.random()*8999+1000);
+	}
+}

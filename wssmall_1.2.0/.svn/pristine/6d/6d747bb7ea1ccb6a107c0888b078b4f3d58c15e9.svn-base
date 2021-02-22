@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	<!-- 以下代码移动本地
+	<bean id="site_nav"  class="com.ztesoft.net.app.base.widget.nav.SiteNavWidget" scope="prototype"></bean>
+	<bean id="header"  class="com.ztesoft.net.app.base.widget.header.HeaderWidget" scope="prototype"></bean>
+	<bean id="sql_list" class="com.ztesoft.net.app.base.widget.SqlListWidget"></bean>
+	<bean id="guestbook" class="com.ztesoft.net.app.base.widget.guestbook.GuestBookWidget"></bean>
+	<bean id="friends_link"  class="com.ztesoft.net.app.base.widget.friendsLink.FriendsLinkWidget" scope="prototype"></bean>
+	<bean id="counter" class="com.ztesoft.net.app.base.widget.counter.CounterWidget"></bean>
+	<bean id="imbar"  class="com.ztesoft.net.app.base.widget.im.IMBarWidget"  scope="prototype"></bean>
+	<bean id="ad"  class="com.ztesoft.net.app.base.widget.adv.ad.AdWidget"  scope="prototype"></bean>
+	<bean id="rightTopAd" class="com.ztesoft.net.app.base.widget.adv.right.RightTopAdWidget" scope="prototype"></bean>
+	<bean id="rightCenterAd" class="com.ztesoft.net.app.base.widget.adv.right.RightCenterAdWidget" scope="prototype"></bean>
+	<bean id="news"  class="com.ztesoft.net.app.base.widget.news.NewsWidget"  scope="prototype"></bean>
+	<bean id="flashAdv"  class="com.ztesoft.net.app.base.widget.adv.flash.FlashAdvWidget"  scope="prototype"></bean>
+	<bean id="imageWidget"  class="com.ztesoft.net.app.base.widget.image.ImageWidget"  scope="prototype"></bean>
+	<bean id="jqueryAdAdvance"  class="com.ztesoft.net.app.base.widget.adv.jadadvance.JqueryAdAdvanceWidget"  scope="prototype"></bean>
+	<bean id="sliderAd"  class="com.ztesoft.net.app.base.widget.adv.slider.SliderAdWidget"  scope="prototype"></bean>
+	<bean id="slider1"  class="com.ztesoft.net.app.base.widget.adv.slider1.Slider1Widget"  scope="prototype"></bean>
+	<bean id="advList"  class="com.ztesoft.net.app.base.widget.adv.AdvListWidget"  scope="prototype"></bean>	
+	<bean id="shop_menu" class="com.ztesoft.net.app.base.widget.menu.MenuWidget"  scope="prototype"></bean>
+	<bean id="site_menu" class="com.ztesoft.net.app.base.widget.menu.MenuWidget"  scope="prototype"></bean>
+	
+	
+	
+	 -->
+</beans>

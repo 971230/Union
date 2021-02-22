@@ -1,0 +1,1215 @@
+package zte.net.ecsord.params.busi.req;
+
+import params.ZteBusiRequest;
+import params.ZteResponse;
+import rule.IZteBusiRequestHander;
+import zte.net.common.annontion.context.request.RequestBeanAnnontion;
+import zte.net.common.annontion.context.request.RequestFieldAnnontion;
+import zte.net.common.params.req.ZteInstQueryRequest;
+import zte.net.common.params.req.ZteInstUpdateRequest;
+import zte.net.common.params.resp.QueryResponse;
+import zte.net.treeInst.RequestStoreExector;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.framework.database.NotDbField;
+import com.ztesoft.net.mall.core.model.support.OrderPrice;
+
+/**
+ * 
+ * @author wu.i 
+ * 订单数对象
+ * 
+ */
+@RequestBeanAnnontion(primary_keys="order_id",table_name="es_order")
+public class OrderBusiRequest extends ZteBusiRequest<ZteResponse> implements IZteBusiRequestHander{
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@RequestFieldAnnontion()
+	@ZteSoftCommentAnnotationParam(name="订单编号",type="String",isNecessary="N",desc="订单编号")
+	private String order_id;
+	
+	@RequestFieldAnnontion()
+	private String sn;
+	
+	@RequestFieldAnnontion()
+	private String member_id;
+
+	@RequestFieldAnnontion()
+	private Integer status;
+
+	@RequestFieldAnnontion()
+	private Integer pay_status;
+
+	@RequestFieldAnnontion()
+	private Integer ship_status;
+	
+	@RequestFieldAnnontion()
+	private String need_shipping;
+	@RequestFieldAnnontion()
+	private Double ess_money;
+	@RequestFieldAnnontion()
+	private Double busi_money;
+	@RequestFieldAnnontion()
+	private String shipping_id;
+	@RequestFieldAnnontion()
+	private String shipping_type;
+	@RequestFieldAnnontion()
+	private String old_shipping_type;
+	@RequestFieldAnnontion()
+	private String shipping_area;
+	@RequestFieldAnnontion()
+	private String userid; //用户id
+	@RequestFieldAnnontion()
+	private String source_from;
+	@RequestFieldAnnontion()
+	private String goods;
+	@RequestFieldAnnontion()
+	private String create_time;
+	@RequestFieldAnnontion()
+	private String ship_name;
+	@RequestFieldAnnontion()
+	private String ship_addr;
+	@RequestFieldAnnontion()
+	private String ship_zip;
+	@RequestFieldAnnontion()
+	private String ship_email;
+	@RequestFieldAnnontion()
+	private String ship_mobile;
+	@RequestFieldAnnontion()
+	private String ship_tel;
+	@RequestFieldAnnontion()
+	private String ship_day;
+	@RequestFieldAnnontion()
+	private String ship_time;
+	@RequestFieldAnnontion()
+	private Integer is_protect;
+	@RequestFieldAnnontion()
+	private Double protect_price;
+	@RequestFieldAnnontion()
+	private Double goods_amount;
+	@RequestFieldAnnontion()
+	private Double shipping_amount;
+	@RequestFieldAnnontion()
+	private Double discount; //优惠金额
+	@RequestFieldAnnontion()
+	private Double order_amount;
+	@RequestFieldAnnontion()
+	private Double weight =0.0;
+	@RequestFieldAnnontion()
+	private Double paymoney;
+	@RequestFieldAnnontion()
+	private String remark;
+	@RequestFieldAnnontion()
+	private Integer disabled;
+	@RequestFieldAnnontion()
+	private String payment_id;
+	@RequestFieldAnnontion()
+	private String payment_name;
+	@RequestFieldAnnontion()
+	private String payment_type;
+	@RequestFieldAnnontion()
+	private Integer goods_num;
+	@RequestFieldAnnontion()
+	private Long gainedpoint;
+	@RequestFieldAnnontion()
+	private Long consumepoint;
+	@RequestFieldAnnontion()
+	private String bank_id;
+	@RequestFieldAnnontion()
+	private String order_type; //订单类型 1订购、2退费、3换货、4退货
+	@RequestFieldAnnontion()
+	private String transaction_id;//网银支付流水号
+	@RequestFieldAnnontion()
+	private String type_code; //订单业务编码
+	@RequestFieldAnnontion()
+	private Integer accept_status =0; // 受理状态
+	@RequestFieldAnnontion()
+	private String accept_time;
+	
+	
+	@RequestFieldAnnontion()
+	private String goods_id; // 商品id 冗余方便统计
+	@RequestFieldAnnontion()
+	private String lan_id; // 订单归属本地网
+	@RequestFieldAnnontion()
+	private String deal_message;
+	
+	@RequestFieldAnnontion()
+	private String pay_time;
+	
+	@RequestFieldAnnontion()
+	private String acc_nbr;
+	@RequestFieldAnnontion()
+	private String bill_flag;
+	@RequestFieldAnnontion()
+	private String batch_id;
+	
+	
+	//发票信息
+	@RequestFieldAnnontion()
+	private Integer invoice_title;//发票抬头
+	@RequestFieldAnnontion()
+	private Integer invoice_type;//发票类型
+	@RequestFieldAnnontion()
+	private String invoice_title_desc;//发票抬头描述
+	@RequestFieldAnnontion()
+	private Integer invoice_content;//发票内容
+	@RequestFieldAnnontion()
+	private String last_update;
+	@RequestFieldAnnontion()
+	private Integer create_type;
+	@RequestFieldAnnontion()
+	private String source_shop_name;
+	@RequestFieldAnnontion()
+	private String order_adscription_id;
+	@RequestFieldAnnontion()
+	private Integer pay_type;
+	@RequestFieldAnnontion()
+	private Integer confirm_status;
+	@RequestFieldAnnontion()
+	private String confirm_time;
+	@RequestFieldAnnontion()
+	private String confirm_group_id;
+	@RequestFieldAnnontion()
+	private String confirm_user_id;
+	@RequestFieldAnnontion()
+	private String ship_assign_time;
+	@RequestFieldAnnontion()
+	private String ship_group_id;
+	@RequestFieldAnnontion()
+	private String ship_user_id;
+	@RequestFieldAnnontion()
+	private String accept_assign_time;
+	@RequestFieldAnnontion()
+	private String accept_group_id;
+	@RequestFieldAnnontion()
+	private String accept_user_id;
+	@RequestFieldAnnontion()
+	private String query_group_id;
+	@RequestFieldAnnontion()
+	private String query_user_id;
+	@RequestFieldAnnontion()
+	private String pay_assign_time;
+	@RequestFieldAnnontion()
+	private String pay_group_id;
+	@RequestFieldAnnontion()
+	private String pay_user_id;
+	@RequestFieldAnnontion()
+	private Double taxes;
+	@RequestFieldAnnontion()
+	private Float order_discount;
+	@RequestFieldAnnontion()
+	private Double order_coupon;
+	@RequestFieldAnnontion()
+	private Integer order_record_status;
+	@RequestFieldAnnontion()
+	private String dly_address_id;
+	
+	@RequestFieldAnnontion()
+	private String spread_id;
+	@RequestFieldAnnontion()
+	private String service_type;
+	@RequestFieldAnnontion()
+	private String service_id;
+	
+	private String createrOrder; //add by wui 
+	
+	//需要添加的字段
+	@RequestFieldAnnontion()
+	private String service_code;
+	@RequestFieldAnnontion()
+	private String app_key;
+	@RequestFieldAnnontion()
+	private String order_state ; 
+	
+	//非数据库操作字段
+	private String shipStatus;
+	private String payStatus;
+	private String orderStatus;
+	private String acceptStatus;
+	private OrderPrice orderprice;
+	private String goods_name;
+	private String goods_type;
+	private String goods_type_name;
+	private String image_default;//默认图片
+	private String image_file;//图片
+	private String user_name;
+	private String orderType;
+	private String oper_btns;
+	private String lan_name;
+	private String audit_state;
+	private String canPay;
+	private String canShip;
+	private String uname;//购买人
+	private String todo_user_id;
+	//收货地区id三级省市的最后一级
+	private Long regionid; 
+	private String flow_trace_id; //订单环节
+	private String currTraceId;//当前订单环节ID 为了区分并行环节
+	private String oper_remark;//当前环节外呼申请备注
+	private String outcall_type_c;//当前环节的外呼类型
+
+    
+    
+	
+	
+	@NotDbField
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@NotDbField
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public String getOrder_id() {
+		return order_id;
+	}
+
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+
+
+	@Override
+	@NotDbField
+	public <T>T store() {
+		ZteInstUpdateRequest<OrderBusiRequest> updateRequest = new ZteInstUpdateRequest<OrderBusiRequest>(); 
+		return RequestStoreExector.orderBusiStoreAssemble(updateRequest, this);
+	}
+
+	@Override
+	@NotDbField
+	public <T> T load(ZteInstQueryRequest instQuery) {
+		//构造参数
+		QueryResponse<OrderBusiRequest> resp = new QueryResponse<OrderBusiRequest>();
+		return RequestStoreExector.orderBusiLoadAssemble(instQuery,resp,this);
+	}
+
+	public String getSn() {
+		return sn;
+	}
+
+	public void setSn(String sn) {
+		this.sn = sn;
+	}
+
+	public String getMember_id() {
+		return member_id;
+	}
+
+	public void setMember_id(String member_id) {
+		this.member_id = member_id;
+	}
+
+	public Integer getStatus() {
+		return status;
+	}
+
+	public void setStatus(Integer status) {
+		this.status = status;
+	}
+
+	public Integer getPay_status() {
+		return pay_status;
+	}
+
+	public void setPay_status(Integer pay_status) {
+		this.pay_status = pay_status;
+	}
+
+	public Integer getShip_status() {
+		return ship_status;
+	}
+
+	public void setShip_status(Integer ship_status) {
+		this.ship_status = ship_status;
+	}
+	
+	@NotDbField
+	public Long getRegionid() {
+		return regionid;
+	}
+
+	public void setRegionid(Long regionid) {
+		this.regionid = regionid;
+	}
+
+	public String getNeed_shipping() {
+		return need_shipping;
+	}
+
+	public void setNeed_shipping(String need_shipping) {
+		this.need_shipping = need_shipping;
+	}
+
+	public String getShipping_id() {
+		return shipping_id;
+	}
+
+	public void setShipping_id(String shipping_id) {
+		this.shipping_id = shipping_id;
+	}
+
+	public String getShipping_type() {
+		return shipping_type;
+	}
+
+	public void setShipping_type(String shipping_type) {
+		this.shipping_type = shipping_type;
+	}
+	
+	public String getOld_shipping_type() {
+		return old_shipping_type;
+	}
+
+	public void setOld_shipping_type(String old_shipping_type) {
+		this.old_shipping_type = old_shipping_type;
+	}
+
+	public String getShipping_area() {
+		return shipping_area;
+	}
+
+	public void setShipping_area(String shipping_area) {
+		this.shipping_area = shipping_area;
+	}
+
+	public String getUserid() {
+		return userid;
+	}
+
+	public void setUserid(String userid) {
+		this.userid = userid;
+	}
+
+	public String getSource_from() {
+		return source_from;
+	}
+
+	public void setSource_from(String source_from) {
+		this.source_from = source_from;
+	}
+
+	public String getGoods() {
+		return goods;
+	}
+
+	public void setGoods(String goods) {
+		this.goods = goods;
+	}
+
+	public String getCreate_time() {
+		return create_time;
+	}
+
+	public void setCreate_time(String create_time) {
+		this.create_time = create_time;
+	}
+
+	public String getShip_name() {
+		return ship_name;
+	}
+
+	public void setShip_name(String ship_name) {
+		this.ship_name = ship_name;
+	}
+
+	public String getShip_addr() {
+		return ship_addr;
+	}
+
+	public void setShip_addr(String ship_addr) {
+		this.ship_addr = ship_addr;
+	}
+
+	public String getShip_zip() {
+		return ship_zip;
+	}
+
+	public void setShip_zip(String ship_zip) {
+		this.ship_zip = ship_zip;
+	}
+
+	public String getShip_email() {
+		return ship_email;
+	}
+
+	public void setShip_email(String ship_email) {
+		this.ship_email = ship_email;
+	}
+
+	public String getShip_mobile() {
+		return ship_mobile;
+	}
+
+	public void setShip_mobile(String ship_mobile) {
+		this.ship_mobile = ship_mobile;
+	}
+
+	public String getShip_tel() {
+		return ship_tel;
+	}
+
+	public void setShip_tel(String ship_tel) {
+		this.ship_tel = ship_tel;
+	}
+
+	public String getShip_day() {
+		return ship_day;
+	}
+
+	public void setShip_day(String ship_day) {
+		this.ship_day = ship_day;
+	}
+
+	public String getShip_time() {
+		return ship_time;
+	}
+
+	public void setShip_time(String ship_time) {
+		this.ship_time = ship_time;
+	}
+
+	public Integer getIs_protect() {
+		return is_protect;
+	}
+
+	public void setIs_protect(Integer is_protect) {
+		this.is_protect = is_protect;
+	}
+
+	public Double getProtect_price() {
+		return protect_price;
+	}
+
+	public void setProtect_price(Double protect_price) {
+		this.protect_price = protect_price;
+	}
+
+	public Double getGoods_amount() {
+		return goods_amount;
+	}
+
+	public void setGoods_amount(Double goods_amount) {
+		this.goods_amount = goods_amount;
+	}
+
+	public Double getShipping_amount() {
+		return shipping_amount;
+	}
+
+	public void setShipping_amount(Double shipping_amount) {
+		this.shipping_amount = shipping_amount;
+	}
+
+	public Double getDiscount() {
+		return discount;
+	}
+
+	public void setDiscount(Double discount) {
+		this.discount = discount;
+	}
+
+	public Double getOrder_amount() {
+		return order_amount;
+	}
+
+	public void setOrder_amount(Double order_amount) {
+		this.order_amount = order_amount;
+	}
+
+	public Double getWeight() {
+		return weight;
+	}
+
+	public void setWeight(Double weight) {
+		this.weight = weight;
+	}
+
+	public Double getPaymoney() {
+		return paymoney;
+	}
+
+	public void setPaymoney(Double paymoney) {
+		this.paymoney = paymoney;
+	}
+
+	public String getRemark() {
+		return remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+
+	public Integer getDisabled() {
+		return disabled;
+	}
+
+	public void setDisabled(Integer disabled) {
+		this.disabled = disabled;
+	}
+
+	public String getPayment_id() {
+		return payment_id;
+	}
+
+	public void setPayment_id(String payment_id) {
+		this.payment_id = payment_id;
+	}
+
+	public String getPayment_name() {
+		return payment_name;
+	}
+
+	public void setPayment_name(String payment_name) {
+		this.payment_name = payment_name;
+	}
+
+	public String getPayment_type() {
+		return payment_type;
+	}
+
+	public void setPayment_type(String payment_type) {
+		this.payment_type = payment_type;
+	}
+
+	public Integer getGoods_num() {
+		return goods_num;
+	}
+
+	public void setGoods_num(Integer goods_num) {
+		this.goods_num = goods_num;
+	}
+
+	public Long getGainedpoint() {
+		return gainedpoint;
+	}
+
+	public void setGainedpoint(Long gainedpoint) {
+		this.gainedpoint = gainedpoint;
+	}
+
+	public Long getConsumepoint() {
+		return consumepoint;
+	}
+
+	public void setConsumepoint(Long consumepoint) {
+		this.consumepoint = consumepoint;
+	}
+
+	public String getBank_id() {
+		return bank_id;
+	}
+
+	public void setBank_id(String bank_id) {
+		this.bank_id = bank_id;
+	}
+
+	public String getOrder_type() {
+		return order_type;
+	}
+
+	public void setOrder_type(String order_type) {
+		this.order_type = order_type;
+	}
+
+	public String getTransaction_id() {
+		return transaction_id;
+	}
+
+	public void setTransaction_id(String transaction_id) {
+		this.transaction_id = transaction_id;
+	}
+
+	public String getType_code() {
+		return type_code;
+	}
+
+	public void setType_code(String type_code) {
+		this.type_code = type_code;
+	}
+
+	public Integer getAccept_status() {
+		return accept_status;
+	}
+
+	public void setAccept_status(Integer accept_status) {
+		this.accept_status = accept_status;
+	}
+
+	public String getAccept_time() {
+		return accept_time;
+	}
+
+	public void setAccept_time(String accept_time) {
+		this.accept_time = accept_time;
+	}
+
+	public String getGoods_id() {
+		return goods_id;
+	}
+
+	public void setGoods_id(String goods_id) {
+		this.goods_id = goods_id;
+	}
+
+	public String getLan_id() {
+		return lan_id;
+	}
+
+	public void setLan_id(String lan_id) {
+		this.lan_id = lan_id;
+	}
+
+	public String getDeal_message() {
+		return deal_message;
+	}
+
+	public void setDeal_message(String deal_message) {
+		this.deal_message = deal_message;
+	}
+
+	public String getPay_time() {
+		return pay_time;
+	}
+
+	public void setPay_time(String pay_time) {
+		this.pay_time = pay_time;
+	}
+
+	public String getAcc_nbr() {
+		return acc_nbr;
+	}
+
+	public void setAcc_nbr(String acc_nbr) {
+		this.acc_nbr = acc_nbr;
+	}
+
+	public String getBill_flag() {
+		return bill_flag;
+	}
+
+	public void setBill_flag(String bill_flag) {
+		this.bill_flag = bill_flag;
+	}
+
+	public String getBatch_id() {
+		return batch_id;
+	}
+
+	public void setBatch_id(String batch_id) {
+		this.batch_id = batch_id;
+	}
+
+	public Integer getInvoice_title() {
+		return invoice_title;
+	}
+
+	public void setInvoice_title(Integer invoice_title) {
+		this.invoice_title = invoice_title;
+	}
+
+	public Integer getInvoice_type() {
+		return invoice_type;
+	}
+
+	public void setInvoice_type(Integer invoice_type) {
+		this.invoice_type = invoice_type;
+	}
+
+	public String getInvoice_title_desc() {
+		return invoice_title_desc;
+	}
+
+	public void setInvoice_title_desc(String invoice_title_desc) {
+		this.invoice_title_desc = invoice_title_desc;
+	}
+
+	public Integer getInvoice_content() {
+		return invoice_content;
+	}
+
+	public void setInvoice_content(Integer invoice_content) {
+		this.invoice_content = invoice_content;
+	}
+
+	public String getLast_update() {
+		return last_update;
+	}
+
+	public void setLast_update(String last_update) {
+		this.last_update = last_update;
+	}
+
+	public Integer getCreate_type() {
+		return create_type;
+	}
+
+	public void setCreate_type(Integer create_type) {
+		this.create_type = create_type;
+	}
+
+	public String getSource_shop_name() {
+		return source_shop_name;
+	}
+
+	public void setSource_shop_name(String source_shop_name) {
+		this.source_shop_name = source_shop_name;
+	}
+
+	public String getOrder_adscription_id() {
+		return order_adscription_id;
+	}
+
+	public void setOrder_adscription_id(String order_adscription_id) {
+		this.order_adscription_id = order_adscription_id;
+	}
+
+	public Integer getPay_type() {
+		return pay_type;
+	}
+
+	public void setPay_type(Integer pay_type) {
+		this.pay_type = pay_type;
+	}
+
+	public Integer getConfirm_status() {
+		return confirm_status;
+	}
+
+	public void setConfirm_status(Integer confirm_status) {
+		this.confirm_status = confirm_status;
+	}
+
+	public String getConfirm_time() {
+		return confirm_time;
+	}
+
+	public void setConfirm_time(String confirm_time) {
+		this.confirm_time = confirm_time;
+	}
+
+	public String getConfirm_group_id() {
+		return confirm_group_id;
+	}
+
+	public void setConfirm_group_id(String confirm_group_id) {
+		this.confirm_group_id = confirm_group_id;
+	}
+
+	public String getConfirm_user_id() {
+		return confirm_user_id;
+	}
+
+	public void setConfirm_user_id(String confirm_user_id) {
+		this.confirm_user_id = confirm_user_id;
+	}
+
+	public String getShip_assign_time() {
+		return ship_assign_time;
+	}
+
+	public void setShip_assign_time(String ship_assign_time) {
+		this.ship_assign_time = ship_assign_time;
+	}
+
+	public String getShip_group_id() {
+		return ship_group_id;
+	}
+
+	public void setShip_group_id(String ship_group_id) {
+		this.ship_group_id = ship_group_id;
+	}
+
+	public String getShip_user_id() {
+		return ship_user_id;
+	}
+
+	public void setShip_user_id(String ship_user_id) {
+		this.ship_user_id = ship_user_id;
+	}
+
+	public String getAccept_assign_time() {
+		return accept_assign_time;
+	}
+
+	public void setAccept_assign_time(String accept_assign_time) {
+		this.accept_assign_time = accept_assign_time;
+	}
+
+	public String getAccept_group_id() {
+		return accept_group_id;
+	}
+
+	public void setAccept_group_id(String accept_group_id) {
+		this.accept_group_id = accept_group_id;
+	}
+
+	public String getAccept_user_id() {
+		return accept_user_id;
+	}
+
+	public void setAccept_user_id(String accept_user_id) {
+		this.accept_user_id = accept_user_id;
+	}
+
+	public String getQuery_group_id() {
+		return query_group_id;
+	}
+
+	public void setQuery_group_id(String query_group_id) {
+		this.query_group_id = query_group_id;
+	}
+
+	public String getQuery_user_id() {
+		return query_user_id;
+	}
+
+	public void setQuery_user_id(String query_user_id) {
+		this.query_user_id = query_user_id;
+	}
+
+	public String getPay_assign_time() {
+		return pay_assign_time;
+	}
+
+	public void setPay_assign_time(String pay_assign_time) {
+		this.pay_assign_time = pay_assign_time;
+	}
+
+	public String getPay_group_id() {
+		return pay_group_id;
+	}
+
+	public void setPay_group_id(String pay_group_id) {
+		this.pay_group_id = pay_group_id;
+	}
+
+	public String getPay_user_id() {
+		return pay_user_id;
+	}
+
+	public void setPay_user_id(String pay_user_id) {
+		this.pay_user_id = pay_user_id;
+	}
+
+	public Double getTaxes() {
+		return taxes;
+	}
+
+	public void setTaxes(Double taxes) {
+		this.taxes = taxes;
+	}
+
+	public Float getOrder_discount() {
+		return order_discount;
+	}
+
+	public void setOrder_discount(Float order_discount) {
+		this.order_discount = order_discount;
+	}
+
+	public Double getOrder_coupon() {
+		return order_coupon;
+	}
+
+	public void setOrder_coupon(Double order_coupon) {
+		this.order_coupon = order_coupon;
+	}
+
+	public Integer getOrder_record_status() {
+		return order_record_status;
+	}
+
+	public void setOrder_record_status(Integer order_record_status) {
+		this.order_record_status = order_record_status;
+	}
+
+	public String getDly_address_id() {
+		return dly_address_id;
+	}
+
+	public void setDly_address_id(String dly_address_id) {
+		this.dly_address_id = dly_address_id;
+	}
+
+	public String getSpread_id() {
+		return spread_id;
+	}
+
+	public void setSpread_id(String spread_id) {
+		this.spread_id = spread_id;
+	}
+
+	public String getService_type() {
+		return service_type;
+	}
+
+	public void setService_type(String service_type) {
+		this.service_type = service_type;
+	}
+
+	public String getService_id() {
+		return service_id;
+	}
+
+	public void setService_id(String service_id) {
+		this.service_id = service_id;
+	}
+
+	public String getCreaterOrder() {
+		return createrOrder;
+	}
+
+	public void setCreaterOrder(String createrOrder) {
+		this.createrOrder = createrOrder;
+	}
+
+	public String getService_code() {
+		return service_code;
+	}
+
+	public void setService_code(String service_code) {
+		this.service_code = service_code;
+	}
+
+	public String getApp_key() {
+		return app_key;
+	}
+
+	public void setApp_key(String app_key) {
+		this.app_key = app_key;
+	}
+	
+	@NotDbField
+	public String getShipStatus() {
+		return shipStatus;
+	}
+	@NotDbField
+	public void setShipStatus(String shipStatus) {
+		this.shipStatus = shipStatus;
+	}
+	@NotDbField
+	public String getPayStatus() {
+		return payStatus;
+	}
+	@NotDbField
+	public void setPayStatus(String payStatus) {
+		this.payStatus = payStatus;
+	}
+	@NotDbField
+	public String getOrderStatus() {
+		return orderStatus;
+	}
+	@NotDbField
+	public void setOrderStatus(String orderStatus) {
+		this.orderStatus = orderStatus;
+	}
+	@NotDbField
+	public String getAcceptStatus() {
+		return acceptStatus;
+	}
+	@NotDbField
+	public void setAcceptStatus(String acceptStatus) {
+		this.acceptStatus = acceptStatus;
+	}
+	@NotDbField
+	public OrderPrice getOrderprice() {
+		return orderprice;
+	}
+	@NotDbField
+	public void setOrderprice(OrderPrice orderprice) {
+		this.orderprice = orderprice;
+	}
+	@NotDbField
+	public String getGoods_name() {
+		return goods_name;
+	}
+	@NotDbField
+	public void setGoods_name(String goods_name) {
+		this.goods_name = goods_name;
+	}
+	@NotDbField
+	public String getUser_name() {
+		return user_name;
+	}
+	@NotDbField
+	public void setUser_name(String user_name) {
+		this.user_name = user_name;
+	}
+	@NotDbField
+	public String getOrderType() {
+		return orderType;
+	}
+	@NotDbField
+	public void setOrderType(String orderType) {
+		this.orderType = orderType;
+	}
+	@NotDbField
+	public String getOper_btns() {
+		return oper_btns;
+	}
+	@NotDbField
+	public void setOper_btns(String oper_btns) {
+		this.oper_btns = oper_btns;
+	}
+	@NotDbField
+	public String getLan_name() {
+		return lan_name;
+	}
+	@NotDbField
+	public void setLan_name(String lan_name) {
+		this.lan_name = lan_name;
+	}
+	@NotDbField
+	public String getAudit_state() {
+		return audit_state;
+	}
+	@NotDbField
+	public void setAudit_state(String audit_state) {
+		this.audit_state = audit_state;
+	}
+	@NotDbField
+	public String getCanPay() {
+		return canPay;
+	}
+	@NotDbField
+	public void setCanPay(String canPay) {
+		this.canPay = canPay;
+	}
+	@NotDbField
+	public String getCanShip() {
+		return canShip;
+	}
+	@NotDbField
+	public void setCanShip(String canShip) {
+		this.canShip = canShip;
+	}
+	@NotDbField
+	public String getUname() {
+		return uname;
+	}
+	@NotDbField
+	public void setUname(String uname) {
+		this.uname = uname;
+	}
+	
+	@NotDbField
+	public String getTodo_user_id() {
+		return todo_user_id;
+	}
+	@NotDbField
+	public void setTodo_user_id(String todo_user_id) {
+		this.todo_user_id = todo_user_id;
+	}
+
+	public String getImage_default() {
+		return image_default;
+	}
+
+	public void setImage_default(String image_default) {
+		this.image_default = image_default;
+	}
+
+	public String getImage_file() {
+		return image_file;
+	}
+
+	public void setImage_file(String image_file) {
+		this.image_file = image_file;
+	}
+
+	public String getGoods_type() {
+		return goods_type;
+	}
+
+	public void setGoods_type(String goods_type) {
+		this.goods_type = goods_type;
+	}
+
+	public String getGoods_type_name() {
+		return goods_type_name;
+	}
+
+	public void setGoods_type_name(String goods_type_name) {
+		this.goods_type_name = goods_type_name;
+	}
+
+	public String getFlow_trace_id() {
+		return flow_trace_id;
+	}
+
+	public void setFlow_trace_id(String flow_trace_id) {
+		this.flow_trace_id = flow_trace_id;
+	}
+	@NotDbField
+	public String getCurrTraceId() {
+		return currTraceId;
+	}
+	public void setCurrTraceId(String currTraceId) {
+		this.currTraceId = currTraceId;
+	}
+
+	public Double getEss_money() {
+		return ess_money;
+	}
+
+	public void setEss_money(Double ess_money) {
+		this.ess_money = ess_money;
+	}
+
+	public Double getBusi_money() { 
+		return busi_money;
+	}
+
+	public void setBusi_money(Double busi_money) {
+		this.busi_money = busi_money;
+	}
+
+	@NotDbField
+	public String getOper_remark() {
+		return oper_remark;
+	}
+	@NotDbField
+	public void setOper_remark(String oper_remark) {
+		this.oper_remark = oper_remark;
+	}
+	
+	@NotDbField
+	public String getOutcall_type_c() {
+		return outcall_type_c;
+	}
+	
+	@NotDbField
+	public void setOutcall_type_c(String outcall_type_c) {
+		this.outcall_type_c = outcall_type_c;
+	}
+
+	
+	public String getOrder_state() {
+		return order_state;
+	}
+
+	public void setOrder_state(String order_state) {
+		this.order_state = order_state;
+	} 
+
+	/**
+     * 只插入数据库，不更新缓存，在标准化入库时执行
+     */
+    @NotDbField
+    public ZteResponse  insertNoCache(){
+        return RequestStoreExector.getInstance().insertZteRequestInst(this);
+    }
+	
+}

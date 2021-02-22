@@ -1,0 +1,300 @@
+
+<script type="text/javascript" src="js/Cat.js"></script>
+<div class="tab-bar" style="position: relative;">
+	<ul class="tab">
+		<li tabid="0" class="active">
+			基本信息
+		</li>
+		
+		<li tabid="4">
+			相关商品
+		</li>
+		
+	</ul>
+</div>
+<div class="input">
+	<form class="validate" method="post" action="cat!saveEdit.do"
+		enctype="multipart/form-data">
+		<div style="display: block;" tabid="tab_0" class="tab-panel">
+			<div class="main-div">
+				<input type="hidden" name="cat.cat_id" id="cat_id"
+					value="${cat.cat_id }" />
+				<table cellspacing="1" cellpadding="3" width="100%"
+					class="form-table">
+					<tr>
+						<th><label class="text">分类名称</label></th>
+						<td><input type="text" name="cat.name" id="name"
+							maxlength="60" value="${cat.name }" dataType="string"
+							required="true" /></td>
+					</tr>
+					<tr style="display:none;">
+						<th >
+							<label class="text">
+								适用范围</label>
+						</th>
+						<td class="cat_type_td"><input type="hidden" id="cat_type_input" value="${cat.type!''}">
+							<input type="radio" name="cat.type" class="type_radio_input" value="goods" />
+							商品&nbsp;&nbsp;
+							<input type="radio" name="cat.type" class="type_radio_input" value="product"  />
+							货品 &nbsp;&nbsp;
+						</td>
+					</tr>
+					<tr style="display:none;">
+						<th><label class="text">分类图片</label></th>
+						<td><input type="file" name="image" id="image" size="45" />
+							<input type="hidden" name="cat.image" value="${cat.image!''}"></td>
+					</tr>
+
+					<#if cat.image?exists >
+					<tr style="display:none;">
+						<th>&nbsp;</th>
+						<td>
+							<div style="width:680px;height:245px;overflow:hidden">
+								<img src="${cat.image }" />
+							</div>
+						</td>
+					</tr>
+					</#if>
+
+					<tr>
+						<th><label class="text">上级分类</label></th>
+						<td><select class="ipttxt" name="cat.parent_id" style="width:300px;" id="parent_id">
+								<option value="0">顶级类别</option> <#assign children=catList />
+								<#assign level=1 /> <#include 'select_children.html' />
+						</select></td>
+					</tr>
+					<tr id="remove_span_ok">
+						<th><label class="text">类型</label></th>
+						<td>
+							<select  class="ipttxt"  name="cat.type_id"  id="type_id_goods" >
+					        <#list typeList as type>
+								<option value="${type.type_id }" <#if cat.type_id==type.type_id>selected="true"</#if>>${type.name }</option>
+							</#list>	
+							</select>
+							<select  class="ipttxt"  name=""  id="type_id_product" style="display:none;" >
+					        <#list typeListProd as type>
+								<option value="${type.type_id }" >${type.name }</option>
+							</#list>	
+							</select>
+						 &nbsp;&nbsp;<span class="help_icon" helpid="goods_type"></span>
+						 </td>
+					</tr>
+					<tr>
+						<th><label class="text">排序</label></th>
+						<td><input type="text" name="cat.cat_order"
+							value="${cat.cat_order }" style="width:50px" dataType="int"
+							required="true" /></td>
+					</tr>
+					
+					
+					<tr>
+						<th><label class="text">列表中显示</label></th>
+						<td><input type="radio" class="listshow" name="cat.list_show"
+							value="1" />是&nbsp; <input type="radio" class="listshow"
+							name="cat.list_show" value="0" />否 &nbsp;&nbsp;<span
+							class="help_icon" helpid="cat_listshow"></span></td>
+					</tr>
+					<tr>
+						<th><label class="text">楼层中显示</label></th>
+						<td><input type="hidden" id="floor_list_show_input"
+							value="${cat.floor_list_show}" /> <input type="radio"
+							name="cat.floor_list_show" value="1" />是&nbsp; <input
+							type="radio" name="cat.floor_list_show" value="0" />否</td>
+					</tr>
+					<tr>
+						<th><label class="text">是否热词</label></th>
+						<td><input type="hidden" id="hot_type_input"
+							value="${cat.hot_type}" />
+						<input type="radio" class="hottype" name="cat.hot_type"
+							value="1" />是&nbsp; <input type="radio" class="listshow"
+							name="cat.hot_type" value="0" />否 &nbsp;&nbsp;<span
+							class="help_icon" helpid="cat_listshow"></span></td>
+					</tr>
+
+
+				</table>
+
+
+			</div>
+		</div>
+		<div style="display: none;" tabid="tab_4" class="tab-panel">
+			<div class="grid">
+				<div class="comBtnDiv">
+					<a href="javascript:void(0)" style="margin-right:10px;"
+						class="graybtn1" id="complexOpenDialog"><span>添加</span></a> <a
+						href="javascript:void(0)" id="complexEmpty"
+						style="margin-right:10px;" class="graybtn1"><span>清空</span></a>
+				</div>
+				<table width="100%" cellspacing="0" cellpadding="3">
+					<colgroup>
+						<col class="span-4 ColColorGray">
+						<col class="span-2 ColColorOrange">
+						<col class="textleft">
+					</colgroup>
+					<thead>
+						<tr>
+							<th>&nbsp;</th>
+							<th>商品名称</th>
+							<th>关联方式</th>
+							<th>&nbsp;</th>
+						</tr>
+					</thead>
+					<tbody id="complexContent">
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div class="submitlist" align="center">
+			<table>
+				<tr>
+					<th></th>
+					<td><input type="button" value=" 确定 " class="submitBtn" /> <input
+						name="reset" type="reset" style="display:none;" value=" 重置 " class="submitBtn" /></td>
+				</tr>
+			</table>
+		</div>
+	</form>
+</div>
+<!-- 选择商品对话框 -->
+<div id="goods_select_dialog" >	
+</div>
+<script type="text/javascript">
+$(function(){
+	$(".cat_type_td").find("input[type='radio'][value='"+$("#cat_type_input").val()+"']").attr("checked","checked");
+	/*if($(".type_radio_input").parent().find("input[type='radio']:checked").val()=="goods"){
+		$("#type_id_goods").attr("name","cat.type_id");
+		$("#type_id_goods").show();
+		$("#type_id_product").attr("name","");
+		$("#type_id_product").hide();
+	}else{
+		$("#type_id_product").attr("name","cat.type_id");
+		$("#type_id_product").show();
+		$("#type_id_goods").attr("name","");
+		$("#type_id_goods").hide();
+	}*/
+	
+	
+	Cat.intChkNameEvent();
+	$("form.validate").validate();
+	$("#parent_id").val('${cat.parent_id}');
+	$("#type_id").val('${cat.type_id}');
+	$(".listshow").each(function(){
+		if($(this).val() ==  '${cat.list_show}' ){
+			$(this).attr("checked",true);
+		}
+	});
+	
+	$(".hottype").each(function(){
+		if($(this).val() ==  '${cat.hot_type}' ){
+			$(this).attr("checked",true);
+		}
+	});
+	//楼层显示
+	if($("#floor_list_show_input").val()=="1"){
+		$("#floor_list_show_input").parent().find("input[type='radio'][value='1']").attr("checked",true);
+	}else{
+		$("#floor_list_show_input").parent().find("input[type='radio'][value='0']").attr("checked",true);
+	}
+	//热词
+	if($("#hot_type_input").val()=="1"){
+		$("#hot_type_input").parent().find("input[type='radio'][value='1']").attr("checked",true);
+	}else{
+		$("#hot_type_input").parent().find("input[type='radio'][value='0']").attr("checked",true);
+	}
+	//加载已经关联的商品
+	var now_cat_id = $("#cat_id").val();
+	$.ajax({
+		url:"catComplexAction!findListByCatId.do?ajax=yes&cat_id="+now_cat_id,///wssmall/shop/admin/
+		type:"post",
+		dataType:"json",
+		success:function(goodsList){
+			if(goodsList.length>0){
+				for(var i=0;i<goodsList.length;i++){
+					var html = $("<tr id='complex_" + goodsList[i].goods_id + "'><td>&nbsp;</td><td>" 
+					+ goodsList[i].goods_name+"<input type='hidden' name='catCom.goods_id' value='"+goodsList[i].goods_id +"' />"
+					+ "<input type='hidden' name='catCom.goods_name' value='"+goodsList[i].name +"' /></td>"
+					+ "<td>"
+					+"<select  class='ipttxt' name='catCom.manual'>"
+					+ "<option value='left'>单向相关</option>"
+					+ "<option value='both' >双向相关</option>"
+					+ "</select></td>"
+					//catComplexAction!delByCatId.do?cat_id="+now_cat_id+"&goods_id="+goodsList[i].goods_id +"
+					+"<td><a href='javascript:void(0);' nowCatId='"+now_cat_id+"' goodsId='"+goodsList[i].goods_id+"' class='delete'>&nbsp;&nbsp;&nbsp;&nbsp;</a>"
+					+"<span style='display:none;'></span></td></tr>");
+					$(html).find("select").val($(html).find("span").html());
+					$(html).appendTo($("#complexContent"));
+				}
+				//绑定事件
+				$(".delete").bind("click",function(){
+					var catId=$(this).attr("nowCatId");
+					var goodsId=$(this).attr("goodsId");
+					$.ajax({
+						url:"catComplexAction!delByCatId.do?ajax=yes&cat_id="+catId+"&goodsId="+goodsId,
+						type:"post",
+						dataType:"json",
+						success:function(reply){
+							var form = $("form");
+							if(reply.result=='1'){
+								$("#complex_"+goodsId).remove();
+								//form.submit();
+								//if( form.attr("validate")=="true" ){
+								//	form[0].submit();
+								//}
+								//$.Loading.hide();
+							}
+						},
+						error:function(){
+							alert("删除相关商品出错");
+						}
+					});
+				});
+			}
+		},
+		error:function(){
+			alert("查询相关商品出错");
+		}
+	});
+	
+	//商品货品选择
+	$(".type_radio_input").bind("click",function(){
+		$("#remove_span_ok").find("span").remove();
+		if($(this).parent().find("input[type='radio']:checked").val()=="goods"){
+			$("#type_id_goods").attr("name","cat.type_id");
+			$("#type_id_goods").show();
+			$("#type_id_product").attr("name","");
+			$("#type_id_product").hide();
+		}else{
+			$("#type_id_product").attr("name","cat.type_id");
+			$("#type_id_product").show();
+			$("#type_id_goods").attr("name","");
+			$("#type_id_goods").hide();
+		}
+	});
+	
+});
+
+
+
+function delByCatId(cat_id,goods_id){
+	$("form").ajaxSubmit({
+		url:"catComplexAction!delByCatId.do?ajax=yes&cat_id="+cat_id+"&goodsId="+goods_id,
+		type:"post",
+		dataType:"json",
+		success:function(reply){
+			var form = $("form");
+			if(reply.result=='1'){
+				$("#complex_"+goods_id).remove();
+				form.submit();
+				if( form.attr("validate")=="true" ){
+					form[0].submit();
+				}
+				$.Loading.hide();
+			}
+		},
+		error:function(){
+			alert("删除相关商品出错");
+		}
+	});
+		
+}
+</script>

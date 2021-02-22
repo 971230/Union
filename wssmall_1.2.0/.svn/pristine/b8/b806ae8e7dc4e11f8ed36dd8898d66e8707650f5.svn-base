@@ -1,0 +1,643 @@
+package com.ztesoft.inf.communication.client;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.log4j.Logger;
+
+import zte.net.ecsord.params.logs.req.MatchDictLogsReq;
+import zte.net.ecsord.params.logs.req.MatchInfLogStateReq;
+import zte.net.ecsord.params.logs.resp.MatchDictLogsResp;
+import zte.net.ecsord.params.logs.resp.MatchInfLogStateResp;
+import zte.net.ecsord.params.sr.resp.QueWriMachStaInBatchRGResponse;
+import zte.net.ecsord.params.sr.resp.ReadICCIDSRResponse;
+import zte.net.ecsord.params.sr.resp.WriMachStaQueResponse;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.config.ParamsConfig;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.inf.communication.client.bo.ICommClientBO;
+import com.ztesoft.inf.framework.cache.Cache;
+import com.ztesoft.inf.framework.cache.CacheConstants;
+import com.ztesoft.inf.framework.cache.CacheItemCreateCallback;
+import com.ztesoft.inf.framework.cache.CacheManager;
+import com.ztesoft.inf.framework.cache.LRUMap;
+import com.ztesoft.inf.framework.commons.CodedException;
+import com.ztesoft.inf.framework.logger.AppLogContext;
+import com.ztesoft.inf.framework.logger.AppLogger;
+import com.ztesoft.inf.framework.logger.LogThread;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+/**
+ * 通用客户端
+ */
+
+@SuppressWarnings("unchecked")
+public class CommCaller {
+	private static Logger logger = Logger.getLogger(CommCaller.class);
+	static{
+		ParamsConfig.initParams(null);
+	}
+	private static final String LOGLEVEL_NONE = "NONE";
+	private static final String LOGLEVEL_ERROR = "ERROR";
+	private static final String LOGLEVEL_ALL_NOXML = "ALL_NOXML";
+	private static final String Http = "Http";					//森锐接口
+	private static final String WmsInvoker = "WmsInvoker";		//WMS接口
+	
+	//
+	private static Cache<String, Invoker> invokers = CacheManager.getCache(CacheConstants.WSCLIENT_INVOKER, LRUMap.class);
+
+	private static InvokerBuilder invokerBuilder = new InvokerBuilder();
+	private static ICommClientBO commClientBO;
+	private static ICommClientBO getICommClientBO(){
+		if(commClientBO==null){
+			commClientBO = SpringContextHolder.getBean("commClientBO");
+		}
+		return commClientBO;
+	}
+
+
+	/**
+	 * @param operationCode
+	 *            要调用的操作(在INF_WS_CLIENT_OPERATION配置)
+	 * @param params
+	 *            调用操作的参数,该参数为一个Bean或Map对象
+	 * @return
+	 */
+	public Object invoke(final String operationCode,final Object params) {
+		Object result = null;
+		final String ep_mall = Const.getStrValue((Map)params,"ep_mall");
+		final int repeatNum = getRepeatNum(operationCode,ep_mall);	//获取接口调用次数
+		ICacheUtil cacheUtil =SpringContextHolder.getBean("cacheUtil");
+		String inf_time_out = cacheUtil.getConfigInfo("INF_TIME_OUT");
+		
+		if(StringUtils.isEmpty(inf_time_out)){
+			inf_time_out = "120";//默认两分钟超时
+		}
+		
+		try{
+			FutureTask<Object> future = new FutureTask<Object>(new Callable() {
+				
+				public Object call() throws Exception {
+					
+					Object invokeResult =null;
+					
+					for(int i = 1; i <= repeatNum; i++){
+						
+						try{
+							invokeResult = invoke(operationCode, params, null, i + "");
+						}catch(Exception e){
+							if(i == repeatNum){//不需要重复调用的接口直接抛出异常
+								throw new CodedException("9999", "调用服务[" + operationCode + "]出错:"
+										+ e.getMessage(), e);
+							}
+							continue;
+						}
+						
+						if(getInfResp(invokeResult, operationCode,ep_mall)){				//如果接口返回成功,跳出循环
+							break;
+						}
+					}
+					
+					return invokeResult;
+				}
+			});
+			
+			Thread t = new Thread(future);
+			t.start();
+			
+			while (!future.isDone()) {
+				result =   future.get(Long.parseLong(inf_time_out), TimeUnit.SECONDS);
+		   }
+			
+		}catch(Exception ex){
+			ex.printStackTrace();
+			
+			logger.info(ex.getMessage(), ex);
+			
+			//这里抛出的异常为线程运行异常java.util.concurrent.ExecutionException
+			if(ex.getCause() instanceof  CodedException){
+				//如果异常的原因为CodedException，直接取CODE和MESSAGE，防止报错信息重复
+				throw new CodedException(((CodedException)ex.getCause()).getCode(), 
+						((CodedException)ex.getCause()).getMessage(),(CodedException)ex.getCause());
+			}else{
+				//如果异常的原因不为为CodedException，设置CODE为9999，MESSAGE加上"调用服务[" + operationCode + "]出错:"前戳
+				throw new CodedException("9999", "调用服务[" + operationCode + "]出错:"
+						+ ex.getMessage(), ex);
+			}
+		}
+		
+		return result;
+	}
+//	
+//	public Object invoke(String operationCode, Object params) {
+//		Object result = null;
+//		String ep_mall = Const.getStrValue((Map)params,"ep_mall");
+//		int repeatNum = getRepeatNum(operationCode,ep_mall);	//获取接口调用次数
+//		for(int i = 1; i <= repeatNum; i++){
+//			try{
+//				result = invoke(operationCode, params, null, i + "");
+//			}catch(Exception e){
+//				if(i == repeatNum){//不需要重复调用的接口直接抛出异常
+//					throw new CodedException("9999", "调用服务[" + operationCode + "]出错:"
+//							+ e.getMessage(), e);
+//				}
+//				continue;
+//			}
+//			if(getInfResp(result, operationCode,ep_mall)){				//如果接口返回成功,跳出循环
+//				break;
+//			}
+//		}
+//		return result;
+//	}
+//	public Object invokeToXml(String operationCode, Object params) {
+//		return invokeToXml(operationCode, params, null);
+//	}
+	/**
+	 * @param operationCode
+	 *            要调用的操作(在INF_WS_CLIENT_OPERATION配置)
+	 * @param params
+	 *            调用操作的参数,该参数为一个Bean或Map对象
+	 * @param endpointAddress
+	 *            外部传入的请求地址
+	 * @return
+	 */
+	public Object invoke(String operationCode, Object params,
+			String endpointAddress, Object... args) {
+//		new ParamsConfig().initParams("");
+		String order_id = "";
+		String ep_mall = Const.getStrValue((Map) params, "ep_mall");
+		
+		
+		Invoker invoker = getInvoker(operationCode,ep_mall);
+		
+		if(invoker.logColMap == null){
+			invoker.logColMap = new HashMap();
+		}
+		
+		Map m = new HashMap();		
+		if(params instanceof Map){
+			order_id = Const.getStrValue((Map) params, "ord_id");
+			invoker.logColMap.put("order_id", order_id);
+			((Map) params).remove("ord_id");
+			((Map) params).remove("ep_mall");
+			
+			String bizkey = Const.getStrValue((Map) params, "bizkey");
+			if(!StringUtils.isEmpty(bizkey)){
+				m.put("bizkey", bizkey);
+				((Map) params).remove("bizkey");
+			}
+		}
+		if (invoker == null) {
+			StringUtils.printInfo("operation [" + operationCode + "] is closed !");
+			return InfCloed.getInstance();
+		}
+		// 外部请求地也址
+		if (!StringUtils.isEmpty(endpointAddress)) {
+			invoker.endpoint = endpointAddress;
+		}
+		InvokeContext context;
+
+		if (invoker instanceof WsInvoker) {
+			context = new WsInvokeContext();
+		} else if(invoker instanceof SFInvoker){
+			context = new WsInvokeContext();
+		} else if(invoker instanceof UnibssInvoker){
+			context = new WsInvokeContext();
+		} else if(invoker instanceof WmsInvoker){
+			context = new WsInvokeContext();
+		} else if (invoker instanceof StringObjectInvoker) {
+			context = new WsInvokeContext();
+		} else if (invoker instanceof AsmxWebInvoker) {
+			context = new AsmxWebInvokeContext();
+		} else if (invoker instanceof HttpPostAopGdInvoker) {
+			context = new WsInvokeContext();
+		} else if (invoker instanceof HttpPostBssInvoker) {
+			context = new WsInvokeContext();
+		} else if (invoker instanceof HSInvoker) {
+			context = new WsInvokeContext();
+		} else {
+			context = new InvokeContext();
+		}
+		context.setParameters(params);
+		context.setExtMap(m);
+		context.setOperationCode(operationCode);
+		Object retObj = null;
+
+		try {
+			
+			if (ParamsConfig.isDebug() && !"oldOrderSys.2OrderInfo".equals(operationCode)) {
+				retObj = invoker.invokeTest(context);
+			} else {
+				retObj = invoker.invoke(context);
+			}
+			
+			logger.debug("req= "+ context.getRequestString());
+			logger.debug("rsp= "+ context.getResultString());
+			logger.debug("rsp= "+ context.getResponeString());
+
+		} catch (Exception e) {
+			context.setFailure(e.getMessage());
+			throw new CodedException("9999", "调用服务[" + operationCode + "]出错:"
+					+ e.getMessage(), e);
+		} finally {
+			try {
+				if(args.length > 0){
+					context.setDeal_num((String)args[0]);
+				}
+				
+				/**
+				 * ZX Add 2015-10-30 17:42:27 Start
+				 */
+				MatchInfLogStateReq req = new MatchInfLogStateReq();
+				String rspXml = context.getResponeString();
+				req.setOp_code(operationCode);
+				req.setRspXml(rspXml);
+				req.setLogColMap(invoker.getLogColMap());
+				Map<String, String> paramMap = new HashMap<String, String>();
+				try {
+					if (retObj != null) {
+						BeanUtils.bean2Map(paramMap, retObj);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				req.setRetObj(paramMap);
+				ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+				MatchInfLogStateResp resp = client.execute(req, MatchInfLogStateResp.class);
+				invoker.getLogColMap().put("inf_state", resp.getInf_state());
+				/**
+				 * ZX Add 2015-10-30 17:42:59 End
+				 */
+				
+				logServiceCall(invoker.getLogLevel(), invoker.getLogColMap(),
+						context);
+			} catch (Exception e) {
+				logger.info("记录调用日志出错[" + context.getOperationCode() + "]", e);
+			}
+			if(params instanceof Map){
+				((Map) params).put("ord_id", order_id);
+			}
+		}
+		return retObj;
+	}
+	
+	public static class CallLogger {
+
+
+		public void log(String logLevel, Map logColMap, InvokeContext context)
+				throws Exception {
+			String fault = context.getFailure();
+			if (fault == null && LOGLEVEL_ERROR.equals(logLevel)) {
+				return;
+			}
+			List list = new ArrayList();
+			list.add(context.getRequestTime());
+			list.add(context.getResponseTime());
+			list.add(context.getOperationCode());
+			list.add(context.getEndpoint());
+			if (fault == null && LOGLEVEL_ALL_NOXML.equals(logLevel)) {
+				list.add("");
+				list.add("");
+			} else {
+				list.add(context.getRequestString());
+				list.add(context.getResponeString());
+			}
+//			list.add(fault != null ? "1" : "0");  // ZX Update 2015-10-30 17:36:33
+			list.add(logColMap.get("inf_state")); // ZX Add 2015-10-30 17:36:37
+			list.add(fault);
+			list.add(context.paramsAsString());
+			list.add(context.getResultString());
+			list.add(getLogValue(logColMap, "col1", context.getParameters()));
+			list.add(getLogValue(logColMap, "col2", context.getParameters()));
+			list.add(logColMap.get("order_id"));
+			list.add(getLogValue(logColMap, "col4", context.getParameters()));
+			list.add(getLogValue(logColMap, "col5", context.getParameters()));
+			getICommClientBO().logCall(list);
+		}
+
+		private Object getLogValue(Map logColMap, String colName,
+				Object parameters) {
+			Object value = null;
+			if (parameters instanceof Map) {
+				if (logColMap.get(colName) != null)
+					value = ((Map) parameters).get(logColMap.get(colName));
+			}
+			return value != null ? String.valueOf(value) : "";
+		}
+	}
+
+	// 线程池插入日志 add by xiaof
+	private void logServiceCall(final String logLevel, final Map logColMap,
+			final InvokeContext context) throws Exception {
+		if (LOGLEVEL_NONE.equals(logLevel)) {
+			return;
+		}
+		this.log(logLevel, logColMap, context);
+	}
+
+	private void log(String logLevel, Map logColMap, InvokeContext context)
+			throws Exception {
+		String fault = context.getFailure();
+		if (fault == null && LOGLEVEL_ERROR.equals(logLevel)) {
+			return;
+		}
+		final List list = new ArrayList();
+		list.add(context.getRequestTime());
+		list.add(context.getResponseTime());
+		list.add(context.getOperationCode());
+		list.add(context.getEndpoint());
+		if (fault == null && LOGLEVEL_ALL_NOXML.equals(logLevel)) {
+			list.add("");
+			list.add("");
+		} else {
+			list.add(StringUtils.isEmpty(context.getRequestString())?context.paramsAsString():context.getRequestString());
+			list.add(StringUtils.isEmpty(context.getResponeString())?fault:context.getResponeString());
+		}
+//		list.add(fault != null ? "1" : "0");  // ZX Update 2015-10-30 17:36:33
+		list.add(logColMap.get("inf_state")); // ZX Add 2015-10-30 17:36:37
+		list.add(fault);
+		list.add(context.paramsAsString());
+		list.add(StringUtils.isEmpty(context.getResultString())?fault:context.getResultString());
+//		list.add(getLogValue(logColMap, "col1", context.getParameters()));
+		list.add(context.getDeal_num());				//col1记录接口处理次数
+		list.add(logColMap.get("col2"));
+		list.add(logColMap.get("order_id"));
+		list.add(getLogValue(logColMap, "col4", context.getParameters()));
+		list.add(getLogValue(logColMap, "col5", context.getParameters()));
+		
+		if(!StringUtils.isEmpty((String)logColMap.get("log_id"))){
+			list.add(logColMap.get("log_id"));
+		}
+		
+		LogThread.addLogQueue(new AppLogContext(new AppLogger() {
+			public void log(Object logObj) throws Exception {
+				try {
+					getICommClientBO().logCall((List) logObj);
+
+					/**
+					 * ZX Add 2015-11-24 11:59:00 Start
+					 */
+					List ls = (List) logObj;
+					MatchDictLogsReq req = new MatchDictLogsReq(); // 调用字典分析API
+					req.setObj_id(ls.get(12).toString());
+					req.setOp_code(ls.get(2).toString());
+					req.setLocal_log_id(list.get(15).toString());
+					req.setRsp_xml(list.get(5).toString());
+					ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+					MatchDictLogsResp response=(MatchDictLogsResp)client.execute(req, MatchDictLogsResp.class);
+					/**
+					 * ZX Add 2015-11-24 11:59:00 End
+					 */
+					
+				} catch (Throwable e) {
+					e.printStackTrace();
+					logger.info("记录日志时失败:" + e.getMessage(), e);
+				}
+			}
+		}, list));
+	}
+
+	private Object getLogValue(Map logColMap, String colName, Object parameters) {
+		Object value = null;
+		if (parameters instanceof Map) {
+			if (logColMap.get(colName) != null)
+				value = ((Map) parameters).get(logColMap.get(colName));
+		}
+		return value != null ? String.valueOf(value) : "";
+	}
+
+	private  Invoker getInvoker(final String operationCode,final String ep_mall) {
+		try {
+			Invoker invoker = invokers.get(operationCode,
+					new CacheItemCreateCallback<Invoker>() {
+						public Invoker create() throws Exception {
+							return invokerBuilder.buildInvoker(operationCode,ep_mall);
+						}
+					});
+			return invoker;
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new CodedException("9999", "创建Service[" + operationCode
+					+ "]调用客户端失败", e);
+		}
+	}
+	public Object invokeCreateResXml(String operationCode, Object params,
+			String endpointAddress) {
+		new ParamsConfig().initParams("");
+		Invoker invoker = getInvoker(operationCode,null);
+
+		if (invoker == null) {
+			StringUtils.printInfo("operation [" + operationCode
+					+ "] is closed !");
+			return InfCloed.getInstance();
+		}
+		// 外部请求地也址
+		if (!StringUtils.isEmpty(endpointAddress)) {
+			invoker.endpoint = endpointAddress;
+		}
+		InvokeContext context;
+
+		if (invoker instanceof WsInvoker) {
+			context = new WsInvokeContext();
+		} else if (invoker instanceof StringObjectInvoker) {
+			context = new WsInvokeContext();
+		} else if (invoker instanceof AsmxWebInvoker) {
+			context = new AsmxWebInvokeContext();
+		} else {
+			context = new InvokeContext();
+		}
+
+		context.setParameters(params);
+		context.setOperationCode(operationCode);
+		Object retObj;
+
+		try {
+			if (ParamsConfig.isDebug()) {
+				retObj = invoker.invokeTestXml(context);
+			} else {
+				retObj = invoker.invokeTestXml(context);
+			}
+			logger.debug("req= "+ context.getRequestString());
+			logger.debug("rsp= "+ context.getResultString());
+			logger.debug("rsp= "+ context.getResponeString());
+
+		} catch (Exception e) {
+			context.setFailure(e.getMessage());
+			throw new CodedException("9999", "调用服务[" + operationCode + "]出错:"
+					+ e.getMessage(), e);
+		}
+//		} finally {
+//			try {
+//				logServiceCall(invoker.getLogLevel(), invoker.getLogColMap(),
+//						context);
+//			} catch (Exception e) {
+//				logger.info("记录调用日志出错[" + context.getOperationCode() + "]", e);
+//			}
+//
+//		}
+		return retObj;
+	}
+	public Object invokeCreateResMap(String operationCode,String xml,
+			String endpointAddress) {
+		new ParamsConfig().initParams("");
+		Invoker invoker = getInvoker(operationCode,null);
+
+		if (invoker == null) {
+			StringUtils.printInfo("operation [" + operationCode
+					+ "] is closed !");
+			return InfCloed.getInstance();
+		}
+		// 外部请求地也址
+		if (!StringUtils.isEmpty(endpointAddress)) {
+			invoker.endpoint = endpointAddress;
+		}
+		InvokeContext context;
+
+		if (invoker instanceof WsInvoker) {
+			context = new WsInvokeContext();
+		} else if (invoker instanceof StringObjectInvoker) {
+			context = new WsInvokeContext();
+		} else if (invoker instanceof AsmxWebInvoker) {
+			context = new AsmxWebInvokeContext();
+		} else {
+			context = new InvokeContext();
+		}
+
+		//context.setParameters(params);
+		context.setResponeString(xml);
+		context.setOperationCode(operationCode);
+		Object retObj;
+
+		try {
+			if (ParamsConfig.isDebug()) {
+				retObj = invoker.invokeTestToMap(context);
+			} else {
+				retObj = invoker.invokeTestToMap(context);
+			}
+			logger.debug("req= "+ context.getRequestString());
+			logger.debug("rsp= "+ context.getResultString());
+			logger.debug("rsp= "+ context.getResponeString());
+
+		} catch (Exception e) {
+			context.setFailure(e.getMessage());
+			throw new CodedException("9999", "调用服务[" + operationCode + "]出错:"
+					+ e.getMessage(), e);
+		}
+//		} finally {
+//			try {
+//				logServiceCall(invoker.getLogLevel(), invoker.getLogColMap(),
+//						context);
+//			} catch (Exception e) {
+//				logger.info("记录调用日志出错[" + context.getOperationCode() + "]", e);
+//			}
+//
+//		}
+		return retObj;
+	}
+	
+	//获取接口调用次数，没有配置，则只调用一次
+	private int getRepeatNum(String operationCode, String ep_mall){
+		int result = 1;
+		try{
+			Invoker invoker = this.getInvoker(operationCode,ep_mall);
+			if(null != invoker){
+				result = Integer.parseInt(StringUtil.isEmpty(invoker.deal_success_flag) ? "1" : invoker.deal_success_flag);
+			}
+		}catch(Exception e){
+			result = 1;
+			e.printStackTrace();
+		}
+		return result;
+	}
+	
+	//获取接口返回状态
+	private boolean getInfResp(Object resp, String operationCode, String ep_mall){
+		boolean result = false;
+		int repeatNum = getRepeatNum(operationCode,ep_mall);		//获取重复调用次数
+		if(repeatNum == 1)
+			return true;
+		Invoker invoker = this.getInvoker(operationCode,ep_mall);
+		if(Http.equals(invoker.ep_type)){						//森锐的接口
+			result = this.getSrInfCode(resp);
+		}else if(WmsInvoker.equals(invoker.ep_type)){				//WMS接口
+			result = this.getWMSInfCode(resp);
+		}else {												//其他接口直接返回成功
+			result = true;
+		}
+		return result;
+	}
+	
+	/**
+	 * 获取森锐返回结果
+	 * 
+	 * @return
+	 */
+	private boolean getSrInfCode(Object resp){
+		boolean result = false;
+		try{
+			String resp_code = "";
+			if(resp instanceof ReadICCIDSRResponse){			//获取ICCID
+				resp_code = ((ReadICCIDSRResponse) resp).getSr_response().getHead().getCode();
+			}else if(resp instanceof WriMachStaQueResponse||
+					resp instanceof QueWriMachStaInBatchRGResponse){
+				Method method = resp.getClass().getMethod("getSr_response");
+				Object sr_response = method.invoke(resp);
+				Method bodyMethod = sr_response.getClass().getMethod("getHead");
+				Object sr_head = bodyMethod.invoke(sr_response);
+				Method resultMethod = sr_head.getClass().getMethod("getCode");
+				resp_code = (String)resultMethod.invoke(sr_head);
+			}else {
+				Method method = resp.getClass().getMethod("getSr_response");
+				Object sr_response = method.invoke(resp);
+				Method bodyMethod = sr_response.getClass().getMethod("getBody");
+				Object sr_body = bodyMethod.invoke(sr_response);
+				Method resultMethod = sr_body.getClass().getMethod("getResult");
+				resp_code = (String)resultMethod.invoke(sr_body);
+			}
+			if(EcsOrderConsts.SR_INF_SUCC_CODE.equals(resp_code)){
+				result = true;
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return result;
+	}
+	
+	/**
+	 * 获取wms返回结果
+	 * NotifyOrderInfoWMSResp.errorCode : 同步信息到WMS
+	 * NotifyOrderAccountWMSResp.errorCode : 业务完成状态通知
+	 * NotifyWriteCardResultWMSResp.errorCode : 写卡结果通知
+	 * NotifyOrderStatusToWMSResp.errorCode : 状态通知
+	 * GetOrdByBoxIdFromWMSResp.errorCode : 获取订单号
+	 * @return
+	 */
+	private boolean getWMSInfCode(Object resp){
+		boolean result = false;
+		try {
+			Method method = resp.getClass().getMethod("getErrorCode");
+			String resp_code = (String)method.invoke(resp);
+			if(EcsOrderConsts.WMS_INF_RESP_CODE_0000.equals(resp_code)){
+				result = true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+	
+}

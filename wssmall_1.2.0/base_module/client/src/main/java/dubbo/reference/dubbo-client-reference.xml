@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://code.alibabatech.com/schema/dubbo
+        http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-autowire="byName" default-lazy-init="true">
+
+    <bean id="apiContextHolder" class="com.ztesoft.api.spring.ApiContextHolder" lazy-init="false"/>
+    
+    <!-- 依赖rop、解决福建问题 -->
+    <dubbo:reference id="ropVerification" interface="com.ztesoft.pm.service.dubbo.IRopVerification" check="false" />
+    <dubbo:reference id="pmApplyInfo" interface="com.ztesoft.pm.service.dubbo.IPmApplyInfo" check="false" />
+  
+    <dubbo:reference id="monitorService" interface="com.alibaba.dubbo.monitor.MonitorService" check="false" />
+    
+    <dubbo:consumer check="false" timeout="${dubbo.consumer.timeout}" retries="0"/>
+    
+	
+</beans>

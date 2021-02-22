@@ -1,0 +1,417 @@
+package com.ztesoft.api;
+
+import java.io.IOException;
+import java.sql.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import params.ZteBusiRequest;
+import params.ZteError;
+import params.ZteRequest;
+import params.ZteResponse;
+import utils.CoreThreadLocalHolder;
+
+import com.ztesoft.api.consts.ApiConsts;
+import com.ztesoft.api.internal.parser.fjson.ObjectJsonParser;
+import com.ztesoft.api.internal.utils.RequestParametersHolder;
+import com.ztesoft.api.internal.utils.WebUtils;
+import com.ztesoft.api.internal.utils.ZteHashMap;
+import com.ztesoft.api.internal.utils.ZteLogger;
+import com.ztesoft.api.internal.utils.ZteUtils;
+import com.ztesoft.api.mq.MqSend;
+
+import commons.CommonTools;
+import consts.ConstsCore;
+import context.WebContext;
+import context.WebContextFactory;
+
+/**
+ * 基于REST的TOP客户端。
+ * 
+ * @author wui
+ * @since 1.0, 2013-12-25
+ */
+public class DefaultZteClient implements ZteClient {
+	private static Logger logger = Logger.getLogger(DefaultZteClient.class);
+	private static final String APP_KEY = "appKey";
+	private static final String LOCALE = "locale";
+	private static final String FORMAT = "format";
+	private static final String METHOD = "method";
+	private static final String TIMESTAMP = "timestamp";
+	private static final String VERSION = "version";
+	private static final String SIGN = "sign";
+	private static final String SIGN_METHOD = "sign_method";
+	private static final String PARTNER_ID = "partner_id";
+	private static final String SESSION = "sessionId";
+
+	private String serverUrl = "http://localhost:8080/wssmall/servlet/commonInfServlet/";// "http://localhost:8080/rop/router";
+	private String appKey;
+	private String appSecret;
+	private String version;
+	private String format = Constants.FORMAT_F_JSON;
+	private String signMethod = Constants.SIGN_METHOD_ROP;
+
+	private int connectTimeout = 15000;// 3秒
+	private int readTimeout = 15000;// 15秒
+	private boolean needCheckRequest = true;
+	private boolean needEnableParser = true;
+    protected ZteClient client;
+
+	public DefaultZteClient(){
+		
+	}
+	
+	public DefaultZteClient(String serverUrl, String appKey, String appSecret,String version) {
+		this.appKey = appKey;
+		this.appSecret = appSecret;
+		this.serverUrl = serverUrl;
+		this.version =version;
+	}
+
+	public DefaultZteClient(String serverUrl, String appKey, String appSecret,String version,
+			String format) {
+		this(serverUrl, appKey, appSecret,version);
+		this.format = format;
+	}
+
+	public DefaultZteClient(String serverUrl, String appKey, String appSecret,String version,
+			String format, int connectTimeout, int readTimeout) {
+		this(serverUrl, appKey, appSecret,version, format);
+		this.connectTimeout = connectTimeout;
+		this.readTimeout = readTimeout;
+	}
+
+	public DefaultZteClient(String serverUrl, String appKey, String appSecret,String version,
+			String format, int connectTimeout, int readTimeout,
+			String signMethod) {
+		this(serverUrl, appKey, appSecret,version,format,connectTimeout, readTimeout);
+		this.signMethod = signMethod;
+	}
+
+	@Override
+	public <T extends ZteResponse> T execute(ZteRequest request,
+			Class<T> class1) throws ApiException {
+		return execute(request, class1, null);
+	}
+	
+	@Override
+	public <T extends ZteResponse> T execute(ZteBusiRequest request,
+			Class<T> class1) throws ApiException {
+		return execute(request, class1, null);
+	}
+	
+	public <T extends ZteResponse> T execute(ZteBusiRequest request,
+			Class<T> class1, String session) throws ApiException {
+		ZteParser<T> parser = null;
+		if (this.needEnableParser) {
+			if (Constants.FORMAT_F_JSON.equals(this.format)) {
+				parser = new ObjectJsonParser<T>(class1);
+			}
+		}
+		return _execute(request, parser, class1, session);
+	}
+	
+	@Override
+	public <T extends ZteResponse> T execute(ZteRequest request,
+			Class<T> class1, String session) throws ApiException {
+		ZteParser<T> parser = null;
+		if (this.needEnableParser) {
+			if (Constants.FORMAT_F_JSON.equals(this.format)) {
+				parser = new ObjectJsonParser<T>(class1);
+			}
+		}
+		return _execute(request, parser, class1, session);
+	}
+
+	private <T extends ZteResponse> T _execute(ZteBusiRequest request,
+			ZteParser<T> parser, Class<T> respClass, String session)
+			throws ApiException {
+		if (this.needCheckRequest) {
+			try {
+				request.check();// if check failed,will throw ApiRuleException.
+			} catch (ApiRuleException e) {
+				T localResponse = null;
+				try {
+					localResponse = respClass.newInstance();
+				} catch (InstantiationException e2) {
+					throw new ApiException(e2);
+				} catch (IllegalAccessException e3) {
+					throw new ApiException(e3);
+				}
+				localResponse.setError_code(e.getErrCode());
+				localResponse.setError_msg(e.getErrMsg());
+				return localResponse;
+			}
+		}
+		
+		T tRsp = null;
+		ZteError zteError =null;
+		
+		WebContext ctx = WebContextFactory.getInstance(WebContextFactory.DUBBO_WEB);
+		try{
+			ctx.initContext(request);
+			ctx.execContext(request);
+			tRsp = (T) CommonTools.getZteResponse();
+		}catch (RuntimeException e) {
+			//e.printStackTrace();
+			zteError=CommonTools.getZteError();
+		}finally {
+            ctx.destoryContext(request);
+            CoreThreadLocalHolder.getInstance().getZteCommonData().removeAppKey();
+        }
+		
+		if(zteError !=null){
+			T zteResp = null;
+			 try {
+				zteResp = respClass.newInstance();
+				if(tRsp !=null){
+					zteResp.setError_code(tRsp.getError_code());
+					zteResp.setError_msg(tRsp.getError_msg());
+				}else{
+					zteResp.setError_code(ConstsCore.ERROR_FAIL);
+					if(zteError !=null)
+						zteResp.setError_msg(zteError.getError_msg());
+					else
+						zteResp.setError_msg("===>调用接口失败:"+"==>method:"+zteResp.getClass());	
+				}
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			return zteResp;
+		}
+		return tRsp;
+	}
+	
+	private <T extends ZteResponse> T _execute(ZteRequest request,
+			ZteParser<T> parser, Class<T> respClass, String session)
+			throws ApiException {
+		if (this.needCheckRequest) {
+			try {
+				request.check();// if check failed,will throw ApiRuleException.
+			} catch (ApiRuleException e) {
+				T localResponse = null;
+				try {
+					localResponse = respClass.newInstance();
+				} catch (InstantiationException e2) {
+					throw new ApiException(e2);
+				} catch (IllegalAccessException e3) {
+					throw new ApiException(e3);
+				}
+				localResponse.setError_code(e.getErrCode());
+				localResponse.setError_msg(e.getErrMsg());
+				return localResponse;
+			}
+		}
+		
+		T tRsp = null;
+		ZteError zteError =null;
+		if(ApiConsts.ZTE_CLIENT_DUBBO.equals(request.getRemote_type())) //DUBBO本地调用
+		{
+			
+			WebContext ctx = WebContextFactory.getInstance(WebContextFactory.DUBBO_WEB);
+			try{
+				
+				
+				ctx.initContext(request);
+				long begin = System.currentTimeMillis();
+				ctx.execContext(request);
+				long end = System.currentTimeMillis();
+				if(request.getApiMethodName().equals("zte.orderService.orderStandard.push"))
+					logger.info("DUBBO调用时间:"+(end-begin));
+				tRsp = (T) CommonTools.getZteResponse();
+				
+				
+			}catch (RuntimeException e) {
+				//e.printStackTrace();
+				zteError=CommonTools.getZteError();
+			}finally {
+                ctx.destoryContext(request);
+                CoreThreadLocalHolder.getInstance().getZteCommonData().removeAppKey();
+            }
+		}else if(ApiConsts.ZTE_CLIENT_REMOTE.equals(request.getRemote_type())){//远程调用
+			Map<String, Object> rt = doPost(request, session);
+			if (rt == null)
+				zteError=CommonTools.getZteError();
+			if (this.needEnableParser) {
+				try {
+					tRsp = parser.parse((String) rt.get("rsp"));
+				} catch (RuntimeException e) {
+					ZteLogger.logBizError((String) rt.get("rsp"));
+					CommonTools.addFailError("==>ROPtRsp = parser.parse((String))出错");
+					zteError = CommonTools.getZteError();
+					throw e;
+				}
+			} 
+		}
+		//add by wui 0.0.0.8版本只需要打包sdkclient ,client不对外打包
+//		else if(ApiConsts.ZTE_CLIENT_MQ.equals(request.getRemote_type())){//MQ调用
+//			MqSend  mqSend=new MqSend();
+//			//logger.info(request);
+//			 boolean flag =mqSend.executeSend(request);
+//			 if(!flag){
+//				 zteError=new ZteError(ConstsCore.ERROR_FAIL, "MQ发送请求对象失败");
+//			 }else{//new一个返回对象
+//				 try {
+//						tRsp = respClass.newInstance();
+//						tRsp.setError_code(ConstsCore.ERROR_SUCC);
+//					 }catch (Exception e) {
+//						e.printStackTrace();
+//					}
+//			 }
+//			
+//		}
+		else if(ApiConsts.ZTE_CLIENT_MQ.equals(request.getRemote_type())){//MQ调用
+			MqSend  mqSend=new MqSend();
+//			utils.SystemUtils.printLog(request);
+			 boolean flag =mqSend.executeSend(request);
+			 if(!flag){
+				 zteError=new ZteError(ConstsCore.ERROR_FAIL, "MQ发送请求对象失败!");
+			 }else{//new一个返回对象
+				 try {
+						tRsp = respClass.newInstance();
+						tRsp.setError_code(ConstsCore.ERROR_SUCC);
+						tRsp.setError_msg("MQ发送请求对象成功!");
+					 }catch (Exception e) {
+						e.printStackTrace();
+					}
+			 }
+		}
+		
+		if(zteError !=null){
+			T zteResp = null;
+			 try {
+				zteResp = respClass.newInstance();
+				if(tRsp !=null){
+					zteResp.setError_code(tRsp.getError_code());
+					zteResp.setError_msg(tRsp.getError_msg());
+				}else{
+					zteResp.setError_code(ConstsCore.ERROR_FAIL);
+					if(zteError !=null)
+						zteResp.setError_msg(zteError.getError_msg());
+					else
+						zteResp.setError_msg("===>调用接口失败:"+"==>method:"+zteResp.getClass());	
+				}
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			return zteResp;
+		}
+		return tRsp;
+	}
+	public <T extends ZteResponse> Map<String, Object> doPost(
+			ZteRequest<T> request, String session) throws ApiException {
+		Map<String, Object> result = new HashMap<String, Object>();
+		RequestParametersHolder requestHolder = new RequestParametersHolder();
+		
+		String param_json = CommonTools.beanToJson(request);
+		ZteHashMap appParams = new ZteHashMap(request.getTextParams());
+		appParams.put("param_json", param_json);
+		
+		//add by wui 变量设置
+		request.setMethod(request.getApiMethodName());
+		
+		requestHolder.setApplicationParams(appParams);
+
+		// 添加协议级请求参数
+		ZteHashMap protocalMustParams = new ZteHashMap();
+		protocalMustParams.put(METHOD, request.getApiMethodName());
+		protocalMustParams.put(VERSION, version);
+		protocalMustParams.put(APP_KEY, appKey);
+		protocalMustParams.put(LOCALE, "zh_CN");
+		protocalMustParams.put(TIMESTAMP, new Date(System.currentTimeMillis()));
+		if(serverUrl.indexOf("?")>-1){
+			int index = serverUrl.indexOf("?");
+			String append = serverUrl.substring(index+1);
+			String [] array = append.split("&");
+			for(int i=0,size=array.length;i<size;i++){
+				String arg = array[i];
+				String key = arg.substring(0,arg.indexOf("="));
+				String value = arg.substring(arg.indexOf("=")+1);
+				protocalMustParams.put(key.toUpperCase(), value);
+			}
+			serverUrl = serverUrl.substring(0,index);
+		}
+		
+		// 因为沙箱目前只支持时间字符串，所以暂时用Date格式
+		requestHolder.setProtocalMustParams(protocalMustParams);
+
+		ZteHashMap protocalOptParams = new ZteHashMap();
+		protocalOptParams.put(FORMAT, format);
+		protocalOptParams.put(SIGN_METHOD, signMethod);
+		protocalOptParams.put(SESSION, session);
+		protocalOptParams.put(PARTNER_ID, Constants.SDK_VERSION);
+		requestHolder.setProtocalOptParams(protocalOptParams);
+
+		// 添加签名参数
+		// try {
+
+		if (Constants.SIGN_METHOD_ROP.equals(signMethod)) {
+			protocalMustParams.put(SIGN, ZteUtils.encryptSHA(appSecret, requestHolder));
+		}
+
+		StringBuffer urlSb = new StringBuffer(serverUrl);
+		try {
+			String sysMustQuery = WebUtils.buildQuery(requestHolder.getProtocalMustParams(), Constants.CHARSET_UTF8);
+			String sysOptQuery = WebUtils.buildQuery(requestHolder.getProtocalOptParams(), Constants.CHARSET_UTF8);
+
+			urlSb.append("?");
+			urlSb.append(sysMustQuery);
+			if (sysOptQuery != null & sysOptQuery.length() > 0) {
+				urlSb.append("&");
+				urlSb.append(sysOptQuery);
+			}
+		} catch (IOException e) {
+			throw new ApiException(e);
+		}
+
+		String rsp = null;
+		
+		
+			
+		try {
+			// 是否需要上传文件
+			if (request instanceof ZteUploadRequest) {
+				ZteUploadRequest<T> uRequest = (ZteUploadRequest<T>) request;
+				Map<String, FileItem> fileParams = ZteUtils.cleanupMap(uRequest.getFileParams());
+				rsp = WebUtils.doPost(urlSb.toString(), appParams, fileParams,Constants.CHARSET_UTF8, connectTimeout, readTimeout,new HashMap<String, String>());
+			} else {
+				rsp = WebUtils.doPost(urlSb.toString(), appParams,Constants.CHARSET_UTF8, connectTimeout, readTimeout,new HashMap<String, String>());
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			CommonTools.addFailError(e.getMessage());
+			throw new ApiException(e);
+		}
+			
+		result.put("rsp", rsp);
+		result.put("textParams", appParams);
+		result.put("protocalMustParams", protocalMustParams);
+		result.put("protocalOptParams", protocalOptParams);
+		result.put("url", urlSb.toString());
+		return result;
+	}
+
+	public void setNeedCheckRequest(boolean needCheckRequest) {
+		this.needCheckRequest = needCheckRequest;
+	}
+
+	public void setNeedEnableParser(boolean needEnableParser) {
+		this.needEnableParser = needEnableParser;
+	}
+
+    public String getAppKey() {
+        return appKey;
+    }
+
+    public String getAppSecret() {
+        return appSecret;
+    }
+
+	
+}

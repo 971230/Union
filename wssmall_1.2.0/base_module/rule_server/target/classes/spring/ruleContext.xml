@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+
+    
+	<bean id="ruleDBAccess" class="com.ztesoft.rule.core.bo.RuleDBAccess" />
+	
+	<bean id="factAnnInit" class="com.ztesoft.rule.core.util.FactAnnInit" scope="prototype"/>
+	
+	
+	<bean id="factFilterManager" class="com.ztesoft.rule.core.module.filter.FactFilterManager" scope="prototype"/>
+	
+	
+	
+	<!-- ext part --> 
+	<bean id="defPlanCtrl" class="com.ztesoft.rule.core.ext.DefPlanCtrl" scope="prototype"/>
+	
+	<!-- 单例！ -->
+	<bean id="defRuleResultProssor" class="com.ztesoft.rule.core.ext.DefRuleResultProssor"/>
+	
+	<bean id="defFactLoader" class="com.ztesoft.rule.core.ext.DefFactLoader" scope="prototype"/>
+	
+	<bean id="defFactFilterLoader" class="com.ztesoft.rule.core.ext.DefFactFilterLoader" scope="prototype"/>
+	
+	<bean id="defFactDataLoader" class="com.ztesoft.rule.core.ext.DefFactDataLoader" scope="prototype"/>
+	
+	<bean id="defFactDataConfigLoader" class="com.ztesoft.rule.core.ext.DefFactDataConfigLoader" scope="prototype"/>
+	
+	
+	<!-- runtime part --> 
+	<bean id="directCaller" class="com.ztesoft.rule.core.exe.runtime.DirectCaller" scope="prototype"/>
+	
+	<bean id="retryLoser" class="com.ztesoft.rule.core.exe.runtime.RetryLoser" scope="prototype"/>
+	
+	<bean id="timingRunner" class="com.ztesoft.rule.core.exe.runtime.TimingRunner" scope="prototype"/>
+	
+	
+	<!-- def part --> 
+	<bean id="defApplyPlan" class="com.ztesoft.rule.core.exe.def.DefApplyPlan" scope="prototype"/>
+	
+	
+	<bean id="defDroolsRuleContext" class="com.ztesoft.rule.core.exe.def.DefDroolsRuleContext" scope="prototype"/>
+	
+	
+	<bean id="defRuleResultHandler" class="com.ztesoft.rule.core.exe.def.DefRuleResultHandler" scope="prototype"/>
+	
+	<bean id="defDroolsRuleExecutor" class="com.ztesoft.rule.core.exe.def.DefDroolsRuleExecutor" scope="prototype"/>
+	
+	<bean id="defRuleConfigs" class="com.ztesoft.rule.core.exe.def.DefRuleConfigs" scope="prototype"/>
+	
+	<bean id="defRuleExecutorBuilder" class="com.ztesoft.rule.core.exe.def.DefRuleExecutorBuilder" scope="prototype"/>
+	
+	<bean id="defRuleFactDatas" class="com.ztesoft.rule.core.exe.def.DefRuleFactDatas" scope="prototype"/>
+	
+	<bean id="defRuleFacts" class="com.ztesoft.rule.core.exe.def.DefRuleFacts" scope="prototype"/>
+	
+	<bean id="defRulePartners" class="com.ztesoft.rule.core.exe.def.DefRulePartners" scope="prototype"/>
+	
+	
+	<!-- def threads --> 
+	<bean id="defPartnerExecutorService" class="com.ztesoft.rule.core.exe.thread.DefPartnerExecutorService" scope="prototype"/>
+	
+	
+	
+</beans>

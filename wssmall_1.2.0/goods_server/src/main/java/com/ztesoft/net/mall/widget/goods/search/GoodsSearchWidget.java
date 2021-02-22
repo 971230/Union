@@ -1,0 +1,406 @@
+
+package com.ztesoft.net.mall.widget.goods.search;
+
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.eop.sdk.widget.nav.Nav;
+import com.ztesoft.net.eop.sdk.context.EopContext;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.eop.sdk.widget.AbstractWidget;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Attribute;
+import com.ztesoft.net.mall.core.model.Cat;
+import com.ztesoft.net.mall.core.service.*;
+import com.ztesoft.net.mall.core.utils.UrlUtils;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.ztesoft.net.mall.core.utils.UrlUtils.getParamStringValue;
+
+/**
+ * 商品搜索挂件
+ * @author kingapex
+ *2010-4-26上午10:53:49
+ */
+public class GoodsSearchWidget extends AbstractWidget {
+	
+	private IGoodsSearchManager goodsSearchManager;
+	
+	private IGoodsCatManager goodsCatManager;
+	
+	private IFavoriteManager favoriteManager ;
+
+	private ITagManager tagManager;
+	
+	private String cat_id;
+	
+	private String tagids;	//lzf add
+
+	private String distype;
+
+	private String order;
+	
+	private String time_order;
+	
+	private String brandStr;
+
+	private String propStr; //商品自定义属性str
+	
+	private String attrStr; //商品属性str
+
+	private String keyword;
+
+	private String minPrice;
+
+	private String maxPrice;
+
+	int page=1;
+	private List<Attribute> propList; // 属性过滤器
+
+	private List brandList; // 品牌过滤器
+
+	private List catList; // 分类
+
+	private String agn; //商户工号
+	
+	
+	
+	@Override
+	protected void config(Map<String, String> params) {
+
+	}
+
+	/**
+	 * 
+	 * 
+	 * select *,(select name from es_goods_type b where b.type_id = a.type_id  LIMIT 1) type_name from es_goods a group by type_id;
+	 * 
+	 * 分类查询语句
+	 */
+	
+	public static String getToPage(){
+		HttpServletRequest request = ThreadContextHolder.getHttpRequest();
+		String to_page  = request.getParameter("to_page") == null ?"index":request.getParameter("to_page");
+		return to_page;
+	}
+	
+	public   void setToPageName(){
+		String to_page = getToPage();
+		String themePath =EopContext.getContext().getCurrentSite().getThemepath();
+		if(StringUtil.isMobile()){
+			if(to_page.equals("index")){ //手机版首页
+				setPageName("goodsIndexMobileWidget");
+			}else if(to_page.equals("goodscats")){ //按目录查询
+				setPageName("goodsByCatIdxMobileWidget");
+			}else if(to_page.equals("goodshots")){ //按热词
+				setPageName("goodsByHotIdxMobileWidget");
+			}else if(to_page.equals("goodssearch")){ //按普通搜素
+				setPageName("goodsBySearchIdxMobileWidget");
+			}else{
+				setPageName("GoodsByCatalogsWidget"); //首页目录add by wui
+			}
+		}else{
+			setPageName("GoodsSearchWidget");
+		}
+	
+	}
+	
+	
+	@Override
+	protected void display(Map<String, String> wparams) {
+		HttpServletRequest request = ThreadContextHolder.getHttpRequest();
+		
+		Nav nav = new Nav();
+		nav.setTitle("首页");
+		nav.setLink("index.html");
+		nav.setTips("首页");
+		this.putNav(nav);
+		
+		Nav nav1 = new Nav();
+		nav1.setTitle("商品列表");
+		nav1.setTips("商品列表");
+		this.putNav(nav1);
+		
+		String uri = request.getServletPath();
+		String p= UrlUtils.getParamStr(uri);
+		String contextInfo = System.getProperty(Consts.SERVLET_CONTEXT_INFO);
+		/*if(contextInfo!=null && contextInfo.indexOf("WebLogic")==-1){
+			try { //add by wui 中文编码转换
+				 p= new String(p.getBytes("iso8859-1"),"UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+		}*/
+		
+		
+		//add by wui
+		setToPageName();
+		
+		initParam(p);
+		
+//		if (keyword != null)
+//			keyword = StringUtil.toUTF8(keyword);
+		//distype = wparams.get("distype");
+		distype = distype == null || distype.equals("") ? distype = "list"
+				: distype;
+
+		String cat_path = null;
+	    String type_id= "0";
+	    
+	    //add by wui 首页默认把热词查询出来
+		String to_page = getToPage();
+		String themePath =EopContext.getContext().getCurrentSite().getThemepath();
+		if(StringUtil.isEmpty(cat_id))
+			cat_id="0";
+		String old_cat_id = cat_id;
+		
+//		if(StringUtil.isMobile()){
+//			//if(to_page.equals("index") || to_page.equals("goodssearch") || to_page.equals("goodshots") || to_page.equals("goodscats")){ //手机版首页默认把热词展示出来
+//				if(cat_id.equals("0"))
+//					cat_id ="42";
+//			//}
+//		}
+		// 如果按类别了
+		if (!cat_id.equals("0")) {
+			Cat cat=  goodsCatManager.getById(cat_id);
+			cat_path = cat.getCat_path();
+			type_id =cat.getType_id();
+			// 读取这个类型的属性信息，如果为递近式搜索的话要计算商品数量数量。
+			// 属性信息包括品牌及属性
+			List[] props = goodsSearchManager.getPropListByCat(type_id, cat_path,
+					brandStr, propStr,attrStr);
+			propList = props[0];
+			brandList = props[1];
+			
+		
+			int att_index=0;
+			for(Attribute attr: propList){
+				Map[] opations = attr.getOptionMap();
+				int j=0;
+				for(Map op:opations){
+					//首先构造一下除了属性以外的串
+					op.put("url",  att_index+"_"+j);
+					j++;
+				}
+				String value  = this.getProValue(att_index, propStr);
+				attr.setValue(value);
+				att_index++;
+			}
+			
+			String parent_id = this.goodsCatManager.getParentIdById(cat_id);
+			if(parent_id.equals("0"))
+				parent_id = cat_id;
+			List catList  = this.goodsCatManager.listChildren(parent_id);
+			catList=catList.size()==0|| catList.isEmpty()? catList=null:catList;
+			this.putData("catList", catList);
+			this.putData("propList", propList);
+			this.putData("brandList", brandList);
+			this.putData("cat", cat);
+		}
+		cat_id = old_cat_id; //add by wui 设置完成品牌，特征后重置环境
+		if(cat_id.equals("0"))
+			cat_path ="";
+		//////////////////////////重置回去//////////////////////////
+		
+		
+		//添加热词分类
+//		List<Cat> hotList= this.goodsCatManager.getHotList();
+//		this.putData("hotList", hotList);
+		//////////////////////添加热词分类结束//////////////////////
+		
+		Map<String,String> params = new HashMap<String,String>();
+		params.put("cat_path", cat_path);
+		if(StringUtil.isEmpty(order))
+			order="3";
+		params.put("order", order);
+		params.put("time_order", time_order);
+		params.put("brandStr", brandStr);
+		params.put("propStr", propStr);
+		params.put("keyword", keyword);
+		params.put("minPrice", minPrice);
+		params.put("maxPrice", maxPrice);
+		params.put("tagids", tagids);
+		params.put("attrStr", this.attrStr);
+		params.put("agn", agn);
+		
+		params.put("typeid", ""+type_id);
+		params.put("from_page", getToPage());
+		String pagesizes = wparams.get("pagesize");
+		Integer pageSize = pagesizes == null ? 20 : Integer.valueOf(pagesizes);
+		pageSize = 18;
+		
+		Page webpage = this.goodsSearchManager.search(page, pageSize, params);
+		
+		Member member  = UserServiceFactory.getUserService().getCurrentMember();
+	
+		if(member!=null){
+			List  l = favoriteManager.list();
+		/*		for (Iterator iterator = l.iterator(); iterator.hasNext();) {
+					
+					Favorite f = (Favorite)iterator;
+					
+					if(f.getFavorite_id()==null){
+						iterator.remove();
+					}*/
+			this.putData("favoriteList", 	l);
+		}
+		
+		//设置页面变量
+		this.putData("uri", uri);
+		this.putData("webpage", webpage);
+		this.putData("brandStr", brandStr);
+		
+		//add by wui
+		/**
+		 * order =3 price desc
+		 * order=4 price asc
+		 * 
+		 * order=6 buy_count asc
+		 * order=7 buy_count desc
+		 */
+//		String p_order =order;
+//		if("3".equals(order))
+//			p_order="4";
+//		else if("4".equals(order))
+//			p_order="3";
+//		else if("6".equals(order))
+//			p_order ="7";
+//		else if("7".equals(order))
+//			p_order="6";
+		String hot_name = request.getParameter("hot_name");
+		
+		this.putData("time_order", time_order);
+		this.putData("order", order);
+		this.putData("keyword",keyword);
+		hot_name = StringUtil.toUTF8(hot_name);
+		this.putData("hot_name", hot_name);
+		this.putData("distype", distype);
+		this.putData("pageno", page); //当分页页码
+		this.putData("pagecount", webpage.getTotalPageCount());
+		
+		this.putData("pagesize", pageSize); //分页大小
+		this.putData("total", webpage.getTotalCount());
+		this.putData("GoodsPic",new  GoodsPicDirectiveModel());
+		this.putData("pager", new SearchPagerDirectiveModel());
+		this.putData("searchUrl", new SearchUrlDirectiveModel());
+		this.putData("catid", cat_id);
+		this.putData("agn", agn);
+		this.putData("tags", tagManager.list());
+		
+		this.putData("minPrice", minPrice);
+		this.putData("maxPrice", maxPrice);
+		request.getSession().setAttribute("to_page", to_page);
+		request.setAttribute("keyword",keyword);
+//		this.setPageFolder("/widgets/wssquery");
+		
+	}
+	
+	/**
+	 * 获取属性值
+	 * 如有字串 0_1,2_测试	
+	 * index=1 则返回测试
+	 * @param index 属性位置（第几个属性）
+	 * @param proStr 地址栏上的属性字串
+	 * @return 这个属性的值
+	 */
+	private String getProValue(int index ,String proStr){
+		if(!StringUtil.isEmpty(proStr)){
+			String[] proar =  proStr.split(",");
+
+				for(int i=0;i<proar.length;i++){
+					String str  =proar[i];
+					String[] ar=str.split("_");
+					if(ar!=null && ar.length==2){
+						if(ar[0].equals(""+index)){
+							return ar[1];
+						}
+					}
+				}
+				
+		}
+		return  "";
+	}
+	
+
+ 
+	private void initParam(String p){
+		String cat_str = getParamStringValue(p, "cat");
+		
+		if(cat_str!=null){
+			this.cat_id =cat_str;
+			 
+		}
+		
+		
+		
+		String page_str = UrlUtils.getParamStringValue(p, "page");
+		if(page_str!=null && !page_str.equals("")){
+			page= Integer.valueOf(page_str);
+		}
+		
+		distype= getParamStringValue(p, "distype");
+		distype=distype==null?distype="index":distype;
+		order= getParamStringValue(p, "order");
+		
+		time_order= getParamStringValue(p, "time_order");
+		propStr= getParamStringValue(p, "prop");
+		attrStr= getParamStringValue(p, "attr");
+		HttpServletRequest request  =ThreadContextHolder.getHttpRequest(); 
+		String encode = request.getCharacterEncoding();
+		if(!"UTF-8".equals(encode)){ //如果非UTF-8编码则进行编码
+			propStr=StringUtil.toUTF8(propStr);
+		}
+		
+		keyword= getParamStringValue(p, "keyword"); 
+		brandStr=getParamStringValue(p, "brand");
+		minPrice=UrlUtils.getParamStringValue(p, "minprice");
+		maxPrice =UrlUtils.getParamStringValue(p, "maxprice");
+		tagids = getParamStringValue(p, "tag");
+		agn =  getParamStringValue(p, "agn");
+		 
+//		
+//		//生成无属性的字串
+//		this.searchUrl = UrlUtils.getExParamUrl(p, "prop");
+		
+	}
+	
+	
+	public IGoodsSearchManager getGoodsSearchManager() {
+		return goodsSearchManager;
+	}
+
+	public void setGoodsSearchManager(IGoodsSearchManager goodsSearchManager) {
+		this.goodsSearchManager = goodsSearchManager;
+	}
+
+	public IGoodsCatManager getGoodsCatManager() {
+		return goodsCatManager;
+	}
+
+	public void setGoodsCatManager(IGoodsCatManager goodsCatManager) {
+		this.goodsCatManager = goodsCatManager;
+	}
+
+	public IFavoriteManager getFavoriteManager() {
+		return favoriteManager;
+	}
+
+	public void setFavoriteManager(IFavoriteManager favoriteManager) {
+		this.favoriteManager = favoriteManager;
+	}
+
+	public ITagManager getTagManager() {
+		return tagManager;
+	}
+
+	public void setTagManager(ITagManager tagManager) {
+		this.tagManager = tagManager;
+	}
+	
+	
+}

@@ -1,0 +1,71 @@
+package com.ztesoft.net.model;
+
+import java.io.Serializable;
+
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+
+/**
+ *  闪电送物流公司处理结果
+ * @author xuefeng
+ */
+public class ShipDealResult implements Serializable {
+
+	private static final long serialVersionUID = -8557984762259010853L;
+	
+	public static ShipDealResult shipDealResult;
+	
+	public static ShipDealResult getInstance(){
+		if(shipDealResult ==null)
+			shipDealResult = new ShipDealResult();
+		return shipDealResult;
+	}
+
+	private String ship_comp;
+	
+	private String ship_deal_result;
+
+	public String getShip_comp() {
+		return ship_comp;
+	}
+
+	public void setShip_comp(String ship_comp) {
+		this.ship_comp = ship_comp;
+	}
+
+	public String getShip_deal_result(String order_id) {
+		OrderExtBusiRequest orderExtBusiReq = CommonDataFactory.getInstance()
+				.getOrderTree(order_id).getOrderExtBusiRequest();
+		ship_comp = orderExtBusiReq.getQuick_ship_company_code();
+		
+		if(EcsOrderConsts.SDS_COMP_SF.equals(ship_comp)){		//顺风
+			String sf_status = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.SF_STATUS);
+			if(EcsOrderConsts.SDS_STATUS_01.equals(sf_status)){
+				ship_deal_result = EcsOrderConsts.SHIP_DEAL_RESULT_FAIL;
+			}else if(EcsOrderConsts.SDS_STATUS_02.equals(sf_status)){
+				ship_deal_result = EcsOrderConsts.SHIP_DEAL_RESULT_SUCC;
+			}else {
+				ship_deal_result = EcsOrderConsts.SHIP_DEAL_RESULT_NULL;
+			}
+		}else if(EcsOrderConsts.SDS_COMP_ND.equals(ship_comp)){		//南都
+			String nd_status = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.ND_STATUS);
+			if(EcsOrderConsts.SDS_STATUS_01.equals(nd_status)){
+				ship_deal_result = EcsOrderConsts.SHIP_DEAL_RESULT_FAIL;
+			}else if(EcsOrderConsts.SDS_STATUS_02.equals(nd_status)){
+				ship_deal_result = EcsOrderConsts.SHIP_DEAL_RESULT_SUCC;
+			}else {
+				ship_deal_result = EcsOrderConsts.SHIP_DEAL_RESULT_NULL;
+			}
+		}else {
+			ship_deal_result = EcsOrderConsts.SHIP_DEAL_RESULT_NO_COMP;
+		}
+		return ship_deal_result;
+	}
+
+	public void setShip_deal_result(String ship_deal_result) {
+		this.ship_deal_result = ship_deal_result;
+	}
+}

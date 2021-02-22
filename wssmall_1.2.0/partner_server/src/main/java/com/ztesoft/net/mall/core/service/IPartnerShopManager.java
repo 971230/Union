@@ -1,0 +1,47 @@
+package com.ztesoft.net.mall.core.service;
+
+import java.util.List;
+import java.util.Map;
+
+import params.req.PartnerShopListReq;
+import params.req.PartnerWdEditReq;
+import params.resp.PartnerShopListResp;
+import params.resp.PartnerWdEditResp;
+
+import com.ztesoft.net.app.base.core.model.Partner;
+import com.ztesoft.net.app.base.core.model.PartnerShop;
+
+/**
+ * 分销商网店信息
+ * @author dengxiuping
+ *
+ */
+public interface IPartnerShopManager {
+	
+	public void bakNormalPartnershop(String partnerID,String setState,Integer setSequ);
+	public void bakOldPartnershop(PartnerShop oldshop,String setState,Integer setSequ);
+	public int add(PartnerShop obj);
+	public int getMaxPartnerShopSequ(String prid);
+	public int getMaxPartnerShopSequ(PartnerShop partnershop);
+	public PartnerShop getPartnerShop(String partner_id,String state);
+	public int saveRenewPartnerShop(Partner partner);
+	public PartnerShop getPartnerShopByParId(String id);
+	public PartnerShop getPartnerShop(String partner_id);
+	public int editPartnerShop(PartnerShop partner,String state,Integer sequ);
+	public PartnerShop getPartnerShop(String partner_id,String state,Integer sequ);
+	public int editPartnerShop(PartnerShop partner);
+	public int editUpdatePartnerShop(Map map,String parid);
+	public int countRowParByPid(String parid);
+	public int edit(PartnerShop partner);
+	public PartnerShop getPartnerShopSequM1AndState0(String partner_id);
+	public int delete(String id);
+	 public List getLastUpdateDate(String partnerId);
+	public int saveAuditPartnerShop(Partner partner);
+//	public List columnAuditList();
+//	public List shopHistroyList(List columnNamelist,String partnerid);
+//	public Page shopHistorylist(PartnerShop obj, String type,int page, int pageSize) ;
+//	public int saveAuditAlterPartnerShop(PartnerShop shop);
+	public PartnerWdEditResp editPartnerWd(PartnerWdEditReq req);
+	//获取分销商店铺列表
+	public PartnerShopListResp getPartnerShopPage(PartnerShopListReq req);
+}

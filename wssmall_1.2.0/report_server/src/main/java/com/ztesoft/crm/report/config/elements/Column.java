@@ -1,0 +1,108 @@
+/*     */ package com.ztesoft.crm.report.config.elements;
+/*     */ 
+/*     */ public class Column extends Element
+/*     */ {
+/*     */   private static final long serialVersionUID = -2733157684077839698L;
+/*     */   private String dataType;
+/*     */   private String dimension;
+/*     */   private String function;
+/*     */   private String name;
+/*     */   private String orderBy;
+/*     */   private String dimensionName;
+/*     */   private String text;
+/*     */   private String type;
+/*     */ 
+/*     */   public String getDimensionName()
+/*     */   {
+/*  24 */     return this.dimensionName;
+/*     */   }
+/*     */ 
+/*     */   public void setDimensionName(String staticCode) {
+/*  28 */     this.dimensionName = staticCode;
+/*     */   }
+/*     */ 
+/*     */   @Override
+public String toString()
+/*     */   {
+/*  38 */     return this.name;
+/*     */   }
+/*     */ 
+/*     */   public String getDataType()
+/*     */   {
+/*  55 */     return this.dataType;
+/*     */   }
+/*     */ 
+/*     */   public String getDimension()
+/*     */   {
+/*  62 */     return this.dimension;
+/*     */   }
+/*     */ 
+/*     */   public String getFunction()
+/*     */   {
+/*  69 */     return this.function;
+/*     */   }
+/*     */ 
+/*     */   public String getName()
+/*     */   {
+/*  76 */     return this.name;
+/*     */   }
+/*     */ 
+/*     */   public String getOrderBy()
+/*     */   {
+/*  83 */     return this.orderBy;
+/*     */   }
+/*     */ 
+/*     */   public String getText()
+/*     */   {
+/*  90 */     return this.text;
+/*     */   }
+/*     */ 
+/*     */   public String getType()
+/*     */   {
+/*  97 */     return this.type;
+/*     */   }
+/*     */ 
+/*     */   public boolean indicator() {
+/* 101 */     return "indicator".equalsIgnoreCase(this.type);
+/*     */   }
+/*     */ 
+/*     */   public void setDataType(String dataType)
+/*     */   {
+/* 109 */     this.dataType = dataType;
+/*     */   }
+/*     */ 
+/*     */   public void setDimension(String dimension)
+/*     */   {
+/* 117 */     this.dimension = dimension;
+/*     */   }
+/*     */ 
+/*     */   public void setFunction(String function)
+/*     */   {
+/* 125 */     this.function = function;
+/*     */   }
+/*     */ 
+/*     */   public void setName(String name)
+/*     */   {
+/* 134 */     this.name = ((name == null) ? "" : name.toLowerCase());
+/*     */   }
+/*     */ 
+/*     */   public void setOrderBy(String orderBy)
+/*     */   {
+/* 142 */     this.orderBy = orderBy;
+/*     */   }
+/*     */ 
+/*     */   public void setText(String text)
+/*     */   {
+/* 150 */     this.text = text;
+/*     */   }
+/*     */ 
+/*     */   public void setType(String type)
+/*     */   {
+/* 158 */     this.type = type;
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.config.elements.Column
+ * JD-Core Version:    0.5.3
+ */

@@ -1,0 +1,158 @@
+package com.ztesoft.net.service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import services.ServiceBase;
+import zte.net.ecsord.params.spec.req.GoodsTypeSpecGetReq;
+import zte.net.ecsord.params.spec.resp.GoodsTypeSpecGetResp;
+import zte.net.iservice.IGoodsTypeService;
+import zte.params.goodstype.req.GoodsTypeGetReq;
+import zte.params.goodstype.req.GoodsTypeListReq;
+import zte.params.goodstype.req.TypeListReq;
+import zte.params.goodstype.req.TypeRelGoodsListReq;
+import zte.params.goodstype.resp.GoodsTypeGetResp;
+import zte.params.goodstype.resp.GoodsTypeListResp;
+import zte.params.goodstype.resp.TypeListResp;
+import zte.params.goodstype.resp.TypeRelGoodsListResp;
+
+import com.ztesoft.net.cache.common.GoodsNetCacheRead;
+import com.ztesoft.net.mall.core.model.GoodsType;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.net.mall.core.service.IGoodsTypeManager;
+
+public class GoodsTypeService extends ServiceBase implements IGoodsTypeService {
+
+	private IGoodsManager goodsManager;
+	private IGoodsTypeManager goodsTypeManager;
+	
+	public IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+
+	public void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+
+	public IGoodsTypeManager getGoodsTypeManager() {
+		return goodsTypeManager;
+	}
+
+	public void setGoodsTypeManager(IGoodsTypeManager goodsTypeManager) {
+		this.goodsTypeManager = goodsTypeManager;
+	}
+
+	/**
+	 * @title 查询类型关联商品
+	 * @param listReq
+	 */
+	@Override
+	public TypeRelGoodsListResp listGoodsByTypeId(TypeRelGoodsListReq listReq) {
+		
+		String type_id = listReq.getType_id();
+		String[] types_id = new String[]{type_id};
+		List goods = goodsManager.ListGoodsByTypesId(types_id);
+		
+		TypeRelGoodsListResp resp = new TypeRelGoodsListResp();
+		resp.setGoodsList(goods);
+		if(goods!=null && goods.size()>0){
+			resp.setResult(true);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+		}
+		else{
+			resp.setResult(false);
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+		}
+		addReturn(listReq,resp);
+		return resp;
+	}
+
+	/**
+	 * @title 查询商品类型
+	 * @param req
+	 */
+	@Override
+	public GoodsTypeGetResp getGoodsType(GoodsTypeGetReq req) {
+		GoodsTypeGetResp resp = new GoodsTypeGetResp();
+		String type_id = req.getType_id();
+		GoodsNetCacheRead reader = new GoodsNetCacheRead();
+		GoodsType goodsType = reader.getCachesGoodsType(type_id);
+		resp.setGoodsType(goodsType);
+		if(goodsType.getType_id()!=null){
+			resp.setResult(true);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+		}
+		else{
+			resp.setResult(false);
+			resp.setError_code("1-");
+			resp.setError_msg("失败：返回为空");
+		}
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public TypeListResp listTypes(TypeListReq req) {
+		String type_id = req.getType_id();
+		List types = goodsTypeManager.listAll();
+		List<GoodsType> typeList = new ArrayList<GoodsType>();
+		if(types!=null){
+			for(int i=0;i<types.size();i++){
+				GoodsType type = (GoodsType) types.get(i);
+				if("-1".equals(type_id)){
+					typeList.add(type);
+				}
+				else{
+					if(type.getType_id().equals(type_id)){
+						typeList.add(type);
+						break;
+					}
+				}
+			}
+		}
+		
+		TypeListResp resp = new TypeListResp();
+		if(typeList.isEmpty()){
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+			resp.setResult(false);
+		}
+		else{
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+			resp.setResult(true);
+			resp.setTypes(typeList);
+		}
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public GoodsTypeSpecGetResp getGoodsType(GoodsTypeSpecGetReq req) {
+		String type = req.getType();
+		String type_id = req.getType_id();
+		GoodsType goodsType = goodsTypeManager.getGoodsType(type_id, type);
+		
+		GoodsTypeSpecGetResp resp = new GoodsTypeSpecGetResp();
+		resp.setGoodsType(goodsType);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public GoodsTypeListResp getTypeList(GoodsTypeListReq req) {
+		String type = req.getType();
+		List<GoodsType> types = goodsTypeManager.listAllCacheType(type);
+		GoodsTypeListResp resp = new GoodsTypeListResp();
+		resp.setTypeList(types);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+}

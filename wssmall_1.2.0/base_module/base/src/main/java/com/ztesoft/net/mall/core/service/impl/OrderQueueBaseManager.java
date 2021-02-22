@@ -1,0 +1,736 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.beanutils.ConstructorUtils;
+import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import params.ZteRequest;
+import params.ZteResponse;
+import params.orderqueue.req.AsynExecuteMsgWriteMqReq;
+import params.orderqueue.resp.OrderCollectionResp;
+import params.req.EsearchAddReq;
+import params.req.OrderExpMarkProcessedReq;
+import params.resp.EsearchAddResp;
+import params.resp.OrderExpMarkProcessedResp;
+import services.DefaultServiceContext;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.iservice.IOrderQueueBaseManager;
+import zte.net.ord.params.busi.req.InfHeadBusiRequest;
+import zte.net.ord.params.busi.req.InfHeadHisBusiRequest;
+import zte.net.ord.params.busi.req.OrderQueueBusiRequest;
+import zte.net.ord.params.busi.req.OrderQueueFailBusiRequest;
+import zte.net.ord.params.busi.req.OrderQueueHisBusiRequest;
+import zte.params.orderctn.req.FailAndExpQueueHandleReq;
+import zte.params.orderctn.resp.FailAndExpQueueHandleResp;
+
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.eop.sdk.context.MqEnvGroupConfigSetting;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.HttpClientUtils;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.consts.OrderQueueConsts;
+import com.ztesoft.net.mall.core.utils.CacheUtil;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.IJSONUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.ESearchData;
+import com.ztesoft.net.search.conf.EsearchValues;
+import com.ztesoft.rop.common.ServiceMethodHandler;
+import commons.CommonTools;
+
+import consts.ConstsCore;
+
+public class OrderQueueBaseManager extends BaseSupport implements IOrderQueueBaseManager {
+	
+	private static Logger logger = Logger.getLogger(OrderQueueBaseManager.class);
+	
+	public final int NAMESPACE = EcsOrderConsts.ORDER_QUEUE_NAMESPACE;
+	public final int WRITE_EXP_NUM = 3;
+	static INetCache cache;
+	static{
+		cache = com.ztesoft.net.cache.common.CacheFactory.getCacheByType(""); //add by wui订单调用单独的订单缓存机器，通过业务分开，和业务静态数据分开
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED) 
+	public void saveOrderQueueToFail(OrderQueueBusiRequest orderQueue) throws Exception {
+//		OrderQueueBusiRequest orderQueueBusi = this.getOrderQueue(order_id, co_id);
+		if (orderQueue != null) {
+			//插入失败表
+			OrderQueueFailBusiRequest queueFail = new OrderQueueFailBusiRequest();
+			BeanUtils.copyProperties(orderQueue, queueFail);
+			queueFail.setDeal_num(queueFail.getDeal_num()+1);
+			
+			queueFail.setDeal_code(OrderQueueConsts.DEAL_FAIL);
+			queueFail.setStatus(OrderQueueConsts.CO_QUEUE_STATUS_XYSB);
+			queueFail.setUpdate_date(com.ztesoft.net.mall.core.consts.Consts.SYSDATE);
+			try{
+				this.saveOrderQueuefail(queueFail);
+				//删除现用表
+				this.deleteOrderQueueBusiRequest(orderQueue);
+			} catch(Exception e) {
+				CommonTools.addError(ConstsCore.ERROR_FAIL, "队列信息写失败记录失败！");
+			}
+			
+		}
+	
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED) 
+	public void saveOrderQueueToHis(OrderQueueBusiRequest orderQueue) throws Exception {
+//		OrderQueueBusiRequest orderQueueBusi = this.getOrderQueue(order_id, co_id);
+		if (orderQueue != null) {
+			String order_id = orderQueue.getOrder_id();
+			String co_id = orderQueue.getCo_id();
+			// 2、插入历史表
+			OrderQueueHisBusiRequest queueHis = new OrderQueueHisBusiRequest();
+			BeanUtils.copyProperties(orderQueue, queueHis);
+			// queueHis.setd
+			if(OrderQueueConsts.CO_QUEUE_STATUS_WFS.equals(queueHis.getStatus())){
+				queueHis.setStatus(OrderQueueConsts.CO_QUEUE_STATUS_XYCG);
+			}
+			queueHis.setUpdate_date(com.ztesoft.net.mall.core.consts.Consts.SYSDATE);
+			
+			if (StringUtil.isEmpty(queueHis.getDeal_code())) {
+				queueHis.setDeal_code(OrderQueueConsts.DEAL_SUCCEED);
+			}
+			if (StringUtil.isEmpty(queueHis.getDeal_desc())) {
+				queueHis.setDeal_desc("标准化成功！");
+			}
+			try{
+				this.saveOrderQueueHis(queueHis);
+				
+				// 3、删除现用表
+				this.deleteOrderQueueBusiRequest(orderQueue);
+				
+				//归档头部 --定时任务 
+				if(orderQueue!=null&&!OrderQueueConsts.SERVICE_ACTION_CODE_ADD.equals(orderQueue.getAction_code())){//非订单创建才归档头部
+					InfHeadBusiRequest infHeadBusiRequest = this.getInfHeadBusiRequest(order_id, co_id);
+					if (infHeadBusiRequest != null) {
+						// 插入历史表
+						InfHeadHisBusiRequest infHis = new InfHeadHisBusiRequest();
+						BeanUtils.copyProperties(infHeadBusiRequest, infHis);
+						this.saveOrderInfHeadHis(infHis);
+						// 删除现用表
+						this.deleteInfHeadBusiRequest(infHeadBusiRequest);
+					}
+				}
+			} catch(Exception e) {
+				CommonTools.addError(ConstsCore.ERROR_FAIL, "队列信息写队列历史记录失败！");
+			}
+			
+		}
+	}
+
+	
+	@Override
+	public InfHeadBusiRequest getInfHeadBusiRequest(String order_id, String co_id) {
+		InfHeadBusiRequest req = (InfHeadBusiRequest) this.getOrderQueueCache(OrderQueueConsts.INF_HEAD_CACHE_KEY, co_id);
+		if (null == req || StringUtils.isEmpty(req.getCo_id())) {
+			String sql = "select * from es_inf_head t where t.co_id = ? and source_from = '" + ManagerUtils.getSourceFrom() + "' ";
+			if (!StringUtil.isEmpty(order_id)) {
+				sql += " and order_id='" + order_id + "' ";
+			}
+			List list = this.baseDaoSupport.queryForList(sql, InfHeadBusiRequest.class, co_id);
+			if (null != list && list.size() > 0) {
+				req = (InfHeadBusiRequest) list.get(0);
+			}
+			
+		}
+		return req;
+	}
+	
+	@Override
+	public InfHeadHisBusiRequest getInfHeadHisBusiRequest(String order_id,
+			String co_id) {
+		InfHeadHisBusiRequest req = (InfHeadHisBusiRequest) this.getOrderQueueCache(OrderQueueConsts.INF_HEAD_HIS_CACHE_KEY, co_id);
+		if (null == req || StringUtils.isEmpty(req.getCo_id())) {
+			String sql = "select * from es_inf_head_his t where t.co_id = ? and source_from = '" + ManagerUtils.getSourceFrom() + "' ";
+			if (!StringUtil.isEmpty(order_id)) {
+				sql += " and order_id='" + order_id + "' ";
+			}
+			List list = this.baseDaoSupport.queryForList(sql, InfHeadHisBusiRequest.class, co_id);
+			if (null != list && list.size() > 0) {
+				req = (InfHeadHisBusiRequest) list.get(0);
+			}
+			
+		}
+		return req;
+	}
+	
+	@Override
+	public OrderQueueBusiRequest saveOrderQueue(OrderQueueBusiRequest orderQueue) throws Exception {
+		this.baseDaoSupport.insert("es_order_queue", orderQueue);
+		
+		cache.set(NAMESPACE, OrderQueueConsts.ORDER_QUEUE_CACHE_KEY+orderQueue.getCo_id(), orderQueue, OrderQueueConsts.CACHE_KEEP_TIME);
+		return orderQueue;
+	}
+
+	@Override
+	public OrderQueueFailBusiRequest saveOrderQueuefail(
+			OrderQueueFailBusiRequest orderQueueFail) throws Exception {
+		this.baseDaoSupport.insert("es_order_queue_fail", orderQueueFail);
+		cache.set(NAMESPACE, OrderQueueConsts.ORDER_QUEUE_FAIL_CACHE_KEY+orderQueueFail.getCo_id(), orderQueueFail, OrderQueueConsts.CACHE_KEEP_TIME);
+		return orderQueueFail;
+	}
+
+	@Override
+	public OrderQueueHisBusiRequest saveOrderQueueHis(
+			OrderQueueHisBusiRequest orderQueueHis) throws Exception {
+		this.baseDaoSupport.insert("es_order_queue_his", orderQueueHis);
+		cache.set(NAMESPACE, OrderQueueConsts.ORDER_QUEUE_HIS_CACHE_KEY+orderQueueHis.getCo_id(), orderQueueHis, OrderQueueConsts.CACHE_KEEP_TIME);
+		return orderQueueHis;
+	}
+
+	@Override
+	public InfHeadHisBusiRequest saveOrderInfHeadHis(
+			InfHeadHisBusiRequest infHis) {
+		this.baseDaoSupport.insert("es_inf_head_his", infHis);
+		return infHis;
+	}
+
+	@Override
+	public void deleteInfHeadBusiRequest(InfHeadBusiRequest req) {
+		String inf_head_id = req.getInf_head_id();
+		if (StringUtil.isEmpty(inf_head_id)) { // 主键为空，不处理
+			return;
+		}
+		String sql = "delete es_inf_head t where t.inf_head_id = ?";
+		this.baseDaoSupport.execute(sql, inf_head_id);
+	}
+
+	@Override
+	public void deleteOrderQueueBusiRequest(OrderQueueBusiRequest req) {
+		String co_id = req.getCo_id();
+		if (StringUtil.isEmpty(co_id)) { // 主键为空，不处理
+			return;
+		}
+		String sql = "delete es_order_queue t where t.co_id = ?";
+		this.baseDaoSupport.execute(sql, co_id);
+		
+	}
+	
+	@Override
+	public void deleteOrderQueueFailBusiRequest(OrderQueueFailBusiRequest req) {
+		String co_id = req.getCo_id();
+		if (StringUtil.isEmpty(co_id)) { // 主键为空，不处理
+			return;
+		}
+		String sql = "delete es_order_queue_fail t where t.co_id = ?";
+		this.baseDaoSupport.execute(sql, co_id);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<OrderQueueFailBusiRequest> listOrderFailQueue(int max_num, String handle_sys,String queue_type){
+		// 读取消息队列失败表的数据，24小时内，报文类型不是订单查询，处理次数小于4次
+		String sql = "select * from ES_ORDER_QUEUE_FAIL a where a.created_date>sysdate-1  and  a.queue_type = '" + queue_type + "' and DEAL_NUM<4  and HANDLE_SYS='" + handle_sys + "'";
+		logger.info("[OrderQueueBaseManager] 获取失败队列sql: "+sql);
+		Page page = this.baseDaoSupport.queryForPage(sql, 1, max_num, OrderQueueFailBusiRequest.class);
+		return page.getResult();
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED) 
+	public void orderQueueFailMoveToHis(String order_id, String co_id) {
+
+		// 1、查询
+		OrderQueueFailBusiRequest orderQueueFail = this.getOrderQueueFail(order_id, co_id) ;
+		if (orderQueueFail != null) {
+			// 2、插入历史表
+			OrderQueueHisBusiRequest queueHis = new OrderQueueHisBusiRequest();
+			BeanUtils.copyProperties(orderQueueFail, queueHis);
+			queueHis.setDeal_code(OrderQueueConsts.DEAL_SUCCEED);
+			queueHis.setDeal_desc("标准化成功！");
+			
+			queueHis.setUpdate_date(com.ztesoft.net.mall.core.consts.Consts.SYSDATE);
+			try {
+				this.saveOrderQueueHis(queueHis);
+				// 3、删除失败表
+				this.deleteOrderQueueFailBusiRequest(orderQueueFail);
+				//归档头部 ，头部没有失败表，从在用表归档
+				InfHeadBusiRequest infHeadBusiRequest = this.getInfHeadBusiRequest(order_id, co_id);
+				if (infHeadBusiRequest != null) {
+					// 插入历史表
+					InfHeadHisBusiRequest infHis = new InfHeadHisBusiRequest();
+					BeanUtils.copyProperties(infHeadBusiRequest, infHis);
+					this.saveOrderInfHeadHis(infHis);
+					// 删除现用表
+					this.deleteInfHeadBusiRequest(infHeadBusiRequest);
+				}
+			} catch (Exception e) {
+				CommonTools.addError(ConstsCore.ERROR_FAIL, "失败队列移动到历史队列错误！");
+			}
+		}
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED) 
+	public void orderQueueFailMoveToQueue(String order_id, String co_id) throws Exception {
+		try {
+			//1、查询失败表
+			OrderQueueFailBusiRequest orderQueueFail= this.getOrderQueueFail(order_id, co_id);
+			//2、插入在用表
+			OrderQueueBusiRequest  orderQueue=new OrderQueueBusiRequest();
+			BeanUtils.copyProperties(orderQueueFail, orderQueue);
+			orderQueue.setUpdate_date(com.ztesoft.net.mall.core.consts.Consts.SYSDATE);
+			this.saveOrderQueue(orderQueue);
+			//3、删除失败表
+			this.deleteOrderQueueFailBusiRequest(orderQueueFail);
+		} catch (Exception e) {
+			CommonTools.addError(ConstsCore.ERROR_FAIL, "失败队列移动到队列表错误！");
+		}
+	
+	}
+	
+	/**
+	 * 
+	 * @Description: 获取队列表报文持久化类型
+	 * @return
+	 * @author wanpeng
+	 * @date 2015年12月7日 15:45:00
+	 */
+	private String getReqMsgPersistentType() {
+		CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		String reqMsgPersistentType = cacheUtil.getConfigInfo(Consts.REQ_MSG_PERSISTENT_TYPE);
+		if (StringUtil.isEmpty(reqMsgPersistentType)) {
+			reqMsgPersistentType = Consts.REQ_MSG_PERSISTENT_TYPE_DB;
+		}
+		return reqMsgPersistentType;
+	}
+	
+	/**
+	 * 读取文件系统的报文信息
+	 * @param co_id
+	 * @param content
+	 * @return
+	 */
+	public String getContentByCo_id(String co_id,String content){
+	    if(StringUtil.isEmpty(content)){
+	    	 String reqMsgPersistentType = getReqMsgPersistentType();
+	 	    if (Consts.REQ_MSG_PERSISTENT_TYPE_ES.equals(reqMsgPersistentType)) {
+	 	    	ESearchData esData = new ESearchData();
+	 			esData.setLog_id(co_id);
+	 			List<ESearchData> eslist = new ArrayList<ESearchData>();
+	 			if(eslist!=null&&eslist.size()>0){
+	 				content  = eslist.get(0).getIn_param();
+	 			}
+	 	    }
+	    }
+		return content;
+	}
+
+	@Override
+	public OrderQueueFailBusiRequest getOrderQueueFail(String order_id, String co_id) {
+		OrderQueueFailBusiRequest orderQueueFail = null;//(OrderQueueFailBusiRequest) this.getOrderQueueCache(OrderQueueConsts.ORDER_QUEUE_FAIL_CACHE_KEY, co_id);
+		if (null == orderQueueFail || StringUtils.isEmpty(orderQueueFail.getCo_id())) {
+			String sql = "select * from es_order_queue_fail t where t.co_id = ? and source_from = '" + ManagerUtils.getSourceFrom() + "' ";
+			if (!StringUtil.isEmpty(order_id)) {
+				sql += " and order_id='" + order_id + "' ";
+			}
+			List list = this.baseDaoSupport.queryForList(sql, OrderQueueFailBusiRequest.class, co_id);
+			if (null != list && list.size() > 0) {
+				orderQueueFail = (OrderQueueFailBusiRequest) list.get(0);
+			}
+			
+		}
+		return orderQueueFail;
+	}
+
+	@Override
+	public OrderQueueBusiRequest getOrderQueue(String order_id, String co_id) {
+		OrderQueueBusiRequest orderQueue  = (OrderQueueBusiRequest) this.getOrderQueueCache(OrderQueueConsts.ORDER_QUEUE_CACHE_KEY, co_id);
+		if (orderQueue == null || StringUtils.isEmpty(orderQueue.getCo_id())) {
+			String sql = "select * from es_order_queue t where t.co_id = ? and source_from = '" + ManagerUtils.getSourceFrom() + "' ";
+			if (!StringUtil.isEmpty(order_id)) {
+				sql += " and order_id='" + order_id + "' ";
+			}
+			List list = this.baseDaoSupport.queryForList(sql, OrderQueueBusiRequest.class, co_id);
+			
+			if (null != list && list.size() > 0) {
+				orderQueue = (OrderQueueBusiRequest) list.get(0);
+			}
+		} 
+		
+		return orderQueue;
+	}
+
+	@Override
+	public OrderQueueHisBusiRequest getOrderQueueHis(String order_id,
+			String co_id) {
+		OrderQueueHisBusiRequest orderQueueHis  = (OrderQueueHisBusiRequest) this.getOrderQueueCache(OrderQueueConsts.ORDER_QUEUE_HIS_CACHE_KEY, co_id);
+		if (orderQueueHis == null || StringUtils.isEmpty(orderQueueHis.getCo_id())) {
+			String sql = "select * from es_order_queue_his t where t.co_id = ? and source_from = '" + ManagerUtils.getSourceFrom() + "' ";
+			if (!StringUtil.isEmpty(order_id)) {
+				sql += " and order_id='" + order_id + "' ";
+			}
+			List list = this.baseDaoSupport.queryForList(sql, OrderQueueHisBusiRequest.class, co_id);
+			if (null != list && list.size() > 0) {
+				orderQueueHis = (OrderQueueHisBusiRequest) list.get(0);
+			}
+			
+		}
+		
+		return orderQueueHis;
+	}
+
+	@Override
+	public OrderQueueBusiRequest getOrderQueueInfo(String order_id, String co_id) {
+		OrderQueueBusiRequest orderQueueResult = new OrderQueueBusiRequest();
+		
+		OrderQueueFailBusiRequest orderQueueFail = this.getOrderQueueFail(order_id, co_id);
+		if (null != orderQueueFail) {
+			BeanUtils.copyProperties(orderQueueFail, orderQueueResult);
+			return orderQueueResult;
+		}
+		
+		OrderQueueBusiRequest orderQueue = this.getOrderQueue(order_id, co_id);
+		if (null != orderQueue) {
+			BeanUtils.copyProperties(orderQueue, orderQueueResult);
+			return orderQueueResult;
+		}
+
+		OrderQueueHisBusiRequest orderQueueHis = this.getOrderQueueHis(order_id, co_id);
+		if (null != orderQueueHis) {
+			BeanUtils.copyProperties(orderQueueHis, orderQueueResult);
+			return orderQueueResult;
+		}
+		return null;
+	}
+	
+	/**
+	 * 获取缓存对象
+	 * @param key
+	 * @param co_id
+	 * @return
+	 */
+	private Object getOrderQueueCache(String key, String co_id) {
+		String keyValue = key + co_id;
+		Object object = cache.get(NAMESPACE, keyValue);
+		return object;
+	}
+
+	@Override
+	public InfHeadBusiRequest getInfHeadInfo(String order_id, String co_id) {
+		InfHeadBusiRequest infHead = new InfHeadBusiRequest();
+		InfHeadHisBusiRequest infHeadHis = this.getInfHeadHisBusiRequest(order_id, co_id);
+		if (null != infHeadHis) {
+			BeanUtils.copyProperties(infHeadHis, infHead);
+		} else {
+			infHead = this.getInfHeadBusiRequest(order_id, co_id);
+		}
+		return infHead;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	@Override
+	public void updateOrderQueueFail(Map fields, Map where) {
+		this.baseDaoSupport.update("ES_ORDER_QUEUE_FAIL", fields, where);
+	}
+	
+	/**
+	 * 
+	 * @Description: 获取当前主机环境
+	 * @return   
+	 * @author zhouqiangang
+	 * @date 2015年12月15日 下午3:10:19
+	 */
+	@SuppressWarnings({ "unchecked", "unused" })
+	private String getHandleSys() {
+		Map<String,String> envMap =  com.ztesoft.common.util.BeanUtils.getCurrHostEnv();
+		if(null != envMap && envMap.containsKey("env_code")){
+			return envMap.get("env_code");
+		}else{
+//			CommonTools.addError(ConstsCore.ERROR_FAIL, "主机环境未配置！");
+			return null;
+		}
+	}
+	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public FailAndExpQueueHandleResp failAndExpQueueHandle(FailAndExpQueueHandleReq req)   {
+		FailAndExpQueueHandleResp resp = new FailAndExpQueueHandleResp();
+		String co_id = req.getCo_id();
+		boolean isException = req.isIs_exception();
+		OrderQueueFailBusiRequest orderQueueFail = this.getOrderQueueFail(null, co_id);
+		logger.info("[OrderQueueBaseManager] 队列标识 ["+ co_id+"], 是否重新标准化["+ isException +"], 获取失败队列信息:"+  IJSONUtil.beanToJson(orderQueueFail) );
+		if (null != orderQueueFail) {
+			String order_id = orderQueueFail.getOrder_id();
+			String out_order_id = orderQueueFail.getObject_id();
+			String service_code = orderQueueFail.getService_code();
+			// 第一步 取开关设置
+			CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+			String cf_value = cacheUtil.getConfigInfo(OrderQueueConsts.ORDER_STD_OLD_SYS_CF_ID);
+			logger.info("[OrderQueueBaseManager] 失败队列信息存在,继续执行标准化! 执行类型["+cf_value+"]");
+			if (OrderQueueConsts.ORDER_STD_OLD_SYS_YES.equals(cf_value)) {
+				String inReq = orderQueueFail.getContents();
+				String requestUrl = "";
+				// 发POST请求按旧系统标准化订单
+				try { 
+					if (OrderQueueConsts.SERVICE_CODE_NEWMALLORDERSTANDARD.equals(service_code)) {// 新商城
+						requestUrl = cacheUtil.getConfigInfo(OrderQueueConsts.SERVER_IP_ADDR_NEWMALLORDER);
+						logger.info("[OrderQueueBaseManager] post到外系统执行标准化! post地址["+requestUrl+"]");
+						if (StringUtil.isEmpty(requestUrl)) {
+							CommonTools.addError(ConstsCore.ERROR_FAIL, "新商城订单标准化地址未配置！");
+						} else {
+							HttpClientUtils.getResult(requestUrl, inReq, "utf-8");
+						}
+						
+					} else if (OrderQueueConsts.SERVICE_CODE_CENTERMALLORDERSTANDARD.equals(service_code)) {// 总商
+						requestUrl = cacheUtil.getConfigInfo(OrderQueueConsts.SERVER_IP_ADDR_CENTERMALLORDER);
+						logger.info("[OrderQueueBaseManager] post到外系统执行标准化! post地址["+requestUrl+"]");
+						if (StringUtil.isEmpty(requestUrl)) {
+							CommonTools.addError(ConstsCore.ERROR_FAIL, "总商订单标准化地址未配置！");
+						} else {
+							HttpClientUtils.getResult(requestUrl, inReq, "utf-8");
+						}
+					} else {
+						CommonTools.addError(ConstsCore.ERROR_FAIL, "[服务类型:" + service_code + "]未知！");
+					}
+				
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else {
+				if(!OrderQueueConsts.SERVICE_ACTION_CODE_ADD.equalsIgnoreCase(orderQueueFail.getAction_code())){//非订单创建，直接归档到历史表
+					try {
+						this.orderQueueFailMoveToHis(order_id, co_id);
+					} catch (Exception e) {
+						CommonTools.addError(ConstsCore.ERROR_FAIL, "失败队列移动到历史队列错误！");
+					}
+				} else {
+					DefaultServiceContext context = DefaultServiceContext.getInstance();
+					ServiceMethodHandler serviceMethodHandler = context.getServiceMethodHandler(service_code, "1.0");
+					Class zteReqClass = serviceMethodHandler.getRequestType();
+					Object[] objs = null;
+					ZteRequest zteRequest = null;
+					try {
+						zteRequest = (ZteRequest<ZteResponse>) ConstructorUtils.invokeConstructor(zteReqClass, objs);
+					} catch (Exception e) {
+						resp.setError_code(ConstsCore.ERROR_FAIL);
+						resp.setError_msg("构建请求对象失败!");
+						e.printStackTrace();
+					}
+					zteRequest.setBase_co_id(co_id);
+					zteRequest.setBase_order_id(order_id);
+					
+					if (OrderQueueConsts.SERVICE_CODE_TEMPLATESORDERSTANDARD.equals(service_code)) {
+						//获取头部信息
+						InfHeadBusiRequest infHead = CommonDataFactory.getInstance().getInfHeadFor(order_id, co_id);
+						if (null == infHead) {
+							resp.setError_code(ConstsCore.ERROR_FAIL);
+							resp.setError_msg("获取报文头部信息失败!");
+						}
+						com.ztesoft.common.util.BeanUtils.setProperty(zteRequest, "template_code", infHead.getTemplate_code());
+						com.ztesoft.common.util.BeanUtils.setProperty(zteRequest, "template_version", infHead.getTemplate_version());
+					}
+					// 淘宝订单，需要传入淘宝参数字符串
+					if (OrderQueueConsts.SERVICE_CODE_TAOBAOMALLORDERSTANDARD.equals(service_code)) {
+						com.ztesoft.common.util.BeanUtils.setProperty(zteRequest, "params", orderQueueFail.getDeal_contents());
+						com.ztesoft.common.util.BeanUtils.setProperty(zteRequest, "taobaoOrderId", out_order_id);
+					}
+					zteRequest.setFormat(orderQueueFail.getType());
+					
+					//异常调用区分参数
+					com.ztesoft.common.util.BeanUtils.setProperty(zteRequest, "is_exception", isException);
+					
+					com.ztesoft.common.util.BeanUtils.setProperty(zteRequest, "out_id", out_order_id);
+					
+					logger.info("[OrderQueueBaseManager] dubbo重新执行标准化,请求对象:"+IJSONUtil.beanToJson(zteRequest));
+					OrderCollectionResp zteResponse = null;
+					try {
+						zteResponse = (OrderCollectionResp) serviceMethodHandler.getHandlerMethod().invoke(
+								serviceMethodHandler.getHandler(), zteRequest);
+						logger.info("[OrderQueueBaseManager] dubbo重新执行标准化,返回对象:"+IJSONUtil.beanToJson(zteResponse));
+					} catch (Exception e) {
+						resp.setError_code(ConstsCore.ERROR_FAIL);
+						resp.setError_msg("队列["+co_id+"]标准化失败!");
+						e.printStackTrace();
+					} 
+					if(null != zteResponse && ConstsCore.ERROR_SUCC.equals(zteResponse.getError_code())){
+						resp.setError_code(ConstsCore.ERROR_SUCC);
+						resp.setError_msg("队列["+co_id+"]标准化成功!");
+						logger.info("队列["+co_id+"]标准化成功!");
+						if(!isException){
+							// 调用异常单系统通知异常单
+							for (int i = 0; i<WRITE_EXP_NUM; i++) {
+								ZteResponse expResp = noticeExp(co_id);
+								if (null != expResp && ConstsCore.ERROR_SUCC.equals(expResp.getError_code())) {
+									break;
+								}
+							}
+						}
+					}else{
+						resp.setError_code(ConstsCore.ERROR_FAIL);
+						resp.setError_msg("队列["+co_id+"]标准化失败!");
+						logger.info("队列["+co_id+"]标准化失败!");
+					}
+					// 标准化失败，更新处理次数，更新队列失败表
+					Map fields = new HashMap();
+					Map where = new HashMap();
+					int deal_num = orderQueueFail.getDeal_num();
+					orderQueueFail.setDeal_num(deal_num+1);
+					orderQueueFail.setUpdate_date(com.ztesoft.net.mall.core.consts.Consts.SYSDATE);
+					fields.put("deal_num", deal_num+1);
+					fields.put("update_date", com.ztesoft.net.mall.core.consts.Consts.SYSDATE);
+					where.put("co_id", co_id);
+					try {
+						if (null != resp && ConstsCore.ERROR_SUCC.equals(resp.getError_code())) {
+							// 标准化成功，归档，写队列历史表
+							this.orderQueueFailMoveToHis(order_id, co_id);
+						} else {
+							this.updateOrderQueueFail(fields, where);
+							cache.set(NAMESPACE, OrderQueueConsts.ORDER_QUEUE_FAIL_CACHE_KEY+orderQueueFail.getCo_id(), orderQueueFail, OrderQueueConsts.CACHE_KEEP_TIME);
+							logger.info("更新失败队列["+co_id+"]："+JsonUtil.toJson(fields));
+						}
+						
+					} catch (Exception e) {
+						CommonTools.addError(ConstsCore.ERROR_FAIL, "失败队列移动到历史队列错误！");
+						this.updateOrderQueueFail(fields, where);
+					}
+				
+				}
+			}
+		}else{
+			logger.info("[OrderQueueBaseManager] 失败队列信息不存在!");
+			resp.setError_code(ConstsCore.ERROR_SUCC);
+			resp.setError_msg("订单已标准化,无需再次处理！");
+		}
+		return resp;
+	}
+	
+	@Override
+	public EsearchAddResp writeEsearch(String co_id, String in_param, String out_param,String out_order_Id) {
+		EsearchAddResp resp = null;
+		ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		String is_esearch_write = cacheUtil.getConfigInfo(EsearchValues.IS_ESEARCH_WRITE);
+		
+		if("1".equals(is_esearch_write)){
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMM");
+			String ds = sdf.format(new Date());
+			
+			ESearchData esData = new ESearchData();
+			esData.setLog_id(co_id);
+			esData.setObj_id(out_order_Id);
+			esData.setOperation_code(OrderQueueConsts.ESEARCH_OPERATION_CODE);
+			esData.setIndex("es_order_queue_idx"+ds);
+			esData.setType("es_order_queue");
+			esData.setIn_param(in_param);
+			esData.setOut_param(out_param);
+			
+			EsearchAddReq req = new EsearchAddReq();
+			req.setEsData(esData);
+//			ZteClient client = ClientFactory.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ESC);
+			ZteClient client = ClientFactory.getZteRopClient(AppKeyEnum.APP_KEY_WSSMALL_ESEARCH);
+			resp = client.execute(req, EsearchAddResp.class);
+			logger.info("[OrderQueueBaseManager] 写入 ElasticSearch 返回对象:" + resp);
+		}else{
+			logger.info("[OrderQueueBaseManager] 写入 ElasticSearch 开关关闭");
+		}
+		return resp;
+	}
+	
+	/**
+	 * 重新标准化成功以后，通知异常单系统
+	 * @return
+	 */
+	private ZteResponse noticeExp(String co_id) {
+		OrderExpMarkProcessedReq req = new OrderExpMarkProcessedReq();
+		req.setRel_obj_id(co_id);
+		req.setRel_obj_type("order_queue");
+		req.setDeal_result("扫描队列失败记录，重新标准化成功！");
+		req.setDeal_staff_no("-1");
+		ZteResponse zteResponse = null;
+		if(ConstsCore.DECOUPLING_EXEC_D.equals(MqEnvGroupConfigSetting.ORD_EXP_EXEC)){
+			zteResponse = noticeExpByDubbo(req);
+		}else{
+			zteResponse = noticeExpByMq(req);
+		}
+		
+		
+		return zteResponse;
+
+	}
+	
+	private ZteResponse noticeExpByDubbo(OrderExpMarkProcessedReq req) {
+		ZteClient client = ClientFactory.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ESC);
+		return client.execute(req, OrderExpMarkProcessedResp.class);
+	}
+
+	private ZteResponse noticeExpByMq(OrderExpMarkProcessedReq orderExpMarkProcessedReq) {
+		AsynExecuteMsgWriteMqReq req = new AsynExecuteMsgWriteMqReq();
+		req.setService_code(orderExpMarkProcessedReq.getApiMethodName());
+		req.setVersion(ConstsCore.DUBBO_DEFAULT_VERSION);
+		req.setZteRequest((ZteRequest)orderExpMarkProcessedReq);
+		req.setConsume_env_code(com.ztesoft.common.util.BeanUtils.getHostEnvCodeByEnvStatus(ConstsCore.MACHINE_EVN_CODE_ECSORD_EXP));
+		return asynExecuteMsgWriteMq(req);
+	}
+	
+	@Override
+	@SuppressWarnings({"unchecked", "rawtypes" })
+	public ZteResponse asynExecuteMsgWriteMq(AsynExecuteMsgWriteMqReq req){
+		logger.info("[OrderQueueBaseManager] asynExecuteMsgWriteMq 执行MQ调用封装请求请求对象: " + IJSONUtil.beanToJson(req) );
+		ZteResponse resp = new ZteResponse();
+		if (null != req && !StringUtil.isEmpty(req.getConsume_env_code())) {
+			try {
+				ZteRequest<ZteResponse> zteRequest = null;
+				DefaultServiceContext context = DefaultServiceContext.getInstance();
+				ServiceMethodHandler serviceMethodHandler = context.getServiceMethodHandler(req.getService_code(), req.getVersion());
+				Class zteReqClass = serviceMethodHandler.getRequestType();
+				Class<ZteResponse> zteResClass = (Class<ZteResponse>) serviceMethodHandler.getRespType();
+				
+				if(null != req.getZteRequest()){
+					//如果外部传入mq写入对象则认为参数设置完成
+					zteRequest = req.getZteRequest();
+				}else{
+					//构建请求对象
+					Object[] objs = null;
+					zteRequest = (ZteRequest<ZteResponse>) ConstructorUtils.invokeConstructor(zteReqClass,objs);
+					//反射设置zteRequestMap参数	
+					if(null != req.getZteRequestMap()){
+						for(Map.Entry<String, String> entry:req.getZteRequestMap().entrySet()){
+							com.ztesoft.common.util.BeanUtils.setProperty(zteRequest, entry.getKey(), entry.getValue());
+						}
+					}
+				}
+				// 4、MQ调用(生产消息)
+				ZteClient client = ClientFactory.getZteMqClient(ManagerUtils.getSourceFrom());// mq客户端
+				zteRequest.setMqTopic(req.getConsume_env_code());
+				logger.info("[OrderQueueBaseManager] asynExecuteMsgWriteMq 执行MQ调用请求请求对象: " + IJSONUtil.beanToJson(zteRequest) );
+				ZteResponse zteResponse =  client.execute(zteRequest, zteResClass);
+				logger.info("[OrderQueueBaseManager] asynExecuteMsgWriteMq 执行MQ调用返回对象: " + IJSONUtil.beanToJson(zteResponse));
+				return zteResponse;
+			} catch (Exception e) {
+				e.printStackTrace();
+				resp.setError_code(ConstsCore.ERROR_FAIL);
+				resp.setError_msg("消息写入异常!");
+				return  resp;
+			}
+		} else {
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+			resp.setError_msg("请求对象为null!");
+			return resp;
+		}
+		
+	}
+}

@@ -1,0 +1,74 @@
+package zte.net.iservice.impl;
+
+import params.req.OrderExpMarkProcessedReq;
+import params.req.OrderExpWriteForBusReq;
+import params.req.OrderExpWriteForInfReq;
+import params.req.QueryExpCatalogReq;
+import params.req.QueryExpOrderStatisticsReq;
+import params.resp.OrderExpMarkProcessedResp;
+import params.resp.OrderExpWriteResp;
+import params.resp.QueryExpCatalogResp;
+import params.resp.QueryExpOrderStatisticsResp;
+import services.ServiceBase;
+import zte.net.iservice.IOrderExpServices;
+
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotation;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.service.IExpOrderStatisticsManager;
+import com.ztesoft.net.service.IExpConfigManager;
+import com.ztesoft.net.service.IOrderExpManager;
+
+@ZteSoftCommentAnnotation(type="class", desc="异常能力服务", summary="异常能力服务")
+public class OrderExpServices extends ServiceBase implements IOrderExpServices
+{
+
+  protected IOrderExpManager orderExpManager;
+  private IExpConfigManager expConfigManager;
+  private IExpOrderStatisticsManager expOrderStatisticsManager;
+  
+  private void init(){
+	  if(orderExpManager == null) orderExpManager = SpringContextHolder.getBean("orderExpManager");
+	  if(expOrderStatisticsManager == null) expOrderStatisticsManager = SpringContextHolder.getBean("expOrderStatisticsManager");
+  }
+  
+  @Override
+public OrderExpWriteResp exeOrderExpWrite(OrderExpWriteForInfReq req)
+  {
+	init();
+    return this.orderExpManager.orderExpWrite(req);
+  }
+  
+  @Override
+public OrderExpWriteResp exeOrderExpWrite(OrderExpWriteForBusReq req)
+  {
+	init();
+    return this.orderExpManager.orderExpWrite(req);
+  }
+
+	@Override
+	public QueryExpCatalogResp queryExpCatalogs(QueryExpCatalogReq req) {
+		return this.expConfigManager.queryEsearchCatalog(req);
+	}
+
+	public IExpConfigManager getExpConfigManager() {
+		return expConfigManager;
+	}
+
+	public void setExpConfigManager(IExpConfigManager expConfigManager) {
+		this.expConfigManager = expConfigManager;
+	}
+
+	@Override
+	public QueryExpOrderStatisticsResp queryExpOrderStatistics(
+			QueryExpOrderStatisticsReq req) {
+		init();
+		return this.expOrderStatisticsManager.queryExpOrderStatisticsData(req);
+	}
+
+	@Override
+	public OrderExpMarkProcessedResp orderExpMarkProcessed(
+			OrderExpMarkProcessedReq req) {
+		init();
+		return this.orderExpManager.orderExpMarkProcessedForOuterSys(req);
+	}
+}

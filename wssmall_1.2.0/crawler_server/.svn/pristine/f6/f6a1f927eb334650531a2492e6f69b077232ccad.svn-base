@@ -1,0 +1,86 @@
+package com.ztesoft.net.mall.utils;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import net.sf.json.JSONObject;
+
+public class ConfigUtil {
+
+	private static Properties properties;
+	
+	static {
+		URL url = ConfigUtil.class.getResource("/com/ztesoft/net/mall/resource/receiveSms.properties");
+		properties = new Properties();
+		try {
+			properties.load(url.openStream());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	public ConfigUtil(String path){
+		URL url = ConfigUtil.class.getResource(path);
+		properties = new Properties();
+		try {
+			properties.load(url.openStream());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+
+	public static String getString(String key){
+		return properties.getProperty(key);
+	}
+	
+
+	public Integer getInt(String key){
+		return Integer.valueOf(getString(key));
+	}
+	
+	public Double getDouble(String key){
+		return Double.valueOf(getString(key));
+	}
+	
+	public Float getFloat(String key){
+		return Float.valueOf(getString(key));
+	}
+	
+	public boolean getBoolean(String key){
+		return Boolean.valueOf(getString(key));
+	}
+	
+	public static void main(String[] args) {
+//		ConfigUtil cu = new ConfigUtil("/com/ztesoft/net/mall/resource/receiveSms.properties");
+//		logger.info(cu.getString("receive_phonenums"));
+//		String[] receive_phonenums_array=cu.getString("receive_phonenums").split(",");
+//		for (String receive_phonenum : receive_phonenums_array) {
+//			logger.info("号码："+receive_phonenum);
+//		}
+//		logger.info(cu.getString("parseFileUrl"));
+		
+//		 Map<String, Object> orderMap = new HashMap<String, Object>();
+//		 orderMap.put("ActiveNo", "aa");
+//		 orderMap.put("ClientIP", "bbb");
+//		 Map<String, String> payInfoMap = new HashMap<String, String>();
+//		 payInfoMap.put("PayType", "cc");
+//		 payInfoMap.put("PayWay", "dd");
+//		 orderMap.put("PayInfo", payInfoMap);
+//		 List<Map<String,String>> giftInfos = new ArrayList<Map<String,String>>();
+//		 Map<String,String> giftInfoMap = new HashMap<String, String>();
+//		 giftInfoMap.put("GiftName", "ee");
+//		 giftInfoMap.put("GiftNum", "1");
+//		 giftInfoMap.put("GiftValue", "0");
+//		 giftInfos.add(giftInfoMap);
+//		 orderMap.put("GiftInfo", giftInfos);
+//		 JSONObject json = JSONObject.fromObject(orderMap);//处理报文
+//		 logger.info("=========报文："+json.toString());
+		 
+	}
+	
+}

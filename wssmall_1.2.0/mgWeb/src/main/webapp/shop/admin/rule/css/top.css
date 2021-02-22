@@ -1,0 +1,33 @@
+@charset "UTF-8";
+/* CSS Document */
+body{ font-family:Tahoma;}
+.topContent{ background:#1376b7; height:90px; position:relative;}
+.logoNew{ background:url(../images/top/logo.jpg) no-repeat; height:90px; position:absolute; left:0px; top:0px; width:280px;}
+.userTop{ margin-left:320px; padding-top:15px; height:75px; float:left; position:relative; padding-left:70px; width:330px;}
+.userTop .userIco{ position:absolute; left:10px; top:20px; width:48px; height:48px;}
+.userTop .userTxt{ color:#fff; line-height:22px;}
+.userTop .userTxt p.p_name{}
+.userTop .userTxt p.p_name .item{ color:#fff000; font-size:14px; font-weight:bold;}
+.vbb, .vbb span{ display:inline-block; height:18px; line-height:18px; color:#fff; padding:0 0 0 3px; background:url(../images/top/bluebtn.gif) no-repeat;}
+.vbb span{ background-position:right -18px; padding:0 6px 0 3px;}
+.userTop .userTxt p.p_link{}
+.userTop .userTxt p.p_link a{ color:#ff8a00;}
+.userTop .userTxt p.p_link span{ margin-left:3px; margin-right:3px;}
+.quickMenu{ float:right; height:90px;}
+.quickMenu ul{}
+.quickMenu ul li{ float:left; width:80px; text-align:center; position:relative;}
+.openTop{ display:block; text-indent:-999px;position:absolute; width:40px; height:24px; right:34px; top:90px; background:url(../images/moreic.png) no-repeat; z-index:1000; overflow:hidden;}
+.quickMenu ul li a{ display:block; text-align:center; color:#fff; padding-top:10px; height:80px;}
+.quickMenu ul li a:hover, .quickMenu ul li.curr a{ background:#0c5ca2;}
+.topBar{ background:#f5f5f5; border-bottom:1px solid #cdcdcd; height:40px; position:relative;}
+.navNew{ padding-left:10px;}
+.navNew li{ float:left;}
+.navNew li a{ display:block; padding-left:20px; padding-right:20px; height:37px; line-height:37px; font-size:14px; color:#2a2a2a;}
+.navNew li a:hover, .navNew li.curr a{ border-bottom:3px solid #1376b7}
+
+.useMsg{ position:absolute;padding-right:90px; height:40px; top:0px; right:0px; line-height:40px;}
+.useMsg img{ vertical-align:middle; margin-right:5px;}
+.useMsg span{ color:#ff8a00;}
+
+.top2{ height:2px; background:#1376b7; position:relative}
+.top2 .openTop{ display:block; text-indent:-999px;position:absolute; width:40px; height:24px; right:34px; top:2px; background:url(../images/moreic.png) no-repeat; z-index:1000; overflow:hidden;}

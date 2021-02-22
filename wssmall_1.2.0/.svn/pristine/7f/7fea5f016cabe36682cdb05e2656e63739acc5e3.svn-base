@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ContractRoot>
+	<TcpCont>
+		<!--EOP 分配给转售企业系统的 AppKey-->
+		<AppKey>1000000201</AppKey>
+		<!--API 接口名称-->
+		<Method>orders.addCust</Method>
+		<!--交易流水号，每笔交易均不一样-->
+		<TransactionID>1000000201201112041000000011</TransactionID>
+		<!--请求时间-->
+		<ReqTime>20130817200202</ReqTime>
+		<!--签名字符串-->
+		<Sign>123￥62</Sign>
+		<!--接口版本-->
+		<Version>V1.0</Version>
+	</TcpCont>
+	<SvcCont>
+		<custOrderInfo>
+			<staffId>1001</staffId>
+			<channelId>100071</channelId>
+			<commonRegionId>8230123</commonRegionId>
+			<custNumber>-1</custNumber>
+		</custOrderInfo>
+		<custOrderItemGrp>
+			<custInfo>
+				<custNumber>-1</custNumber>
+				<custName>测试_001</custName>
+				<certType>1</certType>
+				<certNumber>350013197011211630</certNumber>
+				<certAddress>江苏省南京市 XXX 路 98 号</certAddress>
+				<custType>1100</custType>
+				<mailAddress>江苏省南京市 XXX 路 YYY 小区 AAA</mailAddress>
+				<postCode>210000</postCode>
+				<phoneNum>13805161234</phoneNum>
+				<contactInfos>
+					<contactName>测试_002</contactName>
+					<contactPhoneNum>02587569012</contactPhoneNum>
+					<headFlag>1</headFlag>
+					<action>ADD</action>
+				</contactInfos>
+				<attrInfos>
+					<attrSpecId>53000001</attrSpecId>
+					<attrValue>营业员</attrValue>
+					<action>ADD</action>
+				</attrInfos>
+			</custInfo>
+		</custOrderItemGrp>
+	</SvcCont>
+</ContractRoot>

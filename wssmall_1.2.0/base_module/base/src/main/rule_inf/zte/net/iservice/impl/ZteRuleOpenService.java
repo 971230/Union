@@ -1,0 +1,152 @@
+package zte.net.iservice.impl;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+
+import zte.net.ecsord.rule.tache.TacheFact;
+import zte.net.iservice.IRuleService;
+import zte.net.params.req.CataloguePlanExeReq;
+import zte.net.params.req.PlanQueryReq;
+import zte.net.params.req.PlanRuleTreeExeReq;
+import zte.net.params.req.PlanRuleTreeQueryReq;
+import zte.net.params.req.RuleConfigGetReq;
+import zte.net.params.req.RuleExeLogDelReq;
+import zte.net.params.req.RuleLogQueryReq;
+import zte.net.params.req.RuleLogReq;
+import zte.net.params.req.RuleTreeExeReq;
+import zte.net.params.resp.CataloguePlanExeResp;
+import zte.net.params.resp.PlanQueryResp;
+import zte.net.params.resp.PlanRuleTreeExeResp;
+import zte.net.params.resp.PlanRuleTreeQueryResp;
+import zte.net.params.resp.RuleConfigGetResp;
+import zte.net.params.resp.RuleExeLogDelResp;
+import zte.net.params.resp.RuleLogQueryResp;
+import zte.net.params.resp.RuleLogRsp;
+import zte.net.params.resp.RuleTreeExeResp;
+
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+@ServiceMethodBean(version="1.0")
+public class ZteRuleOpenService implements IRuleService {
+	
+	private static Logger log = Logger.getLogger(ZteRuleOpenService.class);
+	
+	private IRuleService ruleService;
+
+	private void init(){
+		ruleService= SpringContextHolder.getBean("ruleService");
+    }
+
+	@Override
+	@ServiceMethod(method="zte.ruleService.plan.query",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public PlanQueryResp queryPlan(PlanQueryReq req) {
+		this.init();
+		return ruleService.queryPlan(req);
+	}
+	
+	
+	@Override
+	@ServiceMethod(method="zte.ruleService.plan.rule.tree.query",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public PlanRuleTreeQueryResp queryPlanRuleTree(PlanRuleTreeQueryReq req) {
+		this.init();
+		return ruleService.queryPlanRuleTree(req);
+	}
+
+	/**
+	 * 执行方案
+	 */
+	@Override
+	@ServiceMethod(method="zte.ruleService.plan.rules.tree.auto.exe",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public PlanRuleTreeExeResp exePlanRuleTree(PlanRuleTreeExeReq req) {
+		this.init();
+		return ruleService.exePlanRuleTree(req);
+	}
+
+	/**
+	 * 执行规则
+	 */
+	@Override
+	@ServiceMethod(method="zte.ruleService.plan.rule.tree.exe",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public RuleTreeExeResp exeRuleTree(RuleTreeExeReq req) {
+		this.init();
+		
+		try{
+			String rule_id = req.getRule_id();
+			String order_id = "";
+			
+			if(req.getFact()!=null && req.getFact() instanceof TacheFact){
+				TacheFact fact = (TacheFact)req.getFact();
+				order_id = fact.getOrder_id();
+			}
+				
+			if(EcsOrderConsts.ORDER_PHOTO_RULE_ID.equals(rule_id)){
+				AdminUser user = ManagerUtils.getAdminUser();
+				
+				String msg = "";
+				
+				if(user!=null && StringUtils.isNotBlank(user.getUserid())){
+					String userId = user.getUserid();
+					
+					msg = "USER_ID:" + userId + "用户" + order_id +
+							"订单执行订单归档" + rule_id + "规则，打印调用堆栈：";
+				}else{
+					msg = order_id + "订单执行订单归档" + rule_id + "规则，打印调用堆栈：";
+				}
+				
+				throw new Exception(msg);
+			}
+		}catch(Exception e){
+			log.info(e.getMessage(), e);
+		}
+		
+		return ruleService.exeRuleTree(req);
+	}
+
+	@Override
+	@ServiceMethod(method="zte.ruleService.catalogue.plan.rules.tree.auto.exe",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public CataloguePlanExeResp exeCataloguePlan(CataloguePlanExeReq req) {
+		this.init();
+		return ruleService.exeCataloguePlan(req);
+	}
+	
+	@Override
+	@ServiceMethod(method="zte.ruleService.plan.rule.exe.log.del",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public RuleExeLogDelResp delRuleExeLog(RuleExeLogDelReq req){
+		this.init();
+		return ruleService.delRuleExeLog(req);
+	}
+
+	@Override
+	@ServiceMethod(method="zte.ruleService.ruleconfig.get.id",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public RuleConfigGetResp getRuleConfig(RuleConfigGetReq req) {
+		this.init();
+		return ruleService.getRuleConfig(req);
+	}
+	
+//	@Override
+//	@ServiceMethod(method="zte.ruleService.plan.getByTache",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+//	public PlanGetResp getPlanByTache(PlanGetReq req) {
+//		this.init();
+//		return ruleService.getPlanByTache(req);
+//	}
+
+	@Override
+	@ServiceMethod(method="zte.ruleService.plan.rule.log.query",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public RuleLogQueryResp queryRuleLog(RuleLogQueryReq req) {
+		this.init();
+		return ruleService.queryRuleLog(req);
+	}
+
+	@Override
+	@ServiceMethod(method="zte.ruleService.qryRuleLog",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public RuleLogRsp qryRuleLog(RuleLogReq req) throws Exception {
+		this.init();
+		return ruleService.qryRuleLog(req);
+	}
+}

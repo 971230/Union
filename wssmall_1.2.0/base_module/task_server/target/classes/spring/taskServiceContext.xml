@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+    <bean id="taskManager" class="com.ztesoft.net.mall.core.service.impl.TaskManagerImpl"  parent="baseSupport" />
+    <!-- 任务 -->
+	<bean id="taskTimer" class="com.ztesoft.net.mall.core.timer.TaskTimer" />
+	<bean id="taskJobManager" class="com.ztesoft.net.mall.core.service.impl.TaskJobManager" />
+    <bean id="alarmTaskManager" class="com.ztesoft.net.mall.core.service.impl.AlarmTaskManager"  parent="baseSupport" />
+    <bean id="alarmReceiverManager" class="com.ztesoft.net.mall.core.service.impl.AlarmReceiverManager"  parent="baseSupport" />
+	<bean id="alarmTemplateManager" class="com.ztesoft.net.mall.core.service.impl.AlarmTemplateManager"  parent="baseSupport" />
+	<bean id="alarmLogManager" class="com.ztesoft.net.mall.core.service.impl.AlarmLogManager"  parent="baseSupport" />
+    <bean id = "checkAlarmTimer" class = "com.ztesoft.net.mall.core.timer.CheckAlarmTimer" parent="baseSupport"></bean>
+    
+    <bean id="jobTaskManager" class="com.ztesoft.net.mall.core.service.impl.JobTaskManager"   parent="baseSupport" />
+    <bean id="taskCache" class="com.ztesoft.net.mall.core.cache.TaskCache" />
+    <bean id="importManager" class="com.ztesoft.net.mall.core.service.impl.ImportManager" parent="baseSupport"></bean>
+</beans>

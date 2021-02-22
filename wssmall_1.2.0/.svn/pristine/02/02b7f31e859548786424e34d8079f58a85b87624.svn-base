@@ -1,0 +1,359 @@
+package com.ztesoft.net.eop.processor.backend;
+
+import java.lang.reflect.Constructor;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.drools.core.util.StringUtils;
+
+import params.adminuser.req.AdminUserCountReq;
+import params.adminuser.req.AdminUserLoginReq;
+import params.adminuser.req.AdminUserReq;
+import params.adminuser.resp.AdminUserCountResp;
+import params.adminuser.resp.AdminUserResp;
+import services.AdminUserInf;
+import utils.CoreThreadLocalHolder;
+
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.MD5Util;
+import com.ztesoft.net.app.base.core.service.IAccessRecorder;
+import com.ztesoft.net.eop.processor.FacadePage;
+import com.ztesoft.net.eop.processor.Processor;
+import com.ztesoft.net.eop.processor.backend.support.BackPageGetter;
+import com.ztesoft.net.eop.processor.core.LocalRequest;
+import com.ztesoft.net.eop.processor.core.Request;
+import com.ztesoft.net.eop.processor.core.Response;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.resource.model.EopSite;
+import com.ztesoft.net.eop.resource.model.ThemeUri;
+import com.ztesoft.net.eop.sdk.context.ConnectType;
+import com.ztesoft.net.eop.sdk.context.EopContext;
+import com.ztesoft.net.eop.sdk.user.IUserService;
+import com.ztesoft.net.eop.sdk.user.UserContext;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.context.webcontext.WebSessionContext;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.core.utils.SingleLogin;
+
+import consts.ConstsCore;
+import utils.CoreThreadLocalHolder;
+
+/**
+ * 后台页面解析器
+ * @author kingapex
+ * @version 1.0
+ * @created 11-十月-2009 16:20:08
+ */
+public class BackgroundProcessor implements Processor {
+ 
+	/**
+	 * 
+	 * @param httpResponse
+	 * @param httpRequest
+	 */
+	public Response process(int model,HttpServletResponse httpResponse, HttpServletRequest httpRequest){
+//		String uri = httpRequest.getServletPath(); 
+//		
+		httpResponse.setHeader("P3P", "CP=CAO PSA OUR");//解决iframe跨域访问cookie/session的问题  add by qin.yingxiong at 2015/12/28
+		String uri = httpRequest.getRequestURI();
+		 
+		//add musoon
+		String sourceFrom = ManagerUtils.getSourceFrom();
+		if (sourceFrom.equals("LLKJ_AGENT") && uri.equals("/")) {
+			uri = "/mgWeb/";
+		}
+		
+		if(uri.equals("/mgWeb"))
+			uri = "/mgWeb/";
+
+		if(uri.equals("/login.do"))
+			uri = "/mgWeb/login.do";
+		
+		
+		//add by wui  was路径处理
+		if(uri.indexOf(httpRequest.getContextPath())>-1)
+			uri = uri.substring(uri.indexOf(httpRequest.getContextPath())+httpRequest.getContextPath().length());
+		
+		//用户身份校验 uri.startsWith("/shop/uploadPhoto.do") 解决flash session丢失问题 !uri.startsWith("/shop/uploadPhoto.do") && 
+		 if(!uri.startsWith("/mgWeb/login") && !uri.startsWith("/shop/admin/callback") && !uri.startsWith("/shop/admin/st_callback")
+			&& !uri.startsWith("/shop/admin/commonPay.do") && !uri.startsWith("/shop/admin/redirect") 
+			&& ! uri.startsWith("/mgWeb/index.jsp") && !uri.startsWith("/ordAuto!getSmsValidCode.do")
+			&& !uri.startsWith("/shop/admin/appAction") && !uri.endsWith("resetBossPwd.do")
+			&& !uri.equals("/mgWeb/") && !uri.endsWith("forwardResetBossPwdJsp.do") 
+			&& !uri.equals("/mgWeb") && !uri.equals("/partner/")  && !uri.equals("/partner")
+			&& !SingleLogin.getInstanse().isSingle(uri)){
+			 if(checkIsSingleQueryOrdRequest(httpRequest,uri) ){// 验证是否是单点登录查询订单的合法请求
+				 //add by wui guang dong lian tong ti huan hou  xu yao qu chu checkIsSingleQueryOrdRequest(httpRequest,uri) ye wu luo ji 
+			 }else{
+				 IUserService userService = UserServiceFactory.getUserService();
+				 if(!userService.isUserLoggedIn()){
+					 if(checkNewMallRequest(httpRequest,uri)){//验证是否是来自新商城的合法请求
+						 
+					 }else{
+					 	List<String> msgs = new ArrayList<String>();
+					 	Map<String ,String> urls = new HashMap<String,String>();
+					 	msgs.add("您尚未登录或登录已经超时，请重新登录。");
+					 	String ctx = httpRequest.getContextPath();
+					 	//获取正常单系统的主机环境 ，所有登录超时都跳转到正常单   add by qin.yingxiong at 2016/01/07
+					 	String sys_url = BeanUtils.getOtherHostByCurrHostEnv(EcsOrderConsts.SYS_NAME_ORDER);
+					 	if(!StringUtils.isEmpty(sys_url)) {
+					 		ctx = sys_url;
+					 	}
+					 	urls.put("<span style='color:green;'>点进这里进入登录页面</span>", ctx+"/mgWeb");
+					 	httpRequest.setAttribute("msgs", msgs);
+					 	httpRequest.setAttribute("urls", urls);
+						httpRequest.setAttribute("target", "_top");
+						Request request = new LocalRequest();
+						Response response = request.execute("/admin/message.jsp", httpResponse,
+								httpRequest);
+						
+						return response;
+					 } 
+				 }else{
+					 //add by wui用户已经登录
+					 List<String> msgs = new ArrayList<String>();
+					 String menu_json = ManagerUtils.getAdminUser().getMenu_jsons();
+					 String all_menu_json = ConstsCore.ALL_MENU;
+					 if(!StringUtil.isEmpty(all_menu_json) && all_menu_json.indexOf(uri)>-1){ //add by wui非es_menu配置的菜单数据则缺省通过
+						 if(!StringUtil.isEmpty(menu_json) && !(menu_json.indexOf(uri)>-1)){
+							 Map<String ,String> urls = new HashMap<String,String>();
+							 	msgs.add("您没有操作此菜单的权限，请重新登录。");
+							 	String ctx = httpRequest.getContextPath();
+							 	
+							 	//获取正常单系统的主机环境 ，所有登录超时都跳转到正常单   add by qin.yingxiong at 2016/01/07
+							 	String sys_url = BeanUtils.getOtherHostByCurrHostEnv(EcsOrderConsts.SYS_NAME_ORDER);
+							 	if(!StringUtils.isEmpty(sys_url)) {
+							 		ctx = sys_url;
+							 	}
+							 	urls.put("<span style='color:green;'>点进这里进入登录页面</span>", ctx+"/mgWeb");
+							 	httpRequest.setAttribute("msgs", msgs);
+							 	httpRequest.setAttribute("urls", urls);
+								httpRequest.setAttribute("target", "_top");
+								Request request = new LocalRequest();
+								Response response = request.execute("/admin/message.jsp", httpResponse,
+										httpRequest);
+								return response;
+						 }
+					 }
+				 }
+			 }
+	    }
+		
+		Processor processor  =null;
+		
+		EopSite site  = EopContext.getContext().getCurrentSite();
+		
+ 
+		model = ConnectType.local;
+		FacadePage page = new FacadePage(site);
+ 
+		page.setUri(uri);
+		
+		ThemeUri themeUri = new ThemeUri();
+		themeUri.setPagename("后台页面");
+		themeUri.setPath(uri);
+		themeUri.setPoint(0);
+		IAccessRecorder accessRecorder = SpringContextHolder.getBean("accessRecorder");
+		int result = accessRecorder.record(themeUri);
+		
+		if(uri.startsWith("/mgWeb/menu.do")){
+			try{
+				  Class menuJsonGetter = Class.forName("com.ztesoft.net.eop.processor.backend.support.MenuJsonGetter");
+				  Constructor construct = menuJsonGetter.getConstructor(FacadePage.class);
+				  processor = (Processor)construct.newInstance(page);
+			}catch(Exception e){
+				e.printStackTrace();
+				throw new RuntimeException("=============>>>MenuJsonGetter:处理器创建失败");
+			}
+		}else if( uri.startsWith("/mgWeb/login.do") ){
+			try{
+				processor = (Processor)Class.forName("com.ztesoft.net.eop.processor.backend.LoginProcessor").newInstance();
+			}catch(Exception e){
+				throw new RuntimeException("=============>>>LoginProcessor:处理器创建失败");
+			}
+		}else if( uri.startsWith("/mgWeb/logout.do")  || uri.startsWith("/shop/admin/logout.do")) {
+			processor = new LogoutProcessor();
+		}else if(uri.startsWith("/mgWeb/plugin")){
+			processor = new AjaxPluginProcessor();
+		}else{
+			processor = new BackPageGetter(page); //负责显示后台内容界面
+		}
+ 		
+		Response response = processor.process(model, httpResponse, httpRequest);	
+		return response;
+	}
+	
+	/**
+	 * 验证是否是来自新商城的合法请求
+	 * @param httpRequest
+	 * @param url 去除前缀后的请求路径
+	 * @return true 是合法请求,验证通过
+	 */
+	private boolean checkNewMallRequest(HttpServletRequest httpRequest,String url){
+		boolean flag=false;
+		try {
+			boolean sessionOK=false;
+			if(httpRequest.getSession().getAttribute(EcsOrderConsts.NEW_MALL_LOGIN)!=null){
+				String  sessionVal=(String) httpRequest.getSession().getAttribute(EcsOrderConsts.NEW_MALL_LOGIN);
+				if(!sessionVal.equals("")){
+					sessionOK=true;
+				}
+			}
+			if(sessionOK&&!url.startsWith("/shop/admin/ordPrt!ordPrtList.do")){//已经标识验证通过
+				//if(url.startsWith("/shop/admin/ordPrt!ordPrtList.do")){
+					//String out_tid=httpRequest.getParameter("out_tid");
+					//if(!StringUtil.isEmpty(out_tid)){//必须传外部订单ID
+					//	flag=true;
+					//}}else
+					
+				 if(url.startsWith("/shop/admin/ordPrt!invoicePrint.do")||url.startsWith("/shop/admin/ordPrt!saveInvoicePrintDetail.do")
+							||url.startsWith("/shop/admin/ordPrt!orderPrint.do")||url.startsWith("/shop/admin/ordPrt!updatePrtStatus.do")){
+					flag=true;
+				}
+				
+			}else{
+				httpRequest.getSession().setAttribute(EcsOrderConsts.NEW_MALL_LOGIN,null );//重置session
+				if(url.startsWith("/shop/admin/ordPrt!ordPrtList.do")){//访问的是票据打印链接
+					String out_tid=httpRequest.getParameter("out_tid");
+					String user_id=httpRequest.getParameter("user_id");
+					String token=httpRequest.getParameter("token");
+					String myToken=null;
+					if(this.getRealnameByUserName(user_id)){//用户存在
+						if(!StringUtil.isEmpty(out_tid)&&!StringUtil.isEmpty(user_id)&&!StringUtil.isEmpty(token)){
+							try {
+								myToken=MD5Util.MD5(user_id+out_tid+EcsOrderConsts.APP_KEY);//订单系统工号+外部单号+wssmall_ecs
+								//logger.info("我的加密串："+myToken);
+							} catch (NoSuchAlgorithmException e) {
+								e.printStackTrace();
+							}
+							if(myToken!=null&&!myToken.equals("")&&myToken.equals(token)){//验证成功，并做标识
+								httpRequest.getSession().setAttribute(EcsOrderConsts.NEW_MALL_LOGIN,user_id );//用户名保存到session
+								flag=true;
+							}
+						}
+					}
+					
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return flag;
+		
+	}
+	/**
+	 * 验证是否是单点登录查询订单的合法请求
+	 * @param httpRequest
+	 * @param url 去除前缀后的请求路径
+	 * @return true 是合法请求,验证通过  //order_view
+	 */
+	private boolean checkIsSingleQueryOrdRequest(HttpServletRequest httpRequest,String url){
+		boolean flag = false;
+		final String userSessionVal = String.valueOf(httpRequest.getSession().getAttribute(EcsOrderConsts.SINGLE_LOGIN_QUERY_ORDER));
+		String user_id = httpRequest.getParameter("user_id");
+		String out_tid=httpRequest.getParameter("out_tid");
+		String token = httpRequest.getParameter("token");
+		//如果是用单点方式
+		if (userSessionVal!=null&&!"".equals(userSessionVal)&&!"null".equals(userSessionVal)){
+			if (url.startsWith("/shop/admin/ordPrt!ordPrtList.do")) {
+				if (StringUtils.isEmpty(user_id)||StringUtils.isEmpty(token)||StringUtils.isEmpty(out_tid)) {
+					ThreadContextHolder.getHttpSessionContext().removeAttribute(UserContext.CONTEXT_KEY);
+					httpRequest.getSession().removeAttribute(EcsOrderConsts.SINGLE_LOGIN_QUERY_ORDER);
+				}
+			}
+		}
+		//wei chuan zhi bu yun xu denglu
+		if ((StringUtils.isEmpty(user_id) || "null".equals(user_id))){
+			return false;
+		}
+		if (StringUtils.isEmpty(out_tid) && url.startsWith("/shop/admin/ordPrt!ordPrtList.do")) { // 票据打印单点登陆必须传外部单
+			return false;
+		}
+		if(!user_id.equals(userSessionVal))
+	    {
+			String sysToken = "";
+			if (!StringUtil.isEmpty(user_id) && !StringUtil.isEmpty(token)) {
+				if (this.getRealnameByUserName(user_id)) {// 查询类型正确并且用户存在
+					try {
+						sysToken = MD5Util.MD5(user_id + EcsOrderConsts.APP_KEY);// 订单系统工号+wssmall_ecs
+					} catch (NoSuchAlgorithmException e) {
+						e.printStackTrace();
+					}
+					if (!StringUtil.isEmpty(sysToken) && sysToken.equals(token)) {// 验证成功，并做标识
+						httpRequest.getSession().setAttribute(EcsOrderConsts.SINGLE_LOGIN_QUERY_ORDER, user_id);// 用户名保存到session
+						AdminUser admin = this.getAdminUserByUserName(user_id);
+						AdminUser user = new AdminUser();
+						user.setUserid(admin.getUserid());
+						user.setFounder(admin.getFounder());
+						user.setUsername(user_id);
+						ManagerUtils.createSession(user);
+						
+						// 记录session信息
+						WebSessionContext sessonContext = ThreadContextHolder
+								.getHttpSessionContext();
+						
+						EopSite site = EopContext.getContext().getCurrentSite();
+						UserContext userContext = new UserContext(site.getUserid(), site
+								.getId(), user.getUserid());
+						sessonContext.setAttribute(UserContext.CONTEXT_KEY, userContext);
+						sessonContext.setAttribute("admin_user_key", user);
+						return  true;
+					}
+				}
+			}
+	    }
+		return false;
+	}
+	/**
+	 * 根据用户名查询是否存在
+	 * @param username
+	 * @return true--存在
+	 */
+	private boolean getRealnameByUserName(String username){
+		boolean flag=false;
+		try {
+			AdminUserInf adminUserServ = SpringContextHolder.getBean("adminUserServ");
+			AdminUserCountReq req=new AdminUserCountReq();
+			req.setUsername(username);
+			AdminUserCountResp resp=adminUserServ.getUserCountByRelcode( req);
+			int count=resp.getCount();
+			if(count>0){
+				flag=true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return flag;
+	}
+	/**
+	 * 查询用户
+	 * @param username
+	 * @return AdminUser--
+	 */
+	private AdminUser getAdminUserByUserName(String username){
+		AdminUser admin=new AdminUser();
+		try {
+			AdminUserInf adminUserServ = SpringContextHolder.getBean("adminUserServ");
+			AdminUserReq req=new AdminUserReq();
+			req.setUser_name(username);
+			AdminUserResp resp=adminUserServ.getAdminUserByUserName( req);
+			admin=resp.getAdminUser();
+			if(admin==null){
+				admin=new AdminUser();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return admin;
+	}
+}

@@ -1,0 +1,91 @@
+package com.ztesoft.net.mall.core.service.impl.cache;
+
+import java.util.Map;
+
+import com.ztesoft.net.framework.cache.AbstractCacheProxy;
+import com.ztesoft.net.framework.cache.CacheFactory;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+
+/**
+ * 公共缓存
+ * @author huang.xiaoming
+ * 2018.5.18
+ */
+public class DcPublicInfoCacheProxyNew extends AbstractCacheProxy<Map<String,String>> {
+	private IDcPublicInfoManager dcPublicInfoManager;
+
+	public static final String LIST_KEY_PREFIX = "dc_public_info_list";
+	
+	public static final String DC_PUBLIC_EXT_PREFIX = "dc_public_ext_list";
+	
+	public static final String REGION_KEY_PREFIX = "region_list";
+	
+	public static final String LOGI_COMP_LIST = "logi_comp_list";
+	
+	public static final String LOGI_COMP_PERSON_KEY_PREFIX = "logi_company_person";
+	
+	public static final String DICT_RELATION_KEY_PREFIX = "dict_relation";
+	
+	public static final String DICT_RELATION_KEY_PREFIX_STYPE = "dict_relation_";
+
+	public static final String DEVELOPMENT_CODE = "development_code";
+	
+	public static final String DEVELOPMENT_NAME = "development_name";
+	
+	public static final String TID_CATEGORY_LIST = "tid_category_list";
+	
+	public static final String LIST_IS_SEND_ZB_CONFIG = "is_send_zb_config";
+	
+	public static final String POST_REGION_LIST = "post_region_list";
+	
+	public static final String OPEN_SERVICE_CFG_PREFIX = "open_service_cfg_list";
+	
+	public static final String B_PACKAGE_DEPEND_ELEMENT_LIST = "b_package_depend_element_list";
+	
+	public static final String K_PACKAGE_DEPEND_ELEMENT = "k_package_depend_element";
+
+	public static final String SPECVALUES = "specvalues-";
+	
+	public static final String SPEC_LIST = "spec_list-";
+	
+	public static final String BATCH_PRE_GOODS_LIST = "batch_pre_goods_list";
+	
+
+	public DcPublicInfoCacheProxyNew(IDcPublicInfoManager dcPublicInfoManager) {
+
+		super(CacheFactory.DC_PUBLIC_CACHE_NAME_KEY);
+		this.dcPublicInfoManager = dcPublicInfoManager;
+	}
+
+
+	/***
+	 * 获取外部服务编码
+	 * @param out_service_code
+	 * @param version
+	 * @return
+	 */
+	public Map<String,String> getOpenServiceCfgByOutServiceCodeNew(String out_service_code, String version){
+		Map<String,String> serviceMap = this.cache.get(out_service_code);
+		if(null == serviceMap || serviceMap.size()==0){
+			serviceMap = this.dcPublicInfoManager.getOpenServiceCfgSingle(out_service_code, version);
+			this.cache.put(out_service_code, serviceMap);
+		}
+		
+		return serviceMap;
+	}
+	/**
+	 * 根据region_id取地市
+	 */
+	public Map getSingRegion(String region_id) {
+		/*Map region = this.cache.get(region_id);
+		if(MapUtils.isEmpty(region)) {
+			region = this.dcPublicInfoManager.getRegionSingle(region_id);
+			this.cache.put(region_id, region);
+		}*/
+		//地市不放缓存 zzj
+		return  this.dcPublicInfoManager.getRegionSingle(region_id);
+	}
+	
+	
+	
+}

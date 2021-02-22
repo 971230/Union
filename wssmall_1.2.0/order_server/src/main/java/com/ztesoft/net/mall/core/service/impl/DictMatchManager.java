@@ -1,0 +1,354 @@
+/**
+ * 
+ */
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+
+import zte.net.ecsord.params.logs.req.MatchDictLogsReq;
+import zte.net.ecsord.params.logs.req.MatchInfLogStateReq;
+import zte.net.ecsord.params.logs.resp.MatchInfLogStateResp;
+
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.powerise.ibss.framework.FrameException;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.service.IDictMatchManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.DataPraseDict;
+import com.ztesoft.net.model.DataPraserInst;
+import com.ztesoft.net.sqls.SF;
+
+/**
+ * @author ZX
+ * @version 2015-08-27
+ * @see 字典匹配管理
+ * 
+ */
+public class DictMatchManager extends BaseSupport implements IDictMatchManager {
+	
+	private static ExecutorService dictMatchThreadPools = null;
+	private void startup() {
+		if (DictMatchManager.dictMatchThreadPools == null) {
+			synchronized(DictMatchManager.class) {
+				DictMatchManager.dictMatchThreadPools = Executors.newCachedThreadPool(new ThreadFactoryImpl("日志字典匹配线程"));
+			}
+		}
+	}
+	
+	@Override
+	public void matchDictLogs(final MatchDictLogsReq req) {
+		startup();
+		Thread thread = new Thread(new th(req));
+		dictMatchThreadPools.execute(thread);
+	}
+	
+	private class th implements Runnable{
+		private MatchDictLogsReq req0;
+		public th(final MatchDictLogsReq req) {
+			this.req0 = req;
+		}
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			List<DataPraseDict> dict_list = getDictList();
+			if (dict_list != null && CollectionUtils.isNotEmpty(dict_list)) {
+				for (DataPraseDict dict : dict_list) {
+					chooseMatchWay(dict, req0);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 获取所有字典
+	 * 
+	 * @return
+	 */
+	private List<DataPraseDict> getDictList() {
+		String sql = SF.orderSql("LIST_MATCH_DICT");
+		return baseDaoSupport.queryForList(sql, DataPraseDict.class);
+	}
+	
+	/**
+	 * 选择匹配方式
+	 * 
+	 * @param dict
+	 */
+	private void chooseMatchWay(DataPraseDict dict, MatchDictLogsReq req) {
+		// 1-精确匹配，2-模糊匹配
+		if (dict.getDict_match_type().equals("1")) {
+			matchDictByJQ(dict, req);
+		} else if (dict.getDict_match_type().equals("2")) {
+			matchDictByMH(dict, req);
+		} else {
+			return;
+		}
+	}
+	
+	/**
+	 * 精确匹配字典
+	 * 
+	 * @param list
+	 */
+	private boolean matchDictByJQ(DataPraseDict dict, MatchDictLogsReq req) {
+		String rsp_xml = req.getRsp_xml(); // 报文内容
+		String c = dict.getDict_match_content(); // 匹配内容
+		if (rsp_xml.contains(c)) {
+			saveDataPraserInst(dict, req, c);
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	/**
+	 * 模糊匹配字典
+	 * 
+	 * @param List
+	 */
+	private boolean matchDictByMH(DataPraseDict dict, MatchDictLogsReq req) {
+		boolean bool = false;
+		String rsp_xml = req.getRsp_xml(); // 报文内容
+		String[] cs = dict.getDict_match_content().split("_"); // 和数据库保持一致，以'_'分割
+		for (String c : cs) {
+			if (c.split("&").length > 1) { // 是否存在并关系
+				int i = 0;
+				String[] ss = c.split("&");
+				for (String s : ss) {
+					if (!rsp_xml.contains(s)) {
+						break;// 不满足并关系，直接退出
+					} else if (i == ss.length - 1) {
+						saveDataPraserInst(dict, req, c);
+						return true;// 运行到此处即已满足并关系
+					}
+					i++;
+				}
+			} else {
+				if (rsp_xml.contains(c)) {
+					saveDataPraserInst(dict, req, c);
+					return true;
+				} else {
+					continue;
+				}
+			}
+		}
+		return bool;
+	}
+	
+	/**
+	 * 保存数据实例表 es_data_praser_inst
+	 * 
+	 * @param dict
+	 * @param req
+	 */
+	private void saveDataPraserInst(DataPraseDict dict, MatchDictLogsReq req, String desc) {
+		DataPraserInst inst = new DataPraserInst();
+		String time2 = "";
+		try {
+			time2 = DateUtil.getTime2();
+		} catch (FrameException e) {
+			e.printStackTrace();
+		}
+		String log_id = baseDaoSupport.getSequences("SEQ_DATA_PRASER_INST",
+				"1", 18);
+		inst.setLog_id(log_id); // 日志ID
+		inst.setOp_code(req.getOp_code()); // 组件编码
+		inst.setDict_id(dict.getDict_id()); // 字典ID
+		inst.setCatalog_id(dict.getCatalog_id()); // 字典目录ID
+		inst.setRsp_msg(desc); // 日志概要描述
+		inst.setObj_id(req.getObj_id()); // 业务ID
+		inst.setCreate_time(time2); // 创建时间
+		inst.setUpdate_time(time2); // 修改时间
+		inst.setDeal_state("0"); // 处理状态(0-未处理，1-已处理)
+		inst.setDeal_content(""); // 处理内容
+		inst.setLocal_log_id(req.getLocal_log_id());
+		inst.setSource_from(ManagerUtils.getSourceFrom()); // 数据来源
+		baseDaoSupport.insert("ES_DATA_PRASER_INST", inst);
+	}
+
+	@Override
+	public void matchInfLogState(MatchInfLogStateReq req, MatchInfLogStateResp resp) {
+		String op_code = req.getOp_code();
+		String op_code_10 = op_code.substring(0, 11);
+		String rspXml = req.getRspXml();
+		Map logColMap = req.getLogColMap();
+		Map paramMap = req.getRetObj();
+		if (op_code_10.contains("periphery.")) {
+			if (rspXml.contains("\"RespCode\":\"0000\"")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+//		if (op_code.equals("periphery.certCheck")) { // 不知道什么情况成功 (照片信息查询 J116) - 总部的接口,暂没用
+//			
+//		}
+//		if (op_code.equals("sf.orderFilterService")) { // 暂无用
+//			
+//		}
+//		if (op_code.equals("nd.notifyOrderInfo")) { // 没找到返回报文样式(订单信息同步到南都J81) - 暂没用
+//			
+//		}
+//		if (op_code.equals("oldOrderSys.2OrderInfo")) { // 没找到返回报文样式(订单流转到旧订单系统J11) - 暂没用
+//			
+//		}
+		if (op_code_10.contains("WYG.") && logColMap.containsKey("col2")) {
+			String state = logColMap.get("col2").toString();
+			if (state.equals("success") || rspXml.contains("\"resp_code\":\"0\"")) {
+				resp.setInf_state("1");
+			} else if (state.equals("error") || !rspXml.contains("\"resp_code\":\"0\"")) {
+				resp.setInf_state("0");
+			} else {
+				resp.setInf_state("-1");
+			}
+		}
+		if (op_code.contains("Sync2Wms")) {
+			if (rspXml.contains("<errorCode>0000</errorCode>")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code_10.contains("sr.")) {
+			if(StringUtils.isNotBlank(rspXml)){
+				if (rspXml.contains("\"code\":\"0\"")) {
+					resp.setInf_state("1");
+				}else{
+					resp.setInf_state("0");
+				}
+			}else{
+				resp.setInf_state("0");
+			}
+			
+		}
+		if (op_code_10.contains("sf.")) {
+			if (rspXml.contains("<Head>OK</Head>") 
+					|| rspXml.contains("<errorCode>OK</errorCode>") 
+					|| rspXml.contains("<error_code>OK</error_code>")) {
+				resp.setInf_state("1");
+			}else{
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code.equals("gdaop.trades.cunFeeSongFee")) {
+			if(rspXml.contains("<RESULTCODE>0000</RESULTCODE>")){
+				resp.setInf_state("1");
+			}else{
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code_10.contains("tb.")) {
+			if (StringUtils.isNotBlank(rspXml)) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("-1");
+			}
+		}
+		if (op_code_10.contains("bss.")) {
+			if (paramMap!=null && paramMap.containsKey("error_code")) {
+				String error_code = paramMap.get("error_code").toString();
+				if ("0000".equals(error_code)) {
+					resp.setInf_state("1");
+				} else if ("-9999".equals(error_code)) {
+					resp.setInf_state("0");
+				} else {
+					resp.setInf_state("-1");
+				}
+			} else {
+				resp.setInf_state("-1");
+			}
+		}
+		if (op_code_10.contains("ecaop.")) {
+			if (paramMap!=null && paramMap.containsKey("error_code")) {
+				String error_code = paramMap.get("error_code").toString();
+				switch (Integer.parseInt(error_code)) {
+				case EcsOrderConsts.AOP_HTTP_STATUS_CODE_200:
+					resp.setInf_state("1");
+					break;
+				case EcsOrderConsts.AOP_HTTP_STATUS_CODE_560:
+					resp.setInf_state("0");
+					break;
+				case EcsOrderConsts.AOP_HTTP_STATUS_CODE_600:
+					if (op_code.equals("ecaop.trades.query.comm.user.threepart.check")) {
+						resp.setInf_state("0");
+						break;
+					} else {
+						resp.setInf_state("-1");
+						break;
+					}
+				case EcsOrderConsts.AOP_HTTP_STATUS_CODE_440:
+					if (op_code.equals("ecaop.trades.query.comm.user.threepart.check")) {
+						resp.setInf_state("0");
+						break;
+					} else {
+						resp.setInf_state("-1");
+						break;
+					}
+				default:
+					resp.setInf_state("1");
+					break;
+				}
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code.contains("chargebackApplyWYG")) {
+			if (rspXml.contains("\"respCode\":\"0000\"")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code.contains("notifyOpenAccountGD") || op_code_10.contains("notifyOrderAbnormalToGD")) {
+			if (rspXml.contains("\"error_code\":\"0000\"")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code.contains("NotifyOrderStatu")) {
+			if (rspXml.contains("\"errorCode\":\"0000\"")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code.contains("orderAKeyActWYG")) {
+			if (rspXml.contains("\"resp_code\":\"0000\"")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code.contains("stateSynchronizationToSystem")) {
+			if (rspXml.contains("\"error_code\":\"0000\"")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+		if (op_code.contains("SynchronousCardInfo") || op_code.contains("SynchronousSerialNumber")) {
+			if (rspXml.contains("\"errorCode\":\"0000\"")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+		if(op_code.contains("ems.")){
+			if (rspXml.contains("\"success\":\"T\"")) {
+				resp.setInf_state("1");
+			} else {
+				resp.setInf_state("0");
+			}
+		}
+	}
+	
+}

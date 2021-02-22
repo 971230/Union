@@ -1,0 +1,42 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>无标题文档</title>
+<script type="text/javascript" src="js/jquery-1.8.1.min.js"></script>
+<script type="text/javascript" src="js/jquery.fullbg.min.js"></script>
+<link rel="stylesheet" href="css/rest.css">
+<style type="text/css">
+body{position:relative;}
+ul.nva{height:141px;width:800px;position:absolute;bottom:10%;left:50%;margin-left:-267px;}
+ul.nva li{width:106px;height:100%;float:left;margin-right:7px;cursor:pointer;background:url(images/1_btn.png) no-repeat;}
+ul.nva li.one{background-position:0 0;}
+ul.nva li.one:hover{background-position:0 -142px;}
+ul.nva li.two{background-position:-107px 0;}
+ul.nva li.two:hover{background-position:-107px -142px;}
+ul.nva li.three{background-position:-214px 0;}
+ul.nva li.three:hover{background-position:-214px -142px;}
+ul.nva li.four{background-position:-321px 0;}
+ul.nva li.four:hover{background-position:-321px -142px;}
+ul.nva li.five{background-position:-428px 0;}
+ul.nva li.five:hover{background-position:-428px -142px;}
+ul.nva li.last{margin-right:0;}
+</style>
+</head>
+
+<body style="overflow:hidden;">
+<img src="images/1.jpg" alt="" id="background" />
+<script type="text/javascript">
+$(window).load(function() {
+	$("#background").fullBg();
+});
+</script>
+<ul class="nva">
+   <li class="one"><a href="#"></a></li>
+   <li class="two"><a href="#"></a></li>
+   <li class="three"><a href="#"></a></li>
+   <li class="four"><a href="#"></a></li>
+   <li class="five last"><a href="#"></a></li>
+</ul>
+</body>
+</html>

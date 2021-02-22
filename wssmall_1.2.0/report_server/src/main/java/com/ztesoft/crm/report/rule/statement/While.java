@@ -1,0 +1,66 @@
+/*    */ package com.ztesoft.crm.report.rule.statement;
+/*    */ 
+/*    */ import com.ztesoft.crm.report.rule.ReturnValue;
+/*    */ import com.ztesoft.crm.report.rule.Statement;
+/*    */ import com.ztesoft.crm.report.rule.Token;
+/*    */ 
+/*    */ public class While extends Statement
+/*    */ {
+/*    */   private Token condition;
+/*    */   private Token body;
+/*    */ 
+/*    */   @Override
+public Object execute()
+/*    */   {
+/* 29 */     if (this.condition == null)
+/* 30 */       return null;
+/*    */     do
+/*    */     {
+/* 33 */       Object o = this.body.execute();
+/* 34 */       if (o != null) {
+/* 35 */         if (o instanceof Continue) {
+/*    */           continue;
+/*    */         }
+/*    */ 
+/* 39 */         if (o instanceof Break) {
+/*    */           break;
+/*    */         }
+/*    */ 
+/* 43 */         if (o instanceof ReturnValue)
+/* 44 */           return o;
+/*    */       }
+/*    */     }
+/* 31 */     while (isContinue());
+/*    */ 
+/* 50 */     return null;
+/*    */   }
+/*    */ 
+/*    */   private boolean isContinue() {
+/* 54 */     Boolean b = (Boolean)this.condition.execute();
+/*    */ 
+/* 56 */     return ((b != null) && (b.booleanValue()));
+/*    */   }
+/*    */ 
+/*    */   public Token getCondition()
+/*    */   {
+/* 64 */     return this.condition;
+/*    */   }
+/*    */ 
+/*    */   public void setCondition(Token condition) {
+/* 68 */     this.condition = condition;
+/* 69 */     if (this.condition == null) return; this.condition.setParent(this);
+/*    */   }
+/*    */ 
+/*    */   public Token getBody() {
+/* 73 */     return this.body;
+/*    */   }
+/*    */ 
+/*    */   public void setBody(Token body) {
+/* 77 */     this.body = body;
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.rule.statement.While
+ * JD-Core Version:    0.5.3
+ */

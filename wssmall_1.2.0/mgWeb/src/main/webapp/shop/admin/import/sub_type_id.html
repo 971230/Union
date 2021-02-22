@@ -1,0 +1,8 @@
+<option value="">--请选择--</option>
+<#if subTypes??>
+<#list subTypes as subType>
+	<option value="${subType.sub_type_id }">
+		${subType.sub_type_name }
+	</option>
+</#list>
+</#if>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+ <!-- 
+	应用：工作流应用
+	配置说明(以tomcat为例)：按顺序找到Window -> Preferences -> MyEclipse -> Servers -> Tomcat -> Tomcat 6.x -> JDK
+	在"Optional Java VM arguments:"配置 -DWEBCONFIG=classpath*:webconfig/uos_app.xml
+ -->
+	<import resource="classpath*:spring/dataAccessContext-flow.xml"/>
+	<import resource="classpath*:spring/flowServiceContext.xml"/>
+	<import resource="classpath*:spring/timerFlowContext.xml"/>
+	
+	<import resource="classpath*:spring/dubbo-admin.xml"/>
+	
+	<import resource="classpath*:dubbo/spring/dubbo-workflow-spring.xml"/>
+	
+	<import resource="classpath*:dubbo/service/dubbo-workflow-service.xml"/>
+	
+<!-- 	<import resource="classpath*:dubbo/reference/dubbo-client-reference.xml"/> -->
+<!--     <import resource="classpath*:dubbo/reference/remote-reference.xml"/> -->
+<!--     <import resource="classpath*:dubbo/reference/dubbo-workflow-reference.xml"/> -->
+	
+    
+</beans>

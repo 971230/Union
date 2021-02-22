@@ -1,0 +1,88 @@
+@charset "utf-8";
+/* CSS Document */
+body{ font-size:12px;}
+.search_form {
+    background: url("../images/formbg.gif") repeat-x scroll left top #F0F0F0;
+    border-right: 1px solid #cdcdcd;
+    border-top: 1px solid #cdcdcd;
+    padding: 5px;
+}
+.search_form table {
+}
+.search_form table th {
+    color: #666666;
+    padding-right: 3px;
+    text-align: right;
+    vertical-align: middle;
+    width: 85px;
+}
+.search_form table td {
+    padding-bottom: 3px;
+    padding-top: 3px;
+    vertical-align: middle;
+}
+.search_btn {
+    background: url("../images/combtn_b.gif") repeat-x left top;
+    border: 1px solid #690000;
+    color: #FFFFFF;
+    cursor: pointer;
+    display: inline-block;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    width: 70px;
+}
+.search_btn:hover {
+    background: url("../images/combtn_b_hover.gif") repeat-x left top;
+    color: #FFFFFF;
+}
+.ipttxt{
+    background:#FFFFFF;
+    border: 1px solid #CECECE;
+    color: #666666;
+    height: 22px;
+    line-height: 22px;
+    padding-left: 3px;
+}
+.iptarea{
+    background:#FFFFFF;
+    border: 1px solid #CECECE;
+    color: #666666;
+    line-height: 22px;
+    padding-left: 3px;
+}
+.form_table{}
+.form_table a{ color:#0970c7;}
+.form_table table{ border-top:1px solid #cdcdcd; line-height:30px; border-collapse:collapse;}
+.form_table table th{ color:#444; font-weight:bold; padding-left:5px;border-bottom:1px solid #cdcdcd;}
+.form_table table td{ border-bottom:1px dashed #f3f3f3; padding-left:5px;}
+.form_table table th a{ color:#444;}
+
+.reserved_div{
+    background: url("../images/formbg.gif") repeat-x scroll left top #F0F0F0;
+    border-right: 1px solid #cdcdcd;
+    border-top: 1px solid #cdcdcd;
+    padding: 5px;
+}
+.reserved_table{ line-height:30px;}
+.reserved_table th{ text-align:right; width:150px;}
+.reserved_table td{ padding-left:10px;}
+.form_grid{ padding:8px;border:1px solid #cdcdcd;}
+.form_grid table{ border-collapse:collapse; border:1px solid #e3e3e3; line-height:25px;}
+.form_grid table th{ text-align:right; padding-right:5px; border:1px solid #e3e3e3; width:145px; background:#f0f0f0; vertical-align:top;}
+.form_grid table td{ padding-left:5px; border:1px solid #e3e3e3; padding-top:3px; padding-bottom:3px;}
+.form_grid table td label{ margin-right:15px;}
+
+.form_grid_btn{ text-align:center; padding-top:10px; padding-bottom:10px;}
+.formbtn {background: url("../images/combtn_b.gif") repeat-x;border: 1px solid #690000; color: #fff; display: inline-block; font-size: 12px; height: 22px; line-height: 22px; margin: 0; min-width: 50px; padding: 0 8px; text-align: center;}
+.formbtn:hover{background: url("../images/combtn_b_hover.gif") repeat-x left top;color: #fff;}
+.formgraybtn {background: url("../images/gray.gif") repeat-x;border: 1px solid #a4a4a4; color: #444; display: inline-block; font-size: 12px; height: 22px; line-height: 22px; margin: 0; min-width: 50px; padding: 0 8px; text-align: center;}
+.formgraybtn:hover{background: url("../images/gray_hover.gif") repeat-x left top;color: #444;}
+.form_grid_title{ height:28px; line-height:28px; border:1px solid #e3e3e3; border-bottom:none;background:url(../images/form_title.gif) repeat-x; padding-left:10px; font-weight:bold;}
+
+.form_history{ padding:8px;}
+.form_history table{ border-collapse:collapse; border:1px solid #e3e3e3; line-height:25px;}
+.form_history table th{ text-align:center; font-weight:bold; padding-right:5px; border:1px solid #e3e3e3; background:#f0f0f0;}
+.form_history table td{ padding-left:5px; border:1px solid #e3e3e3;}
+.form_history table td label{ margin-right:15px;}
+.form_history table tr.double td{ background:#f5f5f5;}

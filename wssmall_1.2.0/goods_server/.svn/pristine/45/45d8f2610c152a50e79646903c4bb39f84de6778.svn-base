@@ -1,0 +1,377 @@
+package com.ztesoft.net.mall.core.action.backend;
+
+import com.ztesoft.net.app.base.core.model.Supplier;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.AgreementControl;
+import com.ztesoft.net.mall.core.model.GoodsAgreement;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+import com.ztesoft.net.mall.core.service.IGoodsAgreementManager;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+import params.suppler.req.SupplierExamReq;
+import params.suppler.req.SupplierObjReq;
+import params.suppler.resp.SupplierExamResp;
+import params.suppler.resp.SupplierObjResp;
+import services.SupplierInf;
+
+import java.util.List;
+import java.util.Map;
+
+public class GoodsAgreementAction extends WWAction {
+	private GoodsAgreement agreement;
+	private Supplier supplier;
+	private AgreementControl agreementControl;
+    private IGoodsAgreementManager agreeManager;
+    private SupplierInf supplierServ;
+	private IDcPublicInfoManager dcPublicInfoManager;
+    private String agreement_name;
+    private String agreement_id;
+    private String hide_code;
+    private String supplier_name;//供应商名称
+    private String supplier_companyName;//供应商公司名称
+    private List   codeList;
+    private List controlTypeList;
+    private List subControlTypeList;
+    private List companyTypeList;
+    private String codeStr;
+    private String controlValStr;
+    private String money_control_value;
+    private String qty_control_value;
+    private List<AgreementControl>   agtControlList;
+    private String sub_control_type;
+    private String control_type;
+    private String control_value;
+	public String goodsAgreementSave(){
+		
+		try{
+			//this.agreement.setAgreement_code();
+			this.agreement.setSub_portion(this.agreementControl.getSub_control_type());
+			this.agreeManager.addAgreement(agreement);
+			this.agreementControl.setAgreement_id(agreement.getAgreement_id());
+			String sub_control_type=this.agreementControl.getSub_control_type();
+			String controlType = this.agreementControl.getControl_type();
+			if("CO".equals(controlType)&&"MO".equals(sub_control_type)){
+			  String[] codeList = this.codeStr.split(",");
+			  String[] controlValList = this.controlValStr.split(",");
+			  for(int i=0;i<codeList.length;i++){
+				   this.agreementControl.setControl_lan_code(codeList[i]);
+				   this.agreementControl.setControl_value(Double.parseDouble(controlValList[i]));
+				   this.agreeManager.insertAgreementControl(agreementControl);
+			  }
+			  
+			}else{
+				 if("MO".equals(this.agreementControl.getControl_type()))
+					 this.agreementControl.setControl_value(Double.parseDouble(this.money_control_value));
+
+			     if("PN".equals(this.agreementControl.getControl_type()))
+			    	 this.agreementControl.setControl_value(Double.parseDouble(this.qty_control_value));
+			
+				 this.agreementControl.setControl_lan_code(Consts.LAN_PROV);
+				 this.agreeManager.insertAgreementControl(agreementControl);
+			}
+			this.json = "{result:0,message:'新建框架协议成功'}";
+			
+		}catch(RuntimeException e){
+			 this.json = "{result:0,message:\"新建框架协议失败：" + e.getMessage() + "\"}";
+		}
+	  
+		
+		return this.JSON_MESSAGE;
+		
+	}
+	
+	public String goodsAgreement_input() {
+	
+		DcPublicInfoCacheProxy dcPublicCache=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		 this.codeList = dcPublicCache.getList("6666");
+		 this.controlTypeList = dcPublicCache.getList("6661");
+		 this.subControlTypeList = dcPublicCache.getList("6662");
+		 this.companyTypeList = dcPublicCache.getList("6663");
+		return "goodsAgreement_input";
+	}
+
+	public String goodsAgreementList() {
+		 this.webpage = this.agreeManager.listAgreement(this.agreement_name, this.getPage(),this.getPageSize());
+		 return "goodsAgreementList";
+	}
+
+	public String delAgreement() {
+		try{
+			this.agreeManager.deleteAgreement(this.agreement_id);
+			this.json = "{result:0,message:'删除框架协议成功'}";
+			
+		}catch(RuntimeException e){
+			 this.json = "{result:0,message:\"删除框架协议失败：" + e.getMessage() + "\"}";
+			
+		}
+	  
+		 return this.JSON_MESSAGE;
+	}
+	public String editGoodsAgreement(){
+		DcPublicInfoCacheProxy dcPublicCache=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		this.codeList = dcPublicCache.getList("6666");
+		this.controlTypeList = dcPublicCache.getList("6661");
+		this.subControlTypeList = dcPublicCache.getList("6662");
+		this.companyTypeList = dcPublicCache.getList("6663");
+		this.agtControlList = this.agreeManager.getControlById(this.agreement_id);
+		Map map = (Map) this.agtControlList.get(0);
+		this.control_type =map.get("control_type").toString() ;
+		this.sub_control_type = map.get("sub_control_type").toString();
+		this.control_value = map.get("control_value").toString();
+		//this.agreementControl = this.agtControlList.get(0);
+		this.agreement = this.agreeManager.editAgreement(this.agreement_id);
+		
+		SupplierObjReq supplierObjReq = new SupplierObjReq();
+		supplierObjReq.setSupplier_id(this.agreement.getSupplier_id());
+		
+		SupplierObjResp supplierObjResp = new SupplierObjResp();
+		supplierObjResp = this.supplierServ.findSupplierById(supplierObjReq);
+		
+		this.supplier_name = "";
+		if(supplierObjResp != null){
+			this.supplier_name = supplierObjResp.getSupplier_name();
+		}
+		
+		
+		
+		return "edit_agreement";
+	}
+	public String GoodsAgreementEditSave(){
+		try{
+			//String code = this.agreement.getAgreement_code().substring(0,2)+this.hide_code.substring(2);
+			//this.agreement.setAgreement_code(code);
+			this.agreement.setSub_portion(this.agreementControl.getSub_control_type());
+			this.agreeManager.updateAgreement(this.agreement);
+			this.agreeManager.delAllControlByAgtId(this.agreement.getAgreement_id());
+			this.agreementControl.setAgreement_id(agreement.getAgreement_id());
+			String controlType = this.agreementControl.getControl_type();
+			String sub_control_type=this.agreementControl.getSub_control_type();
+			if("CO".equals(controlType)&&"MO".equals(sub_control_type)){
+			  String[] codeList = this.codeStr.split(",");
+			  String[] controlValList = this.controlValStr.split(",");
+			  for(int i=0;i<codeList.length;i++){
+				   this.agreementControl.setControl_lan_code(codeList[i]);
+				   this.agreementControl.setControl_value(Double.parseDouble(controlValList[i]));
+				   this.agreeManager.insertAgreementControl(agreementControl);
+			  }
+			  
+			}else{
+				 if("MO".equals(this.agreementControl.getControl_type()))
+					 this.agreementControl.setControl_value(Double.parseDouble(this.money_control_value));
+
+			     if("PN".equals(this.agreementControl.getControl_type()))
+			    	 this.agreementControl.setControl_value(Double.parseDouble(this.qty_control_value));
+			
+				 this.agreementControl.setControl_lan_code(Consts.LAN_PROV);
+				 this.agreeManager.insertAgreementControl(agreementControl);
+			}
+			
+			this.json = "{result:0,message:'修改框架协议成功'}";	
+		}catch(RuntimeException e){
+			 this.json = "{result:0,message:\"修改框架协议失败：" + e.getMessage() + "\"}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	public String getSuppliesList(){
+		SupplierExamReq supplierExamReq = new SupplierExamReq();
+		supplierExamReq.setPage_index(String.valueOf(this.getPage()));
+		supplierExamReq.setPage_size(String.valueOf(this.getPageSize()));
+		supplierExamReq.setSuppler_name(this.supplier_name);
+		supplierExamReq.setCompany_name(this.supplier_companyName);
+		
+		SupplierExamResp supplierExamResp = new SupplierExamResp();
+		supplierExamResp = this.supplierServ.findExamineSupplier(supplierExamReq);
+		
+		this.webpage = new Page();
+		if(supplierExamResp != null){
+			this.webpage = supplierExamResp.getWebPage();
+		}
+		return "show_supplies";
+	}
+	
+	
+	public GoodsAgreement getAgreement() {
+		return agreement;
+	}
+
+	public void setAgreement(GoodsAgreement agreement) {
+		this.agreement = agreement;
+	}
+	public IGoodsAgreementManager getAgreeManager() {
+		return agreeManager;
+	}
+	public void setAgreeManager(IGoodsAgreementManager agreeManager) {
+		this.agreeManager = agreeManager;
+	}
+	public String getAgreement_name() {
+		return agreement_name;
+	}
+	public void setAgreement_name(String agreement_name) {
+		this.agreement_name = agreement_name;
+	}
+
+	public String getAgreement_id() {
+		return agreement_id;
+	}
+
+	public void setAgreement_id(String agreement_id) {
+		this.agreement_id = agreement_id;
+	}
+
+	public String getHide_code() {
+		return hide_code;
+	}
+
+	public void setHide_code(String hide_code) {
+		this.hide_code = hide_code;
+	}
+
+
+	public SupplierInf getSupplierServ() {
+		return supplierServ;
+	}
+
+	public void setSupplierServ(SupplierInf supplierServ) {
+		this.supplierServ = supplierServ;
+	}
+
+	public Supplier getSupplier() {
+		return supplier;
+	}
+
+	public void setSupplier(Supplier supplier) {
+		this.supplier = supplier;
+	}
+
+	public String getSupplier_name() {
+		return supplier_name;
+	}
+
+	public void setSupplier_name(String supplier_name) {
+		this.supplier_name = supplier_name;
+	}
+
+	public String getSupplier_companyName() {
+		return supplier_companyName;
+	}
+
+	public void setSupplier_companyName(String supplier_companyName) {
+		this.supplier_companyName = supplier_companyName;
+	}
+
+	public List getCodeList() {
+		return codeList;
+	}
+
+	public void setCodeList(List codeList) {
+		this.codeList = codeList;
+	}
+
+	public IDcPublicInfoManager getDcPublicInfoManager() {
+		return dcPublicInfoManager;
+	}
+
+	public void setDcPublicInfoManager(IDcPublicInfoManager dcPublicInfoManager) {
+		this.dcPublicInfoManager = dcPublicInfoManager;
+	}
+
+	public String getCodeStr() {
+		return codeStr;
+	}
+
+	public void setCodeStr(String codeStr) {
+		this.codeStr = codeStr;
+	}
+
+	public String getControlValStr() {
+		return controlValStr;
+	}
+
+	public void setControlValStr(String controlValStr) {
+		this.controlValStr = controlValStr;
+	}
+
+	public AgreementControl getAgreementControl() {
+		return agreementControl;
+	}
+
+	public void setAgreementControl(AgreementControl agreementControl) {
+		this.agreementControl = agreementControl;
+	}
+
+	public String getMoney_control_value() {
+		return money_control_value;
+	}
+
+	public void setMoney_control_value(String money_control_value) {
+		this.money_control_value = money_control_value;
+	}
+
+	public String getQty_control_value() {
+		return qty_control_value;
+	}
+
+	public void setQty_control_value(String qty_control_value) {
+		this.qty_control_value = qty_control_value;
+	}
+
+	public List<AgreementControl> getAgtControlList() {
+		return agtControlList;
+	}
+
+	public void setAgtControlList(List<AgreementControl> agtControlList) {
+		this.agtControlList = agtControlList;
+	}
+
+	public String getSub_control_type() {
+		return sub_control_type;
+	}
+
+	public void setSub_control_type(String sub_control_type) {
+		this.sub_control_type = sub_control_type;
+	}
+
+	public String getControl_type() {
+		return control_type;
+	}
+
+	public void setControl_type(String control_type) {
+		this.control_type = control_type;
+	}
+
+	public String getControl_value() {
+		return control_value;
+	}
+
+	public void setControl_value(String control_value) {
+		this.control_value = control_value;
+	}
+
+	public List getControlTypeList() {
+		return controlTypeList;
+	}
+
+	public void setControlTypeList(List controlTypeList) {
+		this.controlTypeList = controlTypeList;
+	}
+
+	public List getSubControlTypeList() {
+		return subControlTypeList;
+	}
+
+	public void setSubControlTypeList(List subControlTypeList) {
+		this.subControlTypeList = subControlTypeList;
+	}
+
+	public List getCompanyTypeList() {
+		return companyTypeList;
+	}
+
+	public void setCompanyTypeList(List companyTypeList) {
+		this.companyTypeList = companyTypeList;
+	}
+
+	
+    
+}

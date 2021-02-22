@@ -1,0 +1,54 @@
+package com.ztesoft.net.cache.timer;
+
+import java.util.TimerTask;
+
+import org.apache.log4j.Logger;
+
+/**
+ * 适合对一些静态表数据进行缓存，并自动更新<br>
+ * 缓存结果的对象格式：List<Map<String,Object>>
+ * @author Reason.Yea 
+ * @version 创建时间：Jan 22, 2014
+ */
+public class CacheTask extends TimerTask {
+	private Logger logger = Logger.getLogger(CacheTask.class);
+	/**
+	 * 命名空间
+	 */
+	private int nameSpace;
+	/**
+	 * 缓存key
+	 */
+	private String key;
+	/**
+	 * 待执行的sql脚本
+	 */
+	private String sql;
+	/**
+	 * 超时时间,单位为妙
+	 */
+	private int expireTime;
+	
+	public CacheTask(int nameSpace,String key,String sql,int expireTime){
+		this.nameSpace = nameSpace;
+		this.key = key;
+		this.sql = sql;
+		this.expireTime = expireTime;
+	}
+	@Override
+	public void run() {
+		//校验是否可以执行定时任务，避免多服务器都执行
+//		if (!CheckSchedulerServer.isMatchServer()) {
+//			return;
+//		}
+//		logger.info("Cache sql result["+key+"] begin......");
+//		try {
+//			List<Map> result = new SqlExe().queryForList(sql);
+//			CacheFactory.getCache().set(nameSpace, key, (Serializable) result, expireTime);	
+//		} catch (Exception e) {
+//			throw new CacheException("Cache for sqlName ["+key+"] exception!" );
+//		}
+//		logger.info("Cache sql result["+key+"] end......");
+	}
+	
+}

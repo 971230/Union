@@ -1,0 +1,11 @@
+package com.ztesoft.net.mall.core.service;
+
+import java.util.Map;
+
+import com.ztesoft.net.mall.core.model.Goods;
+
+public interface IGoodsImportHandler {
+	
+	public boolean importGoods() throws RuntimeException;
+
+}

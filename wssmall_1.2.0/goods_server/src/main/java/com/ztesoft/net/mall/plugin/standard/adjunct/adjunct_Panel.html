@@ -1,0 +1,88 @@
+<table class="form-table" name="pTable">
+	<input type="hidden" name="pid_index" value="<#if adjunct?exists&& adjunct.set_price == 'discount'>${adjunct_index}</#if>" />
+		<tr>
+			<td>
+				<span style="float:right;">配件组名称：</span>
+			</td>
+			<td class="adj">
+				<span style="float:left"><input type="text" id="nowAdjunctGroupName" name="adjunct.adjunct_name" class="ipttxt1" style="width:120px;" <#if adjunct?exists>value="${adjunct.adjunct_name!'' }"</#if>  dataType="string" />&nbsp;</span>
+				<a href="javascript:void(0);" ><img class="delete" src="${ctx}/shop/admin/images/transparent.gif" > </a>
+			</td>
+		</tr>
+		
+		<tr>
+			<td>
+				<span style="float:right;">最小购买量：</span>
+			</td>
+			<td>
+				<input type="text" name="adjunct.min_num" class="ipttxt1" id="nowAdjunctMinNum"  style="width:120px;" <#if adjunct?exists>value="${adjunct.min_num!'' }"</#if>  dataType="int" />
+				
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<span style="float:right;">最大购买量：</span>
+			</td>
+			<td>
+				<input type="text" name="adjunct.max_num" id="nowAdjunctMaxNum" class="ipttxt1"  style="width:120px;" <#if adjunct?exists>value="${adjunct.max_num!'' }"</#if>  dataType="int" />
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<span style="float:right;">配件优惠：</span>
+			</td>
+			<td>
+				<select style="width:120px;" class="ipttxt" id="nowAdjunctPriceType" name="pricetype">
+					<option value="discount" <#if adjunct?exists&& adjunct.set_price == 'discount'>selected</#if> >优惠某个折扣</option>
+					<option value="minus" <#if adjunct?exists&& adjunct.set_price == 'minus'>selected</#if> >优惠一定金额</option>
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<span style="float:right;">配件优惠：</span>
+			</td>
+			<td>
+				<input type="text" id="nowAdjunctYouhuiPrice" name="adjunct.price" class="ipttxt1" style="width:120px;" <#if adjunct?exists>value="${adjunct.price!'' }"</#if>  dataType="float" />
+				(无优惠可不填；优惠9折就输入0.9，优惠100元就输入100)
+			</td>
+		</tr>
+		<tr>
+			<td>
+			<span style="float:right;">添加配件商品：</span>
+			<td>
+			    <div class="grid">
+				<table  cellspacing="0" cellpadding="0" class="adjunct_grid">
+					<thead>
+						<tr>
+							<th style="text-align:left"><a href="javascript:void(0)" style="margin-right:10px;" class="graybtn1" onclick="addGoodsComplex()"><span onclick='popAdjust($(this));'>添加</span></a><div style="display:none"><input type="button" value="添加" class="adj_item_addbtn" /></div>	</th>
+							<th style="text-align:left;">商品名称</th>
+							<th style="text-align:left;">操作</th>
+						</tr>
+					</thead>
+					<tbody id="adjunctitem_body" class="adjunctitem_body">
+					<#if adjunct?exists && adjunct.listAdjunctItem?exists>
+						<#list adjunct.listAdjunctItem as item>
+							<tr id="adj_item_${item.productid}" class="adj_item_${item.productid}">
+								<td><a style="display:none;" href="javascript:void(0);" ><img class="delete" src="${ctx}/shop/admin/images/transparent.gif" > </a></td>
+								<td style="text-align:left;padding-left:35px;"><input type="hidden" name='productid_0'  p_attr='ad_product_id' value='${item.productid}' ></input>${item.name!''}</td>
+								<td style="text-align:left;padding-left:35px;">
+									<a href='javascript:void(0)' class='dele'>删除</a>
+								</td>
+							</tr>
+						</#list>
+					</#if>
+				</tbody>			
+				</table>
+				</div>
+			</td>
+		</tr>
+	</table>		
+	<script type="text/javascript">
+	function addGoodsComplex(){
+		$("input[type='button'][class='adj_item_addbtn']").trigger("click");
+	}
+	function adjunctSubmitBtn(){
+		$(".adjunctSubmitBtn").trigger("click");
+	}
+	</script>		

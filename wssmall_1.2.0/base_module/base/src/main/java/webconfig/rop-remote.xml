@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="classpath*:spring/baseServiceContext.xml"/>
+    <import resource="classpath*:spring/dataAccessContext-jdbc.xml"/>
+    <import resource="classpath*:spring/TimerRopContext.xml"/>
+    <import resource="classpath*:spring/sdkOpenService.xml"/>
+    <import resource="classpath*:spring/dubbo-admin.xml"/>
+    <import resource="classpath*:dubbo/rop/RopApplicationContext.xml"/>
+    <import resource="classpath*:dubbo/rop/dubbo-rop-service.xml"/>
+    <import resource="classpath*:dubbo/rop/dubbo-rop-spring.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-goods-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-info-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-llkj-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-member-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-order-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-partner-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-payment-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-num-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-supplier-reference.xml"/>
+    <import resource="classpath*:dubbo/reference/dubbo-sys-reference.xml"/>
+</beans>

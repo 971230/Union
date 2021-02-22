@@ -1,0 +1,975 @@
+package com.ztesoft.net.outter.inf.service;
+
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import params.ZteResponse;
+import params.coqueue.req.CoQueueAddReq;
+import params.coqueue.resp.CoQueueAddResp;
+import params.order.req.OrderOuterSyAttrReq;
+import utils.CoreThreadLocalHolder;
+import zte.params.order.req.OrderCollect;
+import zte.params.order.req.OrderStandardPushReq;
+import zte.params.order.resp.OrderAddResp;
+import zte.params.order.resp.OrderStandardPushResp;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.AttrDef;
+import com.ztesoft.net.model.AttrInst;
+import com.ztesoft.net.model.Outer;
+import com.ztesoft.net.model.OuterAccept;
+import com.ztesoft.net.model.OuterItem;
+import com.ztesoft.net.model.TempInst;
+import com.ztesoft.net.model.TplAttr;
+import com.ztesoft.net.outter.inf.iservice.IOuterService;
+import com.ztesoft.net.outter.inf.iservice.IOutterTmplManager;
+import com.ztesoft.net.outter.inf.model.PublicConst;
+import com.ztesoft.net.outter.inf.util.OuterSysConst;
+import com.ztesoft.net.server.OrderStdStandarService;
+import com.ztesoft.orderstd.service.IOrderStandingManager;
+
+import commons.CommonTools;
+import consts.ConstsCore;
+
+public class StdOuterService extends BaseSupport implements IOuterService {
+
+//	@Resource
+	protected IOutterTmplManager outterSTmplManager;
+//	@Resource
+	protected IOrderStandingManager orderStandingManager;
+//	@Resource
+	protected IDcPublicInfoManager dcPublicInfoManager;
+	
+	private OrderStdStandarService orderStdStandarService;
+	
+	public static final String OUTER_PUBLICS_KEY = "201408251037";
+	public static final String OUTER_ITEM_PUBLICS_KEY = "201408251038";
+	public static final String EXT_PUBLICS_KEY = "201408251039";
+	private static Logger logger = Logger.getLogger(StdOuterService.class);
+	/**
+	 * 首字母转大写
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-24 
+	 * @param s
+	 * @return
+	 */
+	public static String toUpperCaseFirstOne(String s) {
+		if(Character.isUpperCase(s.charAt(0)))
+			return s;
+		else
+			return(new StringBuilder()).append(Character.toUpperCase(s.charAt(0))).append(s.substring(1)).toString();
+	}
+	
+	public void fieldDefaultVal(Outer outer){
+		
+		try{
+			if(outer==null)return ;
+			List<OuterItem> itemList = outer.getItemList();
+			Map<String,String> extMap = outer.getExtMap();
+			DcPublicInfoCacheProxy dcPublicCache = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+	        List<Map> outerDefaultList = dcPublicCache.getList(OUTER_PUBLICS_KEY);
+	        List<Map> outerItemDefaultList = dcPublicCache.getList(OUTER_ITEM_PUBLICS_KEY);
+	        List<Map> extDefaultList = dcPublicCache.getList(EXT_PUBLICS_KEY); Class ocs = outer.getClass();
+	        PropertyDescriptor[] pds = null;
+	        try{
+	        	pds = getClassProperty(ocs);
+	        }catch(Exception ex){
+	        	ex.printStackTrace();
+	        	return ;
+	        }
+	        PropertyDescriptor[] ipds = null;
+	        try{
+	        	ipds = getClassProperty(OuterItem.class);
+	        }catch(Exception ex){
+	        	ex.printStackTrace();
+	        	return ;
+	        }
+	        //outer默认值设置
+			if(outerDefaultList!=null && outerDefaultList.size()>0){
+				for(Map map:outerDefaultList){
+					try{
+						Object obj = map.get("pkey");
+						Object defaultObj = map.get("pname");
+						if(obj==null || defaultObj==null)continue;
+						String proName = String.valueOf(obj);
+						Method gmt = ocs.getMethod("get"+toUpperCaseFirstOne(proName));
+						Object gValue = gmt.invoke(outer);
+						if(gValue==null){
+							invote(pds, proName, defaultObj, outer);
+						}
+					}catch(Exception ex){
+						ex.printStackTrace();
+						continue ;
+					}
+				}
+			}
+			//设置Item默认值
+			if(outerItemDefaultList!=null && outerItemDefaultList.size()>0 && itemList!=null && itemList.size()>0){
+				for(Map map:outerItemDefaultList){
+					try{
+						Object obj = map.get("pkey");
+						Object defaultObj = map.get("pname");
+						if(obj==null || defaultObj==null)continue;
+						String proName = String.valueOf(obj);
+						for(OuterItem oi:itemList){
+							Method gmt = OuterItem.class.getMethod("get"+toUpperCaseFirstOne(proName));
+							Object gValue = gmt.invoke(oi);
+							if(gValue==null){
+								invote(ipds, proName, defaultObj, oi);
+							}
+						}
+					}catch(Exception ex){
+						ex.printStackTrace();
+						continue ;
+					}
+				}
+			}
+			//设置扩展数据默认值
+			if(extDefaultList!=null && extDefaultList.size()>0){
+				if(extMap==null){
+					extMap = new HashMap<String,String>();
+					outer.setExtMap(extMap);
+				}
+				for(Map map:extDefaultList){
+					try{
+						Object obj = map.get("pkey");
+						Object defaultObj = map.get("pname");
+						if(obj==null || defaultObj==null)continue;
+						String proName = String.valueOf(obj);
+						if(!extMap.containsKey(proName) || extMap.get(proName)==null){
+							extMap.put(proName, String.valueOf(defaultObj));
+						}
+					}catch(Exception ex){
+						ex.printStackTrace();
+						continue ;
+					}
+				}
+			}
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 是否存在外系统订单
+	 * @作者 MoChunrun
+	 * @创建日期 2014-4-3 
+	 * @param outterid
+	 * @return
+	 */
+	public boolean outerIsExists(String outterid,String order_from){
+		String sql = "select count(*) from es_order_outer t where t.old_sec_order_id=? and t.order_from=? and rownum<2";
+		int num = this.baseDaoSupport.queryForInt(sql, outterid,order_from);
+		logger.info("es_order_outer is exists:"+outterid+",order_from:"+order_from+",time:"+System.currentTimeMillis()+",num:"+num);
+		return num>0;
+	}
+
+	
+	@Override
+	@SuppressWarnings("finally")
+	@Transactional(propagation = Propagation.REQUIRED)
+	public OrderStandardPushResp pushOrderStandard(OrderStandardPushReq pushReq) {
+		OrderStandardPushResp resp = new OrderStandardPushResp();
+		try{
+			CoreThreadLocalHolder.getInstance().getZteCommonData()
+					.setZteRequest(pushReq);
+			if (StringUtils.isEmpty(pushReq.userSessionId)) {
+				pushReq.setUserSessionId(pushReq.getUserSessionId());
+			}
+	
+			long start = System.currentTimeMillis();
+			
+			List<Outer> outerList = pushReq.getOuterList();
+	
+			Map<String, List<Outer>> pushMap = new HashMap<String, List<Outer>>();
+	
+			for (Outer oo : outerList) {
+				List<Outer> oList = pushMap.get(Consts.SERVICE_CODE_CO_GUIJI_NEW);
+				if (oList == null) {
+					oList = new ArrayList<Outer>();
+					pushMap.put(Consts.SERVICE_CODE_CO_GUIJI_NEW, oList);
+				}
+				oList.add(oo);
+			}
+	
+			Iterator it = pushMap.keySet().iterator();
+			while (it.hasNext()) {
+				String key = (String) it.next();
+				String service_name = "订单归集";
+				if (Consts.SERVICE_CODE_CO_GUIJI_NEW.equals(key)) {
+					service_name = "新订单归集";
+				}
+				List<Outer> oList = pushMap.get(key);
+				List respList = null;
+				if (oList != null && oList.size() > 0) {
+					long sys_outer_start_time = System.currentTimeMillis();
+					List<CoQueueAddResp> coQueueAddResps = this.perform(
+							oList, key, service_name);//写es_order，es_order_items表
+					long sys_outer_end_time = System.currentTimeMillis();
+					logger.info("订单入库执行es_order_outer表数据插入时间："+(sys_outer_end_time-sys_outer_start_time));
+					if (ListUtil.isEmpty(coQueueAddResps)) {
+						resp.setError_code(Consts.ERROR_FAIL);
+						resp.setError_msg("订单重复执行");
+						throw new RuntimeException("订单重复执行");
+					}
+					OrderOuter orderOuter = null;
+					if (!ListUtil.isEmpty(coQueueAddResps)
+							&& coQueueAddResps.size() > 0
+							&& coQueueAddResps.get(0).getCo() != null
+							&& coQueueAddResps.get(0).getCo().getOrderOuterList() != null
+							&& coQueueAddResps.get(0).getCo().getOrderOuterList()
+									.size() > 0)
+						orderOuter = coQueueAddResps.get(0).getCo()
+								.getOrderOuterList().get(0);
+					String send_type = oList.get(0).getSending_type(); // 现场交付订单实时处理失败则插入队列，作为日志跟踪
+					// 异常捕获，有问题不影响订单同步
+					long end = System.currentTimeMillis();
+					logger.info("订单同步结束，总耗时========================="
+							+ (end - start));
+					// logger.info("订单标准化开始==================================>,co_qid"+
+					// coQueueAddResps.get(0).getCoQueue().getCo_id());
+					coQueueAddResps.get(0).setUserSessionId(
+							pushReq.getUserSessionId());
+					respList = this.orderStanding(coQueueAddResps, key,
+							service_name);
+					resp.setOrderAddRespList(respList);
+					long end1 = System.currentTimeMillis();
+					logger.info("订单标准化结束，总耗时===============================>"
+									+ (end1 - end) + "订单操作总耗时：" + (end1 - start));
+	
+				}
+			}
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}finally { // add by xiang.yangbo begin
+			return resp;
+		} // end add by xiang.yangbo begin
+	}
+	
+	
+	private static Object key = new Object();
+	@Override
+	public List<CoQueueAddResp> perform(List<Outer> outerList,String service_code,String service_name) throws RuntimeException {
+		long start = System.currentTimeMillis();
+		try{
+		if(outerList!=null){
+			List<OrderCollect> clist = new ArrayList<OrderCollect>();
+			String batch_id = this.baseDaoSupport.getSequences("s_es_order");
+			synchronized (key) {
+				for(Outer oo:outerList){
+					//设置默认值
+				    long fieldDefaultVal_start_time = System.currentTimeMillis();
+					fieldDefaultVal(oo);
+					long fieldDefaultVal_end_time = System.currentTimeMillis();
+				    logger.info(oo.getOut_tid()+",fieldDefaultVal时间:"+(fieldDefaultVal_end_time-fieldDefaultVal_start_time));
+					
+					/** update by shusx 2016-06-16 这一段属性前置校验没有用了，因为异常没有往外抛
+				    long attrsyload_start_time = System.currentTimeMillis();
+					AttrSyLoadListReq req = new AttrSyLoadListReq();
+					req.setOuter(oo);
+					ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+					AttrSyLoadListResp resp = client.execute(req, AttrSyLoadListResp.class);
+					long attrsyload_end_time = System.currentTimeMillis();
+				    logger.info("属性处理器执行attrsyload时间:"+(attrsyload_end_time-attrsyload_start_time));
+				    */
+				    
+					//验证完成处理订单归集
+					List<OuterAccept> acceptList = packageOuterAccept(oo);
+					//判断订单是否存在 Consts.SERVICE_CODE_CO_GUIJI.equals(service_code) && 
+					if(/*Consts.SERVICE_CODE_CO_GUIJI.equals(service_code) &&  */outerIsExists(oo.getOut_tid(), oo.getOrder_from())){ //Consts.SERVICE_CODE_CO_GUIJI.equals(service_code) && 
+						continue ;
+					}
+					
+					List<OrderOuter> orderOuerList = new ArrayList<OrderOuter>();
+					if(acceptList!=null && acceptList.size()>0){
+						for(OuterAccept accept:acceptList){
+							OrderOuter orderOuter = packageOrderOuter(oo, batch_id);
+							orderOuter.setProduct_id(accept.getProduct_id());
+							orderOuter.setService_code(service_code); //设置服务编码
+							orderOuter.setUserSessionId(orderOuter.getUserSessionId());
+							//2.0不处理
+							//if(!EcsOrderConsts.SHIPPING_TYPE_XJ.equals(oo.getSending_type())){
+								this.baseDaoSupport.insert("es_order_outer", orderOuter);
+						//	}
+							
+							accept.setOrder_id(orderOuter.getOrder_id());
+							
+							Map map = new HashMap();
+							BeanUtils.copyProperties(map, accept);
+							//TODO 数据去除需要加上
+							if(oo.getExtMap()!=null)map.putAll(oo.getExtMap());
+							
+							String sending_type = oo.getSending_type();
+							//add by wui新老系统体检，非现场交付处理，整合系统替换后再去除插入out_accept_inst表
+	//						if(!EcsOrderConsts.SHIPPING_TYPE_XJ.equals(sending_type));
+	//							insertOuterInstAttr(map, orderOuter, temp); //add by wui 新老系统替换需要添加
+							long end5 = System.currentTimeMillis();
+							orderOuerList.add(orderOuter);
+						}
+					}else{
+						OrderOuter orderOuter = packageOrderOuter(oo, batch_id);
+						orderOuter.setService_code(service_code); //设置服务编码
+	//					this.baseDaoSupport.insert("es_order_outer", orderOuter);
+						//if(!EcsOrderConsts.SHIPPING_TYPE_XJ.equals(oo.getSending_type())){
+							this.baseDaoSupport.insert("es_order_outer", orderOuter);
+						//}
+						orderOuerList.add(orderOuter);
+					}
+					OrderCollect c = new OrderCollect();
+					c.setOrderOuterList(orderOuerList);
+					c.setOuter(oo);
+					clist.add(c);
+				}
+			}
+			long end = System.currentTimeMillis();
+			List<CoQueueAddResp> coQueueAddResps =  exeCoQueue(clist,service_code,service_name);
+			long end2 = System.currentTimeMillis();
+			return coQueueAddResps;
+		}
+		}catch(ApiBusiException ex){
+			throw new RuntimeException(ex);
+		}catch(Exception ex){
+			throw new RuntimeException(ex);
+		}
+		return null;
+	}
+
+	/**
+	 * 是否存在外系统订单
+	 * @作者 MoChunrun
+	 * @创建日期 2014-4-3 
+	 * @param outterid
+	 * @return
+	 */
+	public boolean outerIsExists(String outterid,String order_from,String batch_id){
+		String sql = "select count(*) from es_order_outer t where t.old_sec_order_id=? and t.order_from=? and t.batch_id<>? and rownum<2";
+		return this.baseDaoSupport.queryForInt(sql, outterid,order_from,batch_id)>0;
+	}
+	
+	/**
+	 * 获取受理信息模板
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-13 
+	 * @param product_id
+	 * @return
+	 */
+	public TempInst getAcceptTmpl(String goods_id){
+		
+		return orderStandingManager.getTempInstByGoodsIdAndSource(goods_id, ManagerUtils.getSourceFrom());
+	}
+	
+	/**
+	 * 插入受理订单信息
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-13 
+	 * @param inMap
+	 * @param orderOuter
+	 * @param tempInst
+	 * @return
+	 * @throws Exception
+	 */
+	
+	@Override
+	public ZteResponse insertOuterInstAttr(OrderOuterSyAttrReq req) throws Exception{
+		this.insertOuterInstAttr(req.getMap(), req.getOrderOuter(), req.getTemp());
+		return new ZteResponse();
+	}
+	
+//	
+	public List<AttrInst> insertOuterInstAttr(Map inMap,OrderOuter orderOuter,TempInst tempInst) throws Exception{
+		List<TplAttr> tLists = getAttrsByCol(inMap,tempInst);
+		List<AttrInst> outAttrInst = new ArrayList<AttrInst>();
+		
+		 String insertSql ="insert into es_outer_attr_inst" +
+		 			"(attr_inst_id,order_id,attr_spec_id,field_attr_id,field_name,filed_desc,field_value,sequ,create_date,source_from)" +
+			 		" values (?,?,?,?,?,?,?,?,sysdate,?)";
+		 
+		 List params = new ArrayList();
+		 
+		for (int i = 0; i < tLists.size(); i++) {
+			 AttrInst attrInst = new AttrInst();
+			 TplAttr tplAttr = tLists.get(i);
+			 AttrDef attrDef = getAttrDef(tplAttr.getField_attr_id());
+			 attrInst.setAttr_inst_id(this.baseDaoSupport.getSequences("s_es_attr_inst", "0", 19));//设置为19为序列,add by wui避免报错
+//			 attrInst.setOrder_id(orderOuter.getOrder_id());
+//			 attrInst.setAttr_spec_id(attrDef.getAttr_spec_id());
+//			 attrInst.setField_attr_id(tplAttr.getField_attr_id());
+//			 attrInst.setField_name(tplAttr.getE_name());
+//			 attrInst.setFiled_desc(attrDef.getField_desc());
+			 String o_field_name =attrDef.getO_field_name();
+			 if(StringUtil.isEmpty(o_field_name))
+				 o_field_name = tplAttr.getE_name();
+//			 attrInst.setField_value(Const.getStrValue(inMap, o_field_name));
+//			 attrInst.setSequ(0l);
+//			 attrInst.setCreate_date(DBTUtil.current());
+//			 outAttrInst.add(attrInst);
+//			 this.baseDaoSupport.insert("es_outer_attr_inst", attrInst);
+			 Object pObject []  = new Object[]{attrInst.getAttr_inst_id(),orderOuter.getOrder_id(),attrDef.getAttr_spec_id(),tplAttr.getField_attr_id(),tplAttr.getE_name(),attrDef.getField_desc(),Const.getStrValue(inMap, o_field_name),
+					 0l, ManagerUtils.getSourceFrom()};
+			 params.add(pObject);
+		}
+		//add by wui修改为批处理方式
+		if(!ListUtil.isEmpty(tLists))
+		this.baseDaoSupport.batchExecute(insertSql, params);
+		return outAttrInst;
+	}
+	
+	/**
+	 * 插入受理订单信息
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-13 
+	 * @param inMap
+	 * @param orderOuter
+	 * @param tempInst
+	 * @return
+	 * @throws Exception
+	 */
+//	public List<AttrInst> insertOuterInstAttr(Map inMap,OrderOuter orderOuter,TempInst tempInst) throws Exception{
+//		List<TplAttr> tLists = getAttrsByCol(inMap,tempInst);
+//		List<AttrInst> outAttrInst = new ArrayList<AttrInst>();
+//		for (int i = 0; i < tLists.size(); i++) {
+//			 AttrInst attrInst = new AttrInst();
+//			 TplAttr tplAttr = tLists.get(i);
+//			 AttrDef attrDef = getAttrDef(tplAttr.getField_attr_id());
+//			 attrInst.setAttr_inst_id(this.baseDaoSupport.getSequences("s_es_attr_inst"));
+//			 attrInst.setOrder_id(orderOuter.getOrder_id());
+//			 attrInst.setAttr_spec_id(attrDef.getAttr_spec_id());
+//			 attrInst.setField_attr_id(tplAttr.getField_attr_id());
+//			 attrInst.setField_name(tplAttr.getE_name());
+//			 attrInst.setFiled_desc(attrDef.getField_desc());
+//			 String o_field_name =attrDef.getO_field_name();
+//			 if(StringUtil.isEmpty(o_field_name))
+//				 o_field_name = tplAttr.getE_name();
+//			 attrInst.setField_value(Const.getStrValue(inMap, o_field_name));
+//			 attrInst.setSequ(0l);
+//			 attrInst.setCreate_date(DBTUtil.current());
+//			 outAttrInst.add(attrInst);
+//			 this.baseDaoSupport.insert("es_outer_attr_inst", attrInst);
+//		}
+//		return outAttrInst;
+//	}
+	
+	
+	/**
+	 * 封装所有受理信息
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-13 
+	 * @param inMap
+	 * @param tempInst
+	 * @return
+	 */
+	public List<TplAttr> getAttrsByCol(Map inMap,TempInst tempInst) {
+		List<TplAttr> attrInstAttr = new ArrayList<TplAttr>();
+		String cols = tempInst.getTemp_cols();
+		if(StringUtils.isEmpty(cols)){
+			cols = tempInst.getTemp_cols2();
+		}else if(!StringUtils.isEmpty(tempInst.getTemp_cols2())){
+			cols += tempInst.getTemp_cols2().trim();
+		}
+		List<TplAttr> tplAttrs = CommonTools.jsonToList(cols, TplAttr.class);
+		//获取属性信息
+		for (int i = 0; i < tplAttrs.size(); i++) {
+			TplAttr tplAttr =tplAttrs.get(i);
+			AttrDef attrDef = getAttrDef(tplAttr.getField_attr_id());
+			String field_name = attrDef.getField_name();
+			String o_field_name = attrDef.getO_field_name();
+			if(StringUtils.isEmpty(o_field_name))
+				o_field_name =field_name; //外系统字段映射处理
+			if(inMap.containsKey(o_field_name)){
+				attrInstAttr.add(tplAttr);
+			}
+		}
+		return attrInstAttr;
+	}
+	
+	/**
+	 * 获取受理属性定义信息
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-13 
+	 * @param field_attr_id
+	 * @return
+	 */
+	public AttrDef getAttrDef(String field_attr_id){
+		String sql = "select * from es_attr_def where field_attr_id = ?";
+		return (AttrDef) this.baseDaoSupport.queryForObject(sql, AttrDef.class,field_attr_id);
+	}
+	
+	/**
+	 * 调消息中间件
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-28 
+	 * @param outerAndacceptList
+	 * @throws Exception 
+	 */
+	public List<CoQueueAddResp> exeCoQueue(List<OrderCollect> outerAndacceptList,String service_coode,String service_name) throws ApiBusiException {
+		List<CoQueueAddResp> resps = new ArrayList<CoQueueAddResp>();
+		if(outerAndacceptList!=null && outerAndacceptList.size()>0){
+			for(OrderCollect oaa:outerAndacceptList){
+				
+				//构造参数对象
+				CoQueueAddReq req = new CoQueueAddReq();
+				OrderOuter oo = oaa.getOrderOuterList().get(0);
+				req.setCo_name(service_name);
+				req.setBatch_id(oo.getBatch_id());
+				req.setService_code(service_coode);//CO_DINGDAN按方案改造
+				req.setAction_code("A");
+				req.setSending_type(oaa.getOuter().getSending_type());
+				req.setObject_type("DINGDAN");
+				req.setObject_id(oo.getOrder_id());
+				
+				for(OrderOuter or:oaa.getOrderOuterList()){
+					or.setOrder_attrs(null);
+					or.setGoods_attrs(null);
+				}
+				req.setContents(CommonTools.beanToJson(oaa));
+				req.setOper_id("-1");
+				//信息写入es_co_queue
+//				ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+//				CoQueueAddResp coresp = client.execute(req, CoQueueAddResp.class);
+//				if(ConstsCore.ERROR_FAIL.equals(coresp.getError_code())) //抛出异常
+//					throw new RuntimeException(coresp.getError_msg());
+				CoQueueAddResp coresp = new CoQueueAddResp();
+				coresp.setError_code(ConstsCore.ERROR_SUCC);
+				coresp.setCo(oaa);
+				resps.add(coresp);
+			}
+		}
+		return resps;
+	}
+	
+	
+	
+	/**
+	 * 订单标准化处理
+	 */
+	@Override
+	public List<OrderAddResp> orderStanding(List<CoQueueAddResp> coQueueAddResps,String service_code,String service_name) throws Exception{
+		List list = new ArrayList();
+		for (CoQueueAddResp coresp:coQueueAddResps) {
+			//归集失败，不影响队列数据
+//			if(coresp.getCoQueue() !=null){
+//				CoQueueStandingReq busiCompRequest = new CoQueueStandingReq();
+//				Map params =new HashMap();
+//				OrderSyFact fact = new OrderSyFact();
+//				fact.setRequest(coresp.getCoQueue());
+//				params.put("fact", fact);
+//				params.put("service_code", service_code);
+//				params.put("outer", coresp.getCo().getOuter());
+//				busiCompRequest.setQueryParams(params);
+//				//add by wui 解决与本地冲突
+//				ZteClient client =ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+//				busiCompRequest.setUserSessionId(coresp.getUserSessionId());
+//				BusiCompResponse resp = client.execute(busiCompRequest,BusiCompResponse.class);
+//				list.add(resp.getResponse());
+					//订单标准化创建订单
+					OrderAddResp resp = orderStdStandarService.syncOrderStandardizing(coresp.getCo(), coresp.getUserSessionId(),service_code);
+				    list.add(resp);
+		        }
+		return list;
+	}
+	
+	
+	public OrderOuter packageOrderOuter(Outer oo,String batch_id){
+		
+		OrderOuter oa = new OrderOuter();
+		oa.setAddress_id(oo.getAddress_id());
+		oa.setOrder_from(oo.getOrder_from());
+		oa.setSource_from(ManagerUtils.getSourceFrom());
+		oa.setBatch_id(batch_id);
+		String order_id = this.baseDaoSupport.getSequences("s_es_order");
+		
+		//发票信息
+		oa.setInvoice_type(oo.getInvoice_type());
+		oa.setInvoice_title_desc(oo.getInvoice_title_desc());
+		oa.setInvoice_content(oo.getInvoice_content());
+		
+		oa.setOrder_id(order_id);
+		oa.setOld_sec_order_id(oo.getOut_tid());
+		oa.setOrder_channel(oo.getOrder_channel());
+		oa.setOrder_type(oo.getType());
+		oa.setO_order_status(oo.getStatus());
+		oa.setMerge_status(oo.getMerge_status());
+		oa.setPlat_type(oo.getPlat_type());
+		oa.setPro_totalfee(oo.getPro_totalfee());
+		oa.setOrder_amount(oo.getOrder_totalfee());
+		oa.setTid_time(oo.getTid_time());
+		oa.setCreate_time(oo.getGet_time());
+		oa.setRemark(oo.getBuyer_message());
+		oa.setIs_adv_sale(oo.getIs_adv_sale());
+		oa.setO_pay_status(oo.getPay_status());
+		oa.setShip_name(oo.getReceiver_name());
+		oa.setShip_mobile(oo.getReceiver_mobile());
+		oa.setShip_addr(oo.getAddress());
+		oa.setSpread_name(oo.getRecommended_name());
+		oa.setSpread_code(oo.getRecommended_code());
+		oa.setSpread_phone(oo.getRecommended_phone());
+		oa.setDevelopment_code(oo.getDevelopment_code());
+		oa.setDevelopment_name(oo.getDevelopment_name());
+		oa.setUname(oo.getBuyer_id());
+		oa.setName(oo.getBuyer_name());
+		oa.setShip_amount(oo.getPost_fee());
+		oa.setProvince(oo.getProvince());
+		oa.setCity(oo.getCity());
+		oa.setRegion(oo.getDistrict());
+		oa.setShip_zip(oo.getPost());
+		oa.setShip_tel(StringUtil.isEmpty(oo.getPhone())?oo.getReceiver_mobile():oo.getPhone());
+		try{
+			if(!StringUtil.isEmpty(oo.getProvinc_code()))
+				oa.setProvince_id(Long.valueOf(oo.getProvinc_code()));
+			if(!StringUtil.isEmpty(oo.getCity_code()))
+				oa.setCity_id(Long.valueOf(oo.getCity_code()));
+			if(!StringUtil.isEmpty(oo.getArea_code()))
+				oa.setRegion_id(Long.valueOf(oo.getArea_code()));
+			
+			if (!StringUtil.isEmpty(oo.getInvoice_title())) {
+				oa.setInvoice_title(Integer.valueOf((oo.getInvoice_title())));
+			}
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}
+		oa.setWm_isreservation_from(oo.getWm_isreservation_from());
+		
+		if(!StringUtils.isEmpty(oo.getPay_method())){
+			//支付方式ID
+			PublicConst payment = outterSTmplManager.queryPublicConst(oo.getOrder_from(), OuterSysConst.CONST_OBJECT_TYPE_PAYMENT, oo.getPay_method());
+			if(payment!=null){
+				oa.setPayment_id(payment.getZte_code());
+			}else{
+				oa.setPayment_id(oo.getPay_method());
+			}
+		}
+		if(!StringUtils.isEmpty(oo.getSending_type())){
+			//配送方式
+			PublicConst shipping = outterSTmplManager.queryPublicConst(oo.getOrder_from(), OuterSysConst.CONST_OBJECT_TYPE_SHIPPING, oo.getSending_type());
+			if(shipping!=null){
+				oa.setShipping_id(shipping.getZte_code());
+				oo.setSending_type(shipping.getC_name());
+			}else{
+				oa.setShipping_id(oo.getSending_type());
+			}
+		}
+		if(!StringUtils.isEmpty(oa.getO_order_status())){
+			//订单状态
+			PublicConst pc = outterSTmplManager.queryPublicConst(oo.getOrder_from(), OuterSysConst.CONST_OBJECT_TYPE_ORDER_STATUS, oa.getO_order_status());
+			if(pc!=null){
+				oa.setStatus(pc.getZte_code());
+				oa.setO_order_status(pc.getC_name());
+			}//else{
+			//	oa.setStatus(oa.getO_order_status());
+			//}
+		}
+		if(!StringUtils.isEmpty(oa.getO_pay_status())){
+			//支付状态
+			PublicConst pc = outterSTmplManager.queryPublicConst(oo.getOrder_from(), OuterSysConst.CONST_OBJECT_TYPE_PAY_STATUS, oa.getO_pay_status());
+			if(pc!=null){
+				oa.setPay_status(pc.getZte_code());
+				oa.setO_pay_status(pc.getC_name());
+			}//else{
+			//	oa.setPay_status(oa.getO_pay_status());
+			//}
+		}
+		
+		if(oo.getItemList()!=null && oo.getItemList().size()>0){
+			OuterItem oi = null;
+			if("HB".equals(ManagerUtils.getSourceFrom())){
+				int i = Integer.parseInt(oo.getReserve9());
+				oi = oo.getItemList().get(i);
+			}else {
+				oi = oo.getItemList().get(0);
+			}
+			oa.setProduct_id(oi.getProduct_id());
+			oa.setCerti_type(oi.getCert_type());
+			oa.setGoods_id(oi.getGoods_id());
+			oa.setCerti_number(oi.getCert_card_num());		
+			oa.setGoods_num(oi.getPro_num()+"");
+			oa.setGoods_attrs(beanToJson(oo.getItemList()));
+		}
+		return oa;
+	}
+	
+	public List<OuterAccept> packageOuterAccept(Outer tod){
+		List<OuterAccept> list = new ArrayList<OuterAccept>();
+		List<OuterItem> itemList = tod.getItemList();
+		if(itemList!=null && itemList.size()>0){
+			for(OuterItem item:itemList){
+				OuterAccept accept = new OuterAccept();
+				accept.setProduct_id(item.getProduct_id());
+				accept.setRecommended_phone(tod.getRecommended_phone());
+				accept.setAct_protper(item.getAct_protper());
+				accept.setAdjustment_credit(item.getAdjustment_credit());
+				accept.setAtive_type(item.getAtive_type());
+				accept.setBank_account(item.getBank_account());
+				accept.setBank_code(item.getBank_code());
+				accept.setBank_user(item.getBank_user());
+				accept.setBrand_name(item.getBrand_name());
+				accept.setBrand_number(item.getBrand_number());
+				accept.setCert_address(tod.getCert_address());
+				accept.setCert_failure_time("2050-01-01 23:59:59");
+				accept.setCerti_number(item.getCert_card_num());//???????????????已删除
+				accept.setCerti_type(item.getCert_type());//
+				accept.setCollection(item.getCollection());
+				accept.setColor_code(item.getColor_code());
+				accept.setColor_name(item.getColor_name());
+				accept.setDisfee_select(item.getDisfee_select());
+				accept.setFamliy_num(item.getFamliy_num());
+				accept.setFirst_payment(item.getFirst_payment());
+				accept.setGoods_num(item.getPro_num());//
+				accept.setIs_iphone_plan(item.getIs_iphone_plan());
+				accept.setIs_liang(item.getIs_liang());
+				accept.setIs_loves_phone(item.getIs_loves_phone());
+				accept.setIs_stock_phone(item.getIs_stock_phone());
+				accept.setIsgifts(item.getIsgifts());
+				accept.setLiang_code(item.getLiang_code());
+				accept.setLiang_price(item.getLiang_price());
+				accept.setLoves_phone_num(item.getLoves_phone_num());//后加的
+				accept.setModel_code(item.getModel_code());
+				accept.setModel_name(item.getModel_name());
+				//accept.setOrder_id(orderOuter.getOrder_id());
+				accept.setOut_package_id(item.getOut_package_id());
+				accept.setOut_plan_id_bss(item.getOut_plan_id_bss());
+				accept.setOut_plan_id_ess(item.getOut_plan_id_ess());
+				if(!StringUtils.isEmpty(item.getPhone_deposit())){
+					try{
+						accept.setPhone_deposit(Double.valueOf(item.getPhone_deposit()));
+					}catch(Exception ex){
+						ex.printStackTrace();
+					}
+				}
+				accept.setPhone_num(item.getPhone_num());
+				accept.setPhone_owner_name(item.getPhone_owner_name());
+				accept.setPlan_title(item.getPlan_title());
+				accept.setPro_detail_code(item.getProduct_id());//product_id ......//已去掉
+				accept.setPro_name(item.getPro_name());
+				accept.setPro_origfee(item.getPro_origfee());
+				accept.setPro_type(item.getPro_type());
+				accept.setProduct_net(item.getProduct_net());
+				accept.setReliefpres_flag(item.getReliefpres_flag());
+				accept.setSell_price(item.getSell_price());//新加
+				accept.setSimid(item.getSimid());
+				accept.setSociety_name(item.getSociety_name());
+				accept.setSociety_price(item.getSociety_price());
+				accept.setSpecificatio_nname(item.getSpecificatio_nname());
+				accept.setSpecification_code(item.getSpecification_code());
+				accept.setSuperiors_bankcode(item.getSuperiors_bankcode());
+				accept.setTerminal_num(item.getTerminal_num());
+				accept.setWhite_cart_type(item.getWhite_cart_type());
+				
+				accept.setOrder_channel(tod.getOrder_channel());
+				accept.setOrder_from(StringUtil.isEmpty(tod.getC_order_from())?tod.getOrder_from():tod.getC_order_from());//
+				accept.setOrder_type(tod.getType());//
+				accept.setAbnormal_status(tod.getAbnormal_status());
+				accept.setMerge_status(tod.getMerge_status());
+				accept.setDelivery_status(tod.getDelivery_status());
+				accept.setPlatform_status(tod.getPlatform_status());
+				accept.setPlat_type(tod.getPlat_type());
+				accept.setTid_time(tod.getTid_time());
+				accept.setPay_time(tod.getPay_time());
+				accept.setService_remarks(tod.getService_remarks());
+				accept.setBuyer_id(tod.getBuyer_id());
+				accept.setBuyer_name(tod.getBuyer_name());
+				accept.setProvince(tod.getProvince());
+				accept.setCity(tod.getCity());
+				accept.setDistrict(tod.getDistrict());
+				accept.setProvinc_code(tod.getProvinc_code());
+				accept.setCity_code(tod.getCity_code());
+				accept.setArea_code(tod.getArea_code());
+				accept.setSending_type(tod.getSending_type());
+				accept.setIs_bill(tod.getIs_bill());
+				accept.setInvoice_print_type(tod.getInvoice_print_type());
+				accept.setRecommended_code(tod.getRecommended_code());
+				accept.setRecommended_name(tod.getRecommended_name());
+				accept.setDevelopment_code(tod.getDevelopment_code());
+				accept.setDevelopment_name(tod.getDevelopment_name());
+				accept.setFile_return_type(tod.getFile_return_type());
+				accept.setTid_category(tod.getTid_category());//订单类别
+				accept.setCollection_free(tod.getCollection_free());
+				accept.setVouchers_money(tod.getVouchers_money());
+				accept.setVouchers_code(tod.getVouchers_code());
+				accept.setDisfee_type(tod.getDisfee_type());
+				accept.setPromotion_area(tod.getPromotion_area());
+				accept.setOne_agents_id(tod.getOne_agents_id());
+				accept.setTwo_agents_id(tod.getTwo_agents_id());
+				accept.setWm_order_from(tod.getWm_order_from());
+				accept.setWt_paipai_order_id(tod.getWt_paipai_order_id());
+				accept.setCouponname(tod.getCouponname());
+				accept.setCouponbatchid(tod.getCouponbatchid());
+				accept.setOrderacctype(tod.getOrderacctype());
+				accept.setOrderacccode(tod.getOrderacccode());
+				accept.setPaytype(tod.getPaytype());
+				accept.setPayfintime(tod.getPayfintime());
+				accept.setPayplatformorderid(tod.getPayplatformorderid());
+				accept.setPayproviderid(tod.getPayproviderid());
+				accept.setPayprovidername(tod.getPayprovidername());
+				accept.setPaychannelid(tod.getPaychannelid());
+				accept.setPaychannelname(tod.getPaychannelname());
+				accept.setDiscountname(tod.getDiscountname());
+				accept.setDiscountid(tod.getDiscountid());
+				accept.setDiscountrange(tod.getDiscountrange());
+				accept.setBss_order_type(tod.getBss_order_type());
+				accept.setWm_order_from(tod.getWm_order_from());
+				accept.setGoods_id(item.getGoods_id());
+				accept.setOut_tid(tod.getOut_tid());
+				
+				accept.setOrder_provinc_code(tod.getOrder_provinc_code());
+				accept.setOrder_city_code(tod.getOrder_city_code());
+				accept.setOrder_disfee(tod.getOrder_disfee());
+				accept.setIs_adv_sale(tod.getIs_adv_sale());
+				accept.setPlat_distributor_code(tod.getPlat_distributor_code());
+				accept.setAlipay_id(tod.getAlipay_id());
+				accept.setPay_mothed(tod.getPay_method());
+				accept.setOrder_realfee(tod.getOrder_realfee());
+				accept.setDiscountvalue(tod.getDiscountValue());
+				
+				accept.setBaidu_id(tod.getBaidu_id());
+				accept.setFreeze_tran_no(tod.getFreeze_tran_no());
+				accept.setFreeze_free(tod.getFreeze_free());
+				accept.setReserve0(tod.getReserve0());
+				accept.setReserve1(tod.getReserve1());
+				accept.setReserve2(tod.getReserve2());
+				accept.setReserve3(tod.getReserve3());
+				accept.setReserve4(tod.getReserve4());
+				accept.setReserve5(tod.getReserve5());
+				accept.setReserve6(tod.getReserve6());
+				accept.setReserve7(tod.getReserve7());
+				accept.setReserve8(tod.getReserve8());
+				accept.setReserve9(tod.getReserve9());
+				accept.setHouse_id(item.getHouse_id());
+				accept.setOut_house_id(item.getOut_house_id());
+				accept.setOrg_id(item.getOrg_id());
+				list.add(accept);
+			}
+			return list;
+		}
+		return null;
+	}
+	
+	public static String beanToJson(Object src){
+		SerializerFeature[] features = { SerializerFeature.WriteMapNullValue, // 输出空置字段
+			SerializerFeature.WriteNullListAsEmpty, // list字段如果为null，输出为[]，而不是null
+			SerializerFeature.WriteNullNumberAsZero, // 数值字段如果为null，输出为0，而不是null
+			SerializerFeature.WriteNullBooleanAsFalse, // Boolean字段如果为null，输出为false，而不是null
+			SerializerFeature.WriteNullStringAsEmpty  // 字符类型字段如果为null，输出为""，而不是null
+		};
+		return JSON.toJSONString(src,features);
+	}
+	/**
+	 * 获取对象所有属性
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-12 
+	 * @param obj
+	 * @return
+	 */
+	public static PropertyDescriptor[] getObjectProperty(Object obj) throws IntrospectionException{
+		return getClassProperty(obj.getClass());
+	}
+	
+	public static PropertyDescriptor[] getClassProperty(Class clazz) throws IntrospectionException{
+		BeanInfo beanInfo = Introspector.getBeanInfo(clazz); // 获取类属性
+		// 给 JavaBean 对象的属性赋值
+		PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+		return propertyDescriptors;
+	}
+	
+	public static void invote(PropertyDescriptor[] propertyDescriptors,String proName,Object value,Object obj){
+		if(value==null)return ;
+		for(PropertyDescriptor property:propertyDescriptors){
+			String mName = property.getName();
+			if(mName.equalsIgnoreCase(proName)){
+				Class propertyType = property.getPropertyType();
+				Object propValue = value;
+				if (propertyType.getName().equals("boolean") || propertyType.getName().equals("java.lang.Boolean")) {
+					propValue = Boolean.valueOf(String.valueOf(propValue));
+				}else if (propertyType.getName().equals("int") || propertyType.getName().equals("java.lang.Integer")) {
+					propValue = Integer.valueOf(String.valueOf(propValue));
+				}else if (propertyType.getName().equals("long") || propertyType.getName().equals("java.lang.Long")) {
+					propValue = Long.valueOf(String.valueOf(propValue));
+				}else if (propertyType.getName().equals("float") || propertyType.getName().equals("java.lang.Float")) {
+					propValue = Float.valueOf(String.valueOf(propValue));
+				}else if (propertyType.getName().equals("double") || propertyType.getName().equals("java.lang.Double")) {
+					propValue = Double.valueOf(String.valueOf(propValue));
+				}else if (propertyType.getName().equals("java.lang.String")) {
+					propValue = String.valueOf(propValue);
+				}
+				try{
+					if (propValue != null && property.getWriteMethod() !=null)
+						property.getWriteMethod().invoke(obj,new Object[] { propValue });
+				}catch(Exception ex){
+					ex.printStackTrace();
+				}
+				break ;
+			}
+		}
+	}
+	public static void main(String[] args) throws Exception {
+		Field [] fields = OuterItem.class.getDeclaredFields();
+		for(Field f:fields){
+			ZteSoftCommentAnnotationParam a =f.getAnnotation(ZteSoftCommentAnnotationParam.class);
+			if(a!=null)
+				logger.info(f.getName()+"\t"+a.name());
+		}
+	}
+
+	public IOutterTmplManager getOutterSTmplManager() {
+		return outterSTmplManager;
+	}
+
+	public void setOutterSTmplManager(IOutterTmplManager outterSTmplManager) {
+		this.outterSTmplManager = outterSTmplManager;
+	}
+
+	
+	public IOrderStandingManager getOrderStandingManager() {
+		return orderStandingManager;
+	}
+
+	public void setOrderStandingManager(IOrderStandingManager orderStandingManager) {
+		this.orderStandingManager = orderStandingManager;
+	}
+
+	public IDcPublicInfoManager getDcPublicInfoManager() {
+		return dcPublicInfoManager;
+	}
+
+	public void setDcPublicInfoManager(IDcPublicInfoManager dcPublicInfoManager) {
+		this.dcPublicInfoManager = dcPublicInfoManager;
+	}
+	
+	public OrderStdStandarService getOrderStdStandarService() {
+		return orderStdStandarService;
+	}
+
+
+	public void setOrderStdStandarService(OrderStdStandarService orderStdStandarService) {
+		this.orderStdStandarService = orderStdStandarService;
+	}
+}
+

@@ -1,0 +1,94 @@
+package com.ztesoft.mq.example.rocketmq.order;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.mq.client.EventSendResult;
+import com.ztesoft.mq.client.EventSendStatus;
+import com.ztesoft.mq.client.EventTemplateGeneral;
+import com.ztesoft.mq.client.rocketMQ.RocketMQEventTemplateGeneral;
+import com.ztesoft.mq.client.rocketMQ.RocketSendEventTemplate;
+
+public class SendExample extends OrderExample {
+	private static Logger logger = Logger.getLogger(SendExample.class);
+	private String action = "SimpleOrderTest";
+	private int orderId = 2;
+	private String context_one = "Hi, I come from ZTESoft, I'm a order message, I'm a order one";
+	private String context_two = "Hi, I come from ZTESoft, I'm a order message, I'm a order two";
+	private String context_three = "Hi, I come from ZTESoft, I'm a order message, I'm a order three";
+
+	public SendExample() {
+		this.init();
+	}
+
+	public SendExample(String action, int orderId, String contextOne,
+			String contextTwo, String contextThree) {
+		this.action = action;
+		this.orderId = orderId;
+		this.context_one = contextOne;
+		this.context_two = contextTwo;
+		this.context_three = contextThree;
+		this.init();
+	}
+
+	public void executeSend() {
+		RocketSendEventTemplate template = null;
+		try {
+			// 相关联的多条顺序消息需要使用相同orderId,即属于同一订单的多条顺序消息必须发往同一个队列中
+			template = RocketMQEventTemplateGeneral.createRocketMQSendTemplate(this.TEST_PRODUCER_POOL);
+			EventSendResult result = template.send(this.topic, action, orderId, context_one);
+			
+			if (EventSendStatus.SEND_OK.equals(result.getSendStatus())) {
+				result = template.send(this.topic, action, orderId, context_two);
+			}
+			else {
+				logger.info("send " + context_one + " failed!");
+				return;
+			}
+			
+			if (EventSendStatus.SEND_OK.equals(result.getSendStatus())) {
+				result = template.send(this.topic, action, orderId, context_three);
+			}
+			else {
+				logger.info("send " + context_two + " failed!");
+				return;
+			}
+
+			if (!EventSendStatus.SEND_OK.equals(result.getSendStatus())) {
+				logger.info("send " + context_three + " failed!");
+				return;
+			}
+			
+			logger.info("send success-status:" + result.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (template != null) {
+				try {
+					RocketMQEventTemplateGeneral.closeRocketMQSendTemplate(this.TEST_PRODUCER_POOL, template);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		logger.info("..............finish................");
+	}
+
+	public static void main(String[] args) {
+		SendExample example = null;
+		if (args.length < 1) {
+			example = new SendExample();
+		} else {
+			String actionTest = args[0];
+			String orderId = args[1];
+			String contextOne = args[2];
+			String contextTwo = args[2];
+			String contextThree = args[2];
+			example = new SendExample(actionTest,
+					Integer.parseInt(orderId), contextOne, contextTwo, contextThree);
+		}
+		
+		example.executeSend();
+	}
+}

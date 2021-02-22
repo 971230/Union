@@ -1,0 +1,56 @@
+/*    */ package org.springframework.web.multipart.support;
+/*    */ 
+/*    */
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.beans.PropertyEditorSupport;
+import java.io.IOException;
+
+/*    */
+/*    */
+/*    */
+/*    */
+/*    */ 
+/*    */ public class StringMultipartFileEditor extends PropertyEditorSupport
+/*    */ {
+/* 36 */   protected final Log logger = LogFactory.getLog(getClass());
+/*    */   private String charsetName;
+/*    */ 
+/*    */   public StringMultipartFileEditor()
+/*    */   {
+/*    */   }
+/*    */ 
+/*    */   public StringMultipartFileEditor(String paramString)
+/*    */   {
+/* 52 */     this.charsetName = paramString;
+/*    */   }
+/*    */ 
+/*    */   public void setAsText(String paramString) {
+/* 56 */     setValue(paramString);
+/*    */   }
+/*    */ 
+/*    */   public void setValue(Object paramObject) {
+/* 60 */     if ((paramObject instanceof MultipartFile)) {
+/* 61 */       MultipartFile localMultipartFile = (MultipartFile)paramObject;
+/*    */       try {
+/* 63 */         super.setValue(this.charsetName != null ? new String(localMultipartFile.getBytes(), this.charsetName) : new String(localMultipartFile.getBytes()));
+/*    */       }
+/*    */       catch (IOException localIOException)
+/*    */       {
+/* 68 */         this.logger.info("Cannot read contents of multipart file", localIOException);
+/* 69 */         throw new IllegalArgumentException("Cannot read contents of multipart file: " + localIOException.getMessage());
+/*    */       }
+/*    */     }
+/*    */     else {
+/* 73 */       super.setValue(paramObject);
+/*    */     }
+/*    */   }
+/*    */ }
+
+/* Location:           C:\Users\Administrator\Desktop\spring-1.2.6.jar
+ * Qualified Name:     org.springframework.web.multipart.support.StringMultipartFileEditor
+ * JD-Core Version:    0.6.0
+ */

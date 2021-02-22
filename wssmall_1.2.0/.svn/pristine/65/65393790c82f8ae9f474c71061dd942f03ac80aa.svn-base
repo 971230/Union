@@ -1,0 +1,247 @@
+package params.req;
+
+import java.util.Map;
+
+import com.ztesoft.api.ApiRuleException;
+
+import params.ZteRequest;
+
+public class SaveCrawlerPropertiesReq extends ZteRequest {
+
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "zte.net.iservice.impl.ZteCrawlerOpenService.saveCrawlerProperties";
+	}
+	
+	private String IS_PROXY;
+	
+	private String PROXY_HOST;
+	
+	private String PROXY_PORT;
+	
+	private String IS_OUT_ID_CHECK;
+	
+	private String order_review_businessType;
+	
+	private String order_review_custName;
+	
+	private String order_review_mobilePhone;
+	
+	private String order_review_orderType;
+	
+	private String order_review_psptNo;
+	
+	private String order_review_userTag;
+	
+	private String order_review_pageSize;
+	
+	private String order_review_count;
+	
+	private String order_allocation_ctgrCode;
+	
+	private String  order_allocation_preNum;
+	
+	private String order_allocation_custName;
+	
+	private String order_allocation_psptNo;
+	
+	private String order_allocation_mobilePhone;
+	
+	private String order_allocation_userTag;
+	
+	private String order_allocation_businessType;
+	
+	private String order_allocation_pageSize;
+	
+	private String order_allocation_page_webPager_pageInfo_pageSize;
+	
+	private String order_allocation_count;
+
+	public String getIS_PROXY() {
+		return IS_PROXY;
+	}
+
+	public void setIS_PROXY(String iS_PROXY) {
+		IS_PROXY = iS_PROXY;
+	}
+
+	public String getPROXY_HOST() {
+		return PROXY_HOST;
+	}
+
+	public void setPROXY_HOST(String pROXY_HOST) {
+		PROXY_HOST = pROXY_HOST;
+	}
+
+	public String getPROXY_PORT() {
+		return PROXY_PORT;
+	}
+
+	public void setPROXY_PORT(String pROXY_PORT) {
+		PROXY_PORT = pROXY_PORT;
+	}
+
+	public String getIS_OUT_ID_CHECK() {
+		return IS_OUT_ID_CHECK;
+	}
+
+	public void setIS_OUT_ID_CHECK(String iS_OUT_ID_CHECK) {
+		IS_OUT_ID_CHECK = iS_OUT_ID_CHECK;
+	}
+
+	public String getOrder_review_businessType() {
+		return order_review_businessType;
+	}
+
+	public void setOrder_review_businessType(String order_review_businessType) {
+		this.order_review_businessType = order_review_businessType;
+	}
+
+	public String getOrder_review_custName() {
+		return order_review_custName;
+	}
+
+	public void setOrder_review_custName(String order_review_custName) {
+		this.order_review_custName = order_review_custName;
+	}
+
+	public String getOrder_review_mobilePhone() {
+		return order_review_mobilePhone;
+	}
+
+	public void setOrder_review_mobilePhone(String order_review_mobilePhone) {
+		this.order_review_mobilePhone = order_review_mobilePhone;
+	}
+
+	public String getOrder_review_orderType() {
+		return order_review_orderType;
+	}
+
+	public void setOrder_review_orderType(String order_review_orderType) {
+		this.order_review_orderType = order_review_orderType;
+	}
+
+	public String getOrder_review_psptNo() {
+		return order_review_psptNo;
+	}
+
+	public void setOrder_review_psptNo(String order_review_psptNo) {
+		this.order_review_psptNo = order_review_psptNo;
+	}
+
+	public String getOrder_review_userTag() {
+		return order_review_userTag;
+	}
+
+	public void setOrder_review_userTag(String order_review_userTag) {
+		this.order_review_userTag = order_review_userTag;
+	}
+
+	public String getOrder_review_pageSize() {
+		return order_review_pageSize;
+	}
+
+	public void setOrder_review_pageSize(String order_review_pageSize) {
+		this.order_review_pageSize = order_review_pageSize;
+	}
+
+	public String getOrder_review_count() {
+		return order_review_count;
+	}
+
+	public void setOrder_review_count(String order_review_count) {
+		this.order_review_count = order_review_count;
+	}
+
+	public String getOrder_allocation_ctgrCode() {
+		return order_allocation_ctgrCode;
+	}
+
+	public void setOrder_allocation_ctgrCode(String order_allocation_ctgrCode) {
+		this.order_allocation_ctgrCode = order_allocation_ctgrCode;
+	}
+
+	public String getOrder_allocation_preNum() {
+		return order_allocation_preNum;
+	}
+
+	public void setOrder_allocation_preNum(String order_allocation_preNum) {
+		this.order_allocation_preNum = order_allocation_preNum;
+	}
+
+	public String getOrder_allocation_custName() {
+		return order_allocation_custName;
+	}
+
+	public void setOrder_allocation_custName(String order_allocation_custName) {
+		this.order_allocation_custName = order_allocation_custName;
+	}
+
+	public String getOrder_allocation_psptNo() {
+		return order_allocation_psptNo;
+	}
+
+	public void setOrder_allocation_psptNo(String order_allocation_psptNo) {
+		this.order_allocation_psptNo = order_allocation_psptNo;
+	}
+
+	public String getOrder_allocation_mobilePhone() {
+		return order_allocation_mobilePhone;
+	}
+
+	public void setOrder_allocation_mobilePhone(String order_allocation_mobilePhone) {
+		this.order_allocation_mobilePhone = order_allocation_mobilePhone;
+	}
+
+	public String getOrder_allocation_userTag() {
+		return order_allocation_userTag;
+	}
+
+	public void setOrder_allocation_userTag(String order_allocation_userTag) {
+		this.order_allocation_userTag = order_allocation_userTag;
+	}
+
+	public String getOrder_allocation_businessType() {
+		return order_allocation_businessType;
+	}
+
+	public void setOrder_allocation_businessType(
+			String order_allocation_businessType) {
+		this.order_allocation_businessType = order_allocation_businessType;
+	}
+
+	public String getOrder_allocation_pageSize() {
+		return order_allocation_pageSize;
+	}
+
+	public void setOrder_allocation_pageSize(String order_allocation_pageSize) {
+		this.order_allocation_pageSize = order_allocation_pageSize;
+	}
+
+	public String getOrder_allocation_page_webPager_pageInfo_pageSize() {
+		return order_allocation_page_webPager_pageInfo_pageSize;
+	}
+
+	public void setOrder_allocation_page_webPager_pageInfo_pageSize(
+			String order_allocation_page_webPager_pageInfo_pageSize) {
+		this.order_allocation_page_webPager_pageInfo_pageSize = order_allocation_page_webPager_pageInfo_pageSize;
+	}
+
+	public String getOrder_allocation_count() {
+		return order_allocation_count;
+	}
+
+	public void setOrder_allocation_count(String order_allocation_count) {
+		this.order_allocation_count = order_allocation_count;
+	}
+	
+	
+	
+}

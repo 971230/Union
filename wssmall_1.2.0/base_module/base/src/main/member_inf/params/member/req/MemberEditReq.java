@@ -1,0 +1,31 @@
+package params.member.req;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.app.base.core.model.Member;
+import params.ZteRequest;
+
+public class MemberEditReq extends ZteRequest{
+	@ZteSoftCommentAnnotationParam(name="会员信息修改",type="String",isNecessary="Y",desc="会员信息修改",hasChild=true)
+	private Member member;
+	
+	public Member getMember() {
+		return member;
+	}
+
+	public void setMember(Member member) {
+		this.member = member;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		return "zte.memberServer.member.editMember";		
+	}
+
+}

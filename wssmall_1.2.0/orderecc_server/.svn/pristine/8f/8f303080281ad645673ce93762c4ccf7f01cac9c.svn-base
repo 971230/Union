@@ -1,0 +1,71 @@
+package com.ztesoft.check.fun;
+
+import org.apache.commons.lang.StringUtils;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.check.common.IdentifyReq;
+import com.ztesoft.check.common.IdentifyResp;
+import com.ztesoft.check.inf.AbstractCheckHander;
+import com.ztesoft.check.inf.Check;
+import com.ztesoft.net.consts.EccConsts;
+import com.ztesoft.net.sqls.SF;
+
+/**
+ * 礼品是否存在校验
+ * @author duan.shaochu
+ *
+ */
+public class GiftExistsCheck extends AbstractCheckHander implements Check {
+
+	/**
+	 * 查找礼品是否存在
+	 */
+	public IdentifyResp validByCode(IdentifyReq identification) throws ApiBusiException{
+		IdentifyResp resp = new IdentifyResp();
+		String order_id = identification.getOrder_id();
+		try{
+			String gift_info = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GIFT_INFOS);
+			if(StringUtils.isNotEmpty(gift_info)){
+				JSONArray jsonArray = JSONArray.fromObject(gift_info);
+				String giftName = "";
+				for(int i = 0 ; i < jsonArray.size() ; i++){
+					giftName = JSONObject.fromObject(jsonArray.get(i)).get("giftName").toString();
+					if(null != giftName && !"".equals(giftName)){
+						if("0".equals(queryGiftIsExists(giftName))){
+							throw new ApiBusiException("order_id["+order_id+"]检查礼品是否存在校验失败,礼品名["+giftName+"]未配置");
+	/*						resp.setCode(EccConsts.IDENTI_0004);
+							resp.setMsg("检查礼品是否存在校验失败,礼品名["+giftName+"]未配置");
+							return resp;*/
+						}
+					}
+				}
+			}
+			resp.setCode(EccConsts.IDENTI_SUCCESS);
+			resp.setMsg("检查礼品是否存在校验成功.");
+		}catch(Exception e){
+			String expMessage =  CommonDataFactory.getInstance().getErrorStactMsg(e);
+			throw new ApiBusiException("order_id["+order_id+"]检查礼品是否存在校验失败" + expMessage);
+/*			resp.setCode(EccConsts.IDENTI_9999);
+			resp.setMsg("检查礼品是否存在校验失败," + e.getMessage());*/
+		}
+		return resp;
+	}
+
+	
+	private OrderTreeBusiRequest getOrderTree(String order_id){
+		return CommonDataFactory.getInstance().getOrderTree(order_id);
+	}
+
+	private String queryGiftIsExists(String giftName){
+		String isExists = "0";
+		isExists = this.baseDaoSupport.queryForString(SF.eccSql("GIFT_IS_EXISTS"), new Object[]{giftName});
+		return isExists;
+	}
+
+}

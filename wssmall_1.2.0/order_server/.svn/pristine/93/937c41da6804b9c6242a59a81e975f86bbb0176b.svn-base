@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+	<bean id="areaAction" class="com.ztesoft.net.mall.core.action.backend.AreaAction" scope="prototype"/>
+	<bean id="dlyTypeAction" class="com.ztesoft.net.mall.core.action.backend.DlyTypeAction" scope="prototype"/>
+	<bean id="deliveryAction" class="com.ztesoft.net.mall.core.action.backend.DeliveryAction" scope="prototype"/>
+	<bean id="shipAction" class="com.ztesoft.net.mall.core.action.backend.ShipAction" scope="prototype"/>
+	<bean id="orderAction" class="com.ztesoft.net.mall.core.action.backend.OrderAction" scope="prototype"/>
+	<bean id="cardAction" class="com.ztesoft.net.mall.core.action.backend.CardAction" scope="prototype"/>
+	<bean id="orderNAction" class="com.ztesoft.net.mall.core.action.backend.OrderNAction" scope="prototype"/>
+	<bean id="orderOuterAction" class="com.ztesoft.net.mall.core.action.backend.OrderOuterAction" scope="prototype"/>
+	<bean id="orderPrintAction" class="com.ztesoft.net.mall.core.action.backend.OrderPrintAction" scope="prototype"/>
+	<bean id="dlyCenterAction" class="com.ztesoft.net.mall.core.action.backend.DlyCenterAction" scope="prototype"/>
+	<bean id="orderReportAction" class="com.ztesoft.net.mall.core.action.backend.OrderReportAction" scope="prototype"/>
+	<bean id="regionAction" class="com.ztesoft.net.mall.core.action.backend.RegionAction" scope="prototype"/>
+	
+	<bean id="orderApplyAction" class="com.ztesoft.net.mall.core.action.orderApply.OrderApplyAction" scope="prototype"></bean>
+	<bean id="custReturnedAction" class="com.ztesoft.net.mall.core.action.backend.CustReturnedAction" scope="prototype"/>
+	<bean id="contractAction" class="com.ztesoft.net.mall.core.action.backend.ContractAction" scope="prototype"/>
+	<bean id="accAction" class="com.ztesoft.net.mall.core.action.backend.AccAction" scope="prototype"/>
+	<bean id="cloudAction" class="com.ztesoft.net.mall.core.action.backend.CloudAction" scope="prototype"/>
+	<bean id="rateAction" class="com.ztesoft.net.mall.core.action.backend.RateAction" scope="prototype"/>
+    <bean id = "activeCloudReportAction" class ="com.ztesoft.net.mall.core.action.backend.ActiveCloudReportAction" scope="prototype"/>
+    <bean id = "contractHandleReportAction" class ="com.ztesoft.net.mall.core.action.backend.ContractHandleReportAction" scope="prototype"/>
+    <bean id = "buyoutCloudReportAction" class ="com.ztesoft.net.mall.core.action.backend.BuyoutCloudReportAction" scope="prototype"/>
+    <bean id = "contractSaleroomReportAction" class ="com.ztesoft.net.mall.core.action.backend.ContractSaleroomReportAction" scope="prototype"/>
+    <bean id = "systemExcelHandlerAction" class="com.ztesoft.net.mall.core.action.backend.SystemExcelHandlerAction" scope="prototype"></bean>
+    <bean id="orderDealWidthAction" class="com.ztesoft.net.mall.core.action.order.orderc.OrderDealWidthAction" scope="prototype"/>
+	<bean id="deliveryFlowAction" class="com.ztesoft.net.mall.core.action.order.orderc.DeliveryFlowAction" scope="prototype"/>
+	<bean id="orderCAction" class="com.ztesoft.net.mall.core.action.backend.OrderCAction" scope="prototype"/>
+	<bean id="goodsShipAction" class="com.ztesoft.net.mall.core.action.order.orderc.GoodsShipAction" scope="prototype"/>
+	
+	<bean id="logiAction" class="com.ztesoft.net.mall.core.action.backend.LogiAction" scope="prototype"/>
+	<bean id="orderCommentsAction" class="com.ztesoft.net.mall.core.action.backend.OrderCommentsAction" scope="prototype"/>
+	
+	<bean id="orderAcceptAction" class="com.ztesoft.net.mall.core.action.backend.OrderAcceptAction" scope="prototype"/>
+	<bean id="wPDeliveryAction" class="com.ztesoft.net.mall.core.action.backend.WPDeliveryAction" scope="prototype"/>
+	
+	<bean id="purchaseOrderAction" class="com.ztesoft.net.mall.core.action.purchase.PurchaseOrderAction" scope="prototype"/>
+	
+	<bean id="couponAction" class="com.ztesoft.net.mall.core.action.backend.CouponAction" scope="prototype"/>
+	<bean id="promotionAction" class="com.ztesoft.net.mall.core.action.backend.PromotionAction" scope="prototype"/>
+	
+	<bean id="orderApplyNAction" class="com.ztesoft.net.mall.core.action.order.orderc.OrderApplyNAction" scope="prototype"/>
+	
+	<bean id="orderGJAction" class="com.ztesoft.net.mall.core.action.ddgj.OrderGJAction" scope="prototype"/>
+	<bean id="orderBusinessAction" class="com.ztesoft.net.mall.core.action.ddgj.OrderBusinessAction" scope="prototype"/>
+	<bean id="orderOpAction" class="com.ztesoft.net.mall.core.action.ddgj.OrderOpAction" scope="prototype"/>
+	<bean id="orderHistoryAction" class="com.ztesoft.net.mall.core.action.ddgj.OrderHistoryAction" scope="prototype"/>
+	
+	<!-- 从payment_server中迁移过来 -->
+	<bean id="paymentAction" class="com.ztesoft.net.mall.core.action.backend.PaymentAction" scope="prototype"/>
+	<bean id="paymentNAction" class="com.ztesoft.net.mall.core.action.backend.PaymentNAction" scope="prototype"/>
+</beans>

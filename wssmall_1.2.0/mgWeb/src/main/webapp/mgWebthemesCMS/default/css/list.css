@@ -1,0 +1,20 @@
+@charset "utf-8";
+/* CSS Document */
+
+.columDiv{ width:33.3333%; float:left;}
+.columDivCon{ margin:10px;}
+.tab_a{ display:block; padding:0px; margin-left:10px;}
+.tab_a li{ float:left;}
+.tab_a li a{ display:block;height:23px; line-height:23px; color:#444; font-size:12px; font-weight:bold; padding:0 0 0 3px; position:relative;}
+.tab_a li a span{ display: inline-block; padding:0 15px 0 12px;}
+.tab_a li.curr a{ background:url(../images/tab_line_l.gif) no-repeat; height:23px;border-bottom:none; color:#fff;}
+.tab_a li.curr a span{ background:url(../images/tab_line_r.gif) right top no-repeat;}
+.tab_a li a .tab_arrow{ display:none;}
+.tab_a li.curr a .tab_arrow{ display:block; background:url(../images/tab_arrow.gif) no-repeat; left:50%; top:23px; margin-left:-3px; position:absolute; width:7px; height:5px;}
+.tab_a_content{ border-width:4px 1px 1px; border-style:solid; border-color:#a3d1ec; padding:10px 15px; min-height:150px;}
+.tab_a_content h3{ font-size:14px; font-weight:bold; color:#444; padding-top:5px;}
+.list_a{ display:block; padding:0px; margin:0px;}
+.list_a li{ margin-left:20px; float:left; line-height:24px; font-size:12px;}
+.list_a li a{ color:#888;}
+.list_a li.bulefont a{ color:#00469d;}
+.list_a li.bulefont a span{ color:#cc0000;}

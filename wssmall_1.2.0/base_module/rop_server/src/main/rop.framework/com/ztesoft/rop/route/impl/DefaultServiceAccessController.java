@@ -1,0 +1,93 @@
+/**
+ *
+ * 日    期：12-2-13
+ */
+package com.ztesoft.rop.route.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.rop.common.RopRequestContext;
+import com.ztesoft.rop.security.ServiceAccessController;
+import com.ztesoft.rop.session.Session;
+
+/**
+ * <pre>
+ * 功能说明：对调用的方法进行安全性检查
+ * </pre>
+ * 
+ * @author 陈雄华
+ * @version 1.0
+ */
+public class DefaultServiceAccessController implements ServiceAccessController {
+    private IDaoSupport baseDaoSupport;
+
+	@Override
+	public boolean isAppGranted(RopRequestContext rrc, String appKey,
+			String method, String version) {
+        boolean flag=false;
+        String sql=" select count(1)  AS AL_NUM from (  select p.app_id from PM_APP_LEVEL_PRIV a ,PM_APP p ,PM_APP_SERVICE s  where a.app_level=p.app_level and s.fun_id=a.fun_id and a.status_cd='00A' and p.status_cd in ('00F','00A') and s.status_cd='00A' and p.app_key=? and s.fun_code=? and s.fun_version=?  union all select p.app_id from PM_APP_AUDIT_SERVICE a ,PM_APP p ,PM_APP_SERVICE s  where a.app_id=p.app_id and s.fun_id=a.fun_id and a.status_cd='00F' and p.status_cd in ('00F','00A') and s.status_cd='00A' and p.app_key=? and s.fun_code=? and s.fun_version=? )";
+        IDaoSupport baseDaoSupport = ApiContextHolder.getBean("baseDaoSupport");
+        List<String> param=new ArrayList<String>();
+        param.add(appKey);
+        param.add(method);
+        param.add(version);
+        param.add(appKey);
+        param.add(method);
+        param.add(version);
+        int val = baseDaoSupport.queryForInt(sql,param.toArray());
+        flag=val>0?true:false;
+
+        return flag;
+	}
+
+    /*
+		RopDaoImpl dao = RopDaoImpl.getInstance();
+		Map<String, String> pramas = new HashMap<String, String>();
+		try {
+
+			pramas.put("APP_KEY", appKey);
+			pramas.put("FUN_CODE", method);
+			pramas.put("FUN_VERSION", version);
+
+			String al_num = dao.hasAppFunPrivilege(pramas);
+
+			if (StringUtils.isEmpty(al_num)) {
+				al_num = "0";
+			}
+			int num = 0;
+			try {
+				num = Integer.parseInt(al_num);
+			} catch (Exception e) {
+				num = 0;
+			}
+
+			if (num > 0)
+				return true;
+
+			return false;
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			return false;
+		}
+*/
+
+	@Override
+	public boolean isUserGranted(RopRequestContext rrc, Session session,
+			String method, String version) {
+		return false;
+	}
+
+	public IDaoSupport getBaseDaoSupport() {
+		return baseDaoSupport;
+	}
+
+	public void setBaseDaoSupport(IDaoSupport baseDaoSupport) {
+		this.baseDaoSupport = baseDaoSupport;
+	}
+	
+	
+}

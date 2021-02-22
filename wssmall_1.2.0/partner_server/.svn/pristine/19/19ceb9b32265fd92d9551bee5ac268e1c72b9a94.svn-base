@@ -1,0 +1,139 @@
+package com.ztesoft.net.mall.core.action.backend;
+
+import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.net.app.base.core.model.PartnerShopMapping;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.service.IpartnerShopMappingManager;
+
+public class PartnerShopMappingAction extends WWAction {
+	
+	private String id;
+	private IpartnerShopMappingManager shopMappingManager;
+	private PartnerShopMapping shopMapping_s;
+	private PartnerShopMapping shopMapping;
+	private String shopCode;
+	private List shopMappingList;
+	private String shop_type;
+	private String[] detail_imgage_arr;
+	
+	public String list(){
+		
+		   this.webpage = this.shopMappingManager.list(shopMapping_s,this.getPage(),this.getPageSize());
+			
+			return "list";
+		}
+		public String add(){
+			
+			shopMappingList = shopMappingManager.listShopType();
+			
+			shopMapping=null;
+			return "input";
+		}
+		public String edit(){
+			
+			shopMapping = shopMappingManager.getParnterShopMappingByShopCode(shopCode);
+			String shop_detail_image = shopMapping.getShop_detail_image();
+			
+			if(!StringUtils.isEmpty(shop_detail_image)){
+				this.detail_imgage_arr = shop_detail_image.split(",");
+			}
+			return "input";
+		}
+		public String delete(){
+			try {
+				String a []=id.split(",");
+				String idstr="";
+				for(int i=0;i<a.length;i++){
+					idstr+=a[i].replaceAll(a[i], "'"+a[i]+"'")+',';
+				}
+				idstr=idstr.substring(0,idstr.length()-1);
+				shopMappingManager.delete(idstr);
+				this.json = "{'result':0,'message':'删除成功'}";
+			} catch (RuntimeException e) {
+				this.json = "{'result':1,'message':'删除失败'}";
+			}
+			
+			return this.JSON_MESSAGE;
+		}
+		public String save(){
+			try {
+				if(shopMapping != null){
+					if(!StringUtils.isEmpty(shop_type)){
+						shopMapping.setShop_type(shop_type);
+					}
+				}
+				String shop_default_image = this.shopMapping.getShop_default_image();
+				String shop_detail_image = this.shopMapping.getShop_detail_image();
+				if(StringUtils.isEmpty(shop_default_image)&&!StringUtils.isEmpty(shop_detail_image)){
+					String[] str = shop_detail_image.split(",");
+					shop_default_image = detail_imgage_arr[0];
+				}
+				
+				shopMappingManager.add(shopMapping);
+			this.json = "{'result':0,'message':'新增成功'}";
+		} catch (RuntimeException e) {
+				this.json = "{'result':1,'message':'保存失败'}";
+			}
+			
+			return this.JSON_MESSAGE;
+		}
+		
+		
+		
+		
+		
+		public String getId() {
+			return id;
+		}
+		public void setId(String id) {
+			this.id = id;
+		}
+		public IpartnerShopMappingManager getShopMappingManager() {
+			return shopMappingManager;
+		}
+		public void setShopMappingManager(IpartnerShopMappingManager shopMappingManager) {
+			this.shopMappingManager = shopMappingManager;
+		}
+		public PartnerShopMapping getShopMapping_s() {
+			return shopMapping_s;
+		}
+		public void setShopMapping_s(PartnerShopMapping shopMapping_s) {
+			this.shopMapping_s = shopMapping_s;
+		}
+		public PartnerShopMapping getShopMapping() {
+			return shopMapping;
+		}
+		public void setShopMapping(PartnerShopMapping shopMapping) {
+			this.shopMapping = shopMapping;
+		}
+		public String getShopCode() {
+			return shopCode;
+		}
+		public void setShopCode(String shopCode) {
+			this.shopCode = shopCode;
+		}
+		public List getShopMappingList() {
+			return shopMappingList;
+		}
+		public void setShopMappingList(List shopMappingList) {
+			this.shopMappingList = shopMappingList;
+		}
+		public String getShop_type() {
+			return shop_type;
+		}
+		public void setShop_type(String shop_type) {
+			this.shop_type = shop_type;
+		}
+		public String[] getDetail_imgage_arr() {
+			return detail_imgage_arr;
+		}
+		public void setDetail_imgage_arr(String[] detail_imgage_arr) {
+			this.detail_imgage_arr = detail_imgage_arr;
+		}
+	
+		
+		
+}

@@ -1,0 +1,338 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+      http://www.springframework.org/schema/tx
+      http://www.springframework.org/schema/tx/spring-tx-2.0.xsd"
+	default-autowire="byName" default-lazy-init="false">
+
+	<!-- 属性文件读入 -->
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>file:${CONFIG}jdbc.properties</value>
+				<value>file:${CONFIG}mail.properties</value>
+				<value>file:${CONFIG}dubbo.properties</value>
+				<value>file:${CONFIG}inf.properties</value>
+				<value>file:${CONFIG}mq.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<!--订单配置数据源结束 -->
+	<bean id="dataSourceOrdCfg" class="org.springframework.jndi.JndiObjectFactoryBean">
+		<property name="jndiName" value="${jndiNameOrder}" />
+	</bean>
+
+	<!-- <bean id="dataSourceOrdCfg" class="com.mchange.v2.c3p0.ComboPooledDataSource" 
+		destroy-method="close"> <property name="driverClass" value="${order.driverClassName}"/> 
+		<property name="jdbcUrl" value="${order.url}"/> <property name="user" value="${order.username}"/> 
+		<property name="password" value="${order.password}"/> 
+	</bean> -->
+	<bean id="simpleJdbcTemplateOrdCfg" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate"><!-- 拷贝后不需要修改类内容 -->
+		<constructor-arg>
+			<ref bean="dataSourceOrdCfg" />
+		</constructor-arg>
+	</bean>
+	<bean id="jdbcTemplateOrdCfg"
+		class="com.ztesoft.net.framework.database.impl.LowerCaseJdbcTemplate"><!-- 拷贝后不需要修改类内容 -->
+		<property name="dataSource">
+			<ref bean="dataSourceOrdCfg" />
+		</property>
+	</bean>
+
+	<!--订单配置数据源结束 -->
+
+	<!-- 电商平台数据源开始 -->
+	<!-- -->
+	<bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+		<property name="jndiName" value="${jndiName}" />
+	</bean>
+
+
+	<!-- <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" 
+		destroy-method="close"> <property name="driverClass" value="${jdbc.driverClassName}"/> 
+		<property name="jdbcUrl" value="${jdbc.url}"/> <property name="user" value="${jdbc.username}"/> 
+		<property name="password" value="${jdbc.password}"/> 
+	</bean> -->
+
+
+	<bean id="simpleJdbcTemplate" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
+		<constructor-arg>
+			<ref bean="dataSource" />
+		</constructor-arg>
+	</bean>
+	<bean id="jdbcTemplate"
+		class="com.ztesoft.net.framework.database.impl.LowerCaseJdbcTemplate">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+	</bean>
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+	</bean>
+	<!--公共数据源路由开始 -->
+	<bean id="dbRouterPublic" class="com.ztesoft.net.eop.sdk.database.DBRouterPublic">
+		<property name="simpleJdbcTemplate">
+			<ref bean="simpleJdbcTemplate" />
+		</property>
+		<property name="jdbcTemplateOrdCfg">
+			<ref bean="jdbcTemplateOrdCfg" />
+		</property>
+		<property name="simpleJdbcTemplateOrdCfg">
+			<ref bean="simpleJdbcTemplateOrdCfg" />
+		</property>
+	</bean>
+	<!--公共数据源路由结束 -->
+	<bean id="baseDBRouter" class="com.ztesoft.net.eop.sdk.database.DBRouter">
+		<property name="prefix">
+			<value>es_</value>
+		</property>
+		<property name="jdbcTemplate">
+			<ref bean="jdbcTemplate" />
+		</property>
+	</bean>
+	<bean id="baseDaoSupport" class="com.ztesoft.net.eop.sdk.database.BaseJdbcDaoSupport">
+		<property name="dbRouter">
+			<ref bean="baseDBRouter" />
+		</property>
+	</bean>
+	<bean id="daoSupport" class="com.ztesoft.net.framework.database.impl.JdbcDaoSupport">
+		<property name="jdbcTemplate">
+			<ref bean="jdbcTemplate" />
+		</property>
+		<property name="simpleJdbcTemplate">
+			<ref bean="simpleJdbcTemplate" />
+		</property>
+		<!-- 新增公共路由处理类 -->
+		<property name="dbRouterPublic">
+			<ref bean="dbRouterPublic" />
+		</property>
+	</bean>
+	<bean id="baseSupport" class="com.ztesoft.net.eop.sdk.database.BaseSupport"
+		abstract="true">
+		<property name="baseDBRouter">
+			<ref bean="baseDBRouter" />
+		</property>
+		<property name="baseDaoSupport">
+			<ref bean="baseDaoSupport" />
+		</property>
+		<property name="daoSupport">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+
+	<bean id="daoSupportForAsyCount"
+		class="com.ztesoft.net.framework.database.impl.JdbcDaoSupportForAsyCount">
+		<property name="jdbcTemplate">
+			<ref bean="jdbcTemplate" />
+		</property>
+		<property name="simpleJdbcTemplate">
+			<ref bean="simpleJdbcTemplate" />
+		</property>
+	</bean>
+	
+	<!-- 自定义流程 -->
+	<bean id="ES_WORK_CUSTOM_CFG_DAO" class="com.ztesoft.workCustom.dao.ES_WORK_CUSTOM_CFG_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_WORK_CUSTOM_CONNECT_DAO" class="com.ztesoft.workCustom.dao.ES_WORK_CUSTOM_CONNECT_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_WORK_CUSTOM_DEALER_DAO" class="com.ztesoft.workCustom.dao.ES_WORK_CUSTOM_DEALER_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_WORK_CUSTOM_NODE_DAO" class="com.ztesoft.workCustom.dao.ES_WORK_CUSTOM_NODE_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_WORK_CUSTOM_NODE_INS_DAO" class="com.ztesoft.workCustom.dao.ES_WORK_CUSTOM_NODE_INS_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_WORK_CUSTOM_WORKFLOW_INS_DAO" class="com.ztesoft.workCustom.dao.ES_WORK_CUSTOM_WORKFLOW_INS_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_ORDER_INTENT_DAO" class="com.ztesoft.workCustom.dao.ES_ORDER_INTENT_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="User_And_Org_DAO" class="com.ztesoft.userAndOrg.dao.User_And_Org_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_ORDER_LOCK_DAO" class="com.ztesoft.workCustom.dao.ES_ORDER_LOCK_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_WORK_ORDER_DAO" class="com.ztesoft.workCustom.dao.ES_WORK_ORDER_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_USER_TEAM_DAO" class="com.ztesoft.workCustom.dao.ES_USER_TEAM_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_USER_TEAM_REL_DAO" class="com.ztesoft.workCustom.dao.ES_USER_TEAM_REL_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+	
+	<bean id="ES_WORK_CUSTOM_LOG_DAO" class="com.ztesoft.workCustom.dao.ES_WORK_CUSTOM_LOG_DAO">
+		<property name="jdbcDao">
+			<ref bean="daoSupport" />
+		</property>
+	</bean>
+
+	<!-- 商品测试库数据源开始 -->
+	<!-- <bean id="gproddb" class="org.springframework.jndi.JndiObjectFactoryBean"> 
+		<property name="jndiName" value="${jndiNameGProd}"/> </bean> -->
+	<!-- <bean id="gproddb" class="com.mchange.v2.c3p0.ComboPooledDataSource" 
+		destroy-method="close"> <property name="driverClass" value="${gproduct.driverClassName}"/> 
+		<property name="jdbcUrl" value="${gproduct.url}"/> <property name="user" 
+		value="${gproduct.username}"/> <property name="password" value="${gproduct.password}"/> 
+		</bean> <bean id="simpleJdbcTemplateGProd" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate"> 
+		<constructor-arg> <ref bean="gproddb"/> </constructor-arg> </bean> <bean 
+		id="jdbcTemplateGProd" class="com.ztesoft.net.framework.database.impl.LowerCaseJdbcTemplate"> 
+		<property name="dataSource"> <ref bean="gproddb" /> </property> </bean> <bean 
+		id="transactionManagerGProd" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"> 
+		<property name="dataSource"> <ref bean="gproddb"/> </property> </bean> <bean 
+		id="baseDBRouterGProd" class="com.ztesoft.net.eop.sdk.database.DBRouterGProd"> 
+		<property name="prefix"> <value>es_</value> </property> <property name="jdbcTemplate"> 
+		<ref bean="jdbcTemplateGProd"/> </property> </bean> <bean id="baseDaoSupportGProd" 
+		class="com.ztesoft.net.eop.sdk.database.BaseJdbcDaoSupportGProd"> <property 
+		name="dbRouterGProd"> <ref bean="baseDBRouterGProd"/> </property> </bean> 
+		<bean id="daoSupportGProd" class="com.ztesoft.net.framework.database.impl.JdbcDaoSupportGProd"> 
+		<property name="jdbcTemplateGProd"> <ref bean="jdbcTemplateGProd"/> </property> 
+		<property name="simpleJdbcTemplateGProd"> <ref bean="simpleJdbcTemplateGProd"/> 
+		</property> </bean> <bean id="baseSupportGProd" class="com.ztesoft.net.eop.sdk.database.BaseSupportGProduct" 
+		abstract="true"> <property name="baseDBRouter"> <ref bean="baseDBRouterGProd"/> 
+		</property> <property name="baseDaoSupport"> <ref bean="baseDaoSupportGProd"/> 
+		</property> <property name="daoSupport"> <ref bean="daoSupportGProd"/> </property> 
+		</bean> -->
+
+
+
+
+	<!-- 工作台数据源开始 -->
+	<!-- 本机连 -->
+	<!-- <bean id="workdb" class="com.mchange.v2.c3p0.ComboPooledDataSource" 
+		destroy-method="close"> <property name="driverClass" value="${work.driverClassName}"/> 
+		<property name="jdbcUrl" value="${work.url}"/> <property name="user" value="${work.username}"/> 
+		<property name="password" value="${work.password}"/> 
+	</bean> -->
+	<!-- 服务器连 -->
+	<bean id="workdb" class="org.springframework.jndi.JndiObjectFactoryBean">
+		<property name="jndiName" value="${jndiNameOrdWork}" />
+	</bean>
+
+	<bean id="simpleJdbcTemplateWork" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
+		<constructor-arg>
+			<ref bean="workdb" />
+		</constructor-arg>
+	</bean>
+	<bean id="jdbcTemplateWork"
+		class="com.ztesoft.net.framework.database.impl.LowerCaseJdbcTemplate">
+		<property name="dataSource">
+			<ref bean="workdb" />
+		</property>
+	</bean>
+
+
+	<bean id="transactionManagerWork"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource">
+			<ref bean="workdb" />
+		</property>
+	</bean>
+	<bean id="baseDBRouterWork" class="com.ztesoft.net.eop.sdk.database.DBRouterWork">
+		<property name="prefix">
+			<value>es_</value>
+		</property>
+		<property name="jdbcTemplate">
+			<ref bean="jdbcTemplateWork" />
+		</property>
+	</bean>
+	<bean id="baseDaoSupportWork" class="com.ztesoft.net.eop.sdk.database.BaseJdbcDaoSupportWork">
+		<property name="dbRouterWork">
+			<ref bean="baseDBRouterWork" />
+		</property>
+	</bean>
+
+	<bean id="daoSupportWork"
+		class="com.ztesoft.net.framework.database.impl.JdbcDaoSupportWork">
+		<property name="jdbcTemplateWork">
+			<ref bean="jdbcTemplateWork" />
+		</property>
+		<property name="simpleJdbcTemplateWork">
+			<ref bean="simpleJdbcTemplateWork" />
+		</property>
+	</bean>
+	<bean id="baseSupportWork" class="com.ztesoft.net.eop.sdk.database.BaseSupportWork"
+		abstract="true">
+		<property name="baseDBRouter">
+			<ref bean="baseDBRouterWork" />
+		</property>
+		<property name="baseDaoSupport">
+			<ref bean="baseDaoSupportWork" />
+		</property>
+		<property name="daoSupport">
+			<ref bean="daoSupportWork" />
+		</property>
+	</bean>
+
+	<!-- 工作台数据源结束 -->
+
+
+	<bean id="sqlFileExecutor"
+		class="com.ztesoft.net.framework.database.impl.DefaultSqlFileExecutor"></bean>
+	<bean id="springContextHolder"
+		class="com.ztesoft.net.framework.context.spring.SpringContextHolder"
+		lazy-init="false" />
+	<bean id="apiContextHolder" class="com.ztesoft.api.spring.ApiContextHolder"
+		lazy-init="false" />
+
+
+	<!-- 支持 @Transactional 标记 -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	<tx:advice id="transactionManagerAdivice"
+		transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="*" isolation="READ_COMMITTED" propagation="REQUIRED"
+				rollback-for="java.lang.RuntimeException" />
+		</tx:attributes>
+	</tx:advice>
+
+</beans>

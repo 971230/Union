@@ -1,0 +1,188 @@
+package com.ztesoft.net.framework.pager;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
+import com.ztesoft.net.framework.pager.impl.SimplePageHtmlBuilder;
+
+import consts.ConstsCore;
+
+/**
+ * 抽像的分页html代码生成器基类
+ * 提供基本的逻辑支持
+ * @author kingapex
+ *
+ */
+public abstract class AbstractProxyPageHtmlBuilder extends AbstractPageHtmlBuilder {
+	/**总数异步加载*/
+	private static final String PAGE_COUNT_SHOW_TYPE_ASY = "1";
+	/**不展示总数*/
+	private static final String PAGE_COUNT_SHOW_TYPE_NONE = "2";
+	
+	public AbstractProxyPageHtmlBuilder(long _pageNum, long _totalCount,
+			int _pageSize,String asynModel) {
+		super(_pageNum, _totalCount, _pageSize);
+		
+		this.asynModel = asynModel;
+	}
+
+	/**
+	 * 异步模式。1：总数异步加载；2：不展示总数；其它：总数列表一起展示
+	 */
+	private String asynModel;
+	
+	private String gridId;
+	
+	public String buildPageHtml() {		
+		
+		if (!PAGE_COUNT_SHOW_TYPE_ASY.equals(getAsynModel())
+				&& !PAGE_COUNT_SHOW_TYPE_NONE.equals(getAsynModel())) {
+			return super.buildPageHtml();
+		} else {
+			this.init();
+			
+			StringBuffer pageStr = new StringBuffer("");
+			pageStr.append("<div class=\"page\" >" );
+			pageStr.append(this.getHeadStringWithoutCount());
+			pageStr.append("<span id='grid_page_body_string'>").append("</span>");
+			pageStr.append(this.getFooterStringWithoutCount());
+			pageStr.append("</div>"); 
+			pageStr.append(this.getAjaxPageCountString());
+			
+			return pageStr.toString();
+		}
+		
+	}
+	
+	/**
+	 * 添加异步步加载总数的jquery代码
+	 * 
+	 * @作者 Z
+	 * @创建日期 2015年12月13日 
+	 * @return
+	 */
+	protected String getAjaxPageCountString() {
+		
+		String formReqUrl = "";
+		try {
+			formReqUrl = URLEncoder.encode(getUrlStr(ConstsCore.PAGE_COUNT_ASY_FLAG),"utf-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		
+		//需要加载
+		if (PAGE_COUNT_SHOW_TYPE_ASY.equals(getAsynModel())) {
+			String options = String.format("{url:'%s',pageSize:'%s',page:'%s',gridId:'%s',formReqUrl:'%s'}", request.getServletPath(),pageSize,pageNum,getGridId(),formReqUrl);
+			
+			return "<script>$(function(){$(document).gridAjaxPageCount(" + options + ")});</script>";
+		}
+		
+		return "";
+	}
+	
+	
+	 /**
+	  * 生成分页头字串
+	  * @return
+	  */
+	protected String getHeadStringWithoutCount() {
+
+		StringBuffer headString = new StringBuffer("");
+		
+		//第一次渲染出来的
+		headString.append("<div id='grid_page_without_count'>");
+		headString.append("<span class=\"info\">");
+		headString.append("第");
+		headString.append(this.pageNum);
+		headString.append("页");
+		headString.append("</span>\n");
+		headString.append("</div>");
+		
+		//先隐藏，等加载出页数后展示---------start
+		headString.append("<div id='grid_page_with_count' style='display:none'>");
+		headString.append("<span class=\"info\" >");
+		headString.append("共");
+		headString.append("<span id='grid_total_count'></span>");
+		headString.append("条记录");
+		headString.append("</span>\n");
+
+		headString.append("<span class=\"info\">");
+		headString.append(this.pageNum);
+		headString.append("/");
+		headString.append("<span id='grid_page_count'></span>");
+		headString.append("</span>\n");
+		headString.append("</div>");
+		//先隐藏，等加载出页数后展示---------end
+
+		headString.append("<ul>");
+		pageSize = pageSize<1?1:pageSize;
+		String temp = "";
+		if(!(this instanceof SimplePageHtmlBuilder)){
+			temp = " && event.keyCode!=13";
+		}/*else if((this instanceof GridPostPageHtmlBuilder)){
+			temp = " && event.keyCode!=13";
+		}*/
+		headString.append("<li name='setpagesize_li'><a stype='width:auto;'>分页条数</a><a href='javascript:void(0);' page_no='"+pageNum+"' p_size='10' name='spsize' stype='width:auto;'>10</a>" +
+				"<a href='javascript:void(0);' page_no='"+pageNum+"' p_size='20' name='spsize' stype='width:auto;'>20</a><a href='javascript:void(0);' page_no='"+pageNum+"' p_size='50' name='spsize' stype='width:auto;'>50</a>" +
+				"<input type='text' name='pageSize' pageno='"+this.pageNum+"' value='"+pageSize+"' style='width:30px;' onKeyPress=\"if ((event.keyCode < 48"+temp+") || event.keyCode > 57) event.returnValue = false;\"/>" +
+						"<input type='text' name='pageSize1' style='display:none;' /></li>");
+		if (pageNum > 1) {
+
+			headString.append("<li name='gotopage'><a " );
+			headString.append(this.getUrlStr(1));
+			headString.append("|&lt;");
+			headString.append("</a></li>\n");
+
+			headString.append("<li name='gotopage'><a  ");
+			headString.append(this.getUrlStr(pageNum - 1));
+			headString.append("&lt;&lt;");
+			headString.append("</a></li>\n");
+		}
+
+		return headString.toString();
+	}
+
+	/**
+	 * 生成分页尾字串
+	 * @return
+	 */
+	protected String getFooterStringWithoutCount() {
+		StringBuffer footerStr = new StringBuffer("");
+
+		footerStr.append("<li name='gotopage' id='grid_next_page'><a ");
+		footerStr.append(this.getUrlStr(pageNum + 1));
+		footerStr.append("&gt;&gt;");
+		footerStr.append("</a></li>\n");
+
+		footerStr.append("</ul>");
+		return footerStr.toString();
+	}
+
+
+	public String getAsynModel() {
+		return asynModel;
+	}
+
+	public void setAsynModel(String asynModel) {
+		this.asynModel = asynModel;
+	}
+	
+	/**
+	 * 计算并初始化信息
+	 *
+	 */
+	private  void init() {	
+		if(this.url==null) {
+			initUrl();
+		}
+	}
+
+	public String getGridId() {
+		return gridId;
+	}
+
+	public void setGridId(String gridId) {
+		this.gridId = gridId;
+	}
+
+}

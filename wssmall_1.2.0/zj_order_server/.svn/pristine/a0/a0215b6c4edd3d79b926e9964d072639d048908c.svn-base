@@ -1,0 +1,78 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.collections.MapUtils;
+import org.apache.log4j.spi.LoggerFactory;
+import org.directwebremoting.util.Logger;
+import org.drools.core.util.StringUtils;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.service.IOrdArchiveManager;
+
+import consts.ConstsCore;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest; 
+ 
+public class OrderCancelTimer {	 
+	@Resource  
+	private IOrdArchiveManager ordArchiveManager; 
+	
+	private Logger log = Logger.getLogger(OrderCancelTimer.class);
+	public void run() {
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "run")) {
+  			return;
+		}
+		//log.info();
+		IDaoSupport support = SpringContextHolder.getBean("baseDaoSupport");
+		ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		
+		SimpleDateFormat new_time=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		
+		log.info("---------------------------------数据查询开始时间："+new_time.format(new java.util.Date())+"--------------------------------");
+		//缴费订单不做处理
+		String goods_id = cacheUtil.getConfigInfo("CANCEL_GOODS_ID");
+		try {
+			List<Map<String, Object>> result = ordArchiveManager.getCancelOrder(goods_id);
+			log.info("---------------------------------数据查询结束时间："+new_time.format(new java.util.Date())+"--------------------------------");
+			
+			log.info("----------------开始自动关闭24小时未支付订单时间："+new_time.format(new java.util.Date())+"----------------");
+			for (Map<String, Object> map : result) {
+				//更新时间较长时，判断有没有筛选中的订单状在更新过程中调用了支付更新
+				String order_id = MapUtils.getString(map, "order_id");
+				String pay_status = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.PAY_STATUS);
+                String order_form = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.ORDER_FROM);
+                String cat_id = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_CAT_ID);//地市
+				if(org.apache.commons.lang3.StringUtils.equals(pay_status, EcsOrderConsts.PAY_STATUS_PAYED)) {
+					log.info("订单："+order_id+"在执行定时任务中，被外围系统更新了状态");
+					continue;
+				}
+				if("10093".equals(order_form)&&!"221668199563784192".equals(cat_id)){//考虑特殊情况无法排除的问题
+                    log.info("订单："+order_id+"10093来源非无线宽带线上融合商品，不进行判断关闭");
+				    continue;
+				}
+				OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+				OrderExtBusiRequest orderExtReq = orderTree.getOrderExtBusiRequest();
+				orderExtReq.setAbnormal_type(EcsOrderConsts.ORDER_ABNORMAL_TYPE_4);
+				orderExtReq.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+				orderExtReq.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+				
+				orderExtReq.store();
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+			log.info(e.getMessage());
+			e.printStackTrace();
+		}
+		log.info("----------------结束自动关闭24小时未支付订单时间："+new_time.format(new java.util.Date())+"----------------");
+	}
+}

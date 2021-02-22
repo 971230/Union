@@ -1,0 +1,272 @@
+/*右键菜单样式*/
+body,ul,li {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font: 12px/24px arial;
+}
+
+#menu0 {
+	position: absolute;
+	top: -9999px;
+	left: -9999px;
+	width: 100px;
+	border-radius: 3px;
+	list-style-type: none;
+	border: 1px solid #8f8f8f;
+	padding: 2px;
+	background: #fff;
+}
+
+#menu0 li {
+	position: relative;
+	height: 24px;
+	padding-left: 24px;
+	background: #eaead7;
+	vertical-align: top;
+}
+
+#menu0 li a {
+	display: block;
+	color: #333;
+	background: #fff;
+	padding-left: 5px;
+	text-decoration: none;
+}
+
+#menu0 li.active {
+	background: #999;
+}
+
+#menu0 li.active a {
+	color: #fff;
+	background: #8f8f8f;
+}
+
+#menu0 li em {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 24px;
+	height: 24px;
+	background: url(/jscss/demoimg/201211/ico.png) no-repeat;
+}
+
+#menu0 li em.cur {
+	background-position: 0 0;
+}
+
+#menu0 li em.copy {
+	background-position: 0 -24px;
+}
+
+#menu0 li em.paste {
+	background-position: 0 -48px;
+}
+
+/*右键菜单样式*/
+body,ul,li {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font: 12px/24px arial;
+}
+
+#menu1 {
+	position: absolute;
+	top: -9999px;
+	left: -9999px;
+	width: 100px;
+	border-radius: 3px;
+	list-style-type: none;
+	border: 1px solid #8f8f8f;
+	padding: 2px;
+	background: #fff;
+}
+
+#menu1 li {
+	position: relative;
+	height: 24px;
+	padding-left: 24px;
+	background: #eaead7;
+	vertical-align: top;
+}
+
+#menu1 li a {
+	display: block;
+	color: #333;
+	background: #fff;
+	padding-left: 5px;
+	text-decoration: none;
+}
+
+#menu1 li.active {
+	background: #999;
+}
+
+#menu1 li.active a {
+	color: #fff;
+	background: #8f8f8f;
+}
+
+#menu1 li em {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 24px;
+	height: 24px;
+	background: url(/jscss/demoimg/201211/ico.png) no-repeat;
+}
+
+#menu1 li em.cur {
+	background-position: 0 0;
+}
+
+#menu1 li em.copy {
+	background-position: 0 -24px;
+}
+
+#menu1 li em.paste {
+	background-position: 0 -48px;
+}
+
+/*右键菜单样式*/
+body,ul,li {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font: 12px/24px arial;
+}
+
+#menu2 {
+	position: absolute;
+	top: -9999px;
+	left: -9999px;
+	width: 100px;
+	border-radius: 3px;
+	list-style-type: none;
+	border: 1px solid #8f8f8f;
+	padding: 2px;
+	background: #fff;
+}
+
+#menu2 li {
+	position: relative;
+	height: 24px;
+	padding-left: 24px;
+	background: #eaead7;
+	vertical-align: top;
+}
+
+#menu2 li a {
+	display: block;
+	color: #333;
+	background: #fff;
+	padding-left: 5px;
+	text-decoration: none;
+}
+
+#menu2 li.active {
+	background: #999;
+}
+
+#menu2 li.active a {
+	color: #fff;
+	background: #8f8f8f;
+}
+
+#menu2 li em {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 24px;
+	height: 24px;
+	background: url(/jscss/demoimg/201211/ico.png) no-repeat;
+}
+
+#menu2 li em.cur {
+	background-position: 0 0;
+}
+
+#menu2 li em.copy {
+	background-position: 0 -24px;
+}
+
+#menu2 li em.paste {
+	background-position: 0 -48px;
+}
+
+
+/*右键菜单样式*/
+body,ul,li {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font: 12px/24px arial;
+}
+
+#menu3 {
+	position: absolute;
+	top: -9999px;
+	left: -9999px;
+	width: 100px;
+	border-radius: 3px;
+	list-style-type: none;
+	border: 1px solid #8f8f8f;
+	padding: 2px;
+	background: #fff;
+}
+
+#menu3 li {
+	position: relative;
+	height: 24px;
+	padding-left: 24px;
+	background: #eaead7;
+	vertical-align: top;
+}
+
+#menu3 li a {
+	display: block;
+	color: #333;
+	background: #fff;
+	padding-left: 5px;
+	text-decoration: none;
+}
+
+#menu3 li.active {
+	background: #999;
+}
+
+#menu3 li.active a {
+	color: #fff;
+	background: #8f8f8f;
+}
+
+#menu3 li em {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 24px;
+	height: 24px;
+	background: url(/jscss/demoimg/201211/ico.png) no-repeat;
+}
+
+#menu3 li em.cur {
+	background-position: 0 0;
+}
+
+#menu3 li em.copy {
+	background-position: 0 -24px;
+}
+
+#menu3 li em.paste {
+	background-position: 0 -48px;
+}

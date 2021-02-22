@@ -1,0 +1,91 @@
+package com.ztesoft.net.attr.hander;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.common.SpecConsts;
+import zte.net.ecsord.common.StypeConsts;
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.model.AttrDef;
+/**
+ * 归属地市
+ * @author Administrator
+ *
+ */
+public class OrderCityCodeHandler extends BaseSupport implements IAttrHandler {
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo) throws ApiBusiException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+		String order_id = params.getOrder_id();// 订单ID
+		String inst_id = params.getInst_id(); // 数据实列ID（如订单扩展表ID、子订单扩展表ID、货品扩展表ID、物流ID、支付记录ID）
+		String goods_id = params.getGoods_id(); // 商品ID 只有子订单或货品单才有值
+		String pro_goods_id = params.getPro_goods_id(); // 货品ID 只有货品单才有值
+		String order_from = params.getOrder_from(); // 订单来源
+		String value = params.getValue(); // 原始值
+		AttrDef attrDef = params.getAttrDef(); // 属性定议配置信息
+		Map orderAttrValues = params.getOrderAttrValues();// 订单所有属性值
+
+		//非广东省的地市
+		String order_city_code = (String) orderAttrValues.get(AttrConsts.ORDER_CITY_CODE);
+		List otherCities = CommonDataFactory.getInstance().listDcPublicData(StypeConsts.OTHER_SHIP_CITY);
+		if(otherCities != null && otherCities.size()>0){
+			for(int i=0;i<otherCities.size();i++){
+				Map city = (Map) otherCities.get(i);
+				if(!StringUtils.isEmpty(order_city_code) && order_city_code.equals(Const.getStrValue(city, "pkey"))){
+					value = Const.getStrValue(city, "codea");
+				}
+			}
+		}
+		//生产中心明确裸机订单归属都是云浮(445300)
+//		if(StringUtils.isEmpty(type_id)){
+//			goods_id = (String) orderAttrValues.get("goods_id");
+//			type_id = CommonDataFactory.getInstance().getGoodSpec(order_id, goods_id, SpecConsts.TYPE_ID);
+//		}
+//		String type_id = (String) orderAttrValues.get(SpecConsts.TYPE_ID);
+//	    //总商裸机不再默认归属云浮,其余商城默认归属云浮
+//		if (Consts.GOODS_TYPE_PHONE.equals(type_id)) {
+//			String plat_type = (String) orderAttrValues.get(AttrConsts.PLAT_TYPE);
+//			boolean iszbmall = CommonDataFactory.getInstance().isZbOrder(plat_type);
+//			if(!iszbmall){
+//				iszbmall = CommonDataFactory.getInstance().isZbOrder(order_from);
+//				if(!iszbmall){
+//					value = EcsOrderConsts.LUOJI_ORDER_CITY_CODE;
+//				}
+//			}
+//		}
+		
+		AttrInstLoadResp resp = new AttrInstLoadResp();
+		resp.setField_value(value);
+		return resp;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

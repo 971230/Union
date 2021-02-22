@@ -1,0 +1,59 @@
+<#if attrList?exists && attrList?size!=0>
+<div class="grid_n_cont_sub">
+<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_b">
+
+	<#list attrList as attr>
+		<tr>
+			<#list attr.subAttrList as subAttr>
+				<th style="width:130px">
+					${subAttr.name } ：
+				</th>
+				<td>
+					<input type="hidden" name="goodsExtData.propnames" value="${subAttr.name }" />
+					<#if subAttr.type<3 >
+					   <input type="text" name="goodsExtData.propvalues" class="ipt_new"  value="${ subAttr.value!''}" style="width:150px" />
+					</#if>
+					
+					<#if (subAttr.type>=3) && (subAttr.type<=5)>
+						<select  class="ipttxt" style="width:150px;" name="goodsExtData.propvalues">
+							<option value="">
+								请选择
+							</option>
+							<#list subAttr.optionAr as option>
+								<option value="${option_index }" <#if subAttr.value?? && subAttr.value==(""+option_index)>selected</#if> >
+									${option }
+								</option>
+							</#list>
+						</select>
+					</#if>
+					
+				</td>
+			</#list>
+		</tr>
+	 </#list>
+	
+</table>
+</div>
+<#else>
+<div class="remind_n_div">
+	<span><img src="${ctx}/shop/admin/goodsN/images/ic_remind.png" width="16" height="16" /></span>
+	<p>此商品类型没有配置商品属性，请 <a id="addPropsBtn" href="javascript:void(0);">点此添加！</a></p>
+	<script type="text/javascript">
+	$(function(){
+		Eop.Dialog.init({id:"goodsTypeEditDialog",title:"编辑商品类型",width:"780px",height:"500px"});
+		$("#addPropsBtn").unbind("click").bind("click",function(){
+			var type_id = $("#type_select").val();
+			if(!type_id){
+				alert("请选择商品类型");
+				return ;
+			}
+			Eop.Dialog.open("goodsTypeEditDialog");
+			var url = "type!editProps.do?ajax=yes&type_id="+type_id;
+			$("#goodsTypeEditDialog").load(url,{},function(){});
+		});
+	})
+	</script>
+</div>
+<div id="goodsTypeEditDialog"></div>
+</#if>
+

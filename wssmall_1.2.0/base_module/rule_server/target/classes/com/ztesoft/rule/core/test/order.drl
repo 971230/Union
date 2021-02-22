@@ -1,0 +1,25 @@
+package test
+
+import com.enation.rule.order.OrderRealTimeFact
+
+rule "testorder"
+when
+  $order:OrderRealTimeFact();
+then
+  System.out.println($order.getGoods_money());
+  double tmp = $order.getGoods_money()*0.20;
+  $order.addResult("888888",tmp) ;
+  $order.setAmount(tmp) ;
+  System.out.println($order.getAmount());
+end
+
+rule "testorder2"
+when
+  $order:OrderRealTimeFact();
+then
+  System.out.println($order.getGoods_money());
+  double tmp = $order.getGoods_money()*0.30;
+  $order.addResult("888888",tmp) ;
+  $order.setAmount(tmp) ;
+  System.out.println($order.getAmount());
+end

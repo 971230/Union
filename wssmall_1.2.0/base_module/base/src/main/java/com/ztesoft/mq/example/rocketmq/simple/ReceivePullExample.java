@@ -1,0 +1,148 @@
+package com.ztesoft.mq.example.rocketmq.simple;
+
+import java.util.Set;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.mq.client.DelayLevel;
+import com.ztesoft.mq.client.ErrorHandlerResult;
+import com.ztesoft.mq.client.ErrorHandlerStatus;
+import com.ztesoft.mq.client.EventMessageExt;
+import com.ztesoft.mq.client.EventQueue;
+import com.ztesoft.mq.client.EventReceiveCallback;
+import com.ztesoft.mq.client.exception.EventHandleErrorType;
+import com.ztesoft.mq.client.exception.EventHandleException;
+import com.ztesoft.mq.client.rocketMQ.RocketMQEventTemplateGeneral;
+import com.ztesoft.mq.client.rocketMQ.RocketReceiveEventTemplate;
+
+public class ReceivePullExample extends SimpleExample {
+	private static Logger logger = Logger.getLogger(ReceivePullExample.class);
+	private String action = "SimpleTest";
+
+	public ReceivePullExample() {
+		this.initReceive();
+	}
+
+	public void executeSyncReceive() {
+		RocketReceiveEventTemplate template = null;
+		try {
+			template = RocketMQEventTemplateGeneral
+					.createRocketMQReceiveTemplate(this.TEST_CONSUMER_POOL);
+			Set<EventQueue> queues = template.searchQueuer(this.topic);
+			for (EventQueue queue : queues) {
+				logger.info(".....receive from queue "
+						+ queue.getQueueId());
+				EventMessageExt messageExt = template.receiveEventMessage(
+						queue, action);
+
+				if (messageExt != null) {
+					logger.info("receive message: "
+							+ messageExt.toString());
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				RocketMQEventTemplateGeneral.closeRocketMQReceiveTemplate(
+						this.TEST_CONSUMER_POOL, template);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public void executeAysnReceive() {
+		RocketReceiveEventTemplate template = null;
+		try {
+			template = RocketMQEventTemplateGeneral
+					.createRocketMQReceiveTemplate(this.TEST_CONSUMER_POOL);
+			Set<EventQueue> queues = template.searchQueuer(this.topic);
+			for (EventQueue queue : queues) {
+				logger.info(".....receive from queue "
+						+ queue.getQueueId());
+
+				template.receiveEventMessage(queue, action,
+						new EventReceiveCallback() {
+
+							@Override
+							public void executeEvent(EventMessageExt e)
+									throws EventHandleException {
+								// TODO Auto-generated method stub
+								logger.info("receive message: "
+										+ e.toString());
+								throw new EventHandleException(
+										EventHandleErrorType.HANDLE_MESSAGE_FAILED, "planError",
+										"Plan throw exception!");
+							}
+
+							@Override
+							public void executeNotEvent()
+									throws EventHandleException {
+								// TODO Auto-generated method stub
+								System.out
+										.println("didn't receive any message");
+							}
+
+							@Override
+							public ErrorHandlerResult executeException(
+									EventHandleException t) {
+								// TODO Auto-generated method stub
+								logger.info("error type:" + t.getErrorType() + " error code:" + t.getErrorCode() + " error msg:" + t.getMessage());
+								// 返回ErrorHandlerStatus.SENDBACK表示该消息1分钟后重新消费
+								// 返回ErrorHandlerStatus.BATCHSENDBACK表示该批消息重新消费，延迟时间统一在后台配置
+								// 返回ErrorHandlerStatus.CONTINUE表示应用可以兼容该异常，继续消费批量取出的后续消息
+								return new ErrorHandlerResult(
+										ErrorHandlerStatus.SENDBACK,
+										DelayLevel.ONE_MINUTE);
+							}
+
+						});
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				RocketMQEventTemplateGeneral.closeRocketMQReceiveTemplate(
+						this.TEST_CONSUMER_POOL, template);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		logger.info("...........finish................");
+	}
+
+	public void executeSendBackReceive() {
+		RocketReceiveEventTemplate template = null;
+		try {
+			template = RocketMQEventTemplateGeneral
+					.createRocketMQReceiveTemplate(this.TEST_CONSUMER_POOL);
+
+			EventMessageExt messageExt = template.receiveMessageBySendback();
+
+			if (messageExt != null) {
+				logger.info("receive message: " + messageExt.toString());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				RocketMQEventTemplateGeneral.closeRocketMQReceiveTemplate(
+						this.TEST_CONSUMER_POOL, template);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public static void main(String[] args) {
+		String receiveType = args[0];
+
+		ReceivePullExample example = new ReceivePullExample();
+		if (receiveType.equals("0")) {
+			example.executeSyncReceive();
+		} else {
+			example.executeAysnReceive();
+		}
+	}
+}

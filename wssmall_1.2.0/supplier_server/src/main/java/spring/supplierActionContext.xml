@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+ 	<bean id="supplierAction" class="supplier.com.enation.mall.core.action.backend.SupplierAction" scope="prototype"/>
+	<bean id="supplierAgreementAction" class = "com.ztesoft.net.mall.core.action.backend.SupplierAgreementAction" scope ="prototype"></bean>
+</beans>

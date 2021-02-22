@@ -1,0 +1,20 @@
+@charset "utf-8";
+/* CSS Document */
+body{ background:#f2f7fc;}
+.login_div{ margin:0 auto; width:1002px;}
+.login_left{ width:633px; float:left; height:600px; background:url(../images/login_left.jpg) no-repeat;}
+.login_right{ background:url(../images/login_right.jpg) no-repeat; width:369px; height:600px; float:right;}
+.login_box{ margin-top:170px;}
+.login_box table{ color:#444;}
+.login_box table th{ width:120px; text-align:right; height:50px; vertical-align:middle; font-size:14px;}
+.login_box table td{ vertical-align:middle;}
+.iptdiv{ background:url(../images/iptbg.gif) repeat-x; height:32px;position:relative;padding-left:6px; padding-right:6px; float:left;}
+.iptdiv .ipt_left{ position:absolute; left:0px; top:0px; background:url(../images/iptleft.gif) no-repeat; width:6px; height:32px; }
+.iptdiv .ipt_right{ position:absolute; right:0px; top:0px; background:url(../images/iptright.gif) no-repeat; width:6px; height:32px;}
+.iptClass{ border:none; background:none; height:32px; line-height:32px; width:100%;}
+
+.iptdivfoucs{ background:url(../images/iptbgfoucs.gif) repeat-x; height:36px;position:relative;padding-left:6px; padding-right:6px; float:left; padding-top:2px;}
+.iptdivfoucs .ipt_left{ position:absolute; left:0px; top:0px; background:url(../images/iptleftfoucs.gif) no-repeat; width:6px; height:36px; }
+.iptdivfoucs .ipt_right{ position:absolute; right:0px; top:0px; background:url(../images/iptrightfoucs.gif) no-repeat; width:6px; height:36px;}
+.yzmdiv{ float:left; width:60px; padding-left:5px;}
+.iptbtnDiv{ padding-top:10px; padding-left:120px;}

@@ -1,0 +1,128 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.exception.NameRepetirException;
+import com.ztesoft.net.mall.core.model.Ciudad;
+import com.ztesoft.net.mall.core.service.ICiudadManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.core.utils.ReadWriteExcelUtil;
+import com.ztesoft.net.sqls.SF;
+
+/**
+ * Saas式号码业务管理
+ * 
+ * @author cc
+ * 
+ */
+@SuppressWarnings("all")
+public class CiudadManager extends BaseSupport<Ciudad> implements
+		ICiudadManager {
+
+	private static final String TABLE = "ES_NO_SEG";
+	private static final String ID = "SEG_ID";
+
+	@Override
+	public void saveOrUpdate(Ciudad ciudad) throws Exception {
+
+		if (StringUtils.isBlank(ciudad.getSeg_id())) {
+			
+			this.checkSave(ciudad);
+			
+			ciudad.setSource_from(ManagerUtils.getSourceFrom());
+			this.baseDaoSupport.insert(TABLE, ciudad);
+			
+		} else {
+			Map fields = new HashMap();
+			fields.put("region_id", ciudad.getRegion_id());
+			this.baseDaoSupport.update(TABLE, fields, " seg_id = " + ciudad.getSeg_id());
+		}
+	}
+
+	@Override
+	public void del(String id) {
+		String sql = SF.numeroSql("CIUDAD_DEL");
+		this.baseDaoSupport.execute(sql, id);
+	}
+
+	
+	@Override
+	public Ciudad get(String id) {
+		String sql = SF.numeroSql("CIUDAD_GET");
+		return baseDaoSupport.queryForObject(sql, Ciudad.class, id);
+	}
+	
+	@Override
+	public Page getFormList(int pageNo, int pageSize, Map<String, String> params) {
+
+		StringBuilder temp = new StringBuilder(SF.numeroSql("CIUDAD_LIST"));
+		String region_id = params.get("region_id");
+		String seg_no = params.get("seg_no") == null ? "" : params.get("seg_no").trim();
+		List paramLst = new ArrayList();
+		
+		temp.append(" and a.source_from = ?");
+		paramLst.add(ManagerUtils.getSourceFrom());
+		
+		if (StringUtils.isNotEmpty(region_id)) {
+			temp.append(" and a.region_id = ?");
+			paramLst.add(region_id);
+		}
+		
+		if (StringUtils.isNotEmpty(seg_no)) {
+			temp.append(" and a.seg_no = ?");
+			paramLst.add(seg_no);
+		}
+		
+		temp.append(" order by created_date desc");
+		return baseDaoSupport.queryForPage(temp.toString(), pageNo, pageSize, paramLst.toArray());
+	}
+
+	private String creatrSql(String filed, String operator, String value) {
+		String condition = "";
+
+		value = value.trim();
+		if (value.endsWith(","))
+			value = value.substring(0, value.length() - 1);
+
+		if ("in".equalsIgnoreCase(operator)
+				|| "exists".equalsIgnoreCase(operator)
+				|| "not exists".equalsIgnoreCase(operator)
+				|| "not in".equalsIgnoreCase(operator)) {
+			condition = " and " + filed + " " + operator + "(" + value + ")";
+		} else
+			condition = " and " + filed + " " + operator + " " + value;
+		return condition;
+	}
+
+	@Override
+	public void importacion(File file, String tipo) {
+		List ids = baseDaoSupport.queryForLists("select seg_id from ES_NO_SEG where 1 = 1");
+		Map map = new HashMap();
+		map.put("ids", ids);
+		ReadWriteExcelUtil reu = new ReadWriteExcelUtil();
+		List list = reu.readExcel(file,tipo,map);
+		for (int i = 0; i < list.size(); i++) {
+			Ciudad ciudad = (Ciudad) list.get(i);
+			baseDaoSupport.insert(TABLE, ciudad);
+		}
+	}
+	
+
+	private void checkSave(Ciudad ciudad) throws NameRepetirException {
+		
+		String sql = SF.numeroSql("CIUDAD_CHECK_SAVE");
+		int count = baseDaoSupport.queryForInt(sql, ciudad.getSeg_no());
+		if (count > 0) {
+			throw new NameRepetirException("该号段【" + ciudad.getSeg_no() + "】已存在！");
+		}
+	}
+
+}

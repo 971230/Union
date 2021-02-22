@@ -1,0 +1,85 @@
+package com.ztesoft.net.mall.core.action.order.dilvery;
+
+import com.ztesoft.net.mall.core.action.order.AbstractHander;
+import com.ztesoft.net.mall.core.model.Delivery;
+import com.ztesoft.net.mall.core.model.DeliveryItem;
+import com.ztesoft.net.mall.core.model.ShipRequest;
+
+import java.util.ArrayList;
+import java.util.List;
+
+
+public  class CommonDilveryHander extends AbstractHander implements IDilveryHander {
+	
+	public void dilvery() {
+		
+	}
+
+	@Override
+	public void display() {
+		
+	}
+
+	@Override
+	public void execute() {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public boolean isCanExecute() {
+		return this.getOrderRequst().isCan_execute();
+	}
+
+	
+
+	//发货处理
+	public void ship(){
+		ShipRequest shipRequest =getOrderRequst().getShipRequest();
+		String goods_idArray [] =shipRequest.getGoods_idArray();
+		String goods_nameArray [] =shipRequest.getGoods_nameArray();
+		String goods_snArray [] =shipRequest.getGoods_snArray();
+		String product_idArray [] =shipRequest.getProduct_idArray();
+		Integer numArray [] =shipRequest.getNumArray();
+		String giftidArray []= shipRequest.getGiftidArray();
+		String giftnameArray []= shipRequest.getGiftnameArray();
+		Integer giftnumArray []= shipRequest.getGiftnumArray();
+		Delivery delivery =shipRequest.getDelivery();
+		
+		List<DeliveryItem> itemList  = new ArrayList<DeliveryItem>();
+		int i=0;
+		for(String goods_id :goods_idArray){
+			
+			DeliveryItem item = new DeliveryItem();
+			item.setGoods_id(goods_id);
+			item.setName(goods_nameArray[i]);
+			item.setNum(numArray[i]);  
+			item.setProduct_id(product_idArray[i]);
+			item.setSn(goods_snArray[i]);
+			item.setItemtype(0);
+			itemList.add(item);
+			i++;
+		}
+	
+		i=0;
+		List<DeliveryItem> giftitemList  = new ArrayList<DeliveryItem>();
+		if(giftidArray!=null){
+			for(String giftid :giftidArray){
+				
+				DeliveryItem item = new DeliveryItem();
+				item.setGoods_id(giftid);
+				item.setName(giftnameArray[i]);
+				item.setNum(giftnumArray[i]);  
+				item.setProduct_id(giftid);
+				item.setItemtype(2);
+				giftitemList.add(item);
+				i++;
+			}
+		}
+		delivery.setOrder_id(getOrder().getOrder_id());
+		orderNFlowManager.shipping(delivery, itemList,giftitemList,"");
+		
+	}
+	
+}

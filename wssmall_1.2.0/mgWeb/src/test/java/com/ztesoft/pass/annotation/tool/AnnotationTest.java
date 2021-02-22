@@ -1,0 +1,352 @@
+package com.ztesoft.pass.annotation.tool;
+
+import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotation;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+
+/**
+ * 作用：生成帮助文档main函数
+ * @author sguo
+ * @date 2014-01-07
+ *
+ */
+public class AnnotationTest {
+	private static Logger logger = Logger.getLogger(AnnotationTest.class);
+	/**
+	 * 遍历类信息中ZteSoftCommentAnnotation注解
+	 * @param hm
+	 */
+	public static void combinationClassData(String classname, HashMap hm){
+		try {
+			hm.put("fullclassname", classname);//Class clazz = Class.forName("com.ztesoft.net.annotation.Unit");
+			Class clazz = Class.forName(classname);
+			ZteSoftCommentAnnotation zsca = (ZteSoftCommentAnnotation) clazz.getAnnotation(ZteSoftCommentAnnotation.class);
+			if(zsca!=null){
+				hm.put("classname", classname);
+				hm.put("desc", zsca.desc());
+				hm.put("summary", zsca.summary());
+			}
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+				
+	}
+	
+	/**
+	 * 将类方法出参、入参遍历出来
+	 * @param methodname
+	 * @param hm
+	 */
+	public static void combinationMethodData(String className, String methodname, HashMap hm){
+		try {
+			Class clazz = Class.forName(className);
+			Method [] methods =clazz.getDeclaredMethods();
+			if(methods.length>0){
+				List methodList = new ArrayList();
+				hm.put("methodlist", methodList);//类方法列表
+				for(Method method : methods){
+					ZteSoftCommentAnnotation mzca = method.getAnnotation(ZteSoftCommentAnnotation.class);
+					if(mzca != null){
+						HashMap methodhm = new HashMap();
+						methodhm.put("fullmethodname", className+"."+method.getName());
+						methodhm.put("methodname", method.getName());
+						methodhm.put("desc", mzca.desc());
+						methodList.add(methodhm);
+						if(methodname.equals(method.getName())){//遍历入参 出参
+							List methodPList = new ArrayList();
+							methodhm.put("methodplist", methodPList);
+							hm.put("methodplist", methodPList);
+							List methodRList = new ArrayList();
+							methodhm.put("methodrlist", methodRList);
+							hm.put("methodrlist", methodRList);
+							Class<?> [] ps = method.getParameterTypes();   
+							for(Class<?> c : ps){
+								  if(!(c.getName()).startsWith("[")){//过滤掉数组类型
+									  Field [] fs = c.getDeclaredFields();
+									  for(Field f : fs){
+										  f.setAccessible(true) ;
+										  ZteSoftCommentAnnotationParam ascap = f.getAnnotation(ZteSoftCommentAnnotationParam.class);
+										  if(ascap != null){
+											  HashMap methodHM = new HashMap();
+											  methodHM.put("name", ascap.name());
+											  methodHM.put("fieldname", f.getName());
+											  methodHM.put("type",f.getType().getName());
+											  if(ascap.hasChild()){
+												  methodHM.put("type","<a target='_blank' title='"+f.getType().getName()+"' href='"+f.getType().getName()+".html'>"+f.getType().getName()+"</a>");
+												  memberVarList(f.getType().getName());
+											  }
+											  methodHM.put("isnecessary", ascap.isNecessary());
+											  methodHM.put("desc", ascap.desc());
+											  methodPList.add(methodHM);	
+										  }
+									  }
+								  }
+							}
+							Class<?> rs = method.getReturnType();   
+						    if(!(rs.getName()).startsWith("[")){
+							   Field [] fs = rs.getDeclaredFields();
+							   for(Field f : fs){
+									  f.setAccessible(true) ;
+									  ZteSoftCommentAnnotationParam ascap = f.getAnnotation(ZteSoftCommentAnnotationParam.class);
+									  if(ascap != null){
+										  HashMap methodHM = new HashMap();
+										  methodHM.put("name", ascap.name());
+										  methodHM.put("fieldname", f.getName());
+										  methodHM.put("type", f.getType().getName());
+										  if(ascap.hasChild()){
+											  methodHM.put("type","<a target='_blank' href='"+f.getType().getName()+".html'>"+ascap.type()+"</a>");
+											  memberVarList(f.getType().getName());
+										  }
+										  methodHM.put("isnecessary", ascap.isNecessary());
+										  methodHM.put("desc", ascap.desc());
+										  methodRList.add(methodHM);	
+									  }
+							  }
+						   }						
+						}
+										
+					}
+
+				}
+			
+			}
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 类所有方法遍历
+	 */
+	public static void methodTraversal(String classname){
+		try {
+			Class clazz = Class.forName(classname);
+			Method [] methods = clazz.getDeclaredMethods();
+			if(methods.length>0){
+				for(Method method : methods){
+					JavaDocHandler jh = new JavaDocHandler();
+					AnnotationTest t = new AnnotationTest();
+					HashMap hm = new HashMap();
+					hm.put("parain", method.getParameterTypes()[0]);
+					hm.put("paraout", method.getReturnType());					
+					AnnotationTest.combinationClassData(classname, hm);
+					AnnotationTest.combinationMethodData(classname, method.getName(), hm);
+					if(((ArrayList)hm.get("methodlist")).size()>0){//有注解方法时生成明细
+						jh.setTemplateFileName("api_cat_detail.html");
+						logger.info("生成"+clazz.getName()+"."+method.getName()+".html");
+						jh.setOutFileName("D://Workspaces//wssmall_laster//wssmall_1_1//mgWeb//src//main//webapp//apidoc//"+clazz.getName()+"."+method.getName()+".html");
+						jh.setDataMap(hm);
+						jh.createHtml();					
+					}
+				}
+			}
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}	
+		
+	}
+	
+    /** 
+     * 从项目文件获取某包下所有类 
+     * @param filePath 文件路径 
+     * @param className 类名集合 
+     * @param childPackage 是否遍历子包 
+     * @return 类的完整名称 
+     * @throws ClassNotFoundException 
+     */  
+    private static void getClassNameByFile(String filePath, List<HashMap<String,String>> className, String packageName, boolean childPackage){  
+        File file = new File(filePath);  
+        File[] childFiles = file.listFiles();  
+        for (File childFile : childFiles) {  
+            if (childFile.isDirectory()) {  
+                if (childPackage) {  
+                	getClassNameByFile(childFile.getPath(), className, packageName, childPackage);
+                }  
+            } else {  
+                String childFilePath = childFile.getPath();  
+                if (childFilePath.endsWith(".java")) {  
+                    childFilePath = childFilePath.substring(childFilePath.indexOf("\\"+packageName)+packageName.length()+2, childFilePath.lastIndexOf("."));  
+                    childFilePath = childFilePath.replace("\\", "."); 
+                    HashMap hm = new HashMap();
+        			hm.put("fullclassname", childFilePath);
+        			Class clazz = null;
+					try {
+						clazz = Class.forName(childFilePath);
+					} catch (ClassNotFoundException e) {
+						e.printStackTrace();
+					}
+        			ZteSoftCommentAnnotation zsca = (ZteSoftCommentAnnotation) clazz.getAnnotation(ZteSoftCommentAnnotation.class);
+        			if(zsca != null){
+        				logger.info("类："+childFilePath+"");
+        				hm.put("desc", zsca.desc());
+            			Method [] methods =clazz.getDeclaredMethods();
+            			hm.put("fullmethodname", "javasrcipt:void(0)");
+            			if(methods.length>0){
+            				List methodList = new ArrayList();
+            				int hasAnnotationLen = 0;
+            				for(Method method : methods){
+            					boolean hasAnnotation = method.isAnnotationPresent(ZteSoftCommentAnnotation.class);
+            					if(hasAnnotation){
+            						if((++hasAnnotationLen)==1){
+            							hm.put("fullmethodname", clazz.getName()+"."+method.getName()+".html");//获取类员方法第1个注解方法，以生成连接
+            							methodTraversal(childFilePath);//生成方法明细页面
+            							break;
+            						}
+            					}
+            				}
+            			}
+                        className.add(hm);         				
+        			}
+                }  
+            }  
+        }  
+  
+    } 	
+	
+    public static void memberVarList(String classname){
+		try {
+			Class clazz = Class.forName(classname);
+	    	Field [] fs = clazz.getDeclaredFields();
+	    	List membervariableslist = new ArrayList();
+	    	for(Field f : fs){
+	    	  f.setAccessible(true) ;
+	    	  ZteSoftCommentAnnotationParam ascap = f.getAnnotation(ZteSoftCommentAnnotationParam.class);
+	    	  if(ascap != null){
+	    		  HashMap methodHM = new HashMap();
+	    		  methodHM.put("name", ascap.name());
+	    		  methodHM.put("fieldname", f.getName());
+	    		  methodHM.put("type", f.getType().getName());
+	    		  methodHM.put("isnecessary", ascap.isNecessary());
+	    		  methodHM.put("desc", ascap.desc());
+	    		  membervariableslist.add(methodHM);	
+	    	  }
+	    	}
+	    	
+			JavaDocHandler jh = new JavaDocHandler();
+			AnnotationTest t = new AnnotationTest();
+			HashMap hm = new HashMap();
+			hm.put("membervariableslist", membervariableslist);
+			hm.put("classname", classname);
+			jh.setTemplateFileName("api_cat_attr.html");
+			logger.info("生成"+clazz.getName()+".html");
+			jh.setOutFileName("D://Workspaces//wssmall_laster//wssmall_1_1//mgWeb//src//main//webapp//apidoc//"+clazz.getName()+".html");
+			jh.setDataMap(hm);
+			jh.createHtml();	
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+    }    
+    /**
+     * 独立测试生成apidocdetail信息
+     */
+    public static void f1(String classname){
+//		String classname = "com.ztesoft.net.annotation.Unit";
+		JavaDocHandler jh = new JavaDocHandler();
+		AnnotationTest t = new AnnotationTest();
+		HashMap hm = new HashMap();
+		AnnotationTest.combinationClassData(classname, hm);
+		AnnotationTest.combinationMethodData(classname, "s4", hm);
+		if(((ArrayList)hm.get("methodlist")).size()>0){//有注解方法时生成明细
+			jh.setTemplateFileName("api_cat_detail.html");
+			jh.setOutFileName("D://Workspaces//wssmall_laster//wssmall_1_1//mgWeb//src//main//webapp//apidoc//adfadfadsfsadfadsf.html");
+			jh.setDataMap(hm);
+			jh.createHtml();					
+		} 	
+    }
+    
+    /**
+     * 测试遍历包下所有的类
+     * @param args
+     */
+    public static void f2(){
+    	LinkedHashMap packageMap = new LinkedHashMap();
+    	packageMap.put("commission_inf", "佣金");
+    	packageMap.put("goods_inf", "商品");
+    	packageMap.put("goods_plugins_inf", "商品插件");
+    	packageMap.put("info_inf", "通知公告(广告)");
+    	packageMap.put("member_inf", "会员");
+    	packageMap.put("order_inf", "订单");
+    	packageMap.put("partner_inf", "合作伙伴");
+    	packageMap.put("payment_inf", "支付");
+    	packageMap.put("print_inf", "打印");
+    	packageMap.put("rule_inf", "规则");
+    	packageMap.put("supplier_inf", "供应商");
+    	packageMap.put("sys_inf", "系统");
+    	packageMap.put("task_inf", "定时任务");
+    	packageMap.put("workflow_inf", "工作流");
+    	packageMap.put("sms_inf", "短信");
+    	List<Map> packageList = new ArrayList<Map>();
+    	Iterator ite = packageMap.entrySet().iterator();
+    	int i=0;
+    	while(ite.hasNext()){
+    		Map.Entry entry = (Map.Entry) ite.next();
+    		String key = entry.getKey().toString();
+    		String val = entry.getValue().toString();
+    		//包列表
+    		Map map = new HashMap();
+    		packageList.add(map);
+    		map.put("packagename", key);
+    		map.put("desc", val);
+    		if(i==0){//为了点击“返回”，将第一项固化
+    			map.put("url", "index.html");
+    		}else{
+    			map.put("url", key+"_"+"api_list.html");
+    		}   
+    		i++;
+    	}
+    	i=0;
+    	ite = packageMap.entrySet().iterator();
+    	while(ite.hasNext()){
+    		Map.Entry entry = (Map.Entry) ite.next();
+    		String key = entry.getKey().toString();
+    		String val = entry.getValue().toString();
+    		logger.info("检索输出"+key+"下需注解class");
+    		//包中类明细
+        	String packageName = key;
+        	String filePath = "D://Workspaces//wssmall_laster//wssmall_1_1//sdk//src//main//"+packageName+"//";//包路径前缀
+        	List<HashMap<String,String>> className = new ArrayList<HashMap<String,String>>();
+        	boolean childPackage = true;
+        	try {
+    			getClassNameByFile(filePath,className,packageName,childPackage);
+    		} catch (Exception e) {
+    			e.printStackTrace();
+    		}
+    		JavaDocHandler jh = new JavaDocHandler();
+    		AnnotationTest t = new AnnotationTest();
+    		HashMap hm = new HashMap();
+    		jh.setTemplateFileName("api_list.html");
+    		if(i==0){//为了点击“返回”，将第一项固化
+    			jh.setOutFileName("D://Workspaces//wssmall_laster//wssmall_1_1//mgWeb//src//main//webapp//apidoc//index.html");
+    		}else{
+    			jh.setOutFileName("D://Workspaces//wssmall_laster//wssmall_1_1//mgWeb//src//main//webapp//apidoc//"+packageName+"_"+"api_list.html");
+    		}
+    		i++;
+    		jh.setDataMap(hm);
+    		hm.put("classnamelist", className);//包成员class列表
+    		hm.put("packagelist", packageList);//包列表
+    		hm.put("packagename", packageName);//包名
+    		jh.createHtml();    		
+    	}
+
+    }
+    
+
+   
+    
+	public static void main(String [] args){
+//		f1("com.ztesoft.net.annotation.Unit");
+		f2();
+		logger.info("end");
+	}
+}

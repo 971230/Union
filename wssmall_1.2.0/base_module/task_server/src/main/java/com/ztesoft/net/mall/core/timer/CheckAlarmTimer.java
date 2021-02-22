@@ -1,0 +1,298 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import params.adminuser.req.MessageSendReq;
+import services.MessageInf;
+import com.powerise.ibss.framework.FrameException;
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.AlarmReceiver;
+import com.ztesoft.net.mall.core.model.AlarmTask;
+import com.ztesoft.net.mall.core.model.AlarmTaskDetail;
+import com.ztesoft.net.mall.core.model.AlarmTmplDate;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+
+/**
+ * 告警任务定时出发
+ * @author hu.yi
+ * @date 2013.12.13
+ */
+public class CheckAlarmTimer extends BaseSupport{
+
+	private MessageInf messageServ;
+	
+	/**
+	 * 告警处理
+	 * @throws FrameException 
+	 */
+	public void check() throws FrameException{
+		//ip验证处理 add by wui所有定时任务都需要加上限制条件
+  		if(!CheckTimerServer.isMatchServer(this.getClass().getName(),"check"))
+  			return ;
+  		
+		//修改=== mochunrun 2014-4-21
+		/*IJobTaskService jobTaskService = SpringContextHolder.getBean("jobTaskService");
+		JobTaskCheckedReq req = new JobTaskCheckedReq();
+		req.setClassName(CheckAlarmTimer.class.getName());
+		req.setMethod("check");
+		JobTaskCheckedResp resp = jobTaskService.checkedJobTask(req);
+		if(!resp.isCanRun())
+			return ;*/
+		
+		//if(!CheckSchedulerServer.isMatchServer())
+		//	return;
+		
+		//先查询有效的任务告警
+		/**
+		 * 1.告警任务生效						es_alarm_task
+		 * 2.告警类型为任务告警				es_alarm_task
+		 * 3.告警最后计算期限已结束			es_task
+		 * 4.告警任务计算时间已开始			es_task
+		 * 4.还未发送信息	，或发送过开始消息	es_task（状态位 未发送 开始信息已发送 过期信息已发送）
+		 */
+		StringBuffer taskSql = new StringBuffer();
+		taskSql.append("SELECT b.task_id    task_id,");
+		taskSql.append("	b.task_cate  task_cate,");
+		taskSql.append("	b.end_date   end_date,");
+		taskSql.append("	b.msg_state  msg_state,");
+		taskSql.append("	a.alarm_task_id  alarm_task_id");
+		taskSql.append(" FROM es_alarm_task a, es_task b");
+		taskSql.append(" WHERE a.owner_task_id = b.task_id");
+		taskSql.append(" AND a.alarm_task_type = '2'");
+		taskSql.append(" AND a.task_create_time <= "+DBTUtil.to_sql_date(DBTUtil.to_char(DBTUtil.current(), 1),1)+"");
+		taskSql.append(" AND a.task_aead_time >= "+DBTUtil.to_sql_date(DBTUtil.to_char(DBTUtil.current(), 1),1)+"");
+		taskSql.append(" AND a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + "'");
+		
+		List<Map<String, Object>> taskList = this.baseDaoSupport.queryForList(taskSql.toString());
+		List<Map<String, Object>> taskList_1 = new ArrayList<Map<String,Object>>();
+		
+		if(!ListUtil.isEmpty(taskList)){
+			for (int i = 0; i < taskList.size(); i++) {
+				Map<String, Object> map = taskList.get(i);
+				
+				String end_date = DateUtil.formatDate((Date) map.get("end_date"), DateUtil.DATE_FORMAT_1);
+				String now = DateUtil.getTime(DateUtil.DATE_FORMAT_1);
+				String msg_state = (String) map.get("msg_state");
+				String task_id = (String) map.get("task_id");
+				
+				//如果参数 Date 等于此 Date，则返回值 0；如果此 Date 在 Date 参数之前，则返回小于 0 的值；如果此 Date 在 Date 参数之后，则返回大于 0 的值。 
+				int end = DateUtil.compareDate(now, end_date, DateUtil.DATE_FORMAT_1);
+				
+				if(end <= 0){
+					//如果此时结束时间大于当前时间
+					if(StringUtil.isEmpty(msg_state)){
+						//更新标志位
+						String stateSql = "UPDATE es_task SET msg_state = '"+Consts.TASK_MSG_NOT_SEND+"' WHERE task_id = '"+task_id+"'";
+						this.baseDaoSupport.execute(stateSql);
+					}
+				}else{
+					if(StringUtil.isEmpty(msg_state) || !Consts.TASK_MGS_SEND.equals(msg_state)){
+						taskList_1.add(map);
+					}
+				}
+			}
+		}
+		
+		
+		List<Map<String, Object>> resList = new ArrayList<Map<String,Object>>();
+		//关联es_taskdetail表，对比具体的用户信息，来判断所发送的消息
+		if(!ListUtil.isEmpty(taskList_1)){
+			for (int i = 0; i < taskList_1.size(); i++) {
+				Map<String, Object> map = taskList_1.get(i);
+				String task_id = (String) map.get("task_id");
+				String task_cate = (String) map.get("task_cate");
+				String alarm_task_id = (String) map.get("alarm_task_id");
+				String amount_state = Consts.TASK_UNFINISHI;
+				String money_state = Consts.TASK_UNFINISHI;
+				
+				StringBuffer detailSql = new StringBuffer();
+				detailSql.append("SELECT * FROM es_taskdetail");
+				detailSql.append(" WHERE task_id = '"+task_id+"'");
+				
+				List<AlarmTaskDetail> detailList = this.baseDaoSupport.queryForList(detailSql.toString(),AlarmTaskDetail.class);
+			
+				if(!ListUtil.isEmpty(detailList)){
+					for (int j = 0; j < detailList.size(); j++) {
+						AlarmTaskDetail alarmTaskDetail = detailList.get(j);
+						Map<String, Object> resMap = new HashMap<String, Object>();
+						
+						if(StringUtil.isEmpty(task_cate) || Consts.TASK_CATE_AMOUNT.equals(task_cate)){
+							//数量比较
+							int amount = alarmTaskDetail.getTask_num();
+							int finish_amount = alarmTaskDetail.getFinished_num();
+							
+							if(finish_amount < amount){
+								resMap.put("not_task_target", amount - finish_amount);
+							}else{
+								amount_state = Consts.TASK_FINISH;
+							}
+						}else if(StringUtil.isEmpty(task_cate) || Consts.TASK_CATE_MONEY.equals(task_cate)){
+							//金额比较
+							long money = alarmTaskDetail.getTask_amount();
+							long finish_money = alarmTaskDetail.getFinished_amount();
+							
+							if(finish_money < money){
+								resMap.put("state", Consts.TASK_UNFINISHI);
+								resMap.put("not_task_money", Math.abs(money - finish_money));
+							}else{
+								money_state = Consts.TASK_FINISH;
+							}
+						}
+						
+						if(!Consts.TASK_FINISH.equals(amount_state) || !Consts.TASK_FINISH.equals(money_state)){
+							resMap.put("task_id", task_id);
+							resMap.put("user_id", alarmTaskDetail.getUserid());
+							resMap.put("alarm_task_id", alarm_task_id);
+							resList.add(resMap);
+						}
+					}
+				}
+			}
+		}
+		
+		
+		//拼接模板，发送消息
+		/**
+		 * [{"e_name":"not_task_money","c_name":"任务未完成指定金额"},
+		 * {"e_name":"not_task_target","c_name":"任务未完成目标值"},
+		 * {"e_name":"user_name","c_name":"责任人"}]
+		 */
+		if(!ListUtil.isEmpty(resList)){
+			for (int i = 0; i < resList.size(); i++) {
+				Map<String, Object> resMap = resList.get(i);
+				String task_id = (String) resMap.get("task_id");
+				String user_id = (String) resMap.get("user_id");
+				String alarm_task_id = (String) resMap.get("alarm_task_id");
+				
+				String userSql = "SELECT * FROM es_adminuser WHERE userid = '"+user_id+"'";
+				List<AdminUser> adminList = this.baseDaoSupport.queryForList(userSql, AdminUser.class);
+				AdminUser adminUser = new AdminUser();
+				String user_name = "";
+				if(!ListUtil.isEmpty(adminList)){
+					for (int j = 0; j < adminList.size(); j++) {
+						adminUser = adminList.get(0);
+					}
+				}
+				if(adminUser != null){
+					user_name = adminUser.getUsername();
+				}
+				resMap.put("user_name", user_name);
+				
+				StringBuffer tempSql = new StringBuffer();
+				tempSql.append("SELECT * FROM es_alarm_template WHERE status = '"+Consts.CHECK_ACCT_TMPL_ABLE+"'");
+				tempSql.append(" AND able_time <= "+DBTUtil.to_sql_date(DBTUtil.to_char(DBTUtil.current(), 1),1)+"");
+				tempSql.append(" AND enable_time >= "+DBTUtil.to_sql_date(DBTUtil.to_char(DBTUtil.current(), 1),1)+"");
+				tempSql.append(" AND applic_scene_id = '"+alarm_task_id+"'");
+				AlarmTmplDate alarmTmplDate = new AlarmTmplDate();
+				List<AlarmTmplDate> tempList = this.baseDaoSupport.queryForList(tempSql.toString(), AlarmTmplDate.class);
+				if(!ListUtil.isEmpty(tempList)){
+					for (int j = 0; j < tempList.size(); j++) {
+						alarmTmplDate = tempList.get(0);
+					}
+				}
+				
+				String tSql = "SELECT * FROM es_alarm_task WHERE owner_task_id = '"+task_id+"'";
+				
+				AlarmTask alarmTask = new AlarmTask();
+				List<AlarmTask> alamList = this.baseDaoSupport.queryForList(tSql, AlarmTask.class);
+				if(!ListUtil.isEmpty(alamList)){
+					for (int j = 0; j < alamList.size(); j++) {
+						alarmTask = alamList.get(0);
+					}
+				}
+				
+				alarmTask = parseMsgTemp(alarmTask, alarmTmplDate, resMap);
+				
+				
+				String resSql = "SELECT * FROM es_alarm_receiver WHERE alarm_task_id = '"+alarmTask.getAlarm_task_id()+"'";
+				
+				List<AlarmReceiver> userList = this.baseDaoSupport.queryForList(resSql, AlarmReceiver.class);
+				
+				if(!ListUtil.isEmpty(userList)){
+					for (int j = 0; j < userList.size(); j++) {
+						AlarmReceiver alarmReceiver = userList.get(j);
+						String reciverId = alarmReceiver.getRecevier_userid();
+						String content = alarmTask.getTask_content();
+						
+						
+						MessageSendReq messageSendReq = new MessageSendReq();
+						messageSendReq.setReciverId(reciverId);
+						messageSendReq.setContent(content);
+						
+						this.messageServ.sendMsg(messageSendReq);
+					}
+				}
+				String stateSql = "UPDATE es_task SET msg_state = '"+Consts.TASK_MGS_SEND+"' WHERE task_id = '"+task_id+"'";
+				this.baseDaoSupport.execute(stateSql);
+			}
+		}
+	}
+
+	private AlarmTask parseMsgTemp(AlarmTask alarmTask,AlarmTmplDate alarmTmplDate, Map<String, Object> alarmMap){
+			
+		/**
+		 * 您好的对账文本格式为{对账文本格式},异常对账金额为{异常对账金额},
+		 * 异常对账数量为{异常对账数量},对账时间为{对账时间}
+		 */
+		
+		/**
+		    [{e_name:'alarm_amount',c_name:'对账异常数量'},
+			{e_name:'alarm_money',c_name:'对账异常金额'},
+			{e_name:'text_pattern',c_name:'对账文本格式'},
+			{e_name:'reconciliation_time',c_name:'对账时间'}]
+		 */
+		if(alarmTask != null){
+			String ele = alarmTask.getElements_object();
+			JSONArray json = JSONArray.fromObject(ele);
+			String content = alarmTmplDate.getTemp_date();
+			
+			if(!StringUtil.isEmpty(content)){
+				Iterator it = json.iterator();
+				while (it.hasNext()) {
+					Map<String, Object> map = (Map<String, Object>) it.next();
+					String c_name = (String) map.get("c_name");
+					String e_name = (String) map.get("e_name");
+					String e_value = String.valueOf(alarmMap.get(e_name));
+					
+					if(content.indexOf(e_name) > -1){
+						if(!"null".equals(e_value)){
+							content = content.replace("{"+e_name+"}", e_value);
+						}else{
+							content = content.replace("{"+e_name+"}", "（无）");
+						}
+					}else{
+						content = content.replace("{"+e_name+"}", "（无）");
+					}
+				}
+				alarmTask.setTask_content(content);
+			}else{
+				alarmTask.setTask_content("");
+			}
+		}
+		
+		return alarmTask;
+	}
+
+
+	public MessageInf getMessageServ() {
+		return messageServ;
+	}
+	
+	public void setMessageServ(MessageInf messageServ) {
+		this.messageServ = messageServ;
+	}
+
+}

@@ -1,0 +1,384 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import params.coqueue.req.CoQueueAddReq;
+import params.coqueue.resp.CoQueueAddResp;
+import zte.net.iservice.ICoQueueService;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.app.base.core.model.Org;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.GoodsCo;
+import com.ztesoft.net.mall.core.service.ICoQueueManager;
+import com.ztesoft.net.mall.core.service.IGoodsOrgManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+@SuppressWarnings("all")
+public class GoodsOrgManager extends BaseSupport implements IGoodsOrgManager{
+	
+	@Resource
+	ICoQueueManager coQueueManager;
+	
+	@Resource
+	ICoQueueService coQueueService;
+
+	@Override
+
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void publish(String ids,String type,String goodsId){
+		String id[] =ids.split(",");
+		String checkIdsSql = SF.goodsSql("GOODS_CO_CHECK");
+		List<GoodsCo> list=this.baseDaoSupport.queryForList(checkIdsSql,GoodsCo.class, ManagerUtils.getSourceFrom(),goodsId);
+		String [] oldStr = new String[list.size()];
+		for(int i=0,j=list.size();i<j;i++){
+			oldStr[i]=list.get(i).getOrg_id().toString();
+		}
+		List<String> la = new ArrayList(Arrays.asList(id));
+		List<String> lb = new ArrayList(Arrays.asList(oldStr));
+		la.removeAll(lb);
+		
+		String tableName = "",service_code="",object_type="",co_name="",primary_key = "";
+		if("goods".equals(type)){
+			service_code = "CO_SHANGPIN";
+			tableName = "ES_GOODS_CO";
+			object_type = "SHANGPIN";
+			co_name = "商品同步";
+			primary_key = this.daoSupport.getSequences("S_ES_GOODSCO","other",9);
+		}else {//product
+			service_code = "CO_HUOPIN";
+			tableName = "ES_PRODUCT_CO";
+			object_type = "HUOPIN";
+			co_name = "货品同步";
+			primary_key = this.daoSupport.getSequences("S_ES_PRODUCT_CO","other",9);
+		}
+		
+		GoodsCo gc = new GoodsCo();
+		//自动增加序列为18位，模型中定义为9位
+		gc.setId(primary_key);
+		gc.setGoods_id(goodsId);
+		gc.setOper_id(ManagerUtils.getAdminUser().getUserid());
+		gc.setCreated_date(Consts.SYSDATE);
+		gc.setStatus_date(Consts.SYSDATE);
+		gc.setSource_from(ManagerUtils.getSourceFrom());
+		gc.setStatus(Consts.PUBLISH_1);
+		
+		//写消息队列
+		CoQueueAddReq coQueueAddReq;
+		ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+		
+		for(int i=0,j=la.size();i<j;i++){
+			gc.setOrg_id(la.get(i).toString());
+			baseDaoSupport.insert(tableName, gc);
+			
+			coQueueAddReq = new CoQueueAddReq();
+			coQueueAddReq.setCo_name(co_name);
+			coQueueAddReq.setBatch_id("1");
+			coQueueAddReq.setOrg_id_str(la.get(i).toString());
+			coQueueAddReq.setService_code(service_code);
+			coQueueAddReq.setAction_code(Consts.ACTION_CODE_100);
+			coQueueAddReq.setObject_id(gc.getId());
+			coQueueAddReq.setObject_type(object_type);
+			coQueueAddReq.setContents("");
+			coQueueAddReq.setSourceFrom(ManagerUtils.getSourceFrom());
+			coQueueAddReq.setOper_id(ManagerUtils.getAdminUser().getUserid());
+			client.execute(coQueueAddReq, CoQueueAddResp.class);
+		}
+	}
+	
+	@Override
+	public List getCurrOrgs(String login_org_id) {
+		List org_list = new ArrayList();		
+		String sql = " select a.party_id, a.parent_party_id,decode(a.status_cd,'00A','有效','00X','无效') as status_cd,(select c.org_name from es_goods_org c " +
+					 "where a.parent_party_id = c.party_id and c.status_cd='00A' and c.source_from = a.source_from) parent_org_name,  a.org_code, a.org_name, a.org_level, a.org_type_id, b.org_type_name, " +
+					 "(SELECT F.REGION_NAME FROM ES_COMMON_REGION F WHERE A.LAN_ID = F.REGION_ID and a.source_from = f.source_from) lan_name, " +
+					 "(SELECT G.REGION_NAME FROM ES_COMMON_REGION G WHERE A.REGION_ID = G.REGION_ID and a.source_from = g.source_from) city_name," +
+					 " a.org_content, a.union_org_code from  es_goods_org a, es_organization_type b " +
+					 "where a.org_type_id = b.org_type_id  and a.party_id= ? and a.status_cd='00A' and a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + "' order by a.party_id " ;
+					 
+		org_list = baseDaoSupport.queryForList(sql, login_org_id);
+		
+		return org_list;
+	}
+
+	@Override
+	public List getChildrenOrgs(String org_id) {
+		List children_list  = new ArrayList();		
+		String sql = "select a.party_id, a.parent_party_id,decode(a.status_cd,'00A','有效','00X','无效') as status_cd," +
+				"(select c.org_name from es_goods_org c where a.parent_party_id = c.party_id and c.status_cd='00A' and c.source_from='" + ManagerUtils.getSourceFrom() + "') parent_org_name, a.org_code, a.org_name, a.org_level, a.org_type_id, b.org_type_name " +
+			    " , (SELECT F.REGION_NAME FROM ES_COMMON_REGION F WHERE A.LAN_ID = F.REGION_ID and F.source_from='" + ManagerUtils.getSourceFrom() + "') lan_name, " +
+			    "(SELECT G.REGION_NAME FROM ES_COMMON_REGION G WHERE A.REGION_ID = G.REGION_ID and G.source_from='" + ManagerUtils.getSourceFrom() + "') city_name, a.org_content, a.union_org_code " +
+			    "from es_goods_org a, es_organization_type b where a.org_type_id = b.org_type_id " +
+			    "and a.parent_party_id=? and a.status_cd='00A' and a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + "' order by a.party_id ";		
+		children_list = baseDaoSupport.queryForList(sql, org_id);		
+		return children_list;
+	}
+
+	@Override
+	public int qryChildrenOrgCounts(String org_id) {
+		int cnt = 0;
+		String sql = "select count(*) from es_goods_org a, es_organization_type b " +
+				"where a.org_type_id = b.org_type_id and a.parent_party_id=? and " +
+				"a.status_cd='00A' and a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + "' ";		
+		cnt = baseDaoSupport.queryForInt(sql, org_id);		
+		return cnt;
+	}
+	
+	@Override
+	public List alreadyPublish(String goodsId){
+		List list =new ArrayList();
+		String sql = SF.goodsSql("GOODS_ALREADY_PUBLISH");
+		if(!"".equals(goodsId)&&goodsId!=null){
+			list = baseDaoSupport.queryForList(sql, goodsId,ManagerUtils.getSourceFrom());
+		}
+		return list;
+	}
+	
+	@Override
+	public List qryTree(){
+		List list = new ArrayList();
+		try {
+			String sql = SF.goodsSql("GOODS_ORG_TREE");
+			list = baseDaoSupport.queryForList(sql,ManagerUtils.getSourceFrom());
+			if(list.size()>0){
+				saleChildList(list);
+			}
+		} catch (Exception e) {
+			logger.info(e);
+		}
+		return list;
+	}
+	
+	@Override
+	public List saleQryTree() {
+		List list = new ArrayList();
+		try {
+//			String sql = SF.goodsSql("GOODS_ORG_TREE_ZJ");
+			String sql ="select g.party_id ,g.parent_party_id ,g.org_code,g.org_name name,g.org_level,g.status_cd,g.status_date,g.org_type_id,g.lan_id,g.region_id from es_goods_zj_org g where 1=1  and g.status_cd ='00A' and g.parent_party_id = '-1' and g.source_from = ? ";
+			list = baseDaoSupport.queryForList(sql,ManagerUtils.getSourceFrom());
+			if(list.size()>0){
+				saleChildList(list);
+			}
+		} catch (Exception e) {
+			logger.info(e);
+		}
+		return list;
+	}
+	
+	public void saleChildList(List list){
+		HashMap fm = new HashMap();
+        for(int i = 0,lsize = list.size();i<lsize;i++){
+        	fm = (HashMap)list.get(i);
+        	String level =  fm.get("org_level").toString();
+        	List listChild = new ArrayList();
+//        	String sql1 = SF.goodsSql("GOODS_ORG_TREE_ZJ1");
+        	String sql1 = "select g.party_id ,g.parent_party_id ,g.org_code,g.org_name name,g.org_level,g.status_cd,g.status_date,g.org_type_id,g.lan_id,g.region_id from es_goods_zj_org g where 1=1  and g.status_cd ='00A' and g.parent_party_id = ? and g.org_level=2 and g.source_from = ?";		
+//         	String sql2 = SF.goodsSql("GOODS_ORG_TREE_ZJ2");
+        	String sql2 = "select g.party_id ,g.parent_party_id ,g.org_code,g.org_name name,g.org_level,g.status_cd,g.status_date,g.org_type_id,g.lan_id,g.region_id from es_goods_zj_org g where 1=1  and g.status_cd ='00A' and g.parent_party_id = ? and  g.org_level <> 4  and g.source_from = ?";
+        	if(level.equals("1")){
+        		listChild = baseDaoSupport.queryForList(sql1,fm.get("party_id").toString(),ManagerUtils.getSourceFrom());
+        	}else{
+        		listChild = baseDaoSupport.queryForList(sql2,fm.get("party_id").toString(),ManagerUtils.getSourceFrom());
+        	}
+        	if(listChild.size()>0){
+        		fm.put("sub_node", listChild);
+        		saleChildList(listChild);
+			}
+        }
+	}
+	//查询子节点
+	public void childList(List list){
+		HashMap fm = new HashMap();
+        for(int i = 0,lsize = list.size();i<lsize;i++){
+        	fm = (HashMap)list.get(i);
+        	String level =  fm.get("org_level").toString();
+        	List listChild = new ArrayList();
+        	String sql1 = SF.goodsSql("GOODS_ORG_TREE_1");
+         	String sql2 = SF.goodsSql("GOODS_ORG_TREE_2");
+        	if(level.equals("1")){
+        		listChild = baseDaoSupport.queryForList(sql1,fm.get("party_id").toString(),ManagerUtils.getSourceFrom());
+        	}else{
+        		listChild = baseDaoSupport.queryForList(sql2,fm.get("party_id").toString(),ManagerUtils.getSourceFrom());
+        	}
+        	if(listChild.size()>0){
+        		fm.put("sub_node", listChild);
+				childList(listChild);
+			}
+        }
+	}
+
+	@Override
+	public List getRootOrgs() {
+		List org_list = new ArrayList();		
+		String sql = " select a.party_id, a.parent_party_id,decode(a.status_cd,'00A','有效','00X','无效') as status_cd, (select c.org_name from es_goods_org c where a.parent_party_id = c.party_id  and c.source_from='" + ManagerUtils.getSourceFrom() +"') parent_org_name, a.org_code, a.org_name, a.org_level, (SELECT F.REGION_NAME FROM ES_COMMON_REGION F WHERE A.LAN_ID = F.REGION_ID and F.source_from = '" + ManagerUtils.getSourceFrom() + "') lan_name, (SELECT G.REGION_NAME FROM ES_COMMON_REGION G WHERE A.REGION_ID = G.REGION_ID and G.source_from = '" + ManagerUtils.getSourceFrom() + "') city_name, a.org_type_id, b.org_type_name " +
+					 " , a.org_content, a.union_org_code " +
+					 "from es_goods_org a, es_organization_type b where a.org_type_id = b.org_type_id  " +
+					 "and a.parent_party_id= '-1' and a.status_cd='00A' and a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + "' order by a.party_id " ;
+					 
+		org_list = baseDaoSupport.queryForList(sql);		
+		return org_list;
+	}
+
+	@Override
+	public int addOrgs(String parent_party_id, String org_code,
+			String org_name, String org_type_id, String union_org_code,
+			String org_content) {
+		Map fields = new HashMap();
+		String new_party_id = baseDaoSupport.getSequences("s_es_goods_org", "4", 0);
+		fields.put("party_id", new_party_id);
+		fields.put("org_code", org_code);
+		fields.put("parent_party_id", parent_party_id);
+		fields.put("org_name", org_name);
+		fields.put("status_date", DBTUtil.current());
+		fields.put("org_type_id", org_type_id);
+		fields.put("union_org_code", union_org_code);
+		fields.put("org_content", org_content);
+		fields.put("status_cd", "00A");
+		
+		try{
+			baseDaoSupport.insert("es_goods_org", fields);
+		}catch(Exception e){
+			e.printStackTrace();
+			return -1;
+		}
+		return 0;
+	}
+
+	@Override
+	public int updateOrgs(String party_id, String org_code, String org_name,
+			String org_type_id, String union_org_code, String org_content) {
+		Map fields = new HashMap();
+		Map where = new HashMap();
+		
+		fields.put("org_code", org_code);
+		fields.put("org_name", org_name);
+		fields.put("org_type_id", org_type_id);
+		fields.put("union_org_code", union_org_code);
+		fields.put("org_content", org_content);
+		where.put("party_id", party_id);
+		where.put("status_cd", "00A");
+		try{
+			baseDaoSupport.update("es_goods_org", fields, where);
+		}catch(Exception e){
+			e.printStackTrace();
+			return -1;
+		}
+		return 0;
+	}
+
+	@Override
+	public int delOrgs(String party_id) {
+		Map fields = new HashMap();
+		Map where = new HashMap();	
+		fields.put("status_cd", "00X");		
+		where.put("party_id", party_id);
+		try{
+			baseDaoSupport.update("es_goods_org", fields, where);
+		}catch(Exception e){
+			e.printStackTrace();
+			return -1;
+		}
+		return 0;
+	}
+
+	@Override
+	public Page list(String login_org_id, String party_id, String org_name,
+			String org_type_id, String org_content, String union_org_code,
+			String lan_id, int pageIndex, int pageSize) {
+		StringBuffer sql = new StringBuffer();
+		ArrayList param = new ArrayList();
+		if(Consts.ADMIN_ORG_ID.equals(login_org_id)){
+			sql.append(" select a.party_id, a.parent_party_id, (select c.org_name from es_goods_org c where c.source_from = '" 
+					+ ManagerUtils.getSourceFrom() + "' and a.parent_party_id = c.party_id) parent_org_name, a.org_code, a.org_name, a.org_level, a.org_type_id, b.org_type_name, " +
+					   " a.org_content, a.union_org_code, a.lan_id, (select region_name as lan_name from es_common_region e where e.source_from = '" + 
+					   ManagerUtils.getSourceFrom() + "' and e.region_level='97C' and e.region_id=a.lan_id ) lan_name  from es_goods_org a, es_organization_type b where " + 
+					   " a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + "' and a.org_type_id = b.org_type_id  and a.status_cd='00A' ");
+			if(StringUtils.isNotEmpty(party_id)){
+				sql.append(" and a.party_id=? ");
+				param.add(party_id);
+			}
+			if(StringUtils.isNotEmpty(org_type_id)){
+				sql.append(" and a.org_type_id=? ");
+				param.add(org_type_id);
+			}
+			if(StringUtils.isNotEmpty(lan_id)){
+				sql.append(" and a.lan_id=? ");
+				param.add(lan_id);
+			}
+			if(StringUtils.isNotEmpty(org_name)){
+				sql.append(" and a.org_name like '%"+org_name+"%' ");
+			}
+			if(StringUtils.isNotEmpty(org_content)){
+				sql.append(" and a.org_content like '%"+org_content+"%' ");
+			}
+			if(StringUtils.isNotEmpty(union_org_code)){
+				sql.append(" and a.union_org_code like '%"+union_org_code+"%' ");
+			}
+		}else{
+			
+			sql.append(" select a.party_id, a.parent_party_id, " +
+				"(select c.org_name from es_goods_org c where a.parent_party_id = c.party_id and c.source_from = a.source_from) parent_org_name, " +
+				"a.org_code, a.org_name, a.org_level, a.org_type_id, b.org_type_name, " +
+		           " a.org_content, a.union_org_code, a.lan_id, " +
+		           "(select  region_name as lan_name from es_common_region e where e.region_level='97C' and e.region_id=a.lan_id and e.source_from = a.source_from) lan_name " +
+		           "from es_goods_org a, es_organization_type b where a.org_type_id = b.org_type_id  and " +
+		           "a.status_cd='00A' and a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + "' ");
+			sql.append(" and exists (select 1 from " +
+					"(select party_id, parent_party_id, LEVEL from es_goods_org " +
+					"START WITH party_id=? and source_from = '" + ManagerUtils.getSourceFrom() + "' CONNECT BY PRIOR party_id = parent_party_id order by party_id) d " +
+					"where a.party_id=d.party_id) ");
+			param.add(login_org_id);
+			
+			if(StringUtils.isNotEmpty(party_id)){
+				sql.append(" and a.party_id=? ");
+				param.add(party_id);
+			}
+			if(StringUtils.isNotEmpty(org_type_id)){
+				sql.append(" and a.org_type_id=? ");
+				param.add(org_type_id);
+			}
+			if(StringUtils.isNotEmpty(lan_id)){
+				sql.append(" and a.lan_id=? ");
+				param.add(lan_id);
+			}
+			if(StringUtils.isNotEmpty(org_name)){
+				sql.append(" and a.org_name like '%"+org_name+"%' ");
+			}
+			if(StringUtils.isNotEmpty(org_content)){
+				sql.append(" and a.org_content like '%"+org_content+"%' ");
+			}
+			if(StringUtils.isNotEmpty(union_org_code)){
+				sql.append(" and a.union_org_code like '%"+union_org_code+"%' ");
+			}
+		}
+		String countSql = "select count(*) from ("+ sql.toString() +") ";
+	    Page webpage = this.baseDaoSupport.queryForCPage(sql.toString(), pageIndex, pageSize, Org.class, countSql, param.toArray());
+		return webpage;
+	}
+
+	@Override
+	public boolean ifExistsOrg(String org_code) {
+		String sql = " select count(*) from es_goods_org where org_code=? and status_cd='00A' ";
+		int cnt = this.baseDaoSupport.queryForInt(sql, org_code);
+		if(cnt > 0){
+			return true;
+		}
+		return false;
+	}
+	
+}

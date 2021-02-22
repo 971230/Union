@@ -1,0 +1,197 @@
+package zte.service;
+
+import javax.annotation.Resource;
+
+import params.CallerLogReq;
+import params.ZteResponse;
+import params.adminuser.req.AccessLogReq;
+import params.adminuser.req.AdminUserPageReq;
+import params.adminuser.req.IsLoginReq;
+import params.adminuser.req.LoginLogReq;
+import params.adminuser.req.MessageDetailReq;
+import params.adminuser.req.MessageListReq;
+import params.adminuser.req.SmsValidCodeGetReq;
+import params.adminuser.req.UserPasswordUpdateReq;
+import params.adminuser.req.UserWdLoginReq;
+import params.adminuser.req.ZbAdminUserGetReq;
+import params.adminuser.resp.AccessLogResp;
+import params.adminuser.resp.AdminUserPageResp;
+import params.adminuser.resp.IsLoginResp;
+import params.adminuser.resp.LoginLogResp;
+import params.adminuser.resp.MessageDetaiResp;
+import params.adminuser.resp.MessageListResp;
+import params.adminuser.resp.SmsValidCodeGetResp;
+import params.adminuser.resp.UserPasswordUpdateResp;
+import params.adminuser.resp.UserWdLoginResp;
+import params.adminuser.resp.ZbAdminUserGetResp;
+import services.AdminUserInf;
+import services.MessageInf;
+import services.ServiceBase;
+import zte.net.iservice.ISysService;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotation;
+import com.ztesoft.net.app.base.core.service.auth.IAdminUserManager;
+import com.ztesoft.net.eop.resource.model.Access;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.mall.core.model.MblLoginLogVO;
+import com.ztesoft.net.mall.core.service.IMblLogManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+import consts.ConstsCore;
+
+
+@ServiceMethodBean(version="1.0")
+public class SysService extends ServiceBase implements ISysService{
+
+	@Resource
+	private AdminUserInf adminUserServ;
+	@Resource
+	private MessageInf messageServ;
+	@Resource
+	private IMblLogManager mblLogManager;
+	@Resource
+	private IAdminUserManager adminUserManager;
+	
+	public AdminUserPageResp qryAdminUser(AdminUserPageReq adminUserPageReq){
+		
+		return adminUserServ.qryAdminUser(adminUserPageReq);
+	}
+
+	
+	public MessageListResp listMsg(MessageListReq messageListReq) {
+		return messageServ.listMsg(messageListReq);
+	}
+
+	public MessageDetaiResp getMessageDetail(MessageDetailReq messageDetailReq) {
+		return this.messageServ.getMessageDetail(messageDetailReq);
+	}
+
+	public AdminUserInf getAdminUserServ() {
+		return adminUserServ;
+	}
+
+
+	public void setAdminUserServ(AdminUserInf adminUserServ) {
+		this.adminUserServ = adminUserServ;
+	}
+
+
+	public MessageInf getMessageServ() {
+		return messageServ;
+	}
+
+
+	public void setMessageServ(MessageInf messageServ) {
+		this.messageServ = messageServ;
+	}
+
+	@Override
+	public AccessLogResp accessLog(AccessLogReq accessLogReq) {
+		AccessLogResp resp = new AccessLogResp();
+		Access access = new Access();
+		access.setAccess_time(DBTUtil.current());
+		access.setIp(accessLogReq.getIp());
+		access.setPage(accessLogReq.getPage());
+		access.setUrl(accessLogReq.getUrl());
+		access.setPoint(accessLogReq.getPoint());
+		access.setArea(accessLogReq.getArea());
+		access.setSource_from(accessLogReq.getSource_from());
+		this.mblLogManager.addAccessLog(access);
+		resp.setError_code("0");
+		resp.setError_msg("记录访问日志成功");
+		return resp;
+		
+	}
+
+	@Override
+	public LoginLogResp loginLog(LoginLogReq loginLogReq) {
+		LoginLogResp resp = new LoginLogResp();
+		MblLoginLogVO log = new MblLoginLogVO();
+		log.setCity(loginLogReq.getCity());
+		log.setIp(loginLogReq.getIp());
+		log.setCreate_time(DBTUtil.current());
+		log.setKind(loginLogReq.getKind());
+		log.setMobile(loginLogReq.getMobile());
+		log.setSource_from(loginLogReq.getSource_from());
+		log.setStaff_code(loginLogReq.getStaff_code());
+		log.setStation(loginLogReq.getStation());
+		log.setLan_code(loginLogReq.getLan_code());
+		log.setStaff_name(loginLogReq.getStaff_name());
+		mblLogManager.addLogin(log);
+		resp.setError_code("0");
+		resp.setError_msg("记录登陆日志成功");
+		return resp;
+	}
+
+
+	@Override
+	public ZteResponse logCall(CallerLogReq callerLogReq) {
+		ZteClient client = null;
+		String source_from =callerLogReq.getSourceFrom();
+		client = ClientFactory.getZteDubboClient(source_from);
+		source_from = source_from.substring(0, source_from.indexOf("_"));// add by wui
+		callerLogReq.setApiMethodName("zte.service."+source_from.toLowerCase()+".process.callerLogReq");//""  zte.service.fj.process.ruleparams zte.service."+source_from.toLowerCase()+".process.ruleparams
+		ZteResponse zteResponse = client.execute(callerLogReq, ZteResponse.class);
+		return zteResponse;
+	}
+
+
+	@Override
+	public ZbAdminUserGetResp getAdminUser(ZbAdminUserGetReq req) {
+		String userid = req.getUserid();
+		AdminUser adminUser = this.adminUserManager.getAdminUser(userid);
+		ZbAdminUserGetResp resp = new ZbAdminUserGetResp();
+		if(adminUser!=null){
+			resp.setAdminUser(adminUser);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+		}
+		else{
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+		}
+		addReturn(req,resp);
+		return resp;
+	}
+
+
+	@Override
+	public UserWdLoginResp getUserWd(UserWdLoginReq req) {
+		// TODO Auto-generated method stub
+		UserWdLoginResp userWdLoginResp = new UserWdLoginResp();
+		userWdLoginResp = this.adminUserServ.userWdLogin(req);
+		return userWdLoginResp;
+	}
+
+
+	@Override
+	public UserPasswordUpdateResp updateUserPassword(UserPasswordUpdateReq req) {
+		UserPasswordUpdateResp resp = this.adminUserServ.updateUserPassword(req);
+		return resp;
+	}
+
+
+	@Override
+	public IsLoginResp isLogin(IsLoginReq req) {
+		boolean flag = true;
+		IsLoginResp resp = new IsLoginResp();
+		if(ManagerUtils.getAdminUser()==null){
+			flag = false;
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+			resp.setError_msg("您还未登录或者未注册");
+		}
+		resp.setFlag(flag);
+		resp.setError_code(ConstsCore.ERROR_SUCC);
+		return resp;
+	}
+	@Override
+	@ZteSoftCommentAnnotation(type="method",desc="获取登录验证码",summary="获取登录验证码")
+	public SmsValidCodeGetResp getSmsValidCode(SmsValidCodeGetReq req){
+		SmsValidCodeGetResp resp = adminUserManager.getSmsValidCode(req);
+		return resp;
+	}
+}

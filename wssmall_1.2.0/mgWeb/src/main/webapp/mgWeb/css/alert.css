@@ -1,0 +1,8 @@
+/*重写alert的样式*/
+.alertPop{ border:1px solid #b3b3b3; background:#fff; position:absolute; width:300px; box-shadow:0px 0px 12px #8e8e8e;}
+.alertClose{ position:absolute; right:5px; top:5px; background:url(../images/alert_close.png) no-repeat; width:16px; height:16px; text-indent:-9999px; display:block; overflow:hidden;}
+.alertClose:hover{ background:url(../images/alert_close_hover.png) no-repeat;}
+.alertTxt{ text-align:center; padding-top:40px; padding-bottom:20px; font-size:12px;}
+.alertBtnDiv{ text-align:center; padding-top:20px; padding-bottom:20px;}
+.alertBtn{ background:url(../images/alertbtn.png) repeat-x; height:18px; line-height:18px; display:inline-block; color:#2a2a2a; padding-left:25px; padding-right:25px; font-size:12px; border:1px solid #c5c5c5; text-decoration:none;}
+.alertBtn:hover{ background:url(../images/alertbtn_hover.png) repeat-x; border:1px solid #d6d6d6;}

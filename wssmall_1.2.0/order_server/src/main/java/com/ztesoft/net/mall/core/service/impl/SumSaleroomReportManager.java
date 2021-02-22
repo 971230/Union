@@ -1,0 +1,51 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.Contract;
+import com.ztesoft.net.mall.core.service.ISumSaleroomReportManager;
+import com.ztesoft.net.sqls.SF;
+
+import java.util.ArrayList;
+
+/**
+--点击CRM合约机实收金额，查询费用明细（根据现有查询条件查询受理详情信息）
+
+ * @author Administrator
+ *
+ */
+public class SumSaleroomReportManager extends BaseSupport implements ISumSaleroomReportManager{
+	
+   @Override
+public Page list(Contract obj,String begin_time,String end_time,String userid,String lanId, int page, int pageSize){
+	   
+	   ArrayList partm=new ArrayList();
+	  String cond = null;
+	   if(userid!=null && lanId!=null){
+		   
+		   cond+=" and c.lan_id = '"+lanId+"' and c.userid='"+userid+"' ";
+		   		
+		  // partm.add(lanId);
+		 //  partm.add(userid);
+		   
+	   }else{
+		  if(lanId!=null){
+			  cond+=" and c.lan_id = '"+lanId+"' ";
+			 // partm.add(lanId);
+		  }else{
+			  cond+=" and c.userid ='"+userid+"' ";
+			 // partm.add(userid);
+		  }
+		   
+	   }
+	   cond+=" and c.status_date>= "+DBTUtil.to_date(begin_time, 2)+
+	  		" and c.status_date <= "+DBTUtil.to_date(end_time, 2) ;
+	   
+	   String sql = SF.orderSql("SERVICE_SALEROOM_FEE_SUM").replace("#cond", cond);
+	   String countSql = SF.orderSql("SERVICE_SLAEROOM_FEE_COUNT").replace("#cond", cond);
+	   
+	   Page webpage = this.daoSupport.queryForCPage(sql, page, pageSize,Contract.class,countSql);
+		return webpage;
+}
+}

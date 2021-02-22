@@ -1,0 +1,79 @@
+package zte.params.orderctn.vo;
+
+import java.util.Map;
+
+import javax.servlet.http.HttpServletResponse;
+
+import com.ztesoft.net.mall.core.model.OpenServiceCfg;
+
+ /**
+ * @Description http返回信息时用的传参实体
+ * @author  zhangJun
+ * @date    2015-5-19
+ * @version 1.0
+ */
+public class HttpRespParame implements java.io.Serializable {
+	
+	private String order_id;
+	private String co_id;
+	private String resp_code;
+	private String resp_result;
+	private String msg;
+	private String out_service_code;
+	private String inReq;
+	private String ip;
+	public String getOrder_id() {
+		return order_id;
+	}
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+	public String getCo_id() {
+		return co_id;
+	}
+	public void setCo_id(String co_id) {
+		this.co_id = co_id;
+	}
+	public String getResp_code() {
+		return resp_code;
+	}
+	public void setResp_code(String resp_code) {
+		this.resp_code = resp_code;
+	}
+	public String getResp_result() {
+		return resp_result;
+	}
+	public void setResp_result(String resp_result) {
+		this.resp_result = resp_result;
+	}
+	public String getMsg() {
+		return msg;
+	}
+	public void setMsg(String msg) {
+		this.msg = msg;
+	}
+	public String getOut_service_code() {
+		return out_service_code;
+	}
+	public void setOut_service_code(String out_service_code) {
+		this.out_service_code = out_service_code;
+	}
+	public String getInReq() {
+		return inReq;
+	}
+	public void setInReq(String inReq) {
+		this.inReq = inReq;
+	}
+	public String getIp() {
+		return ip;
+	}
+	public void setIp(String ip) {
+		this.ip = ip;
+	}
+	
+	
+	
+	
+	
+	
+}

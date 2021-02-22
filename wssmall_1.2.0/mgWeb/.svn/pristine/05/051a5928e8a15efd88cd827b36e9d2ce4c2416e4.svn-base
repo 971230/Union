@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE taglib
+        PUBLIC "-//Sun Microsystems, Inc.//DTD JSP Tag Library 1.2//EN"
+	"http://java.sun.com/j2ee/dtd/web-jsptaglibrary_1_2.dtd">
+
+<taglib>
+
+	<tlib-version>1.0</tlib-version>
+	<jsp-version>1.2</jsp-version>
+	<short-name>simple</short-name>
+	<uri>http://jakarta.apache.org/tomcat/example-taglib</uri>
+	<description>
+	powerise framework's tag lib
+	</description>
+
+  <tag>
+    <name>staticinfo</name>
+    <tag-class>com.powerise.ibss.taglib.StaticInfo</tag-class>
+    <body-content>empty</body-content>
+    <description>Inserts the current date into the page</description>
+    <attribute>
+    <name>name</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>tablename</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>fieldname</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>value</name>
+    <required>false</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>otherattributes</name>
+    <required>false</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+  </tag>
+</taglib>

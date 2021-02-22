@@ -1,0 +1,322 @@
+package com.powerise.ibss.taglibs;
+
+import com.powerise.ibss.framework.ActionDispatch;
+import com.powerise.ibss.framework.DynamicDict;
+import com.powerise.ibss.system.SessionOBJ;
+
+import javax.servlet.jsp.JspException;
+import javax.servlet.jsp.JspWriter;
+import javax.servlet.jsp.PageContext;
+import javax.servlet.jsp.tagext.TagSupport;
+
+import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+
+public class ActionTag  extends TagSupport {
+	private String  var        = "s"  ; //变量名称
+	private String  action     = null ; //动作名称
+	private String  paramSet   = null ; //当前参数集合名称
+	private String  paramReq   = null ; //希望从request中取得值的参数名称，以;或者,分隔
+	private String  paramValues= null ; //参数名与值对  以;或者,分隔
+	private String  retFirstRS = null ; //第一个返回的记录集合名
+	
+	private Object  condObj    = null ; //输入参数
+	
+	private boolean execute    = true ; //外界控制是否执行
+	
+	private boolean dSql       = true ; //是否以动态SQL的方式执行
+	private boolean needUser   = false; //是否需要从session中取得用户信息
+	private String  cardType   = null ; //卡片类型
+	private boolean traceFlag  = false; //跟踪标志
+	private String  attr_in    = null ; //需要从Attribute中取得值
+	private String  attr_out   = null ; //需要把值存放到Attribute中
+	private static Logger logger = Logger.getLogger(ActionTag.class);
+	public int doStartTag() throws JspException {
+		if (action ==null || action.trim().equals("")) return (EVAL_PAGE);
+		DynamicDict dict        = null ; //值对象
+		HashMap     hashFromReq = null ; //从request中取得值
+		HashMap     hashFromStr = null ; //从str中取得值
+		HashMap     hashParam   = new HashMap() ; //输入参数信息
+		SessionOBJ  user        = null ; //用户信息
+		try {
+			
+			pageContext.getRequest().removeAttribute(var );
+			pageContext.getRequest().removeAttribute(action);
+			
+			//取得值对象
+			dict = getDynamicDict(pageContext , var,true);
+			if (dict==null) return EVAL_PAGE;
+			//设置值对象的ActionID
+			if (action==null || action.trim().equals("")){
+				action = pageContext.getRequest().getParameter("serv_name");
+				if (action==null || action.trim().equals("")){
+					action = pageContext.getRequest().getParameter("SERV_NAME");
+				}
+			}
+			dict.m_ActionId = action;
+			if (dSql) dict.flag = 1;
+			
+			if (hashParam==null) hashParam = new HashMap();
+			if (this.condObj!=null && this.condObj.getClass().getName().equals("java.util.HashMap")){
+				HashMap hashCond = (HashMap)this.condObj;
+				FuncTag.appendHashMap(hashParam,hashCond);
+			}
+			//从Attribute中取得值压入HashMap中
+			FuncTag.getHashValueFromAttr(pageContext,attr_in,hashParam);
+			
+			//依据以;或者,分隔参数名称，从request中取得值，并压入HashMap中
+			hashFromReq = FuncTag.getValuesFromRequest( pageContext,paramReq);
+			FuncTag.appendHashMap(hashParam,hashFromReq);
+			//依据以;或者,分隔参数名与值对中,取得值，并压入HashMap中
+			hashFromStr = FuncTag.getHashMapFromStr(paramValues);
+			FuncTag.appendHashMap(hashParam,hashFromStr);
+			
+			if (needUser) {
+				user = FuncTag.getSessionOBJ( pageContext,"");
+				
+			}
+			//将所有有关参数信息压入值对象
+			if (!dSql) {
+				//以集合方式压入值对象
+				if (paramSet==null ||paramSet.trim().equals("")){
+					Iterator it = null;
+					if (hashParam!=null) it = hashParam.keySet().iterator();
+					while(it!=null && it.hasNext()){
+						String keyName  = (String)it.next();
+						String keyValue = (String)hashParam.get(keyName);
+						if (keyValue==null) continue;
+						dict.setValueByName( keyName, keyValue);
+					}
+				}else{
+					ArrayList aList = new ArrayList(2);
+					aList.add(hashParam);
+					dict.setValueByName(paramSet, aList);
+				}
+			}
+			if(user!=null) {
+				dict.setValueByName("STAFF-NO", user.getStaffNo());
+				HashMap hashStaff = user.getStaffInfo();
+				//logger.info("ActionTag hashStaff=" + hashStaff);
+				if (hashStaff!=null){
+					if (!hashParam.containsKey("BUREAU_NO") && !hashParam.containsKey("bureau_no")){
+						hashParam.put("BUREAU_NO",hashStaff.get("bureau_no"));
+					}
+					if (!hashParam.containsKey("STAFF_NO") && ! hashParam.containsKey("staff_no")){
+						hashParam.put("STAFF_NO",hashStaff.get("staff_no"));
+					}
+					if (!hashParam.containsKey("SITE_NO") && ! hashParam.containsKey("site_no")){
+						hashParam.put("SITE_NO",hashStaff.get("site_no"));
+					}
+					if (!hashParam.containsKey("AUTH_LEVEL") && ! hashParam.containsKey("auth_level")){
+						hashParam.put("AUTH_LEVEL",hashStaff.get("auth_level"));
+						hashParam.put("AUTH_LEVEL1",hashStaff.get("auth_level"));
+					}
+				}
+			}
+			dict.m_ActionId = action;
+			dict.setValueByName("parameter", hashParam);
+			pageContext.getRequest().setAttribute( var , dict );
+		}
+		catch (Exception e) {
+			throw new JspException("在为执行"+action+"服务的参数打包进入值对象时，出现异常" + e.getMessage());
+		}
+		//logger.info("ActionTag doStartTag *** Finish");
+		return (EVAL_PAGE);
+	}
+	//支撑函数
+	public int doEndTag() throws JspException {
+		DynamicDict dict   = null ; //值对象
+		StringBuffer sbTrace = null;
+		String strTmp = null;
+		if(!execute) return EVAL_PAGE;
+		if (traceFlag) sbTrace = new StringBuffer("");
+		try {
+			if (cardType!=null && !cardType.trim().equals("")){
+				//卡片控制信息
+				strTmp = "Card_Show";// + cardType.trim();
+				pageContext.getRequest().removeAttribute( strTmp );
+				HashMap hashCard = FuncTag.getCardControlInfo(pageContext , "",cardType);
+				if (hashCard!=null && hashCard.size()>0){
+					pageContext.getRequest().setAttribute( strTmp , hashCard );
+				}
+			}
+			
+			//取得值对象
+			dict = getDynamicDict(pageContext , var,false);
+			pageContext.getRequest().removeAttribute(var   );
+			pageContext.getRequest().removeAttribute(action);
+			if (dict==null) {
+				//logger.info("ActionTag doEndTag getDynamicDict dict is null");
+				logger.info("ActionTag doEndTag getDynamicDict dict is null");
+				return EVAL_PAGE;
+			}
+			if (traceFlag){
+				sbTrace.append("发送\n <br> m_ActionId=");
+				if (dict.m_ActionId!=null) sbTrace.append(dict.m_ActionId );
+				sbTrace.append("\n <br>m_Values=\n <br>");
+				if (dict.m_Values!=null) sbTrace.append(dict.m_Values.toString());
+			}
+			//logger.info("ActionTag Send:\n" + dict.m_Values);
+			if (action!=null && !action.trim().equals("")){
+				dict = ActionDispatch.dispatch(dict);
+			}
+			if (dict==null){
+				//logger.info("ActionTag doEndTag is null");
+				logger.info("ActionTag doEndTag is null");
+				return (EVAL_PAGE);
+			}
+			if (traceFlag){
+				sbTrace.append("返回\n <br> flag=");
+				sbTrace.append(dict.flag );
+				sbTrace.append("\n <br>msg= \n <br>");
+				if (dict.msg!=null) sbTrace.append(dict.msg);
+				sbTrace.append("\n <br>exception= \n <br>");
+				if (dict.exception!=null) sbTrace.append(dict.exception);
+			}
+			if (dict.flag < 0) {
+				//异常信息
+				/*logger.info(dict.flag + "    错误信息：" + dict.msg + "异常信息：" +
+				dict.exception);*/
+				logger.info(dict.flag + "    错误信息：" + dict.msg + "异常信息：" +
+				dict.exception);
+				return (EVAL_PAGE);
+			}
+			Object obj =null ;
+			pageContext.getRequest().setAttribute( action , dict);
+			if (retFirstRS != null){
+				obj = dict.getValueByName(retFirstRS, false);
+			}else{
+				obj = dict.getValueByName(action, false);
+			}
+			if (obj!=null){
+				pageContext.getRequest().setAttribute( var , obj);
+			}
+			
+			if (traceFlag){
+				sbTrace.append("返回\n <br>obj =<br>");
+				if (obj!=null) sbTrace.append(obj);
+			}
+			FuncTag.setValueToAttr(pageContext,attr_out,obj);
+			
+			if (sbTrace!=null){
+				JspWriter w = pageContext.getOut();
+				w.print( sbTrace.toString() );
+			}
+			
+			//logger.info("ActionTag doEndTag  var=" + var + "\n obj =" + obj);
+		}catch (Exception e) {
+			throw new JspException("在执行"+action+"服务时，出现异常" + e.getMessage());
+		}
+		//logger.info("ActionTag "+action+" Finish ");
+		return (EVAL_PAGE);
+	}
+	// resets local state
+    private void init() {
+		var        = null ;
+		action     = null ;
+		paramSet   = null ;
+		paramReq   = null ;
+		paramValues= null ;
+		retFirstRS = null ;
+    }
+	public void release() {
+		super.release();
+        init();
+    }
+	
+	//取得值对象
+	private DynamicDict getDynamicDict(PageContext pg,String varName,boolean bCreate){
+		DynamicDict aDict = null;
+		//入参数检验
+		//logger.info("varName=" + varName);
+		if(pg ==null || varName==null || varName.trim().equals("")) return aDict;
+		Object obj = pg.getRequest().getAttribute(varName);
+		if (obj !=null) {
+			String className = obj.getClass().getName();
+			//logger.info("getDynamicDict className=" + className);
+			if (className!=null && className.indexOf("DynamicDict")>-1){
+				aDict = (DynamicDict)obj;
+			}
+		}
+		if(aDict==null   ) {
+			//logger.info("aDict is null");
+			logger.info("aDict is null");
+			if (bCreate) aDict = new DynamicDict(1);
+		}else{
+			//logger.info("aDict is not null");
+			pg.getRequest().setAttribute(varName,aDict);
+		}
+		return aDict;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+
+	//以下为属性设置
+  	//变量名称
+	public void setVar(String var) {
+		this.var = var;
+	}
+	//动作名称
+	public void setAction(String action) {
+		this.action = action;
+	}
+	//当前参数集合名称
+	public void setParamSet(String paramSet) {
+		this.paramSet = paramSet;
+	}
+	//希望从request中取得值的参数名称，以;或者,分隔
+	public void setParamReq(String paramReq) {
+		this.paramReq = paramReq;
+	}
+	//参数名与值对  以;或者,分隔
+	public void setParamValues(String paramValues) {
+		this.paramValues = paramValues;
+	}
+	//第一个返回的记录集合名
+	public void setRetFirstRS(String retFirstRS) {
+		this.retFirstRS = retFirstRS;
+	}
+	//是否以动态SQL的方式执行
+	public void setDSql(boolean dSql) {
+		this.dSql = dSql;
+	}
+	
+	//是否需要从session中取得用户信息
+	public void setNeedUser(boolean needUser) {
+		this.needUser = needUser;
+	}
+	//是否需要跟踪
+	public void setTraceFlag(boolean traceFlag) {
+		this.traceFlag = traceFlag;
+	}
+	public void setExecute(boolean execute) {
+		this.execute = execute;
+	}
+	
+	public void setCardType(String cardType) {
+		this.cardType = cardType;
+	}
+	
+	//需要从Attribute中取得值
+	public void setAttr_in(String attr_in) {
+		this.attr_in = attr_in;
+	}
+	//需要把值存放到Attribute中
+	public void setAttr_out(String attr_out) {
+		this.attr_out = attr_out;
+	}
+	
+	//需要把值存放到Attribute中
+	public void setCondition(Object inCondObj) {
+		this.condObj = inCondObj;
+	}
+}

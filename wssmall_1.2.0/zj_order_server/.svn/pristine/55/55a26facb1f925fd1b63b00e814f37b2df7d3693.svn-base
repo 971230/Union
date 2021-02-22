@@ -1,0 +1,15 @@
+package com.ztesoft.net.ecsord.params.ecaop.req.orderReceiveBack;
+
+public class UNI_BSS_BODY {
+
+	private ORDER_RECEIVE_BACK_REQ ORDER_RECEIVE_BACK_REQ;
+
+	public ORDER_RECEIVE_BACK_REQ getORDER_RECEIVE_BACK_REQ() {
+		return ORDER_RECEIVE_BACK_REQ;
+	}
+
+	public void setORDER_RECEIVE_BACK_REQ(ORDER_RECEIVE_BACK_REQ oRDER_RECEIVE_BACK_REQ) {
+		ORDER_RECEIVE_BACK_REQ = oRDER_RECEIVE_BACK_REQ;
+	}
+
+}

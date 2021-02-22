@@ -1,0 +1,63 @@
+package com.ztesoft.net.framework.plugin.page;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.ztesoft.net.mall.core.model.Tab;
+
+/**
+ * 商品维护时的选项卡上下文
+ * @author kingapex
+ *
+ */
+public class JspPageTabs {
+	
+	private static final Log loger = LogFactory.getLog(JspPageTabs.class);
+	
+	private static Map<String,List<Tab>> tabs;
+	static{
+		tabs = new HashMap<String, List<Tab>>();
+		
+	}
+	
+	
+	@SuppressWarnings("unchecked")
+	public static void addTab(String plugintype, Integer tabid, String tabname,String... args) {
+		List<Tab> plugin_tab = tabs.get(plugintype) == null ? new ArrayList<Tab>()
+				: (List<Tab>) tabs.get(plugintype);
+		
+		if(args.length>0 && !StringUtils.isEmpty(args[0]))
+		{
+			plugin_tab.add(new Tab(tabid,tabname,args[0]));
+		}else
+			plugin_tab.add(new Tab(tabid,tabname));
+		tabs.put(plugintype, plugin_tab);
+//		if (loger.isDebugEnabled()) {
+//			loger.debug("添加" + plugintype + "选项卡" + tabid + " tabname is  "
+//					+ tabname);
+//		}
+	}
+	
+	public static List<Tab> getTabs(String plugintype){
+		
+		List<Tab> ptabs =tabs.get(plugintype);
+//		TreeMap<Integer, String> treeMap = new TreeMap<Integer, String>();
+//		treeMap.putAll(tabMap);
+//		ArrayList<Entry<Integer,String>> l = new ArrayList<Entry<Integer,String>>(treeMap.entrySet());  
+		Collections.sort(ptabs, new Comparator<Tab>() {
+			@Override
+			public int compare(Tab o1, Tab o2) {
+				return (o1.getTab_id()-o2.getTab_id());  
+			}  
+		});
+		return  ptabs;
+	}
+}

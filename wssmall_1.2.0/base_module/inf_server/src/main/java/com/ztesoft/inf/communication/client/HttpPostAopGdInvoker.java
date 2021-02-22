@@ -1,0 +1,281 @@
+package com.ztesoft.inf.communication.client;
+
+import java.io.ByteArrayInputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.net.ConnectException;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
+
+import org.apache.axis.AxisFault;
+import org.apache.axis.Message;
+import org.apache.axis.client.Call;
+import org.apache.axis.client.Service;
+import org.apache.axis.message.SOAPEnvelope;
+import org.apache.log4j.Logger;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
+import org.w3c.dom.Document;
+
+import params.ZteResponse;
+
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.common.util.Xml2JsonUtil;
+import com.ztesoft.common.util.date.DateUtil;
+import com.ztesoft.inf.communication.client.util.DomUtils;
+import com.ztesoft.inf.extend.freemarker.TemplateUtils;
+import com.ztesoft.inf.extend.xstream.XStream;
+import com.ztesoft.inf.framework.commons.CachedNamespaceContext;
+import com.ztesoft.inf.framework.commons.CodedException;
+
+import freemarker.ext.dom.NodeModel;
+
+@SuppressWarnings("unchecked")
+public class HttpPostAopGdInvoker extends Invoker {
+
+	String cdataPath;
+	Map dataNamespaces;
+	Map cdataNamespaces;
+	private static Logger logger = Logger.getLogger(HttpPostAopGdInvoker.class);
+	private static XStream xstream = XStream.instance();
+	private static XPath xpath = XPathFactory.newInstance().newXPath();
+	// private Service service = new Service();
+
+	private final static String TEXT = "_EXCEPTION";
+
+	@Override
+	public Object invoke(InvokeContext _context) throws Exception {
+
+		WsInvokeContext context = (WsInvokeContext) _context;
+		//endpoint = "http://10.123.98.92:8081/aop-provider/cxf/refineService?wsdl";
+		context.setEndpoint(endpoint);
+		context.setRequestTime(DateUtil.currentTime());
+
+		String reqString = generateRequestString(context);
+		//reqString = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ser=\"http://service.hq.aop.hgeagle.com/\"><soapenv:Header/><soapenv:Body><ser:order><arg0><![CDATA[<USERINFOREQUEST><AOPHEAD><accessID>12100002</accessID><accessSEQ>EM20158111416362254</accessSEQ><accessPwd>3450db7bf75ba794dbcf74b7b306e954</accessPwd><accessPlatformType>12</accessPlatformType><accessPlatformID>100002</accessPlatformID><operatorType>common</operatorType><operatorID>weixin_051</operatorID><version>1.00</version></AOPHEAD>	<AOPBODY>    <MSGHEADER>  	<SESSIONID>P5120158111416368967</SESSIONID> 	<SERIAL_NUMBER>18675359208</SERIAL_NUMBER>	<CERTIFICATE_NO>lUvUOetEUa</CERTIFICATE_NO>	<EPARCHY_CODE>0753</EPARCHY_CODE>	<CHANNEL_ID>BAD18</CHANNEL_ID>	<OPER_ID>ITFGDTMZ</OPER_ID>  </MSGHEADER>  <MSGBODY>	<ORDERPARAMETERS>		<TRADE_DEPART_PASSWD></TRADE_DEPART_PASSWD>	<ELEMENT_ID>81001461</ELEMENT_ID>	<PAY_MONEY>45600</PAY_MONEY>	<ORDER_ITEMS>2</ORDER_ITEMS>	<ACTIVITIES_FORM>1</ACTIVITIES_FORM>	<ACTIVITY_RANGE>2</ACTIVITY_RANGE></ORDERPARAMETERS> </MSGBODY>	</AOPBODY></USERINFOREQUEST>]]></arg0> </ser:order></soapenv:Body></soapenv:Envelope>";
+		context.setRequestString(reqString);
+		logger.info("AOP存费送费请求报文："+reqString);
+		SOAPEnvelope req = new SOAPEnvelope(new ByteArrayInputStream(reqString.trim().getBytes("UTF-8")));
+		context.setRequestSOAP(req);
+
+		SOAPEnvelope rsp;
+		Call call = new Call(new Service());
+		call.setTargetEndpointAddress(endpoint);
+
+		Map param = (Map) context.getParameters();
+		if (StringUtils.equals("T", (String) param.get("ws_isNet"))) {
+			call.setOperationName((String) param.get("ws_method"));
+			call.setUseSOAPAction(true);
+			call.setSOAPActionURI((String) param.get("ws_namespace"));
+		}
+
+		if (timeout != null) {
+			call.setTimeout(timeout * 1000);
+		}
+		try {
+			rsp = call.invoke(req);
+		} catch (AxisFault fault) {
+			fault.printStackTrace();
+			if (fault.detail instanceof ConnectException) {
+				throw new CodedException("8001", "无法连接到操作["
+						+ context.getOperationCode() + "]所请求的服务地址");
+			}
+			if (fault.detail == null) {
+				throw new CodedException("8999", "WebService调用异常,"
+						+ fault.getFaultString());
+			}
+
+			context.setFailure(fault.dumpToString());
+
+			if (!transformFault) {
+				throw fault;
+			}
+
+			Message msg = call.getResponseMessage();
+
+			if (msg != null && msg.getSOAPEnvelope() != null) {
+				rsp = msg.getSOAPEnvelope();
+				context.setResponseSOAP(rsp);
+			} else {
+				throw new CodedException("8002", fault.getFaultString());
+			}
+		} finally {
+			context.setResponseTime(DateUtil.currentTime());
+		}
+
+		Document resultDoc = rsp.getAsDocument();
+		String resultStr = DomUtils.DocumentToString(resultDoc);
+		//这里，因为设置解析模版的时候，对含有冒号的节点不知道怎么处理，任务紧急，采取下面这种临时解决方案
+		resultStr =resultStr.replace("&lt;", "<");
+		resultStr =resultStr.replace("&gt;", ">");
+		resultStr =resultStr.replace("&quot;", "\"");
+		logger.info("AOP存费送费返回报文：：："+resultStr);
+		resultStr =resultStr.replace("soap:", "");
+		resultStr =resultStr.replace("ns2:", "");
+		//resultStr = "<?xml version=\"1.0\" encoding=\"utf-8\"?><Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><Body><orderResponse xmlns:ns2=\"http://service.hq.aop.hgeagle.com/\"><return><aopResponse><aop_result>2</aop_result><aop_desc>AOP接口调用成功</aop_desc><RefineOrderResp><seqNo>0000012015091812102800010000</seqNo><SESSIONID>EM2015818121297890</SESSIONID><SERIAL_NUMBER>18620585160</SERIAL_NUMBER><RESULTCODE>400088</RESULTCODE><RESULTDESC>ITF_BUHT_actionRecvGD执行异常: [WARNING]ItfCustSvcInCheck.cpp:710,13INTFException-400088: 外围接口通用输入参数校验错误! Caused by: [INDETERMINATE]ItfCustSvcInCheck.cpp:338,13INTFException-6: 外围接口通用输入验证:接口表没有配置该部门编码(51b3hn9),或者该部门编码(51b3hn9)已失效!</RESULTDESC><SERIALNUMBER></SERIALNUMBER></RefineOrderResp></aopResponse></return></orderResponse></Body></Envelope>";
+		//logger.info("AOP存费送费返回报文(为了匹配模版优化后)：：："+resultStr);
+		
+		resultDoc = DomUtils.newDocument(resultStr, false);
+		context.setResponeString(resultStr);
+
+		try {
+			if (!StringUtils.isEmpty(cdataPath)) {
+				CachedNamespaceContext nsCtx = new CachedNamespaceContext();
+				nsCtx.putInCache(cdataNamespaces);
+				xpath.setNamespaceContext(nsCtx);
+				String cdataContent = xpath.evaluate(cdataPath, resultDoc);
+
+				// 2011.10.13 如果cddata为空 ，则不进行解析了，否则报错
+				if (StringUtils.isEmpty(cdataContent)) {
+					return new HashMap();
+				}
+				try {
+					resultDoc = DomUtils.newDocument(cdataContent, false);
+				} catch (CodedException e) {
+					// 转化失败做重解析 add by xiaof
+					// resultDoc =parseToDoc(cdataContent);
+					resultDoc = rsp.getAsDocument();
+					e.printStackTrace();
+				}
+			}
+		} catch (Exception e) {
+			throw new CodedException("9002", "根据返回的SOAP报文取业务报文["
+					+ context.getOperationCode() + "]时出错.", e);
+		}
+
+		Object result;
+		StringWriter out = new StringWriter();
+		try {
+			if (transformTemplate != null) {
+				Map rootMap = new HashMap();
+				rootMap.put("doc", NodeModel.wrap(resultDoc));
+				TemplateUtils.addUtils(rootMap);
+				transformTemplate.process(rootMap, out);
+				resultStr = out.toString();
+				context.setResultString(resultStr);
+			}
+//			result = xstream.fromXML(resultStr, mapperContext);
+			Class<?> clazz = Class.forName(rspPath);
+			String jsonString = Xml2JsonUtil.xml2JSON(resultStr);
+			ZteResponse resp = (ZteResponse) JsonUtil.fromJson(jsonString, clazz);
+			return resp;
+		} catch (Exception e) {
+			throw new CodedException("9003", "根据反馈的业务报文转为目标格式["
+					+ context.getOperationCode() + "]时出错.", e);
+		}
+//		return result;
+	}
+
+	@Override
+	public Object invokeTest(InvokeContext _context) throws Exception {
+
+		WsInvokeContext context = (WsInvokeContext) _context;
+
+		context.setEndpoint(endpoint);
+		context.setRequestTime(DateUtil.currentTime());
+
+		String reqString = generateRequestString(context);
+
+		context.setRequestString(reqString);
+		context.setResponseTime(DateUtil.currentTime());
+		
+		Document resultDoc = null;
+		String resultStr = "";
+
+		Calendar c = Calendar.getInstance();//可以对每个时间域单独修改
+		int year = c.get(Calendar.YEAR); 
+		int month = c.get(Calendar.MONTH); 
+		int date = c.get(Calendar.DATE); 
+		int hour = c.get(Calendar.HOUR_OF_DAY); 
+		int minute = c.get(Calendar.MINUTE); 
+		int second = c.get(Calendar.SECOND);
+		String mailno = year  + "" + (month+10) + "" + (10+date)+ "" + (10+hour) + "" + (10+minute);
+		String cdataContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ns2:orderResponse xmlns:ns2=\"http://service.hq.aop.hgeagle.com/\"><return><?xml version=\"1.0\" encoding=\"UTF-8\"?><aopResponse><aop_result>2</aop_result><aop_desc>AOP接口调用成功</aop_desc><RefineOrderResp><seqNo>0000012015091114122900000010</seqNo><SESSIONID>P5120158111416368967</SESSIONID><SERIAL_NUMBER>18675359208</SERIAL_NUMBER><RESULTCODE>0000</RESULTCODE><RESULTDESC>OK!</RESULTDESC><SERIALNUMBER>P5120158111416368967</SERIALNUMBER></RefineOrderResp></aopResponse></return></ns2:orderResponse></soap:Body></soap:Envelope>";
+		logger.info("\n返回格式化报文：：："+cdataContent);
+		try {
+			 resultDoc = DomUtils.newDocument(cdataContent, false);
+		} catch (CodedException e) {
+			e.printStackTrace();
+		}
+			
+		StringWriter out = new StringWriter();
+		try {
+			if (transformTemplate != null) {
+				Map rootMap = new HashMap();
+				rootMap.put("doc", NodeModel.wrap(resultDoc));
+				TemplateUtils.addUtils(rootMap);
+				transformTemplate.process(rootMap, out);
+				resultStr = out.toString();
+				context.setResultString(resultStr);
+			}
+//			resultStr="<?xml version=\"1.0\" encoding=\"UTF-8\"?><soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ns2:orderResponse xmlns:ns2=\"http://service.hq.aop.hgeagle.com/\"><return><?xml version=\"1.0\" encoding=\"UTF-8\"?><aopResponse><aop_result>2</aop_result><aop_desc>AOP接口调用成功</aop_desc><RefineOrderResp><seqNo>0000012015091114122900000010</seqNo><SESSIONID>P5120158111416368967</SESSIONID><SERIAL_NUMBER>18675359208</SERIAL_NUMBER><RESULTCODE>0000</RESULTCODE><RESULTDESC>OK!</RESULTDESC><SERIALNUMBER>P5120158111416368967</SERIALNUMBER></RefineOrderResp></aopResponse></return></ns2:orderResponse></soap:Body></soap:Envelope>";
+//			result = xstream.fromXML(resultStr, mapperContext);
+			Class<?> clazz = Class.forName(rspPath);
+//			String jsonString = JSONObject.toJSONString((Map)result);
+			String jsonString = Xml2JsonUtil.xml2JSON(resultStr);
+			ZteResponse resp = (ZteResponse) JsonUtil.fromJson(jsonString, clazz);
+			return resp;
+		} catch (Exception e) {
+			throw new CodedException("9003", "根据反馈的业务报文转为目标格式["
+					+ context.getOperationCode() + "]时出错.", e);
+		}
+//		return result;
+	}
+	
+	/**
+	 * 用于异常转换模板 add by xiaof 111229
+	 */
+	public Document parseToDoc(String Content) throws Exception {
+		StringWriter out = new StringWriter();
+		Map content = new HashMap();
+		Map rootMap = new HashMap();
+		content.put(TEXT, Content);
+		rootMap.put("doc", content);
+		transformTemplate.process(rootMap, out);
+		String resultStr = out.toString();
+		out.close();
+		return DomUtils.newDocument(resultStr, false);
+	}
+
+	/**
+	 * 把xml字符串格式化一把，以便在控制台上输出更美观
+	 * 
+	 * @param str
+	 * @return
+	 * @throws Exception
+	 */
+	public static String format(String str) throws Exception {
+		StringReader in = null;
+		StringWriter out = null;
+		try {
+			SAXReader reader = new SAXReader();
+			// 创建一个串的字符输入流
+			in = new StringReader(str);
+			org.dom4j.Document doc = reader.read(in);
+			// 创建输出格式
+			OutputFormat formate = OutputFormat.createPrettyPrint();
+			// 创建输出
+			out = new StringWriter();
+			// 创建输出流
+			XMLWriter writer = new XMLWriter(out, formate);
+			// 输出格式化的串到目标中,格式化后的串保存在out中。
+			writer.write(doc);
+		} finally {
+			// 关闭流
+			if (in != null) {
+				in.close();
+			}
+			if (out != null) {
+				out.close();
+			}
+		}
+		return out.toString();
+	}
+
+}

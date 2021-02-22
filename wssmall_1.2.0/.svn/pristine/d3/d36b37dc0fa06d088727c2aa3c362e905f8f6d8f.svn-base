@@ -1,0 +1,912 @@
+package com.ztesoft.net.mall.core.service.impl.cache;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import model.EsearchSpec;
+import model.EsearchSpecvalues;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.AttrPackageBusiRequest;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.framework.cache.AbstractCacheProxy;
+import com.ztesoft.net.framework.cache.CacheFactory;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+
+public class DcPublicInfoCacheProxy extends AbstractCacheProxy<List> {
+	private IDcPublicInfoManager dcPublicInfoManager;
+
+	public static final String LIST_KEY_PREFIX = "dc_public_info_list";
+	
+	public static final String DC_PUBLIC_EXT_PREFIX = "dc_public_ext_list";
+	
+	public static final String REGION_KEY_PREFIX = "region_list";
+	
+	public static final String LOGI_COMP_LIST = "logi_comp_list";
+	
+	public static final String LOGI_COMP_PERSON_KEY_PREFIX = "logi_company_person";
+	
+	public static final String DICT_RELATION_KEY_PREFIX = "dict_relation";
+	
+	public static final String DICT_RELATION_KEY_PREFIX_STYPE = "dict_relation_";
+
+	public static final String DEVELOPMENT_CODE = "development_code";
+	
+	public static final String DEVELOPMENT_NAME = "development_name";
+		
+	public static final String TID_CATEGORY_LIST = "tid_category_list";
+	
+	public static final String LIST_IS_SEND_ZB_CONFIG = "is_send_zb_config";
+	
+	public static final String POST_REGION_LIST = "post_region_list";
+	
+	public static final String OPEN_SERVICE_CFG_PREFIX = "open_service_cfg_list";
+	
+	public static final String B_PACKAGE_DEPEND_ELEMENT_LIST = "b_package_depend_element_list";
+	
+	public static final String K_PACKAGE_DEPEND_ELEMENT = "k_package_depend_element";
+
+	public static final String SPECVALUES = "specvalues-";
+	
+	public static final String SPEC_LIST = "spec_list-";
+	
+	public static final String BATCH_PRE_GOODS_LIST = "batch_pre_goods_list";
+	
+
+	public DcPublicInfoCacheProxy(IDcPublicInfoManager dcPublicInfoManager) {
+
+		super(CacheFactory.DC_PUBLIC_CACHE_NAME_KEY);
+		this.dcPublicInfoManager = dcPublicInfoManager;
+	}
+
+	/**
+	 * 获取es_config_info配置信息
+	 * 
+	 * @param cfId
+	 */
+	@SuppressWarnings("unchecked")
+	public List getList(String stype) {
+//		List list=new ArrayList();
+//		// 首先获取列表
+//		List<Map> dcLists = (List<Map>)this.cache.get(LIST_KEY_PREFIX);
+//		if (dcLists == null || dcLists.isEmpty()) {
+//			dcLists = this.dcPublicInfoManager.list();
+//			this.cache.put(LIST_KEY_PREFIX, dcLists);
+//		}
+//		
+//		// 得到列表后获取key值
+//		for(Map dcMap:dcLists){
+//			if(stype.equals(dcMap.get("stype")+"")){
+//				list.add(dcMap);
+//			}
+//		}
+		List<Map> dcLists = (List<Map>)this.cache.get(LIST_KEY_PREFIX+stype);
+		if (dcLists == null || dcLists.isEmpty()) {
+			dcLists = this.dcPublicInfoManager.list(stype);
+			this.cache.put(LIST_KEY_PREFIX+stype, dcLists);
+		}
+		if(dcLists==null){
+			dcLists=new ArrayList();
+		}
+		return dcLists;
+		
+//		List<Map> dcLists = (List<Map>)this.cache.get(LIST_KEY_PREFIX+stype);
+//		if (dcLists == null || dcLists.isEmpty()) {
+//			dcLists = this.dcPublicInfoManager.list(stype);
+//			this.cache.put(LIST_KEY_PREFIX+stype, dcLists);
+//		}
+//		return list;
+	}
+	
+	
+	/**
+	 * 取物流公司
+	 * @return
+	 */
+	public List<Map> getLogiCompanyList(){
+		List<Map> logiLists = (List<Map>)this.cache.get(LOGI_COMP_LIST);
+		if(logiLists == null || logiLists.isEmpty()){
+			logiLists = this.dcPublicInfoManager.getLogiCompanyList();
+			this.cache.put(LOGI_COMP_LIST, logiLists);
+		}
+		return logiLists;
+	}
+	/**
+	 * 取物流公司联系人列表
+	 * @return
+	 */
+	public List<Map> getLogiCompanyPersonList(){
+		List<Map> persons = this.cache.get(LOGI_COMP_PERSON_KEY_PREFIX);
+		if(persons == null || persons.isEmpty()){
+			persons = this.dcPublicInfoManager.getLogiCompanyPersons();
+			this.cache.put(LOGI_COMP_PERSON_KEY_PREFIX, persons);
+		}
+		return persons;
+	}
+	
+	/**
+	 * 获取扩展静态数据
+	 * @param stype 字典编码，见EcsOrderConsts.java
+	 * @return
+	 */
+	public List getdcPublicExtList(String stype){
+		List list = new ArrayList();
+		List<Map> datas = this.cache.get(DC_PUBLIC_EXT_PREFIX);
+		if(datas == null || datas.isEmpty()){
+			datas = this.dcPublicInfoManager.getdcPublicExtByKey();
+			this.cache.put(DC_PUBLIC_EXT_PREFIX, datas);
+		}
+		for(Map map : datas){
+			if(stype.equals(Const.getStrValue(map, "stype"))){
+				list.add(map);
+			}
+		}
+		return list;
+	}
+	
+	
+	/**
+	 * 获取扩展静态数据优化
+	 * @param stype 字典编码，见EcsOrderConsts.java
+	 * @return
+	 */
+	public List getdcPublicExtListByStypeId(String stype){
+		List list = new ArrayList();
+		List<Map> datas = this.cache.get(DC_PUBLIC_EXT_PREFIX+stype);
+		if(datas == null || datas.isEmpty()){
+			datas = this.dcPublicInfoManager.getdcPublicExtByKey(stype);
+			this.cache.put(DC_PUBLIC_EXT_PREFIX+stype, datas);
+		}
+		return datas;
+	}
+	
+	/**
+
+	 * 取省市区县列表
+	 * @return
+	 */
+	public List<Map> getReionsList(){
+		List<Map> regions = this.cache.get(REGION_KEY_PREFIX);
+		if(regions==null || regions.isEmpty()){
+			regions = this.dcPublicInfoManager.getRegions();
+			this.cache.put(REGION_KEY_PREFIX, regions);
+		}
+		return regions;
+	}
+	/**
+	 * 取物流公司联系人
+	 * @param post_id 物流公司编码
+	 * @param city_code 地市编码
+	 * @return
+	 */
+	public Map getLogiCompanyPerson(String post_id, String city_code){
+		Map personMap = null;
+		List<Map> regions = this.cache.get(REGION_KEY_PREFIX);
+		if(regions==null || regions.isEmpty()){
+			regions = this.dcPublicInfoManager.getRegions();
+			this.cache.put(REGION_KEY_PREFIX, regions);
+		}
+		String lan_code = "";
+		for(Map region : regions){
+			if(city_code.equals(Const.getStrValue(region, "region_id"))){
+				lan_code = Const.getStrValue(region, "lan_code");
+			}
+		}
+		List<Map> persons = this.cache.get(LOGI_COMP_PERSON_KEY_PREFIX);
+		if(persons == null || persons.isEmpty()){
+			persons = this.dcPublicInfoManager.getLogiCompanyPersons();
+			this.cache.put(LOGI_COMP_PERSON_KEY_PREFIX, persons);
+		}
+		for(Map person : persons){
+			if(post_id.equals(Const.getStrValue(person, "post_id"))
+					&& lan_code.equals(Const.getStrValue(person, "org_code"))){
+				personMap = person;
+			}
+		}
+		return personMap;
+	}
+	
+	/**
+	 * 取字典映射数据
+	 * @param stype 字典编码，见StypeConsts.java
+	 * @param value 本地字典值
+	 * @return 字典映射值
+	 */
+	public Map getDictRelationValue(String stype, String value, String value_from){
+		String dict_relation_value = null;
+		String dict_relation_value_desc = null;
+		String target_col = value_from.startsWith("other_")? "field_value" : "other_field_value";
+		String target_desc = value_from.startsWith("other_")? "field_value_desc" : "other_field_value_desc";
+		List<Map> relations = this.cache.get(DICT_RELATION_KEY_PREFIX_STYPE+stype);
+		if(relations == null || relations.isEmpty() || ListUtil.isEmpty(relations)){
+			relations = this.dcPublicInfoManager.getStypeDictRelations(stype);
+			this.cache.put(DICT_RELATION_KEY_PREFIX_STYPE+stype, relations);
+		}
+		for(Map relation : relations){
+			if(value.equals(Const.getStrValue(relation, value_from))){
+				dict_relation_value = Const.getStrValue(relation, target_col);
+				dict_relation_value_desc = Const.getStrValue(relation, target_desc);
+				break;
+			}
+		}
+		Map field = new HashMap();
+		field.put("dict_relation_value", dict_relation_value);
+		field.put("dict_relation_value_desc", dict_relation_value_desc);
+		return field;
+	}
+	
+	/**
+	 * 取总部字典映射数据
+	 * @param stype 字典编码，见StypeConsts.java
+	 * @param value 本地字典值
+	 * @return 字典映射值
+	 */
+	public String getZbDictCodeValue(String other_system, String field_name, String field_attr_id, String field_value){
+		String other_field_value = null;
+		List<Map> relations = this.cache.get(DICT_RELATION_KEY_PREFIX);
+		if(relations == null || relations.isEmpty()){
+			relations = this.dcPublicInfoManager.getDictRelations();
+			this.cache.put(DICT_RELATION_KEY_PREFIX, relations);
+		}
+		for(Map relation : relations){
+			String v_other_system = Const.getStrValue(relation, "other_system");
+			String v_field_name = Const.getStrValue(relation, "field_name");
+			String v_field_attr_id = Const.getStrValue(relation, "field_attr_id");
+			String v_field_value = Const.getStrValue(relation, "field_value");
+			if(v_other_system.equals(other_system) && v_field_name.equals(field_name)
+					&& v_field_attr_id.equals(field_attr_id) && v_field_value.equals(field_value)){
+				other_field_value = Const.getStrValue(relation, "other_field_value");
+				break;
+			}
+		}
+		return other_field_value;
+	}
+	
+	/**
+	 * 取订单外部状态
+	 * @param stype 字典编码，见EcsOrderConsts.java
+	 * @return  	
+	 */
+	public List getDictRelationListData(String stype){
+		List<Map> datas = this.cache.get(DICT_RELATION_KEY_PREFIX_STYPE+stype);
+		if(datas == null || datas.isEmpty()){
+			datas = this.dcPublicInfoManager.getStypeDictRelations(stype);
+			this.cache.put(DICT_RELATION_KEY_PREFIX_STYPE+stype, datas);
+		}
+		return datas;
+	}
+	/**
+	 * 获取是否发送总部配置信息
+	 * @return
+	 */
+	public List getIsSendZbConfig(){
+		List<Map> configList = this.cache.get(LIST_IS_SEND_ZB_CONFIG);
+		if(configList==null || configList.isEmpty()){
+			configList = this.dcPublicInfoManager.getSendZbConfigList();
+			this.cache.put(LIST_IS_SEND_ZB_CONFIG, configList);
+		}
+		return configList;
+	}
+
+
+	/**
+	 * 获取发展人编码
+	 * @param areaCode 字典编码，sourceFromId
+	 * @return developmentCode
+	 */
+	public String getDevelopmentCode(String areaCode,String sourceFromId ){
+		String developmentCode = "";
+		List<Map> datas = this.cache.get(DEVELOPMENT_CODE);
+		if(datas == null || datas.isEmpty()){
+			datas = this.dcPublicInfoManager.getDevelopmentCodeList();
+			this.cache.put(DEVELOPMENT_CODE, datas);
+		}
+		for(Map map : datas){
+			if(!StringUtils.isEmpty(areaCode) && StringUtils.isEmpty(sourceFromId)){
+				if(areaCode.equals(Const.getStrValue(map, "area_code"))){
+					developmentCode=Const.getStrValue(map, "development_code");
+				}
+			}
+			else if(!StringUtils.isEmpty(areaCode) && !StringUtils.isEmpty(sourceFromId)){
+				if(areaCode.equals(Const.getStrValue(map, "area_code"))&&sourceFromId.equals(Const.getStrValue(map, "source_from_id"))){
+					developmentCode=Const.getStrValue(map, "development_code");
+				}
+			}
+		}
+		return developmentCode;
+	}
+	/**
+	 * 获取发展人名称
+	 * @param areaCode 字典编码，sourceFromId
+	 * @return developmentCode
+	 */
+	public String getDevelopmentName(String developmentCode,String sourceFromId ){
+		String developmentName = "";
+		List<Map> datas = this.cache.get(DEVELOPMENT_NAME);
+		if(datas == null || datas.isEmpty()){
+			datas = this.dcPublicInfoManager.getDevelopmentNameList();
+			this.cache.put(DEVELOPMENT_NAME, datas);
+		}
+		for(Map map : datas){
+			if(developmentCode.equals(Const.getStrValue(map, "field_value"))){
+				developmentName=Const.getStrValue(map, "field_desc");
+				break ;
+			}
+		}
+		return developmentName;
+	}
+	/**
+	 * 获取发展点名称
+	 * @param areaCode 字典编码，sourceFromId
+	 * @return development_point_code
+	 */
+	public String getDevelopmentPointCode(String areaCode, String sourceFromId) {
+		String development_point_code = "";
+		List<Map> datas = this.cache.get(DEVELOPMENT_CODE);
+		if (datas == null || datas.isEmpty()) {
+			datas = this.dcPublicInfoManager.getDevelopmentCodeList();
+			this.cache.put(DEVELOPMENT_CODE, datas);
+		}
+		for (Map map : datas) {
+			if (!StringUtils.isEmpty(areaCode) && StringUtils.isEmpty(sourceFromId)) {
+				if (areaCode.equals(Const.getStrValue(map, "area_code"))) {
+					development_point_code = Const.getStrValue(map, "development_point_code");
+				}
+			} else if (!StringUtils.isEmpty(areaCode) && !StringUtils.isEmpty(sourceFromId)) {
+				if (areaCode.equals(Const.getStrValue(map, "area_code"))
+						&& sourceFromId.equals(Const.getStrValue(map, "source_from_id"))) {
+					development_point_code = Const.getStrValue(map, "development_point_code");
+				}
+			}
+		}
+		return development_point_code;
+	}
+	
+	/**
+	 * 取订单类别
+	 * @param cat_id 分类ID
+	 * @return
+	 */
+	public String getTidCategory(String cat_id){
+		List<Map> datas = this.cache.get(TID_CATEGORY_LIST);
+		if(datas == null || datas.isEmpty()){
+			datas = this.dcPublicInfoManager.getTidCategoryList();
+			this.cache.put(TID_CATEGORY_LIST,datas);
+		}
+		String tid_category = null;
+		for(Map data : datas){
+			if(cat_id.equals(Const.getStrValue(data, "cat_id"))){
+				tid_category = Const.getStrValue(data, "tid_category");
+			}
+		}
+		return tid_category;
+	}
+	
+	/**
+	 * 获取寄件方信息
+	 * @param lan_code 地市编码020
+	 * @return
+	 */
+	public Map getPostRegion(String lan_code){
+		List<Map> datas = this.cache.get(POST_REGION_LIST);
+		if(datas == null || datas.isEmpty()){
+			datas = this.dcPublicInfoManager.getPostRegionList();
+			this.cache.put(POST_REGION_LIST,datas);
+		}
+		Map postRegion = new HashMap();
+		if(datas!=null && !datas.isEmpty()){
+			for(Map pr : datas){
+				String order_region = Const.getStrValue(pr, "order_region");
+				if(lan_code.equals(order_region)){
+					postRegion = pr;
+					break;
+				}
+			}
+		}
+		return postRegion;
+	}
+	
+	/**
+	 * 替换成正确的元素名称，刷新可选包依赖元素
+	 * @return 
+	 */
+	public List<Map> getTrueElementName(String elementId,String first_payment,String product_id){
+		List<Map> list = new ArrayList<Map>();
+		Map map1 = new HashMap();
+		//查处可选包元素的信息
+		List<Map> Elements = this.dcPublicInfoManager.getElementsInfo(elementId);
+		//转为正确的资费 ：可选包中某些元素的element_id和discnt_name是不匹配的
+		List<Map> errorElements = new ArrayList<Map>();
+		String first_payment_chinese = CommonDataFactory.getInstance().getOtherDictVodeValue("first_payment", first_payment);
+		//开关控制：对于查数据库查不出记录，或者该记录名字不包含三种资费的，将原记录返回
+		boolean flag = true ;
+		if(Elements.size()>0){
+			Map map = Elements.get(0);
+			//看看是否存在（首月全量全价）或者（首月按量计费）或者（首月套餐减半）的元素；存在的话，将其保存在errorElements集合中
+			String discnt_name =(String) map.get("discnt_name");
+			//先截取名字中前半部分+传进来的资费
+			if(discnt_name.contains(EcsOrderConsts.FIRST_PAYMENT_ALLM)||
+					discnt_name.contains(EcsOrderConsts.FIRST_PAYMENT_COMM)||discnt_name.contains(EcsOrderConsts.FIRST_PAYMENT_HALF)){
+				flag = false;
+				int index = -1 ;
+				//三目运算：如果匹配到了字符串，index就赋值为找到字符串的起始下标，否则index就赋值为本身
+				index = discnt_name.indexOf(EcsOrderConsts.FIRST_PAYMENT_ALLM) == -1 ? index : discnt_name.indexOf(EcsOrderConsts.FIRST_PAYMENT_ALLM);
+				index = discnt_name.indexOf(EcsOrderConsts.FIRST_PAYMENT_COMM) == -1 ? index : discnt_name.indexOf(EcsOrderConsts.FIRST_PAYMENT_COMM);
+				index = discnt_name.indexOf(EcsOrderConsts.FIRST_PAYMENT_HALF) == -1 ? index : discnt_name.indexOf(EcsOrderConsts.FIRST_PAYMENT_HALF);
+				discnt_name = discnt_name.substring(0,index);
+				discnt_name = discnt_name + first_payment_chinese;
+				errorElements.add(map);
+			}else{
+				//无任何操作
+			}			
+			//如果存在（首月全量全价）或者（首月按量计费）或者（首月套餐减半）的元素；需要将其转为正确的
+			if(errorElements.size()>0){
+				//根据正确的名字找出正确的编码 
+				List<Map> trueElements =this.dcPublicInfoManager.getElementsTrueInfo("'"+discnt_name+"'");
+				if(trueElements.size()>0){
+					//根据正确的编码查询相应的元素包、元素编码和元素类型
+					String id =trueElements.get(0).get("discnt_code")+"";
+					trueElements = this.dcPublicInfoManager.getDependElementPackageIds(id,product_id);
+				}
+				if(trueElements.size()>0){
+					map1 = trueElements.get(0);
+				}else{
+					//根据正确的名字找不到记录，或者根据正确的编码找不到记录，将原记录返回
+					flag = true;
+				}
+			}
+		}
+		if(flag){
+			// 商城传下来的可以选包中的包ID可能不对,通过元素ID加产品ID,转换出正确的包ID
+			List<Map> trueElements = this.dcPublicInfoManager.getDependElementPackageIds(elementId,product_id);
+			if(trueElements.size()>0){
+				map1 = trueElements.get(0);
+			}else{
+				//如果元素编码不对或者根据名称查不出元素，那么这个元素就丢弃了
+			}
+		}
+		list.add(map1);
+		
+		List<Map> returnlist = new ArrayList<Map>();
+		returnlist.addAll(list);
+		//递归方式获取依赖元素
+		returnlist.addAll(doGetDependElement(list,product_id));
+		//获取资费元素名称
+		returnlist = doGetElementName(returnlist);
+		
+		this.cache.put(K_PACKAGE_DEPEND_ELEMENT+"-"+elementId+"-"+product_id+"-"+first_payment,returnlist);
+		return returnlist;
+	}
+	
+	/**
+	 * 取可选包依赖元素
+	 * @return 
+	 */
+	public List<Map> getKPackageDependElementList(List<AttrPackageBusiRequest> packageBusiRequests,String first_payment,String product_id){
+		List<Map> dependElementLists = new ArrayList<Map>();
+		if(packageBusiRequests.size()>0){
+			for(AttrPackageBusiRequest req : packageBusiRequests){
+				String elementId =req.getElementCode();
+				//先从缓存中换取，缓存没有，再查数据库
+				List<Map> element = (List)this.cache.get(K_PACKAGE_DEPEND_ELEMENT+"-"+elementId+"-"+product_id+"-"+first_payment);
+				if(element == null || element.isEmpty()){
+					element = getTrueElementName(req.getElementCode(),first_payment,product_id);
+				}
+				dependElementLists.addAll(element);
+			}
+		}
+		return dependElementLists;
+	}
+	
+	/**
+	 * 取必选包依赖元素
+	 * @return
+	 */
+	public List<Map> getBPackageDependElementList(String product_id,String first_payment){
+		//先从缓存中换取，缓存没有，再查数据库
+		List<Map> dependElementLists = (List)this.cache.get(B_PACKAGE_DEPEND_ELEMENT_LIST+"-"+product_id+"-"+first_payment);
+		if(dependElementLists == null || dependElementLists.isEmpty()){
+			dependElementLists = refreshBPackageDependElement(product_id,first_payment);
+		}
+		return dependElementLists;
+	}
+	/**
+	 * 刷新所有产品必选包依赖元素
+	 * @return
+	 */
+	public void cacheFreedomGruopDependElement(){
+		//获取所有产品id
+		List<Map> dependElementLists = this.dcPublicInfoManager.getALLProductIds();
+		if(dependElementLists.size()>0){
+			//刷新必选包依赖元素
+			for(Map map : dependElementLists){
+				Integer product_id = (Integer) map.get("product_id"); 
+				refreshBPackageDependElement(product_id+"",EcsOrderConsts.ACTIVE_SORT_ALLM);
+				refreshBPackageDependElement(product_id+"",EcsOrderConsts.ACTIVE_SORT_HALF);
+				refreshBPackageDependElement(product_id+"",EcsOrderConsts.ACTIVE_SORT_COMM);
+			}
+			//刷新可选包依赖元素
+			for(Map map : dependElementLists){
+				Integer product_id =(Integer) map.get("product_id");
+				List<Map> ElementIds = this.dcPublicInfoManager.getALLElementIds(product_id+"");
+				if(ElementIds.size()>0){
+					for(Map map1 : ElementIds){
+						Integer element_id = (Integer) map1.get("element_id");
+						getTrueElementName(element_id+"",EcsOrderConsts.ACTIVE_SORT_ALLM,product_id+"");
+						getTrueElementName(element_id+"",EcsOrderConsts.ACTIVE_SORT_HALF,product_id+"");
+						getTrueElementName(element_id+"",EcsOrderConsts.ACTIVE_SORT_COMM,product_id+"");
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 刷新必选包依赖元素
+	 * @param product_id
+	 * @param first_payment
+	 * @return
+	 */
+	public List<Map> refreshBPackageDependElement(String product_id,String first_payment){
+		List<Map> dependElementLists = new ArrayList<Map>();
+		//获取必选包package_id
+		List<Map> packageIds = this.dcPublicInfoManager.getBProductPackage(product_id);
+		List<Map> bPackageElementIds = new ArrayList<Map>();
+		if(packageIds.size()>0){
+			//循环获取必选包中的必选资费类元素
+			for(Map map : packageIds){
+				Integer packageId = (Integer) map.get("package_id");
+				List<Map> bPackageElements = this.dcPublicInfoManager.getBProductElement(packageId);
+				bPackageElementIds.addAll(bPackageElements);
+			}
+		}
+		
+		//根据资费类型和资费编码过滤后的必选资费元素
+        List<Map> bPackageElements = new ArrayList<Map>();
+		if(bPackageElementIds.size()>0){
+			String idsParamString=doGetParamString(bPackageElementIds,"element_id");
+			String first_payment_chinese = CommonDataFactory.getInstance().getOtherDictVodeValue("first_payment", first_payment);
+			bPackageElements = this.dcPublicInfoManager.getBProductElementFiltration(idsParamString,first_payment_chinese);
+		}
+		
+		//获取过滤后的包、资费元素和资费类型
+        List<Map> bPackageElementFilterIds = new ArrayList<Map>();
+		if(bPackageElements.size()>0){
+			for(Map map : bPackageElements){
+				Integer elementId =(Integer) map.get("discnt_code");
+				for(Map map1 : bPackageElementIds){
+					Integer elementId1 =(Integer) map1.get("element_id");
+					if(elementId1.equals(elementId)){
+						bPackageElementFilterIds.add(map1);
+					}
+				}
+			}
+		}
+		
+		dependElementLists.addAll(bPackageElementFilterIds);
+		//递归方式获取依赖元素的包、资费元素和资费类型
+		dependElementLists.addAll(doGetDependElement(bPackageElementFilterIds,product_id));
+		//获取资费元素名称
+		dependElementLists = doGetElementName(dependElementLists);
+    	this.cache.put(B_PACKAGE_DEPEND_ELEMENT_LIST+"-"+product_id+"-"+first_payment, dependElementLists);
+		return dependElementLists;
+	}
+	/**
+	 * 递归获取依赖元素
+	 * @param list
+	 * @param product_id
+	 * @return
+	 */
+	public List<Map> doGetDependElement(List<Map> list,String product_id){
+		//将需要查询的元素分别放入集合A、B中，将查询到的依赖元素添加到集合C中，暂存
+		List<Map> listA = new ArrayList<Map>();
+//		listA.addAll(list);
+		List<Map> listB = new ArrayList<Map>();
+		listB.addAll(list);
+		List<Map> listC = new ArrayList<Map>();
+		if(listB.size()>0){
+			for(Map map : listB){
+				String limitTag = null;	//limit_tag值
+				Integer element_id =(Integer) map.get("element_id");
+				String element_type_code =(String) map.get("element_type_code");
+				List<Map> dependElements = this.dcPublicInfoManager.getDependElements(element_id,element_type_code);
+				//依赖元素只有一个全部取出来
+				if(dependElements.size() <= 1){
+					listC.addAll(dependElements);
+				}else{
+					List<Map> newDependElements = new ArrayList<Map>();
+					List<Map> oneLimitDependElements = new ArrayList<Map>();
+					for(Map m : dependElements){
+						limitTag = m.get("limit_tag").toString();
+						if(StringUtils.isNotEmpty(limitTag) && "2".equals(limitTag)){ // limit_tag为2是指全部依赖,都取出来
+							newDependElements.add(m);
+						}else if(StringUtils.isNotEmpty(limitTag) && "1".equals(limitTag)){ // limit_tag为1是指部分依赖,如果部分依赖数量为1个,才取出来
+							//limit_tag为1的都保存在oneLimitDependElements中
+							oneLimitDependElements.add(m);
+						}
+					}
+					//limit_tag为1的个数大小1时，所有都不取
+					if(oneLimitDependElements.size() <= 1){
+						newDependElements.addAll(oneLimitDependElements);
+					}
+					listC.addAll(newDependElements);
+				}
+			}
+			//查出集合C中依赖元素的package_id
+			if(listC.size()>0){
+				//获取sql拼接条件
+				String ids=doGetParamString(listC,"element_id_b");
+				listC = this.dcPublicInfoManager.getDependElementPackageIds(ids,product_id);
+			}
+			//将查出的依赖元素添加到集合A中，清空集合B中的数据，将查出的依赖元素添加到集合B中
+			listA.addAll(listC);
+			listB.clear();
+			listB.addAll(listC);
+			//如果集合B还有元素，继续查元素的依赖元素
+			if(listB.size()>0){
+				listA.addAll(doGetDependElement(listB,product_id));
+			}
+		}
+		return listA;
+	}
+	/**
+	 * 获取元素名称
+	 * @param dependElementLists
+	 * @return
+	 */
+	public List<Map> doGetElementName(List<Map> dependElementLists){
+		List<Map> bPackageElementNames = this.dcPublicInfoManager.getElementsInfo(doGetParamString(dependElementLists,"element_id"));
+		for(Map map : dependElementLists){
+			Integer element_id=(Integer) map.get("element_id");
+			for(Map map1 : bPackageElementNames){
+				Integer discnt_code =(Integer)map1.get("discnt_code");
+				if(element_id.equals(discnt_code)){
+					map.put("element_name", map1.get("discnt_name"));
+				}
+			}
+		}
+		return dependElementLists;
+	}
+	/**
+	 * 获取拼接条件
+	 * @return
+	 */
+	public String doGetParamString(List<Map> list,String key){
+		int k = 0;
+		StringBuffer sb = new StringBuffer();
+		if(list.size()>0){
+			for(Map map : list){
+				k++;
+				Integer elementId =(Integer) map.get(key);
+				if(k!=list.size()){
+					sb.append(elementId+",");					
+				}else{
+					sb.append(elementId);
+				}
+					
+			}
+		}
+		return sb.toString();
+	}
+	/**
+	 * 取开放服务配置列表  edit zhou.qiangang
+	 * @return
+	 */
+	public List<Map> getOpenServiceCfgList(){
+		List<Map> openService = this.cache.get(OPEN_SERVICE_CFG_PREFIX);
+		if(openService == null || openService.isEmpty()){
+			openService = this.dcPublicInfoManager.getOpenServiceCfgList();
+			this.cache.put(OPEN_SERVICE_CFG_PREFIX, openService);
+		}
+		return openService;
+	}
+	
+	/**
+	 * 
+	 * 刷新缓存方法，可添加其他数据表缓存刷新
+	 */
+	public void refreshCache() {
+		//【dc_public】
+		List dcPublicList = this.dcPublicInfoManager.list();
+		this.cache.put(LIST_KEY_PREFIX, dcPublicList);
+		
+		//刷新region缓存【es_regions】
+		List regions = this.dcPublicInfoManager.getRegions();
+		this.cache.put(REGION_KEY_PREFIX, regions);
+		
+		List logiLists = this.dcPublicInfoManager.getLogiCompanyList();
+		this.cache.put(LOGI_COMP_LIST, logiLists);
+		
+		//刷新物流公司联系人【es_logi_company_person】
+		List persions = this.dcPublicInfoManager.getLogiCompanyPersons();
+		this.cache.put(LOGI_COMP_PERSON_KEY_PREFIX, persions);
+		
+		//刷新静态数据映射关系【es_dc_public_dict_relation】
+		List relations = this.dcPublicInfoManager.getDictRelations();
+		this.cache.put(DICT_RELATION_KEY_PREFIX, relations);
+		
+		//刷新扩展静态数据【es_dc_public_ext】
+		List datas = this.dcPublicInfoManager.getdcPublicExtByKey();
+		this.cache.put(DC_PUBLIC_EXT_PREFIX, datas);
+		
+		//发展人数据【es_development_code】
+		List development = this.dcPublicInfoManager.getDevelopmentCodeList();
+		this.cache.put(DEVELOPMENT_CODE, development);
+		
+		//发展人名称【es_mall_config】
+		List developmentName = this.dcPublicInfoManager.getDevelopmentNameList();
+		this.cache.put(DEVELOPMENT_NAME, developmentName);
+		
+		//订单是否发送总部配置数据【es_send_zb_option】
+		List<Map> configList = this.dcPublicInfoManager.getSendZbConfigList();
+		this.cache.put(LIST_IS_SEND_ZB_CONFIG, configList);
+		
+		List tidCategories = this.dcPublicInfoManager.getTidCategoryList();
+		this.cache.put(TID_CATEGORY_LIST,tidCategories);
+		
+		List postRegions = this.dcPublicInfoManager.getPostRegionList();
+		this.cache.put(POST_REGION_LIST,postRegions);
+		
+		//服务注解配置表【ES_OPEN_SERVICE_CFG】
+		List openService = this.dcPublicInfoManager.getOpenServiceCfgList();
+		this.cache.put(OPEN_SERVICE_CFG_PREFIX, openService);
+		
+		//批量预处理商品配置
+		List batchPreGoods = this.dcPublicInfoManager.getBatchPreGoods();
+		this.cache.put(BATCH_PRE_GOODS_LIST, batchPreGoods);
+		
+		refreshRelationByStype();
+	}
+	
+	public void refreshRelationByStype(){
+		List stypes = this.dcPublicInfoManager.getDictRelationStypes();
+		for(int i=0;i<stypes.size();i++){
+			Map stypeMap = (Map) stypes.get(i);
+			String stype = Const.getStrValue(stypeMap, "stype");
+			List<Map> stypeRelations = dcPublicInfoManager.getStypeDictRelations(stype);
+			this.cache.put(DICT_RELATION_KEY_PREFIX_STYPE+stype, stypeRelations);
+		}
+	}
+
+	public IDcPublicInfoManager getDcPublicInfoManager() {
+		return dcPublicInfoManager;
+	}
+
+	public void setDcPublicInfoManager(IDcPublicInfoManager dcPublicInfoManager) {
+		this.dcPublicInfoManager = dcPublicInfoManager;
+	}
+
+	/**
+	 * 根据对外服务编码和版本号取开放服务配置列表es_open_service_cfg数据
+	 * @return
+	 */
+	public Map getOpenServiceCfgByOutServiceCode(String out_service_code, String version){
+		List<Map> openServiceList = this.cache.get(OPEN_SERVICE_CFG_PREFIX);
+		if(openServiceList == null || openServiceList.isEmpty()){//
+			openServiceList = this.dcPublicInfoManager.getOpenServiceCfgList();
+			this.cache.put(OPEN_SERVICE_CFG_PREFIX, openServiceList);
+		}
+		Map osCfgMap=null;
+		if(openServiceList!=null && !openServiceList.isEmpty()){
+			for (Map map : openServiceList) {
+				if(out_service_code.equals(Const.getStrValue(map, "out_service_code"))&&version.equals(Const.getStrValue(map, "version"))){
+					osCfgMap = map;
+					break;
+				}
+			}
+		}
+		return osCfgMap;
+	}
+	
+	/**
+	 * 根据对外服务编码和版本号取开放服务配置列表es_open_service_cfg数据
+	 * @return
+	 */
+	public Map getOpenServiceCfgByServiceCode(String service_code, String version){
+		List<Map> openServiceList = this.cache.get(OPEN_SERVICE_CFG_PREFIX);
+		if(openServiceList == null || openServiceList.isEmpty()){//
+			openServiceList = this.dcPublicInfoManager.getOpenServiceCfgList();
+			this.cache.put(OPEN_SERVICE_CFG_PREFIX, openServiceList);
+		}
+		Map osCfgMap=null;
+		if(openServiceList!=null && !openServiceList.isEmpty()){
+			for (Map map : openServiceList) {
+				if(service_code.equals(Const.getStrValue(map, "service_code"))&&version.equals(Const.getStrValue(map, "version"))){
+					osCfgMap = map;
+					break;
+				}
+			}
+		}
+		return osCfgMap;
+	}
+	
+	/**
+	 * 获取规格关键字（支持按接口编码和关键字id或者接口编码和关键字值查询）
+	 * @param op_code
+	 * @param key_id
+	 * @param key_word
+	 * @return
+	 */
+	public List getSpecvalues(String op_code, String key_id, String key_word){
+		List list =  this.cache.get(SPECVALUES + op_code + "-" + key_id);
+		if(!StringUtils.isEmpty(key_id)){
+			list =  this.cache.get(SPECVALUES + op_code + "-" + key_id);
+		}
+		if(!StringUtils.isEmpty(key_word)){
+			list =  this.cache.get(SPECVALUES + op_code + "-" + key_word);
+		}
+	    if (list == null || list.isEmpty()){
+	    	list = this.dcPublicInfoManager.getSpecvalues(op_code, key_id,key_word);
+	    	if(!StringUtils.isEmpty(key_id)){
+	    		this.cache.put(SPECVALUES + op_code + "-" + key_id,list);
+			}
+			if(!StringUtils.isEmpty(key_word)){
+				this.cache.put(SPECVALUES + op_code + "-" + key_word,list);
+			}
+	    }
+	    return list;
+	}
+	
+	/**
+	 * 获取规格定义(支持按接口编码查询)
+	 * @param op_code
+	 * @param op_id
+	 * @return
+	 */
+	public List getSpecDefine(String op_code,String op_id){
+		List list =  this.cache.get(SPEC_LIST + op_code);
+		if(!StringUtils.isEmpty(op_code)){
+			list =  this.cache.get(SPEC_LIST + op_code);		
+		}
+		if(!StringUtils.isEmpty(op_id)){
+			list =  this.cache.get(SPEC_LIST + op_id);
+		}
+		if (list == null || list.isEmpty()){
+			list = this.dcPublicInfoManager.getSpecDefine(op_code,op_id);
+			if(!StringUtils.isEmpty(op_code)){
+				this.cache.put(SPEC_LIST + op_code,list);
+			}
+			if(!StringUtils.isEmpty(op_id)){
+				this.cache.put(SPEC_LIST + op_id,list);
+			}
+		}
+		return list;
+	}
+	
+	public void refreshSpecDefineAndSpecValues(){
+		List specDefinesList = this.dcPublicInfoManager.getAllSpecDefine();
+		for(int i=0;i<specDefinesList.size();i++){
+			EsearchSpec spec = (EsearchSpec) specDefinesList.get(i);
+			List list = new ArrayList();
+			list.add(spec);
+			this.cache.put(SPEC_LIST + spec.getSearch_code(),list);
+			this.cache.put(SPEC_LIST + spec.getSearch_id(),list);
+		}
+		List specvaluesList = this.dcPublicInfoManager.getAllSpecValues();
+		for(int i=0;i<specvaluesList.size();i++){
+			EsearchSpecvalues specvalues = (EsearchSpecvalues) specvaluesList.get(i);
+			List list = new ArrayList();
+			list.add(specvalues);
+			this.cache.put(SPECVALUES + specvalues.getSearch_code() + "-" + specvalues.getKey_id(),list);
+			this.cache.put(SPECVALUES + specvalues.getSearch_code() + "-" + specvalues.getMatch_content(),list);
+		}
+	}
+	
+	/**
+	 * 取物流公司联系人列表
+	 * @return
+	 */
+	public List<Map> getBatchPreGoodsList(){
+		List<Map> batchPreGoods = this.cache.get(BATCH_PRE_GOODS_LIST);
+		if(batchPreGoods == null || batchPreGoods.isEmpty()){
+			batchPreGoods = this.dcPublicInfoManager.getBatchPreGoods();
+			this.cache.put(BATCH_PRE_GOODS_LIST, batchPreGoods);
+		}
+		return batchPreGoods;
+	}
+}

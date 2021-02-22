@@ -1,0 +1,138 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderAudit;
+import com.ztesoft.net.mall.core.model.OrderAuditRequest;
+import com.ztesoft.net.mall.core.model.OrderAuditView;
+import com.ztesoft.net.mall.core.service.IOrderAuditManager;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.mall.core.service.IOrderUtils;
+import com.ztesoft.net.sqls.SF;
+import org.springframework.jdbc.core.RowMapper;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+
+/**
+ * 订单审核处理类
+ * @author wui
+ */
+
+public class OrderAuditManager extends   BaseSupport implements IOrderAuditManager {
+
+	private IOrderUtils orderUtils;
+	
+	private IOrderManager orderManager;
+	@Override
+	public void audit(OrderAuditRequest orderAudit) {
+		this.baseDaoSupport.update("order_audit", orderAudit, "order_id='" + orderAudit.getOrder_id()+"'");
+	}
+	
+	@Override
+	public List listLogs(String orderId) {
+		String sql = SF.orderSql("SERVICE_ORDER_AUDIT_LOGS_SELECT");
+		
+		Order order = orderManager.get(orderId);
+		AdminUser adminUser = orderUtils.getAdminUserById(order.getUserid());
+		RowMapper mapper = new RowMapper() {
+			@Override
+			public Object mapRow(ResultSet rs, int arg1) throws SQLException {
+				OrderAuditView orderAudit = new OrderAuditView();
+				String state = rs.getString("state");
+				String create_date = rs.getString("create_date");
+				String from_username = rs.getString("from_username");
+				String to_username = rs.getString("to_username");
+				String to_mgr_username = rs.getString("to_mgr_username");
+				String apply_message = rs.getString("apply_message"); //申请原因
+				String audit_type = rs.getString("audit_type");
+				String deal_message = rs.getString("deal_message");
+				String mgr_deal_message = rs.getString("mgr_deal_message");
+				String userid = rs.getString("userid");
+				AdminUser adminUser = orderUtils.getAdminUserById(userid);
+				
+				String state_name ="";
+				String audit_type_name = "";
+				if(StringUtil.isEmpty(to_username))
+					to_username="";
+				if(audit_type.equals(OrderStatus.AUDIT_TYPE_00A))
+					audit_type_name ="合约机";
+				if(audit_type.equals(OrderStatus.AUDIT_TYPE_00B))
+					audit_type_name ="退费";
+				if(state.equals(OrderStatus.ORDER_AUDIT_STATE_0))
+					state_name ="待审核";
+				else if(state.equals(OrderStatus.ORDER_AUDIT_STATE_1))
+					state_name =to_username+"审核不通过";
+				else if(state.equals(OrderStatus.ORDER_AUDIT_STATE_2)){
+					if( Consts.CURR_FOUNDER_2.equals(adminUser.getFounder()+""))
+						state_name =to_username+"商审核通过";
+					else 
+						state_name =to_username+"待审核";
+					
+				}else if(state.equals(OrderStatus.ORDER_AUDIT_STATE_3))
+					state_name =to_mgr_username+"审核不通过";
+				else if(state.equals(OrderStatus.ORDER_AUDIT_STATE_4))
+					state_name =to_mgr_username+"审核通过";
+				
+				orderAudit.setCreate_date(create_date);
+				orderAudit.setFrom_username(from_username);
+				orderAudit.setTo_username(to_username);
+				orderAudit.setTo_mgr_username(to_mgr_username);
+				
+				orderAudit.setApply_message(apply_message);
+				orderAudit.setState_name(state_name);
+				orderAudit.setAudit_type_name(audit_type_name);
+				orderAudit.setDeal_message(deal_message);
+				orderAudit.setMgr_deal_message(mgr_deal_message);
+				orderAudit.setFounder(adminUser.getFounder()+"");
+				
+				return orderAudit;
+				
+			}
+
+		};
+		return this.baseDaoSupport.queryForList(sql, mapper, orderId);
+		
+	}
+	
+	
+	
+	public IOrderUtils getOrderUtils() {
+		return orderUtils;
+	}
+
+	public void setOrderUtils(IOrderUtils orderUtils) {
+		this.orderUtils = orderUtils;
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public OrderAudit getLastAuditRecord(String order_id,String audit_type) {
+		List  orderAudits = this.baseDaoSupport.queryForList(SF.orderSql("SERVICE_ORDER_AUDIT_SELECT"), OrderAudit.class, order_id,audit_type);
+		if(ListUtil.isEmpty(orderAudits))
+			return null;
+		return (OrderAudit)orderAudits.get(0);
+		
+	}
+	
+	@Override
+	public void apply(OrderAuditRequest orderAudit) {
+		this.baseDaoSupport.insert("order_audit", orderAudit);
+	}
+
+	public IOrderManager getOrderManager() {
+		return orderManager;
+	}
+
+	public void setOrderManager(IOrderManager orderManager) {
+		this.orderManager = orderManager;
+	}
+	
+	
+}

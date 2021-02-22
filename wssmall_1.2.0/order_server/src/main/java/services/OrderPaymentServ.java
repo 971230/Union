@@ -1,0 +1,133 @@
+package services;
+
+import java.util.List;
+import java.util.Map;
+
+import params.ZteError;
+
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.PaymentLog;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.mall.core.service.IOrderNFlowManager;
+import commons.CommonTools;
+
+import consts.ConstsCore;
+
+public class OrderPaymentServ extends AbsCommonPay{
+
+	private IOrderManager orderManager;
+	private IOrderNFlowManager orderNFlowManager;
+	
+	private Order order;
+	private PaymentLog paymentLog;
+	
+	@Override
+	public String getPayToUserId() throws RuntimeException{
+		return order.getUserid();
+	}
+	
+	@Override
+	public double getPayMoney() throws RuntimeException {
+		String payType =  requestParams.get("payType")==null?"0":requestParams.get("payType");
+		String orderId = requestParams.get("orderId");
+		paymentLog = orderManager.qryNotPayPaymentLog(payType, orderId);
+		if(paymentLog==null) throw new RuntimeException("此订不需要支付");
+		requestParams.put("payment_cfg_id", paymentLog.getPay_method());
+		//====统计金额=====
+		List<Order> list = null;
+		Double pay_money = 0d;//getOrder().getOrder_amount();
+		if(!"0".equals(payType)){
+			//批量提交
+			list = orderManager.getByBatchID(orderId);
+			if(list.size()>1)CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"暂不支持批量支付"));
+			for(Order o:list){
+				pay_money += o.getOrder_amount()-o.getPaymoney();
+			}
+			order = list.get(0);
+		}else{
+			//单个订单提交
+			order = orderManager.get(orderId);
+			pay_money = order.getOrder_amount()-order.getPaymoney();
+		}
+		return pay_money;
+	}
+
+	@Override
+	public String getOrderId() throws RuntimeException {
+		return order.getOrder_id();
+	}
+	
+	@Override
+	public void payBusiness(String transactionId,String onlineFlag,double pay_money,String order_id) throws RuntimeException {
+		String payType =  requestParams.get("payType")==null?"0":requestParams.get("payType");
+		String orderId = requestParams.get("orderId");
+		PaymentLog paymentLog = orderManager.qryNotPayPaymentLog(payType, orderId);
+		if("1".equals(onlineFlag)){
+			//线下支付===
+			orderManager.updatePaymentMoney(order_id,transactionId,pay_money,paymentLog.getPayment_id());
+			paymentLog.setTransaction_id(transactionId);
+			orderNFlowManager.paySucc(paymentLog);
+		}else{
+			paymentLog.setTransaction_id(transactionId);
+			orderNFlowManager.pay(paymentLog, "0".equals(onlineFlag),false);
+		}
+	}
+
+	@Override
+	public boolean callbackBusiness(String transactionId,int status) throws RuntimeException {
+		PaymentLog paymentLog = orderManager.qryPaymentLogByTransactionId(transactionId);
+		Map<String,String> param = requestParams;
+		if(status==0){
+			orderNFlowManager.paySucc(paymentLog.getTransaction_id(),null); //更新主订单状态为已用
+			return true;
+		}else if(status==1){
+			int orderAmount = Integer.parseInt(param.get("ORDERAMOUNT"));
+			orderNFlowManager.payExcetion(paymentLog.getTransaction_id(), orderAmount, null);
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean redirectBusiness(String transactionId,int status) throws RuntimeException {
+		return true;
+	}
+
+	@Override
+	public String getTypeCode() {
+		return "ORDER";
+	}
+
+	public IOrderManager getOrderManager() {
+		return orderManager;
+	}
+
+	public void setOrderManager(IOrderManager orderManager) {
+		this.orderManager = orderManager;
+	}
+
+	public IOrderNFlowManager getOrderNFlowManager() {
+		return orderNFlowManager;
+	}
+
+	public void setOrderNFlowManager(IOrderNFlowManager orderNFlowManager) {
+		this.orderNFlowManager = orderNFlowManager;
+	}
+
+	public Order getOrder() {
+		return order;
+	}
+
+	public void setOrder(Order order) {
+		this.order = order;
+	}
+
+	public PaymentLog getPaymentLog() {
+		return paymentLog;
+	}
+
+	public void setPaymentLog(PaymentLog paymentLog) {
+		this.paymentLog = paymentLog;
+	}
+
+}

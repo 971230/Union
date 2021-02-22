@@ -1,0 +1,22 @@
+package com.powerise.ibss.util;
+
+import com.powerise.ibss.framework.DynamicDict;
+import com.powerise.ibss.framework.FrameException;
+import com.powerise.ibss.framework.IAction;
+/**
+ * 简单维护工具，文件更新使用
+ * @author Administrator
+ *
+ */
+public class SimpMaint implements IAction{
+	
+	private DynamicDict m_Dict;
+	public int perform(DynamicDict dict) throws FrameException{
+		return 0;
+	}
+	//循环处理参数,参数名：FILE_NAME,FILE_CONTENT两个变量
+	private void MFM_010(){
+		int  iCnt;
+	}
+
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://code.alibabatech.com/schema/dubbo
+        http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-autowire="byName" default-lazy-init="true">
+
+	<!-- 会员开放服务 -->
+    <dubbo:reference interface="services.MemberPriceInf" id="memberPriceServ"/>
+    <dubbo:reference interface="services.MemberLvInf" id="memberLvServ"/>
+    <dubbo:reference interface="services.RegionsInf" id="regionsServ"/>
+    <dubbo:reference interface="services.AttentionInf" id="attentionServ"/>
+    <dubbo:reference interface="services.MemberInf" id="memberServ"/>
+    <dubbo:reference interface="services.MemberCenterInf" id="memberCenterServ"/>
+    <dubbo:reference interface="services.AddrInf" id="addrServ"/>
+    <dubbo:reference interface="services.PointHistoryInf" id="pointHistoryServ"/>
+    <dubbo:reference interface="services.MemberPointInf" id="memberPointServ"/>
+    <dubbo:reference interface="services.MemberAddressInf" id="memberAddressServ"/>
+    <dubbo:reference interface="zte.net.iservice.IMemberAddressService" id="memberAddressService"/>
+    <dubbo:reference interface="zte.net.iservice.IRegionService" id="regionService"/>
+    <dubbo:reference interface="zte.net.iservice.IMemberService" id="memberService"/>
+    <dubbo:reference interface="services.MemberLVSpecInf" id="memberLVSpecServ"/>
+</beans>

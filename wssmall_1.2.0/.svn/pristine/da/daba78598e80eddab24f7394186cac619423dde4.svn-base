@@ -1,0 +1,193 @@
+package com.ztesoft.net.eop.sdk.database;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.framework.database.IDBRouterPublic;
+
+public class DBRouterPublic implements IDBRouterPublic {
+	
+	private static final String baseSource = "jndi/wssmall";
+	private static final String dataSourceTableCache = "dataSourceTable";
+	private static final String baseSimpleJdbcTemplate= "simpleJdbcTemplate";
+	private static final boolean moreDataSource = true;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private SimpleJdbcTemplate simpleJdbcTemplateOrdCfg;
+	private JdbcTemplate jdbcTemplateOrdCfg;
+	
+	
+	private static Map<String, String> DATA_SOURCE_CONFIG_MAP;
+	
+	private synchronized void initDataSourceConfig(){
+		if(DATA_SOURCE_CONFIG_MAP == null) {
+			String sql = "select table_name,data_source_name from es_data_source_config";
+			List<Map<String,Object>> list = simpleJdbcTemplate.queryForList(sql);
+			if(list != null && list.size() > 0) {
+				Map<String, String> tempMap = new HashMap<String, String>();
+				for(Map m:list){
+					String tableName = (String) m.get("TABLE_NAME");
+					String dataSourceName = (String) m.get("DATA_SOURCE_NAME");
+					tempMap.put(tableName.toUpperCase(), dataSourceName);
+				}
+				DATA_SOURCE_CONFIG_MAP = tempMap;
+			}
+		}
+    }
+	
+	public String getDataSourceConfig(String tableName){
+		if(DATA_SOURCE_CONFIG_MAP != null && DATA_SOURCE_CONFIG_MAP.size() > 0) {
+			return DATA_SOURCE_CONFIG_MAP.get(tableName.toUpperCase());
+		}else {
+			initDataSourceConfig();
+			return DATA_SOURCE_CONFIG_MAP.get(tableName.toUpperCase());
+		}
+	}
+	
+	/*public  void refrenshDataSourceConfig(){
+    	String sql = "select table_name,data_source_name from es_data_source_config";
+    	List<Map<String,Object>> list = simpleJdbcTemplate.queryForList(sql);
+		if(list!=null){
+			CacheMap<String,String> dataTables = new CacheMap<String,String>();
+			for(Map m:list){
+				String tableName = (String) m.get("TABLE_NAME");
+				String dataSourceName = (String) m.get("DATA_SOURCE_NAME");
+				dataTables.put(tableName.toUpperCase(), dataSourceName);
+			}
+			CacheUtils.addCache(dataSourceTableCache, dataTables);
+		}
+    }
+	private  String getDataSourceConfig(String tableName){
+		if(tableName==null || "".equals(tableName))return null;
+		Map<String,String> dataTables = CacheUtils.getCache(dataSourceTableCache);
+		if(dataTables==null){
+			refrenshDataSourceConfig();
+			dataTables = CacheUtils.getCache(dataSourceTableCache);
+		}
+		if(dataTables==null)return null;
+		tableName = dataTables.get(tableName.toUpperCase());
+		return tableName;
+	}*/
+	
+    //获取数据源调用处理类
+    public  JdbcTemplate getJdbcTemplate(String sql,JdbcTemplate jdbcTemplate) {
+    	String table = getTableNameBySql(sql);
+    	return getJdbcTemplateByTable(table,jdbcTemplate);
+    }
+  //获取数据源调用处理类
+    public  SimpleJdbcTemplate getSimpleJdbcTemplate(String sql,SimpleJdbcTemplate simpleJdbcTemplate) {
+    	String table = getTableNameBySql(sql);
+    	return getSimpleJdbcTemplateByTable(table,simpleJdbcTemplate);
+    }
+    //获取数据源调用处理类
+    public  JdbcTemplate getJdbcTemplateByTable(String table_name,JdbcTemplate jdbcTemplate) {
+    	if(moreDataSource){
+    		JdbcTemplate  template = null; 
+        	String table_date_source = getDataSourceConfig(table_name);//根据table找到对应的数据源
+        	 if("jndi/ordcfg".equals(table_date_source)){
+      		    return  jdbcTemplateOrdCfg;
+      	     }else if(!StringUtil.isEmpty(table_date_source)){
+      	    	try {
+    				throw new Exception("未找到表"+table_name+"对应数据源的JdbcTemplate");
+    			} catch (Exception e) {
+    				// TODO Auto-generated catch block
+    				e.printStackTrace();
+    			}
+      	     }else {
+      		   template = jdbcTemplate;
+             }
+        	return template;
+    	}else{
+    		return jdbcTemplate;
+    	}
+    }
+    public  SimpleJdbcTemplate getSimpleJdbcTemplateByTable(String table_name,SimpleJdbcTemplate simpleJdbcTemplate) {
+    	if(moreDataSource){
+    		SimpleJdbcTemplate simpleTemplate = null;
+        	String table_date_source = getDataSourceConfig(table_name);//根据table找到对应的数据源
+        	if("jndi/ordcfg".equals(table_date_source)){
+        		simpleTemplate =   simpleJdbcTemplateOrdCfg;
+      	     }else if(!StringUtil.isEmpty(table_date_source)){
+	      	    	try {
+	      	    		throw new Exception("未找到表"+table_name+"对应数据源的simpleJdbcTemplate");
+	    			} catch (Exception e) {
+	    				// TODO Auto-generated catch block
+	    				e.printStackTrace();
+	    			}
+      	     }else {
+      	    	simpleTemplate = simpleJdbcTemplate;
+             }
+        	return simpleTemplate;
+    	}else{
+    		return simpleJdbcTemplate;
+    	}
+    }
+    public  String getTableNameBySql(String sql){
+    	String pattern;
+    	sql =sql.trim();
+    	if(Pattern.compile("^select",Pattern.CASE_INSENSITIVE).matcher(sql).find()){
+        pattern = "(\\s+from\\s+)(\\w+)(\\s*)";
+      }else if(Pattern.compile("^insert",Pattern.CASE_INSENSITIVE).matcher(sql).find()){
+        pattern = "(insert\\s+into\\s+)(\\w+)(.+)";
+      }else if(Pattern.compile("^update",Pattern.CASE_INSENSITIVE).matcher(sql).find()){
+        pattern = "(update\\s+)(\\w+)(.+)";
+      }else if(Pattern.compile("^delete",Pattern.CASE_INSENSITIVE).matcher(sql).find()){
+    	  pattern = "(delete\\s+from\\s+)(\\w+)(.+)";
+      }else if(Pattern.compile("^truncate",Pattern.CASE_INSENSITIVE).matcher(sql).find()){
+    	  pattern = "(truncate\\s+table\\s+)(\\w+)(.*?)";
+      }else{
+    	  pattern = "(\\s+from\\s+)(\\w+)(\\s*)";
+      }
+//	    if(sql.indexOf("from") >= 0){
+//	    	pattern = "(\\s+from\\s+)(\\w+)(\\s*)";
+//	    }else if (sql.indexOf("update") >= 0) {
+//			pattern = "(update\\s+)(\\w+)(.+)";
+//		} else if (sql.indexOf("update") >= 0) {
+//			pattern = "(update\\s+)(\\w+)(.+)";
+//		} else if (sql.indexOf("delete") >= 0) {
+//			//pattern = "(delete\\s+from\\s+)(\\w+)(.+)";
+//			pattern = "(delete\\s+)(\\w+)(.+)";
+//		} else if (sql.indexOf("insert") >= 0) {
+//			pattern = "(insert\\s+into\\s+)(\\w+)(.+)";
+//		} else if (sql.indexOf("truncate") >= 0) {
+//			pattern = "(truncate\\s+table\\s+)(\\w+)(.*?)";
+//		} else {
+//			pattern = "(\\s+from\\s+)(\\w+)(\\s*)";
+//		}
+	    
+		Pattern p = Pattern.compile(pattern, 2 | Pattern.DOTALL);
+		Matcher m = p.matcher(sql);
+		StringBuffer sb = new StringBuffer();
+		String tname = "";
+		if (m.find()) {
+			tname = m.group(2);
+		}
+		return tname;
+    }
+    
+	public SimpleJdbcTemplate getSimpleJdbcTemplate() {
+		return simpleJdbcTemplate;
+	}
+	public void setSimpleJdbcTemplate(SimpleJdbcTemplate simpleJdbcTemplate) {
+		this.simpleJdbcTemplate = simpleJdbcTemplate;
+	}
+	public SimpleJdbcTemplate getSimpleJdbcTemplateOrdCfg() {
+		return simpleJdbcTemplateOrdCfg;
+	}
+	public void setSimpleJdbcTemplateOrdCfg(
+			SimpleJdbcTemplate simpleJdbcTemplateOrdCfg) {
+		this.simpleJdbcTemplateOrdCfg = simpleJdbcTemplateOrdCfg;
+	}
+	public JdbcTemplate getJdbcTemplateOrdCfg() {
+		return jdbcTemplateOrdCfg;
+	}
+	public void setJdbcTemplateOrdCfg(JdbcTemplate jdbcTemplateOrdCfg) {
+		this.jdbcTemplateOrdCfg = jdbcTemplateOrdCfg;
+	}
+}

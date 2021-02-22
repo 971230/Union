@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+
+    <!-- ********************搜索******************** -->
+    <bean id="lucenceJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="lucenceTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>exe</value>
+        </property>
+    </bean>
+
+    <!-- 取消订单扫描时间   0 0 3 * * ? 每天3点  0 0/1 * * * ? 每分钟-->
+    <bean id="lucenceTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="lucenceJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0 0/5 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************搜索******************** -->
+    
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="triggers">
+            <list>
+                <!-- <ref bean="lucenceTime"/> -->
+            </list>
+        </property>
+    </bean>
+    
+</beans>

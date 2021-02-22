@@ -1,0 +1,24 @@
+.input table th{
+	padding-right:10px;
+	line-height:1.8;
+	font-size:12px;
+}
+
+.input table textarea{
+	height:35px;
+	word-break:break-all; 
+  	word-wrap: break-word;
+}
+
+#searchBtn{
+	margin-left: 100px;
+}
+
+table select{
+	width:110px;
+}
+
+.submitBtn{
+	margin-left: 80px;
+	margin-right: 20px
+}

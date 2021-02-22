@@ -1,0 +1,9 @@
+<#list children as child> 
+<option value="${child.catalog_id}" pid="${child.sub_catalog_id}" <#if esearchCatalog.sub_catalog_id == child.catalog_id>selected</#if>><#list 1..(level)*3 as n>&nbsp;</#list>${child.catalog_name}</option>
+	<#if child.hasChildren>
+		<#assign level=level+1 />
+	  	<#assign children=child.childrenCatalog />
+		<#include 'select_children.html' />
+  		<#assign level=level-1/>
+	</#if>
+</#list>

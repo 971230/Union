@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	<bean id="partnerExpScheduler" class="com.ztesoft.net.mall.core.timer.PartnerExpScheduler" />
+	<bean id="partnerAlbumManager" class="com.ztesoft.net.mall.core.service.impl.PartnerAlbumManager"  parent="baseSupport" />
+	<bean id="partnerManager" class="com.ztesoft.net.mall.core.service.impl.PartnerManager" parent="baseSupport"></bean>
+	<bean id="partneraccountManager" class="com.ztesoft.net.mall.core.service.impl.PartnerAccountManager" parent="baseSupport"></bean>
+	<bean id="partnerShopManager" class="com.ztesoft.net.mall.core.service.impl.PartnerShopManager" parent="baseSupport"></bean>
+	<bean id="partnerStaffManager" class="com.ztesoft.net.mall.core.service.impl.PartnerStaffManager" parent="baseSupport"></bean>
+	<bean id="partnerAddressManger" class="com.ztesoft.net.mall.core.service.impl.PartnerAddressManager" parent="baseSupport"></bean>
+	<bean id="shopMappingManager" class="com.ztesoft.net.mall.core.service.impl.PartnerShopMappingManager" parent="baseSupport"></bean>
+	<bean id="accountManager" class="com.ztesoft.net.mall.core.service.impl.PartnerAccountManager"   parent="baseSupport"  />
+	<bean id="freezeLogManager" class="com.ztesoft.net.mall.core.service.impl.PartnerFreezeLogManager"   parent="baseSupport"  />
+	<bean id="despostLogManager" class="com.ztesoft.net.mall.core.service.impl.PartnerDespostLogManager"   parent="baseSupport"  />
+	<bean id="despostHander" class="com.ztesoft.net.mall.core.action.desposit.DespostHander"   parent="baseSupport"  />
+	<bean id="despostManager" class="com.ztesoft.net.mall.core.service.impl.PartnerDespostManager" parent="baseSupport"></bean>
+	<bean id="advanceLogsManager" class="com.ztesoft.net.mall.core.service.impl.AdvanceLogsManager" parent="baseSupport"></bean>
+	
+</beans>

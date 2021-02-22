@@ -1,0 +1,41 @@
+<configuration scan="true" scanPeriod=" 5 seconds"  debug="true">
+
+	<jmxConfigurator />
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} -%msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="FILE-ROOT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<File>../logs/consumeLog.log</File>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- rollover daily -->
+			<fileNamePattern>../logs/%d{yyyy-MM-dd}/consumeLog-%d{yyyy-MM-dd}-%i.log.gz
+			</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy
+				class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<!-- or whenever the file size reaches 100MB -->
+				<maxFileSize>512MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<maxHistory>60</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>
+				%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] -%msg%n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<!-- 
+	  <logger name="logback"/>设置特定包名的日志级别信息
+	  <logger name="logback.LogbackDemo" level="INFO" additivity="false">  
+	    <appender-ref ref="STDOUT"/>  
+	  </logger> 
+	 -->
+	<root level="error">
+		<appender-ref ref="FILE-ROOT" />
+		<appender-ref ref="STDOUT" />
+	</root>
+</configuration>

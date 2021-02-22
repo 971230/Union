@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd"
+       default-autowire="byName" default-lazy-init="false">
+
+    <!--action-->
+    <bean id="goodsPropertyAction" class="com.ztesoft.net.mall.plugin.action.GoodsPropertyAction" scope="prototype"/>
+    <bean id="goodsContractAction" class="com.ztesoft.net.mall.plugin.action.GoodsContractAction" scope="prototype"/>
+
+
+    <bean id="goodsTempInstManager" class="com.ztesoft.net.mall.plugin.service.impl.GoodsTempInstManager"/>
+    <bean id="goodsAttrDefManager" class="com.ztesoft.net.mall.plugin.service.impl.GoodsAttrDefManager"/>
+    <bean id="goodsContractManager" class="com.ztesoft.net.mall.plugin.service.impl.GoodsContractManager"/>
+    <bean id="goodsAreaPluginManager" class="com.ztesoft.net.mall.plugin.service.impl.GoodsAreaPluginManager"/>
+	<bean id="goodsBusPluginManager" class="com.ztesoft.net.mall.plugin.service.impl.GoodsBusPluginManager"/>
+
+    <!--插件配置-->
+    <bean id="goodsPropertyPlugin" class="com.ztesoft.net.mall.plugin.property.GoodsPropertyPlugin"
+          lazy-init="false">
+        <property name="bundleList">
+            <list>
+                <ref bean="goodsPluginBundle"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="goodsContractPlugin" class="com.ztesoft.net.mall.plugin.contract.GoodsContractPlugin"
+          lazy-init="false">
+        <property name="bundleList">
+            <list>
+                <ref bean="goodsPluginBundle"/>
+            </list>
+        </property>
+    </bean>
+    
+     <bean id="goodsAreaPlugin" class="com.ztesoft.net.mall.plugin.area.GoodsAreaPlugin"
+          lazy-init="false">
+        <property name="bundleList">
+            <list>
+                <ref bean="goodsPluginBundle"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="goodsBusinessPlugin" class="com.ztesoft.net.mall.plugin.business.GoodsBusinessPlugin"
+          lazy-init="false">
+        <property name="bundleList">
+            <list>
+                <ref bean="goodsPluginBundle"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="goodsBuyWayPlugin" class="com.ztesoft.net.mall.plugin.payway.GoodsBuyWayPlugin"
+          lazy-init="false">
+        <property name="bundleList">
+            <list>
+                <ref bean="goodsPluginBundle"/>
+            </list>
+        </property>
+    </bean>
+    <bean class="com.ztesoft.net.framework.plugin.PluginLoader"/>
+</beans>
+

@@ -1,0 +1,292 @@
+package services;
+
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.app.base.core.model.MemberLv;
+import com.ztesoft.net.eop.sdk.user.IUserService;
+import com.ztesoft.net.eop.sdk.utils.UploadUtil;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.mall.core.model.*;
+import com.ztesoft.net.mall.core.service.*;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+import commons.CommonTools;
+import consts.ConstsCore;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import params.ZteError;
+import params.goods.req.GoodsAdjunctReq;
+import params.goods.req.GoodsDetialReq;
+import params.goods.resp.GoodsAdjunctResp;
+import params.goods.resp.GoodsDetialResp;
+import params.member.req.MemberByIdReq;
+import params.member.req.MemberLVSpecReq;
+import params.member.req.MemberLvPriceReq;
+import params.member.resp.MemberByIdResp;
+import params.member.resp.MemberLVSpecResp;
+import params.member.resp.MemberLvPriceResp;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+public class GoodsDetailServ extends ServiceBase implements GoodsDetialInf {
+
+    private IGoodsManager goodsManager;
+    private IProductManager productManager;
+    private IDcPublicInfoManager dcPublicInfoManager;
+    private IGoodsTypeManager goodsTypeManager;
+    private IGoodsAdjunctManager goodsAdjunctManager;
+    private MemberInf memberServ;
+    private MemberLVSpecInf memberLVSpecServ;
+
+    /**
+     * 查询商品详细
+     *
+     * @param req
+     * @return
+     * @作者 MoChunrun
+     * @创建日期 2013-9-27
+     */
+    public GoodsDetialResp qryGoods(GoodsDetialReq req) {
+        try {
+            GoodsDetialResp resp = new GoodsDetialResp();
+            if (req.getGoods_id() == null || "".equals(req.getGoods_id()))
+                CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "Goods_id不能为空"));
+            Member member = CommonTools.getLoginMember();
+            if (member == null && req.getMember_id() != null && !"".equals(req.getMember_id())) {
+                MemberByIdReq mreq = new MemberByIdReq();
+                mreq.setMember_id(req.getMember_id());
+                MemberByIdResp mresp = memberServ.getMemberById(mreq);
+                if ("0".equals(mresp.getError_code())) {
+                    member = mresp.getMember();
+                }
+
+            }
+            String lv_ids = Const.MEMBER_LV_COMMON;
+            Goods goods = goodsManager.getGoodsById(req.getGoods_id());
+            if (goods == null) CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "Goods_id有误"));
+            resp.setGoods(goods);
+            if (member != null) {
+                //设置当前session用户信息
+                ThreadContextHolder.getSessionContext().setAttribute(IUserService.CURRENT_MEMBER_KEY, member);
+                lv_ids = member.getLv_ids();
+                List<GoodsControlStore> gsList = goodsManager.getGoodsStoreList(req.getGoods_id());
+                resp.setControlList(gsList);
+            }
+            //从缓存里获取单位=======
+            DcPublicInfoCacheProxy dcPublicCache = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+            List<Map> unitList = dcPublicCache.getList("1881");
+            for (Map m : unitList) {
+                if (m.get("pkey").equals(goods.getUnit())) {
+                    goods.setUnitName(String.valueOf(m.get("pname")));
+                    break;
+                }
+            }
+            //从缓存里获取单位=======
+            if (goods.getType_id() != null) {
+                List<Attribute> attrList = goodsTypeManager.getAttrListByTypeId(goods.getType_id());
+                resp.setAttrList(attrList);
+            }
+
+            if (goods.getHave_spec() != null && (Integer.valueOf(goods.getHave_spec())).intValue() != 0) {
+                List<Specification> specList = productManager.listSpecs(req.getGoods_id());
+                resp.setSpecList(specList);
+            }
+            List<MemberLv> list = new ArrayList();
+
+            MemberLVSpecReq req1 = new MemberLVSpecReq();
+            req1.setGoods_id(req.getGoods_id());
+            req1.setLv_ids(lv_ids);
+
+            MemberLVSpecResp resp1 = memberLVSpecServ.getMemberLVByIdAndGoodsId(req1);
+            if (resp1 != null) {
+                list = resp1.getMemberLvList();
+            }
+            for (MemberLv lv : list) {
+                //设置当前session用户等级ID,在获取member.getLv_id()时可以获取到正确的ID
+                ThreadContextHolder.getSessionContext().setAttribute(Const.SESSION_MEMBER_LV, lv.getLv_id());
+                List<Product> productList = this.productManager.list(req.getGoods_id());
+                lv.setProductList(productList);
+            }
+            resp.setMember_product_lv(list);
+            resp.setUserSessionId(req.getUserSessionId());
+            addReturn(req, resp);
+            return resp;
+        } catch (RuntimeException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "系统繁忙"));
+            return null;
+        }
+    }
+
+
+    /**
+     * 相关商品
+     */
+    public GoodsAdjunctResp adjunctList(GoodsAdjunctReq req) {
+        try {
+            GoodsAdjunctResp resp = new GoodsAdjunctResp();
+            if (req.getGoods_id() == null || "".equals(req.getGoods_id()))
+                CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "Goods_id不能为空"));
+            Member member = CommonTools.getLoginMember();
+            if (member == null && req.getMember_id() != null && !"".equals(req.getMember_id())) {
+                MemberByIdReq mreq = new MemberByIdReq();
+                mreq.setMember_id(req.getMember_id());
+                MemberByIdResp mresp = memberServ.getMemberById(mreq);
+                if ("0".equals(mresp.getError_code())) {
+                    member = mresp.getMember();
+                }
+            }
+            Goods goods = goodsManager.getGoodsById(req.getGoods_id());
+            if (goods == null) CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "Goods_id有误"));
+            if (member != null) {
+                if (!CommonTools.checkMemberLvId(req.getMember_lv_id(), member))
+                    CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "用户等级ID[" + req.getMember_lv_id() + "]有误"));
+                ThreadContextHolder.getSessionContext().setAttribute(IUserService.CURRENT_MEMBER_KEY, member);
+            }
+
+            String goods_id = req.getGoods_id();
+
+            List<GoodsAdjunct> adjList = goodsAdjunctManager.listAdjunct(goods_id);
+            for (GoodsAdjunct ga : adjList) {
+                String json = ga.getItems();
+                //map.remove("items");
+                JSONArray jsonArray = JSONArray.fromObject(json);
+                List<AdjunctItem> itemList = new ArrayList<AdjunctItem>();
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    Object o = jsonArray.get(i);
+                    JSONObject jsonObject = JSONObject.fromObject(o);
+                    AdjunctItem adjunctItem = (AdjunctItem) JSONObject.toBean(jsonObject, AdjunctItem.class);
+                    //计算优惠价
+                    Double price = adjunctItem.getPrice();
+                    String lvid = req.getMember_lv_id();
+                    if (lvid == null || "".equals(lvid)) {
+                        if (member != null) {
+                            lvid = member.getLv_id();
+                        } else {
+                            lvid = Const.MEMBER_LV_COMMON;
+                        }
+                    }
+
+                    Map gmap = null;
+
+                    MemberLvPriceReq mlsreq = new MemberLvPriceReq();
+                    mlsreq.setGoods_id(adjunctItem.getGoodsid());
+                    mlsreq.setProduct_id(adjunctItem.getProductid());
+                    mlsreq.setLvid(lvid);
+                    MemberLvPriceResp mlvs = new MemberLvPriceResp();
+                    mlvs = memberLVSpecServ.getMemberLvPrice(mlsreq);
+                    if (mlvs != null) {
+                        gmap = mlvs.getMemberLVSpecMap();
+                    }
+
+                    Double memberPrice = null;
+                    if (gmap != null && gmap.get("price") != null && !"".equals(gmap.get("price"))) {
+                        memberPrice = Double.valueOf(gmap.get("price").toString());
+                        String image_default = (String) gmap.get("image_default");
+                        if (image_default != null) {
+                            image_default = UploadUtil.replacePath(image_default);
+                            adjunctItem.setImgPath(image_default);
+                        }
+                    } else if (gmap != null) {
+                        String image_default = (String) gmap.get("image_default");
+                        if (image_default != null) {
+                            image_default = UploadUtil.replacePath(image_default);
+                            adjunctItem.setImgPath(image_default);
+                        }
+                    }
+                    if (memberPrice != null)
+                        price = memberPrice;
+                    String type = ga.getSet_price();
+                    if ("discount".equals(type)) {
+                        Double discount = ga.getPrice();
+                        adjunctItem.setCoupPrice(price * discount);
+                    }
+
+                    if ("minus".equals(type)) {
+                        Double discount = ga.getPrice();
+                        adjunctItem.setCoupPrice(price - discount);
+                    }
+
+                    itemList.add(adjunctItem);
+                }
+                ga.setItemList(itemList);
+            }
+            resp.setAdjunctList(adjList);
+            resp.setUserSessionId(req.getUserSessionId());
+            resp.setError_code("0");
+            resp.setError_msg("成功");
+            addReturn(req, resp);
+            return resp;
+        } catch (RuntimeException ex) {
+            ex.printStackTrace();
+            throw ex;
+        } catch (Exception ex) {
+            CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "系统繁忙"));
+            return null;
+        }
+    }
+
+    public IGoodsManager getGoodsManager() {
+        return goodsManager;
+    }
+
+    public void setGoodsManager(IGoodsManager goodsManager) {
+        this.goodsManager = goodsManager;
+    }
+
+    public IProductManager getProductManager() {
+        return productManager;
+    }
+
+    public void setProductManager(IProductManager productManager) {
+        this.productManager = productManager;
+    }
+
+
+    public IDcPublicInfoManager getDcPublicInfoManager() {
+        return dcPublicInfoManager;
+    }
+
+    public void setDcPublicInfoManager(IDcPublicInfoManager dcPublicInfoManager) {
+        this.dcPublicInfoManager = dcPublicInfoManager;
+    }
+
+    public IGoodsTypeManager getGoodsTypeManager() {
+        return goodsTypeManager;
+    }
+
+    public void setGoodsTypeManager(IGoodsTypeManager goodsTypeManager) {
+        this.goodsTypeManager = goodsTypeManager;
+    }
+
+    public IGoodsAdjunctManager getGoodsAdjunctManager() {
+        return goodsAdjunctManager;
+    }
+
+    public void setGoodsAdjunctManager(IGoodsAdjunctManager goodsAdjunctManager) {
+        this.goodsAdjunctManager = goodsAdjunctManager;
+    }
+
+
+    public MemberInf getMemberServ() {
+        return memberServ;
+    }
+
+
+    public void setMemberServ(MemberInf memberServ) {
+        this.memberServ = memberServ;
+    }
+
+
+    public MemberLVSpecInf getMemberLVSpecServ() {
+        return memberLVSpecServ;
+    }
+
+
+    public void setMemberLVSpecServ(MemberLVSpecInf memberLVSpecServ) {
+        this.memberLVSpecServ = memberLVSpecServ;
+    }
+
+}

@@ -1,0 +1,85 @@
+package com.ztesoft.autoprocess.base.model;
+
+import java.util.Date;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.consts.ZBOrderUrlConsts;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.utils.ConfigUtil;
+import com.ztesoft.net.mall.utils.CrawlerSetting;
+import com.ztesoft.net.mall.utils.CrawlerUtils;
+
+/**
+ * 登录参数类
+ * @author lzg
+ *
+ */
+public class ZBLoginParam {
+	/**用户登录名*/
+	private String username;
+	/**密码*/
+	private String password;
+	/**验证码*/
+	private String validateCode;
+	/**用户唯一编码*/
+	private String operId;
+	/**用户姓名*/
+	private String operName;
+	
+	/**登录地址*/
+	private static String loginUrl="";
+	/**获取验证码地址*/
+	private static String validateUrl="";
+	/**文件解析地址地址*/
+	private static String parseFileUrl="";
+		
+	public String getUsername() {
+		return username;
+	}
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+	public String getValidateCode() {
+		return validateCode;
+	}
+	public void setValidateCode(String validateCode) {
+		this.validateCode = validateCode;
+	}
+	public String getOperId() {
+		return operId;
+	}
+	public void setOperId(String operId) {
+		this.operId = operId;
+	}
+	public String getOperName() {
+		return operName;
+	}
+	public void setOperName(String operName) {
+		this.operName = operName;
+	}
+	public static String getLoginUrl() {
+		return CrawlerSetting.OPERATION_URL_MAP.get(ZBOrderUrlConsts.LOGIN_ZB_URL);
+	}
+	
+	public static String getValidateUrl() {
+		return CrawlerSetting.OPERATION_URL_MAP.get(ZBOrderUrlConsts.GET_ZB_VALIDATE_URL);
+	}
+	
+	public static String getParseFileUrl() {
+		String date = CrawlerUtils.dateToStringByFormater(new Date(),"yyyyMMdd");
+		ConfigUtil cu = new ConfigUtil("/com/ztesoft/net/mall/resource/receiveSms.properties");
+		return cu.getString("parseFileUrl")+date+"/";
+		
+	}
+	
+	
+	
+}

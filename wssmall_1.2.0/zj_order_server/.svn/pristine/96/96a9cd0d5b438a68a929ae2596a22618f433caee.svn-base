@@ -1,0 +1,140 @@
+/**
+ * 
+ */
+package com.ztesoft.net.attr.hander;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import zte.net.common.annontion.context.request.RequestFieldAnnontion;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+import zte.net.ecsord.params.busi.req.AttrPackageFukaBusiRequest;
+import zte.net.ecsord.params.busi.req.AttrPackageSubProdBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderPhoneInfoFukaBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderSubProductBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.AttrDef;
+
+import consts.ConstsCore;
+
+/**
+ * @author ZX
+ * @version 2015-12-23
+ * @see 总商副卡信息处理器
+ * 
+ */
+public class ZbSubProdHandler extends BaseSupport implements IAttrHandler {
+
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo)
+			throws ApiBusiException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+
+		String order_id = params.getOrder_id();// 订单ID
+		String inst_id = params.getInst_id(); // 数据实列ID（如订单扩展表ID、子订单扩展表ID、货品扩展表ID、物流ID、支付记录ID）
+		String goods_id = params.getGoods_id(); // 商品ID 只有子订单或货品单才有值
+		String pro_goods_id = params.getPro_goods_id(); // 货品ID 只有货品单才有值
+		String order_from = params.getOrder_from(); // 订单来源
+		String value = params.getValue(); // 原始值
+		AttrDef attrDef = params.getAttrDef(); // 属性定议配置信息
+		Map orderAttrValues = params.getOrderAttrValues();// 订单所有属性值
+		String plat_type = (String) orderAttrValues.get(AttrConsts.PLAT_TYPE);
+		boolean iszbmall = CommonDataFactory.getInstance().isZbOrder(plat_type);
+		String zb_sub_prod = (String) orderAttrValues.get("zb_sub_prod");
+		
+		if (!StringUtils.isEmpty(zb_sub_prod) && !"null".equals(zb_sub_prod)
+				&& !EcsOrderConsts.ATTR_DEFAULT_VALUE.equals(zb_sub_prod)) {
+			if (iszbmall) {
+				JSONArray jsonArray = JSONArray.fromObject(zb_sub_prod);
+				if (jsonArray != null && jsonArray.size() > 0) {
+					for (int i = 0; i < jsonArray.size(); i ++) {
+						String ES_ORDER_SUB_PRODCUT_SEQ = baseDaoSupport.getSequences("ES_ORDER_SUB_PRODCUT_SEQ");
+						JSONObject jsonObject =JSONObject.fromObject(jsonArray.get(i));
+						String sub_pro_code = jsonObject.getString("sub_pro_code")!=null?jsonObject.getString("sub_pro_code"):"";
+						String sub_pro_name = jsonObject.getString("sub_pro_name")!=null?jsonObject.getString("sub_pro_name"):"";
+						String sub_pro_desc = jsonObject.getString("sub_pro_desc")!=null?jsonObject.getString("sub_pro_desc"):"";
+						String sub_prod_type = jsonObject.getString("sub_prod_type")!=null?jsonObject.getString("sub_prod_type"):"";
+						OrderSubProductBusiRequest orderSubProductBusiRequest = new OrderSubProductBusiRequest();
+						orderSubProductBusiRequest.setSub_pro_inst_id(ES_ORDER_SUB_PRODCUT_SEQ);
+						orderSubProductBusiRequest.setOrder_id(order_id);
+						orderSubProductBusiRequest.setProd_inst_id("0"); // 主卡默认全部填0
+						orderSubProductBusiRequest.setSub_pro_code(sub_pro_code);
+						orderSubProductBusiRequest.setSub_pro_name(sub_pro_name);
+						orderSubProductBusiRequest.setSub_pro_desc(sub_pro_desc);
+						orderSubProductBusiRequest.setSub_prod_type(sub_prod_type);
+						orderSubProductBusiRequest.setSource_from(ManagerUtils.getSourceFrom());
+						orderSubProductBusiRequest.setDb_action(ConstsCore.DB_ACTION_INSERT);
+						orderSubProductBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+						orderSubProductBusiRequest.store();
+						String subPackage = jsonObject.getString("subPackage")!=null?jsonObject.getString("subPackage"):"";
+						JSONArray subPackages = JSONArray.fromObject(subPackage);
+						if (subPackages != null && subPackages.size() > 0) {
+							for (int j = 0; j < subPackages.size(); j ++) {
+								JSONObject subProd = JSONObject.fromObject(subPackages.get(j));
+								String ES_ATTR_PACKAGE_SubProd_SEQ = baseDaoSupport.getSequences("ES_ATTR_PACKAGE_SubProd_SEQ");
+								String package_code = subProd.getString("package_code")!=null?subProd.getString("package_code"):"";
+								String package_name = subProd.getString("package_name")!=null?subProd.getString("package_name"):"";
+								String element_code = subProd.getString("element_code")!=null?subProd.getString("element_code"):"";
+								String element_type = subProd.getString("element_type")!=null?subProd.getString("element_type"):"";
+								String element_name = subProd.getString("element_name")!=null?subProd.getString("element_name"):"";
+								AttrPackageSubProdBusiRequest attrPackageSubProdBusiRequest = new AttrPackageSubProdBusiRequest();
+								attrPackageSubProdBusiRequest.setPackage_inst_id(ES_ATTR_PACKAGE_SubProd_SEQ);
+								attrPackageSubProdBusiRequest.setOrder_id(order_id);
+								attrPackageSubProdBusiRequest.setSubProd_inst_id(ES_ORDER_SUB_PRODCUT_SEQ);
+								attrPackageSubProdBusiRequest.setPackage_code(package_code);
+								attrPackageSubProdBusiRequest.setPackage_name(package_name);
+								attrPackageSubProdBusiRequest.setProduct_code(sub_pro_code);
+								attrPackageSubProdBusiRequest.setElement_code(element_code);
+								attrPackageSubProdBusiRequest.setElement_type(element_type);
+								attrPackageSubProdBusiRequest.setElement_name(element_name);
+								attrPackageSubProdBusiRequest.setOper_type("");
+								attrPackageSubProdBusiRequest.setChange_type("");
+								attrPackageSubProdBusiRequest.setBiz_type("");
+								attrPackageSubProdBusiRequest.setStatus("0");	//办理状态默认为0（未办理）
+								attrPackageSubProdBusiRequest.setSource_from(ManagerUtils.getSourceFrom());
+								attrPackageSubProdBusiRequest.setDb_action(ConstsCore.DB_ACTION_INSERT);
+								attrPackageSubProdBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+								attrPackageSubProdBusiRequest.store();
+							}
+						}
+					}
+				}
+			}
+		}
+		AttrInstLoadResp resp = new AttrInstLoadResp();
+		resp.setField_value(null);
+		return resp;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

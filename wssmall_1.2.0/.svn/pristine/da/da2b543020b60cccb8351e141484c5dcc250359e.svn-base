@@ -1,0 +1,27 @@
+package com.ztesoft.inf.communication.client.exception;
+
+/**
+ * httpclient超时异常
+ * @作者 MoChunrun
+ * @创建日期 2014-12-24 
+ * @版本 V 1.0
+ */
+public class HttpTimeOutException extends Exception {
+
+	String message;
+	
+	public HttpTimeOutException(String message){
+		super(message);
+		this.message = message;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+	
+	
+}

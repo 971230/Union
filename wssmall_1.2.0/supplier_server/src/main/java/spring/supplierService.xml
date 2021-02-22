@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+
+	<bean id="supplierServ" class="services.SupplierServ" />
+	<bean id="supplierAgreementManager" class = "com.ztesoft.net.mall.core.service.impl.AgreementManager"></bean>
+	<bean id="supplierAccountManager" class="com.ztesoft.net.mall.core.service.impl.SupplierAccountManager" parent="baseSupport"></bean>
+	<bean id="supplierAgentManager" class="com.ztesoft.net.mall.core.service.impl.SupplierAgentManager" parent="baseSupport"></bean>
+	<bean id="supplierCertificateManager" class="com.ztesoft.net.mall.core.service.impl.SupplierCertificateManager" parent="baseSupport"></bean>
+	<bean id="supplierResourcesManager" class="com.ztesoft.net.mall.core.service.impl.SupplierResourcesManager" parent="baseSupport"></bean>
+	<bean id="supplierStaffManager" class="com.ztesoft.net.mall.core.service.impl.SupplierStaffManager" parent="baseSupport"></bean>
+	<bean id="supplierManager" class="com.ztesoft.net.mall.core.service.impl.SupplierManager" parent="baseSupport"></bean> 
+	<bean id="companInfoManager" class="com.ztesoft.net.mall.core.service.impl.CompanInfoManager" parent="baseSupport"></bean>
+	
+	<bean id="modAccount_SupplierManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModAccount_SupplierManager_Audit" ></bean>
+	<bean id="modAgent_SupplierManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModAgent_SupplierManager_Audit" ></bean>
+	<bean id="modCertificate_SupplierManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModCertificate_SupplierManager_Audit" ></bean>
+	<bean id="modResources_SupplierManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModResources_SupplierManager_Audit" ></bean>
+	
+	<bean id="registerApply_SynergismManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.RegisterApply_SynergismManager_Audit" ></bean>
+	
+	<bean id="modEssential_SupplierManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModEssential_SupplierManager_Audit" ></bean>
+	
+	<bean id="modCompany_SupplierManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModCompany_SupplierManager_Audit" ></bean>
+	
+	<bean id="registerApply_AccountManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.RegisterApply_AccountManager_Audit" ></bean>
+	
+	<bean id="registerApply_AgentManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.RegisterApply_AgentManager_Audit" ></bean>
+	<bean id="registerApply_CertificateManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.RegisterApply_CertificateManager_Audit" ></bean>
+	<bean id="registerApply_ResourceManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.RegisterApply_ResourceManager_Audit" ></bean>
+
+</beans>

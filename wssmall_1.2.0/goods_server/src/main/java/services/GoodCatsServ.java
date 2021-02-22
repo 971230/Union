@@ -1,0 +1,383 @@
+package services;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.AdColumn;
+import com.ztesoft.net.app.base.core.model.Adv;
+import com.ztesoft.net.app.base.core.model.Supplier;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.Attribute;
+import com.ztesoft.net.mall.core.model.Cat;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.support.GoodsView;
+import com.ztesoft.net.mall.core.service.*;
+import com.ztesoft.remote.inf.IAdvService;
+import com.ztesoft.remote.params.adv.req.AdColumnReq;
+import com.ztesoft.remote.params.adv.req.AdvReq;
+import commons.CommonTools;
+import params.ZteRequest;
+import params.goods.resp.HotGoodsResp;
+import params.goods.resp.RemdGoodsResp;
+import params.goodscats.req.CatsReq;
+import params.goodscats.req.GoodsCatsReq;
+import params.goodscats.req.GoodsQueryReq;
+import params.goodscats.req.GoodsQueryResp;
+import params.goodscats.resp.GoodsCatsResp;
+import params.suppler.req.SupplierListReq;
+import params.suppler.resp.SupplierListResp;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 商品分类service
+* @作者 wu.i 
+* @创建日期 2013-9-23 
+* @版本 V 1.0
+* 
+* 	 	GoodsQueryReq req = new GoodsQueryReq();
+		req.setCat("1000961280");
+		String json = CommonTools.beanToJson(req);
+		String str = HttpUtil.readPostAsString(URL+"GoodCatsServ/queryPageGoodsByCond", "param_json="+json, "utf-8", "utf-8", 100000, 100000);
+		GoodsQueryResp tagResp = CommonTools.jsonToBean(str, GoodsQueryResp.class);
+		
+ */
+@SuppressWarnings("unchecked")
+public class GoodCatsServ extends ServiceBase implements GoodsCatInf {
+	
+	private IGoodsCatManager goodsCatManager;
+	private IBrandManager brandManager;
+	private IAdvService advService;
+	private IGoodsManager goodsManager;
+	private IGoodsSearchManager goodsSearchManager;
+	private IFavoriteManager favoriteManager ;
+	private ITagManager tagManager;
+	private SupplierInf supplierServ;
+
+    @Override
+    public String getCatPathById(String catId) {
+        return this.goodsCatManager.getCatPathById(catId);
+    }
+
+    /**
+	 * 查询所有商品分类
+	 * @param json
+	 */
+	@Override
+	public GoodsCatsResp queryAllCats(ZteRequest zteRequest) {
+
+		GoodsCatsResp goodsCatsResp  = new GoodsCatsResp();
+		List<Cat> cat_tree =  goodsCatManager.listAllChildren("0");
+		for (Cat cat : cat_tree) {
+			//获取类别广告图片
+			AdColumnReq adColumn = new AdColumnReq();
+			adColumn.setCatid(cat.getCat_id());
+			adColumn.setPosition("lb");
+			
+			AdColumn adc = this.advService.getAdColumnDetail(adColumn).getAdColumn();
+				//adColumnManager.getADcolumnDetail(cat.getCat_id(),"lb");
+			Adv adv=new Adv();
+			if(adc!=null){
+				AdvReq advReq = new AdvReq();
+				advReq.setAcid(adc.getAcid()+"");
+				List<Adv> advList = this.advService.queryAdByAcId(advReq).getAdvList();
+				
+				if (advList!=null&&advList.size()>0) {
+					adv=advList.get(0);
+				}
+			}
+			cat.setAdv(adv);
+		}
+		List listCat = brandManager.groupByCat();
+		goodsCatsResp.setListCat(listCat);
+		goodsCatsResp.setCat_tree(cat_tree);
+		
+		addReturn(new GoodsCatsReq(), goodsCatsResp);
+		return  goodsCatsResp;
+	}
+	
+	/**
+	 * 查询商品分类的上下级分类，展示结构如图：
+	 * 如： 全部结果 > 陶瓷礼品 > 景德镇陶瓷 > 艺术瓷 
+	 */
+	@Override
+	public GoodsCatsResp queryCatsByCatId(CatsReq catsReq) {
+		GoodsCatsResp goodsCatsResp = new GoodsCatsResp();
+		HttpServletRequest request  =ThreadContextHolder.getHttpRequest(); 
+		String url = request.getServletPath();
+		String cat_id= catsReq.getCat_id(); //add by wui 按目录分类
+		if(StringUtil.isEmpty(cat_id))
+		{
+			String goods_id = catsReq.getGoods_id();
+			if(StringUtil.isEmpty(cat_id)){
+				goodsCatsResp.setListCat(new ArrayList());
+				return goodsCatsResp;
+			}
+			Goods goods = goodsManager.getGoodsById(goods_id);
+			cat_id = goods.getCat_id();
+		}
+		String path = goodsCatManager.getCatPathById(cat_id);
+		String cat_id_arr [] = path.split("\\|");
+		StringBuffer catPathBuffer = new StringBuffer(" and cat_id in ( ");
+		String catPath ="";
+		for (int i = 0; i < cat_id_arr.length; i++) {
+			catPathBuffer.append(cat_id_arr[i]).append(",");
+		}
+		catPath = catPathBuffer.substring(0, catPathBuffer.length()-1);
+		catPath+=" )";
+		
+		List cats = goodsCatManager.getCatsByCond(catPath);
+		goodsCatsResp.setListCat(new ArrayList());
+		
+		addReturn(catsReq, goodsCatsResp);
+		return goodsCatsResp;
+	}
+	
+	
+	/**
+	 * 查询分类归属一级分类下的所有子分类信息
+	 * 如：手机通讯
+		    手机
+		    对讲机
+	 */
+	@Override
+	public GoodsCatsResp queryFChildrenCatsByCatIds(CatsReq catsReq) {
+		GoodsCatsResp goodsCatsResp  = new GoodsCatsResp();
+		List<Cat> cat_tree =  goodsCatManager.listAllChildren("0");
+		boolean showimage  =true;
+		String cat_id=catsReq.getCat_id();
+		String path = goodsCatManager.getCatPathById(cat_id);
+		if(StringUtil.isEmpty(path)){
+			goodsCatsResp.setCat_tree(new ArrayList<Cat>());
+			return goodsCatsResp;
+		}
+		cat_id = path.split("\\|")[1];
+		if(!StringUtil.isEmpty(cat_id)){
+			List<Cat> p_cat_tree = new ArrayList<Cat>();
+			for (Cat cat:cat_tree) {
+				//根节点匹配
+				if(cat_id.equals(cat.getCat_id()+"")){
+					p_cat_tree.add(cat);
+					goodsCatsResp.setCat_tree(p_cat_tree);
+					break;
+				}
+			}
+		}
+		goodsCatsResp.setShowimage(showimage);
+		addReturn(catsReq, goodsCatsResp);
+		return goodsCatsResp;
+		
+	}
+	
+	/**
+	 * 根据商品分类查询分类相关商品信息
+	 * 如：浏览手机电池最终购买 A、B、C商品
+	 */
+	@Override
+	public HotGoodsResp queryHotGoodsCatId(CatsReq catsReq) {
+		HotGoodsResp hotGoodsResp = new HotGoodsResp();
+		String cat_id= catsReq.getCat_id();
+		if(StringUtil.isEmpty(cat_id)){
+			
+			hotGoodsResp.setCat(new Cat());
+			return hotGoodsResp;
+		}
+		Cat cat = goodsCatManager.getById(cat_id);
+		
+		hotGoodsResp.setCat(cat);
+		
+		Page page = goodsManager.searchHotGoods(1, 15); //查询热卖商品
+		hotGoodsResp.setWebpage(page);
+		
+		addReturn(catsReq, hotGoodsResp);
+		
+		return hotGoodsResp;
+	}
+
+	/**
+	 * 查询分类关联相关商品
+	 */
+	@Override
+	public RemdGoodsResp queryRemdGoodsCatId(CatsReq catsReq) {
+		RemdGoodsResp remdGoodsResp = new RemdGoodsResp();
+		String cat_id=catsReq.getCat_id();
+		List<GoodsView> goods = goodsCatManager.getComplexGoodsByCatId(cat_id);
+		remdGoodsResp.setGoods(goods);
+		addReturn(catsReq, remdGoodsResp);
+		return remdGoodsResp;
+	}
+	
+	
+	/**
+	 * 
+	 * 详情页面商品搜索
+	 */
+	@Override
+	public GoodsQueryResp queryPageGoodsByCond(GoodsQueryReq req) {
+		
+		GoodsQueryResp resp = new GoodsQueryResp();
+		String cat_id = req.getCat_id();
+		String old_cat_id = cat_id;
+		String cat_path = null;
+	    req.setKeyword(CommonTools.getUTF8Value(req.getKeyword()));
+	    
+	    //按关键字查询，分类为空，则先按关键字查询分类
+	    if("0".equals(cat_id) && !StringUtil.isEmpty(req.getKeyword())) //按关键字搜索商品 search_name结构如下：按品牌-分类-商家-名称
+	    	cat_id = this.baseDaoSupport.queryForString("select cat_id from es_goods where search_name like '%"+req.getKeyword()+"%'  "+DBTUtil.andRownum("2"));
+		// 如果按类别了
+	    
+		if (!cat_id.equals("0")) {
+			
+			Cat cat=  goodsCatManager.getById(cat_id);
+			cat_path = cat.getCat_path();
+			String type_id =cat.getType_id();
+			// 读取这个类型的属性信息，如果为递近式搜索的话要计算商品数量数量。
+			// 属性信息包括品牌及属性
+			List[] props = goodsSearchManager.getPropListByCat(type_id, cat_path,req.getBrand_id(), req.getProp(),"");//req.getAttr()
+			List<Attribute> propList = props[0];
+			List brandList = props[1];
+			
+		
+			int att_index=0;
+			for(Attribute attr: propList){
+				Map[] opations = attr.getOptionMap();
+				int j=0;
+				for(Map op:opations){
+					//首先构造一下除了属性以外的串
+					op.put("url",  att_index+"_"+j);
+					j++;
+				}
+				String value  = CommonTools.getProValue(att_index, req.getProp());
+				attr.setValue(value);
+				att_index++;
+			}
+			
+			String parent_id = this.goodsCatManager.getParentIdById(cat_id);
+			if(parent_id.equals("0"))
+				parent_id = cat_id;
+			List catList  = this.goodsCatManager.listChildren(parent_id);
+			catList=catList.size()==0|| catList.isEmpty()? catList=null:catList;
+			
+			resp.setCatList(catList); //分类列表
+			resp.setPropList(propList);
+			resp.setBrandList(brandList);//品牌列表
+			resp.setCat(cat);
+			SupplierListReq supplierListReq = new SupplierListReq();
+			supplierListReq.setCatid(cat_id);
+			
+			SupplierListResp supplierListResp = new SupplierListResp();
+			supplierListResp = supplierServ.getSupplierByCatId(supplierListReq);
+			
+			List<Supplier> list = new ArrayList<Supplier>();
+			if(supplierListResp != null){
+				list = supplierListResp.getList();
+			}
+			
+			resp.setSupplerList(list); //查询分类供货商
+		}
+		
+		cat_id = old_cat_id; //add by wui 设置完成品牌，特征后重置环境
+		if(cat_id.equals("0"))
+			cat_path ="";
+		Map<String,String> params = new HashMap<String,String>();
+		params.put("cat_path", cat_path);
+		params.put("order", req.getOrder());
+		params.put("brandStr", req.getBrand_id());
+		params.put("propStr", req.getProp());
+		params.put("keyword", req.getKeyword());
+		params.put("minPrice", req.getMinprice());
+		params.put("maxPrice", req.getMaxprice());
+		params.put("tagids", req.getTagids());
+		//params.put("attrStr", req.getAttr());
+		params.put("agn", req.getSupper_id());
+		
+		//params.put("typeid", req.getType_id());
+		Page webpage = this.goodsSearchManager.search(req.getPage(), Integer.valueOf(req.getPagesize()), params);
+		
+		if(CommonTools.isLogin()){
+			List favoriteList = favoriteManager.list();
+			resp.setFavoriteList(favoriteList);
+		}
+		resp.setWebpage(webpage);
+		resp.setGoodsQueryReq(req);
+		resp.setTags(tagManager.list()); //标签列表
+		
+		addReturn(req, resp);
+		return resp;
+	}
+	
+	
+	public IGoodsCatManager getGoodsCatManager() {
+		return goodsCatManager;
+	}
+
+	public void setGoodsCatManager(IGoodsCatManager goodsCatManager) {
+		this.goodsCatManager = goodsCatManager;
+	}
+
+	public IBrandManager getBrandManager() {
+		return brandManager;
+	}
+
+	public void setBrandManager(IBrandManager brandManager) {
+		this.brandManager = brandManager;
+	}
+
+    public void setAdvService(IAdvService advService) {
+        this.advService = advService;
+    }
+
+    public IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+
+	public void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+
+	public IGoodsSearchManager getGoodsSearchManager() {
+		return goodsSearchManager;
+	}
+
+	public void setGoodsSearchManager(IGoodsSearchManager goodsSearchManager) {
+		this.goodsSearchManager = goodsSearchManager;
+	}
+
+	public IFavoriteManager getFavoriteManager() {
+		return favoriteManager;
+	}
+
+	public void setFavoriteManager(IFavoriteManager favoriteManager) {
+		this.favoriteManager = favoriteManager;
+	}
+
+	public ITagManager getTagManager() {
+		return tagManager;
+	}
+
+	public void setTagManager(ITagManager tagManager) {
+		this.tagManager = tagManager;
+	}
+
+	public SupplierInf getSupplierServ() {
+		return supplierServ;
+	}
+
+	public void setSupplierServ(SupplierInf supplierServ) {
+		this.supplierServ = supplierServ;
+	}
+
+    @Override
+    public List<GoodsView> getComplexGoodsByCatId(String catId) {
+        return this.goodsCatManager.getComplexGoodsByCatId(catId);
+    }
+
+    @Override
+    public String _getComplexGoodsByCatId(String cat_id) {
+        return this.goodsCatManager._getComplexGoodsByCatId(cat_id);
+    }
+}

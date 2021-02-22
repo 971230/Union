@@ -1,0 +1,88 @@
+package com.ztesoft.rule.core.exe.def;
+
+import java.util.List;
+
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.rule.core.exe.IRuleResultHandler;
+import com.ztesoft.rule.core.ext.IRuleResultProssor;
+import com.ztesoft.rule.core.module.cfg.MidDataConfig;
+import com.ztesoft.rule.core.module.fact.DefFact;
+import com.ztesoft.rule.core.module.fact.ProcessFact;
+import com.ztesoft.rule.core.module.fact.ProcessFacts;
+import com.ztesoft.rule.core.util.Const;
+import com.ztesoft.rule.core.util.LocalBeanFactory;
+
+/**
+ * 结果集处理
+ * 
+ * @author easonwu
+ * @creation Dec 14, 2013
+ * 
+ */
+public class DefRuleResultHandler implements IRuleResultHandler {
+	private IRuleResultProssor ruleResultProssor;
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void doExec(ProcessFacts pf) {
+		// 结果集处理
+		List<ProcessFact> pfs = pf.getProcessFacts();
+		for (ProcessFact processFact : pfs) {
+			MidDataConfig midDataConfig = processFact.getMidDataConfig();
+			if ("T".equals(midDataConfig.getNeed_process_data())) {
+				List<DefFact> facts = processFact.getFacts();
+				if (facts == null || facts.isEmpty())
+					continue;
+				//
+
+				String summarySql = midDataConfig.getDetail_cal_logic();
+				String listSql = midDataConfig.getList_cal_logic();
+				String dataIndex = null;
+				for (DefFact fact : facts) {
+
+					// 汇总处理
+					if (Const.SQL.equals(midDataConfig.getList_cal_type())) {// SQL类型配置
+						dataIndex = getRuleResultProssor().saveSumarryData(
+								summarySql, fact.factFinalResult());
+					} else {// java类型配置
+						IRuleResultProssor factLoader = LocalBeanFactory
+								.createRuleResultProssor(midDataConfig
+										.getDetail_cal_logic());
+						dataIndex = factLoader.saveSumarryData(fact
+								.factFinalResult());
+					}
+
+					// 清单处理
+					if (Const.SQL.equals(midDataConfig.getDetail_cal_type())) {// SQL类型配置
+						getRuleResultProssor().saveListData(listSql,
+								fact.factEveryRuleResults(), dataIndex);
+					} else {// java类型配置
+						IRuleResultProssor factLoader = LocalBeanFactory
+								.createRuleResultProssor(midDataConfig
+										.getList_cal_logic());
+						factLoader.saveListData(fact.factEveryRuleResults(),
+								dataIndex);
+					}
+				}
+			}
+
+		}
+	}
+
+	// 【注】提供默认实现
+	public IRuleResultProssor getRuleResultProssor() {
+		if (ruleResultProssor == null)
+			ruleResultProssor = SpringContextHolder
+					.getBean("defRuleResultProssor");
+
+		return ruleResultProssor;
+	}
+
+	public void setRuleResultProssor(IRuleResultProssor ruleResultProssor) {
+		this.ruleResultProssor = ruleResultProssor;
+	}
+
+}

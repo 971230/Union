@@ -1,0 +1,66 @@
+package zte.params.req;
+
+import params.ZteError;
+import params.ZteRequest;
+import zte.params.resp.GetPartnerResp;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.framework.database.NotDbField;
+import commons.CommonTools;
+
+import consts.ConstsCore;
+
+public class GetPartnerReq extends ZteRequest<GetPartnerResp> {
+	
+	@ZteSoftCommentAnnotationParam(name="代理商名称",type="String",isNecessary="N",desc="代理商名称")
+	private String partner_name;
+	
+	@ZteSoftCommentAnnotationParam(name="页面索引",type="Integer",isNecessary="Y",desc="页面索引")
+	private Integer page_index;
+	
+	@ZteSoftCommentAnnotationParam(name="分页大小",type="Integer",isNecessary="Y",desc="分页大小")
+	private Integer page_size;
+
+	@Override
+	@NotDbField
+	public void check() throws ApiRuleException {
+		
+		if(null == page_index || page_index <= 0)
+			CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "page_index不能为空,且必须大于0"));
+		
+		if(null == page_size || page_size <= 0)
+			CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "page_size不能为空,且必须大于0"));
+	}
+
+	@Override
+	@NotDbField
+	public String getApiMethodName() {
+		return "zte.partnerService.partner.list";
+	}
+
+	public String getPartner_name() {
+		return partner_name;
+	}
+
+	public void setPartner_name(String partner_name) {
+		this.partner_name = partner_name;
+	}
+
+	public Integer getPage_index() {
+		return page_index;
+	}
+
+	public void setPage_index(Integer page_index) {
+		this.page_index = page_index;
+	}
+
+	public Integer getPage_size() {
+		return page_size;
+	}
+
+	public void setPage_size(Integer page_size) {
+		this.page_size = page_size;
+	}
+	
+}

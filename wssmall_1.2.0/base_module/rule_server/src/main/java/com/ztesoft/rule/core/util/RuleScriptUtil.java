@@ -1,0 +1,289 @@
+package com.ztesoft.rule.core.util;
+
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.log4j.Logger;
+import org.drools.core.util.StringUtils;
+
+import com.ztesoft.net.consts.RuleConst;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.model.RuleAction;
+import com.ztesoft.net.mall.core.model.RuleCondAudit;
+import com.ztesoft.net.mall.core.model.RuleConfigAudit;
+import com.ztesoft.net.mall.core.model.RuleConfigConstAudit;
+import com.ztesoft.net.mall.core.model.RuleConfigListAudit;
+import com.ztesoft.net.mall.core.model.RuleObj;
+import com.ztesoft.net.mall.core.model.RuleObjAttr;
+import com.ztesoft.net.mall.core.service.IRuleConfigManager;
+
+/**
+ * 规则脚本生成工具类
+ * @作者 MoChunrun
+ * @创建日期 2014-2-24 
+ * @版本 V 1.0
+ */
+public class RuleScriptUtil {
+	private static Logger logger = Logger.getLogger(RuleScriptUtil.class);
+	public static final String RULE_PACKAGE = "package com.ztesoft.rule";
+	
+	/**
+	 * 生成规则script
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-24 
+	 * @param ruleConfig
+	 * @param ruleCondList
+	 * @param ruleAction
+	 * @return
+	 */
+	public static String parseRuleScript(RuleConfigAudit ruleConfig,List<RuleConfigListAudit> configListAuditList){
+		StringBuffer sb = new StringBuffer();
+		sb.append(RULE_PACKAGE).append("\r\n");
+		IRuleConfigManager ruleConfigManager = SpringContextHolder.getBean("ruleConfigManager");
+		List<RuleObj> objList = ruleConfigManager.queryRuleObjByAuditRuleId(ruleConfig.getRule_id());
+		if((objList == null || objList.isEmpty()) && RuleConst.RULE_SYS_FLAG.equals(ruleConfig.getRule_sys_flag())){
+			RuleObj obj =  ruleConfigManager.getRuleObjById(ruleConfig.getObj_id());
+			obj.setNever_run_flag(ruleConfig.getNever_run_flag());
+			objList.add(obj);
+		}
+		for(RuleObj o:objList){
+			sb.append("import ").append(o.getClazz()).append("\r\n");
+		}
+		for(RuleConfigListAudit configListAudit:configListAuditList){
+			
+			sb.append("rule \"").append(configListAudit.getList_name()).append("\"\r\n");
+			sb.append("when \r\n");
+			//这里加条件
+			sb.append(parseRuleCond(configListAudit.getRuleCondAuditList(), objList, ruleConfig));
+			
+			sb.append("\r\n");
+			sb.append("then \r\n");
+			//这里加结果
+			if(configListAudit.getConstAuditList()!=null && configListAudit.getConstAuditList().size()>0){
+				for(RuleConfigConstAudit cc:configListAudit.getConstAuditList()){
+					sb.append("$"+cc.getObj_code()).append(".set").append(toUpperCaseFirstOne(cc.getAttr_code())).append("(\"").append(cc.getConst_value()).append("\");").append("\r\n");
+				}
+			}
+			if(ruleConfig.getRule_sys_flag() != null && RuleConst.RULE_SYS_FLAG.equals(ruleConfig.getRule_sys_flag())){
+				//ruleAction，有且只有一条数据， objList多条数据，但是属于同一个fact对象的不同属性
+				String resultObjName = objList.get(0).getObj_code();
+				sb.append(setActionScript(resultObjName,configListAudit.getRuleActionAudit().getAction_id()));
+			}else {
+				sb.append(replaceActionScript(ruleConfig,configListAudit.getRuleActionAudit().getAction_script()));
+			}
+			sb.append("\r\n");
+			sb.append("end\r\n\r\n");
+		}
+		return sb.toString();
+	}
+	
+	/**
+	 * 生成规则script
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-24 
+	 * @param ruleConfig
+	 * @param ruleCondList
+	 * @param ruleAction
+	 * @return
+	 */
+	public static String parseRuleScript(RuleConfigAudit ruleConfig,List<RuleCondAudit> ruleCondList,RuleAction ruleAction){
+		StringBuffer sb = new StringBuffer();
+		sb.append(RULE_PACKAGE).append("\r\n");
+		IRuleConfigManager ruleConfigManager = SpringContextHolder.getBean("ruleConfigManager");
+		List<RuleObj> objList = ruleConfigManager.queryRuleObjByRuleId(ruleConfig.getRule_id());
+		for(RuleObj o:objList){
+			sb.append("import ").append(o.getClazz()).append("\r\n");
+		}
+		sb.append("rule \"").append(ruleConfig.getRule_code()).append("\"\r\n");
+		sb.append("when \r\n");
+		//这里加条件
+		sb.append(parseRuleCond(ruleCondList, objList, ruleConfig));
+		
+		sb.append("\r\n");
+		sb.append("then \r\n");
+		//这里加结果
+		sb.append(replaceActionScript(ruleConfig,ruleAction.getAction_script()));
+		sb.append("\r\n");
+		sb.append("end");
+		return sb.toString();
+	}
+	
+	/**
+	 * 封装条件script
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-24 
+	 * @param ruleCondList
+	 * @return
+	 */
+	public static String parseRuleCond(List<RuleCondAudit> ruleCondList,List<RuleObj> objList, RuleConfigAudit ruleConfig){
+		IRuleConfigManager ruleConfigManager = SpringContextHolder.getBean("ruleConfigManager");
+		StringBuffer sb = new StringBuffer();
+		//添加条件对象
+		for(RuleCondAudit rc:ruleCondList){
+			if(!StringUtils.isEmpty(rc.getZ_obj_id())){
+				for(RuleObj obj:objList){
+					if(obj.getObj_id().equals(rc.getZ_obj_id()) && !rc.getObj_id().equals(rc.getZ_obj_id()))
+						sb.append("$").append(obj.getObj_code()).append(":").append(obj.getClass_name()).append("();\r\n");
+				}
+			}
+		}
+		//添加fact条件
+		for(RuleObj obj:objList){
+			boolean objIsAppend = false;
+			int rcIdx = 0;
+			boolean hasBrackets = false;
+			if(ruleCondList == null || ruleCondList.isEmpty()){		//存在fact对象，但是不存在条件，总是执行
+				sb.append("$").append(obj.getObj_code()).append(":").append(obj.getClass_name()).append("(");
+				objIsAppend = true;
+				
+			}
+			for(RuleCondAudit rc:ruleCondList){
+				if(obj.getObj_id().equals(rc.getObj_id())){
+					if(!objIsAppend){
+						sb.append("$").append(obj.getObj_code()).append(":").append(obj.getClass_name()).append("(");
+						objIsAppend = true;
+					}
+					if(rcIdx>0)sb.append(" ").append(rc.getPre_log()).append(" ");
+					if(!StringUtils.isEmpty(rc.getLeft_brackets())){
+						sb.append(rc.getLeft_brackets());
+						hasBrackets = true;
+					}
+					
+					RuleObjAttr roa = ruleConfigManager.getRuleObjAttr(rc.getAttr_id(), rc.getObj_id());
+					if(StringUtils.isEmpty(rc.getZ_obj_id()) || rc.getObj_id().equals(rc.getZ_obj_id())){
+						if(RuleConst.RULE_SYS_FLAG.equals(ruleConfig.getRule_sys_flag()) 
+								&& ("in".equals(rc.getOpt_type()) || "not in".equals(rc.getOpt_type()))){
+							sb.append(roa.getAttr_code()).append(" ").append(rc.getOpt_type()).append(" ");
+							sb.append("(\"" + rc.getZ_value().replaceAll(",", "\",\"") + "\")");
+						}else{
+							sb.append(roa.getAttr_code()).append(" ").append(rc.getOpt_type()).append(" ");
+							String reg = "[\\w\\s]*matches[\\w\\s]*";
+							if(rc.getOpt_type().matches(reg)){
+								sb.append("'").append(rc.getZ_value()).append("'");
+							}else{
+								sb.append(rc.getZ_value());
+							}
+						}
+					}else{
+						RuleObjAttr zroa = ruleConfigManager.getRuleObjAttr(rc.getZ_attr_id(), rc.getZ_obj_id());
+						for(RuleObj zobj:objList){
+							if(zobj.getObj_id().equals(zroa.getObj_id()))
+								sb.append(roa.getAttr_code()).append(" ").append(rc.getOpt_type()).append(" ").append("$").append(zobj.getObj_code()).append(".get").append(toUpperCaseFirstOne(zroa.getAttr_code())).append("()");
+						}
+					}
+					if(!StringUtils.isEmpty(rc.getRight_brackets())){
+						sb.append(rc.getRight_brackets());
+						hasBrackets = false;
+					}
+					rcIdx ++;
+				}
+			}
+			if(ruleCondList.size() == 0 && "never_run".equals(obj.getNever_run_flag())){
+				sb.append("eval(false)");
+			}
+			sb.append(");\r\n");
+			objIsAppend = false;
+		}
+		return sb.toString();
+	}
+	
+	/**
+	 * 广东联通自动化订单系统，规则结果脚本
+	 * 固定格式，$order.execute(action_id);
+	 * @param ruleConfig
+	 * @param configListAudit
+	 * @return
+	 */
+	public static String setActionScript(String resultObjName, String action_id){
+		StringBuffer sb = new StringBuffer();		
+		sb.append("$" + resultObjName + ".execute(\"" + action_id + "\");" );
+		return sb.toString();
+	}
+	
+	/**
+	 * 规则换规则action字符串
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-24 
+	 * @param actionScrpit
+	 * @return
+	 */
+	public static String replaceActionScript(RuleConfigAudit ruleConfig,String actionScrpit){
+		if(actionScrpit==null)return "";
+		actionScrpit = actionScrpit.replace("$", "#");
+		Pattern pt = Pattern.compile("#[a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+", Pattern.CASE_INSENSITIVE); 
+		Matcher mt = pt.matcher(actionScrpit);
+		StringBuffer sb = new StringBuffer();
+		int idx = 0;
+		String getResult = null;
+		String resultObjName = null;
+		while(mt.find()){
+			String find = mt.group();
+			Pattern ptn = Pattern.compile("\\.[a-zA-Z0-9_]", Pattern.CASE_INSENSITIVE); 
+			Matcher mtn = ptn.matcher(find);
+			while(mtn.find()){
+				String get = mtn.group();
+				String up_get = get.toUpperCase().replace(".", ".get");
+				if(idx==0){
+					getResult = mtn.replaceAll(up_get)+"()";
+					resultObjName = getResult.substring(0,getResult.indexOf("."));
+					up_get = get.toUpperCase().replace(".", ".set");
+				}
+				find = mtn.replaceAll(up_get)+"(";
+				if(idx!=0){
+					find += ")";
+				}
+				break ;
+			}
+			// 实现非终端添加和替换步骤。
+			mt.appendReplacement(sb, find);
+			idx ++;
+		}
+		//实现终端添加和替换步骤。
+		mt.appendTail(sb);
+		sb.append(");\r\n");
+		sb.append(resultObjName).append(".addResult(\"").append(ruleConfig.getRule_code()).append("\",\"").append(ruleConfig.getRule_id()).append("\",").append(getResult).append(");");
+		return sb.toString().replace("#", "$").replace("=", "");
+	}
+	
+	/**
+	 * 首字母转小写
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-24 
+	 * @param s
+	 * @return
+	 */
+	public static String toLowerCaseFirstOne(String s) {
+		if(Character.isLowerCase(s.charAt(0)))
+			return s;
+		else
+			return(new StringBuilder()).append(Character.toLowerCase(s.charAt(0))).append(s.substring(1)).toString();
+	}
+	/**
+	 * 首字母转大写
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-24 
+	 * @param s
+	 * @return
+	 */
+	public static String toUpperCaseFirstOne(String s) {
+		if(Character.isUpperCase(s.charAt(0)))
+			return s;
+		else
+			return(new StringBuilder()).append(Character.toUpperCase(s.charAt(0))).append(s.substring(1)).toString();
+	}
+	
+	public static void main(String[] args) {
+		/*RuleConfig rc = new RuleConfig();
+		rc.setRule_code("1111111111");
+		String str = "$orderFact.amount=$orderFact.goods_money*0.1";
+		String tmp = str.substring(str.indexOf("."), str.indexOf(".")+2);
+		logger.info(tmp.toUpperCase());
+		logger.info(replaceActionScript(rc,str));*/
+		String reg = "[\\w\\s]*matches[\\w\\s]*";
+		String str = "not     matches";
+		logger.info(str.matches(reg));
+		//logger.info(toUpperCaseFirstOne(str));
+	}
+	
+}

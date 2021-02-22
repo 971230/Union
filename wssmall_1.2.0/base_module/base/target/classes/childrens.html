@@ -1,0 +1,8 @@
+<option value="">
+	请选择子服务类型
+</option>
+<#list childStypeList as stype>
+<option value="${stype.stype_id }" stype_code="${stype.stype_code}">
+	${stype.name }
+</option>
+</#list>

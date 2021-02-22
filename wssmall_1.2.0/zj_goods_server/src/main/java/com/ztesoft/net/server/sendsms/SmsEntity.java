@@ -1,0 +1,72 @@
+package com.ztesoft.net.server.sendsms;
+
+public class SmsEntity {
+
+	//序列号
+	private String serial_no;
+	//时间
+	private String time;
+	//发起方系统标识
+	private String source_system;
+	//接收方系统标识
+	private String receive_system;
+	//优先级
+	private String priority_level;
+	//电话号码
+	private String mobile_number;
+	//短信内容
+	private String sms_content;
+	//失败重试次数
+	private String repeat_time;
+	
+	public String getSerial_no() {
+		return serial_no;
+	}
+	public void setSerial_no(String serial_no) {
+		this.serial_no = serial_no;
+	}
+	public String getTime() {
+		return time;
+	}
+	public void setTime(String time) {
+		this.time = time;
+	}
+	public String getSource_system() {
+		return source_system;
+	}
+	public void setSource_system(String source_system) {
+		this.source_system = source_system;
+	}
+	public String getReceive_system() {
+		return receive_system;
+	}
+	public void setReceive_system(String receive_system) {
+		this.receive_system = receive_system;
+	}
+	public String getPriority_level() {
+		return priority_level;
+	}
+	public void setPriority_level(String priority_level) {
+		this.priority_level = priority_level;
+	}
+	public String getMobile_number() {
+		return mobile_number;
+	}
+	public void setMobile_number(String mobile_number) {
+		this.mobile_number = mobile_number;
+	}
+	public String getSms_content() {
+		return sms_content;
+	}
+	public void setSms_content(String sms_content) {
+		this.sms_content = sms_content;
+	}
+	public String getRepeat_time() {
+		return repeat_time;
+	}
+	public void setRepeat_time(String repeat_time) {
+		this.repeat_time = repeat_time;
+	}
+	
+	
+}

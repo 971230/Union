@@ -1,0 +1,130 @@
+package com.ztesoft.api.mq;
+
+
+import java.util.HashMap;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.log4j.Logger;
+
+import params.ZteRequest;
+//import params.req.OrderExpWriteForBusReq;
+//import params.resp.OrderExpWriteResp;
+//import zte.net.ecsord.common.CommonDataFactory;
+//import zte.params.req.CheckReq;
+//import zte.params.resp.CheckResp;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.Task;
+import com.ztesoft.api.TaskThreadPool;
+import com.ztesoft.api.ThreadPoolFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.mq.client.EventMessageExt;
+import com.ztesoft.mq.client.EventSingleListenHandler;
+import com.ztesoft.mq.client.exception.EventHandleException;
+//import com.ztesoft.net.consts.EccConsts;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import consts.ConstsCore;
+
+/**
+ * @Description 通用消费者-消费主题：common_topic
+ * @author  zhangJun
+ * @date    2015-3-12
+ * @version 1.0
+ */
+
+public class MqReceiveDefault implements EventSingleListenHandler {
+	
+	private static Logger logger = Logger.getLogger(MqReceiveDefault.class);
+	
+	@Resource
+	private ExcuteReceiveMsg excuteReceiveMsg;
+	
+	private ICacheUtil cacheUtil;
+	private void init(){
+		if(cacheUtil ==null)
+			cacheUtil = SpringContextHolder.getBean("cacheUtil");
+	}
+	@Override
+	public void executeEvent(EventMessageExt e) throws EventHandleException {
+		this.reqApiByDubbo(e);
+	} 
+	private void reqApiByDubbo(EventMessageExt msg){
+		if(msg!=null&&msg.getDeSerializeData()!=null){ //add by wui消息消费失败，则插入队列，插入成功则历史归档
+			try{
+				this.init();
+				String pressure_test_flag = cacheUtil.getConfigInfo("PRESSURE_TEST_FLAG");
+				if(!ConstsCore.CONSTS_YES.equals(pressure_test_flag)){//压力测试开关，开：就不做标准化处理
+					if(msg.getDeSerializeData()!=null){
+						ZteRequest request=(ZteRequest) msg.getDeSerializeData();
+						logger.info("[MQ消费者] 订单: ["+request.getBase_co_id()+"] [MqReceiveDefault] 开始消费!!");
+						long end2 = System.currentTimeMillis();
+						if(excuteReceiveMsg ==null)
+							excuteReceiveMsg = SpringContextHolder.getBean("excuteReceiveMsg");
+						if(request!=null){excuteReceiveMsg.executeDubbo(request);}
+						long end3 = System.currentTimeMillis();
+						logger.info("[MQ消费者] 订单: ["+request.getBase_co_id()+"] [MqReceiveDefault] 消息队列消费消息耗时 :"+(end3-end2));
+					}
+				}
+			}catch (Exception e) {
+				
+				e.printStackTrace();
+			}
+		}
+	}
+	public ICacheUtil getCacheUtil() {
+		return cacheUtil;
+	}
+	public void setCacheUtil(ICacheUtil cacheUtil) {
+		this.cacheUtil = cacheUtil;
+	}
+	
+	/**
+	 * 写队列异常单系统
+	 * @param co_id
+	 * @return
+	 */
+//	public OrderExpWriteResp orderExpWrite(String co_id) {
+//		ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+//		OrderExpWriteForBusReq req = new OrderExpWriteForBusReq();
+//		req.setObj_id(co_id); //队列id
+//		req.setObj_type("order_queue"); //对象类型（order、order_queue）
+//		req.setSearch_id(EcsOrderConsts.EXP_STANDARD_CHECK_id); //搜索id
+//		req.setSearch_code(EcsOrderConsts.EXP_STANDARD_CHECK_CODE);//搜索编码
+//		req.setError_msg("");//错误堆栈
+//		OrderExpWriteResp resp = client.execute(req, OrderExpWriteResp.class);
+//		return resp;
+//	}
+	
+	/**
+	 * 报文校验
+	 * @param request
+	 * @return
+	 */
+//	public CheckResp getCheckResp(ZteRequest request) {
+//		String base_co_id = request.getBase_co_id();
+//		CheckReq checkReq = new CheckReq();
+//		checkReq.setTrace_code(ConstsCore.TRACE_V);
+//		checkReq.setExe_time(EccConsts.EXE_TIME_BEFORE);
+//		checkReq.setObj_id(base_co_id);
+//		checkReq.setObj_type("order_queue");
+//		HashMap<String,String> extParam = new HashMap<String,String>();
+//		try {
+//			extParam.put("msgFormatType", BeanUtils.getProperty(request, "format"));
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			extParam.put("msgFormatType", null);
+//		}
+//		checkReq.setExt_param(extParam);
+//        CheckResp checkRsp = CommonDataFactory.getInstance().checkProxy(checkReq);
+//        return checkRsp;
+//	}
+	
+	
+
+}

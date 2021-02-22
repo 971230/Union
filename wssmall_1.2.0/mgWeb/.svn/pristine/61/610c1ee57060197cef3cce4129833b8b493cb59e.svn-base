@@ -1,0 +1,160 @@
+<script type="text/javascript" src="js/Cat.js"></script>
+
+<div class="input">
+ <form class="validate" method="post" action="cat!saveAdd.do"  enctype="multipart/form-data" >
+ 
+   <table cellspacing="1" cellpadding="3" width="100%" class="form-table">
+     <tr> 
+       <th><span class="red">*</span><label class="text">分类名称：</label></th>
+       <td><input type="text" name="cat.name" id="name" maxlength="60" value=""  dataType="string" required="true"/>       </td>
+     </tr>
+     <tr>
+		<th >
+			<label class="text">
+				适用范围</label>
+		</th>
+		<td>
+			<input type="radio" name="cat.type" value="goods" class="type_radio_input" checked/>
+			商品&nbsp;&nbsp;
+			<input type="radio" name="cat.type" value="product" class="type_radio_input"  />
+			货品 &nbsp;&nbsp;
+		</td>
+	</tr>
+     <tr style="display:none;"> 
+       <th><label class="text">分类图片</label></th>
+       <td><input type="file" name="image" id="image" size="45"/> </td>
+     </tr>     
+     <tr id="parentCatTr">
+       <th><label class="text">上级分类</label></th>
+       <td>
+
+		<select  class="ipttxt"  name="cat.parent_id" style="width:300px;" id="parent_id">
+		<option value="0">顶级类别</option>
+ 		<#assign children=goodCatList />
+		<#assign level=1 />
+		<#include 'select_children.html' />  
+		</select>	
+		
+		<select  class="ipttxt"  name=""  id="" style="width:300px;display:none;">
+		<option value="0">顶级类别</option>
+ 		<#assign children=productCatList />
+		<#assign level=1 />
+		<#include 'select_children.html' />  
+		</select>	
+		
+		</td>
+     </tr>
+     <tr id="remove_span_ok">
+       <th><span class="red">*</span><label class="text">类型：</label></th>
+       <td>
+       
+       <select  class="ipttxt"  name="cat.type_id" style="width:150px;"  id="type_id_goods" >
+<!--        <option value="">--选择类型--</option> -->
+        <#list typeList as type>
+			<option value="${type.type_id }" >${type.name }</option>
+		</#list>	
+	 
+		</select>
+		
+		<select  class="ipttxt"  name=""  id="type_id_product" style="width:150px;display:none;" >
+       <!-- <option value="">--选择类型--</option> -->
+        <#list typeListProd as type>
+			<option value="${type.type_id }" >${type.name }</option>
+		</#list>	
+	 
+		</select>
+		
+		 &nbsp;&nbsp;<span class="help_icon" helpid="goods_type"></span>
+		</td>
+		
+     </tr>
+     <tr>
+       <th><span class="red">*</span><label class="text">排序：</label></th>
+       <td>
+       <input type="text" name="cat.cat_order" value="0" style="width:50px"  dataType="int" required="true"/>       </td>
+     </tr>
+     
+     
+     
+     <tr>
+		<th><label class="text">列表中显示</label></th>
+		<td><input type="radio" class="listshow" name="cat.list_show"
+			value="1" />是&nbsp; <input type="radio" class="listshow"
+			name="cat.list_show" value="0"  checked/>否 &nbsp;&nbsp;<span
+			class="help_icon" helpid="cat_listshow"></span></td>
+	</tr>
+	<tr>
+		<th><label class="text">楼层中显示</label></th>
+		<td><input type="hidden" id="floor_list_show_input" /> <input type="radio"
+			name="cat.floor_list_show" value="1" />是&nbsp; <input
+			type="radio" name="cat.floor_list_show" value="0" checked/>否</td>
+	</tr>
+	<tr>
+		<th><label class="text">是否热词</label></th>
+		<td>
+		<input type="radio" class="hottype" name="cat.hot_type"
+			value="1" />是&nbsp; <input type="radio" class="listshow"
+			name="cat.hot_type" value="0" checked />否 &nbsp;&nbsp;<span
+			class="help_icon" helpid="cat_listshow"></span></td>
+	</tr>
+					
+					
+    
+   </table>
+	<div class="submitlist" align="center">
+	 <table>
+	 <tr>
+	   <th></th>
+	 <td >
+	   <input  type="button"  value=" 返回 " class="submitBtn"  name="back"/>
+	            <input  type="button"  value=" 确定 " class="submitBtn"/>
+	           <input name="reset" type="reset" style="display:none;"  value=" 重置 " class="submitBtn"/>
+	   </td>
+	   </tr>
+	 </table>
+	</div>   
+   </form>
+   
+   </div>
+<script type="text/javascript">
+$(function(){
+	$("form.validate").validate();
+	Cat.intChkNameEvent();
+	$("#parent_id").val(${cat_id!''});
+	
+	//商品货品选择
+	$(".type_radio_input").bind("click",function(){
+		$("#remove_span_ok").find("span").remove();
+		if($(this).parent().find("input[type='radio']:checked").val()=="goods"){
+			$("#type_id_goods").attr("name","cat.type_id");
+			$("#type_id_goods").show();
+			$("#type_id_product").attr("name","");
+			$("#type_id_product").hide();
+			
+			$("#parentCatTr select:first").attr("name","cat.parent_id");
+			$("#parentCatTr select:first").attr("id","parent_id");
+			$("#parentCatTr select:last").attr("name","");
+			$("#parentCatTr select:last").attr("id","");
+			$("#parentCatTr select:first").show();
+			$("#parentCatTr select:last").hide();
+			$("#parentCatTr select:first").next("span").show();
+			$("#parentCatTr select:last").next("span").hide();
+		}else{
+			$("#type_id_product").attr("name","cat.type_id");
+			$("#type_id_product").show();
+			$("#type_id_goods").attr("name","");
+			$("#type_id_goods").hide();
+			
+			$("#parentCatTr select:first").attr("name","");
+			$("#parentCatTr select:first").attr("id","");
+			$("#parentCatTr select:last").attr("name","cat.parent_id");
+			$("#parentCatTr select:last").attr("id","parent_id");
+			$("#parentCatTr select:first").hide();
+			$("#parentCatTr select:last").show();
+			$("#parentCatTr select:first").next("span").hide();
+			$("#parentCatTr select:last").next("span").show();
+		}
+	});
+});
+
+</script>

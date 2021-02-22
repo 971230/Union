@@ -1,0 +1,47 @@
+package zte.params.order.req;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.framework.database.NotDbField;
+
+import params.ZteRequest;
+import zte.params.order.resp.ChargebackStatuChgResp;
+import zte.params.order.resp.OrderHandleLogsListResp;
+
+public class ChargebackStatuChgReq extends ZteRequest<ChargebackStatuChgResp> {
+	
+	@ZteSoftCommentAnnotationParam(name = "更改字段标识", type = "String", isNecessary = "Y", desc = "更改字段标识")
+	private String flag;
+	
+	@ZteSoftCommentAnnotationParam(name = "总部订单号", type = "String", isNecessary = "Y", desc = "总部订单号")
+	private String zb_order_id;
+
+	@Override
+	@NotDbField
+	public void check() throws ApiRuleException {
+		
+	}
+
+	@Override
+	@NotDbField
+	public String getApiMethodName() {
+		return "zte.orderService.chargebackStatu.chg";
+	}
+
+	public String getFlag() {
+		return flag;
+	}
+
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+
+	public String getZb_order_id() {
+		return zb_order_id;
+	}
+
+	public void setZb_order_id(String zb_order_id) {
+		this.zb_order_id = zb_order_id;
+	}
+
+}

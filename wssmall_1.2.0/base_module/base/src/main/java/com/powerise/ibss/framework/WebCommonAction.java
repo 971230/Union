@@ -1,0 +1,491 @@
+package com.powerise.ibss.framework;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Vector;
+
+import javax.transaction.UserTransaction;
+
+import org.apache.log4j.Logger;
+
+import com.powerise.ibss.util.DBUtil;
+import com.powerise.ibss.util.SysSet;
+import com.ztesoft.common.dao.PageHelper;
+import com.ztesoft.common.util.PageModel;
+import com.ztesoft.ibss.common.util.Const;
+
+public class WebCommonAction {
+	
+	private static Logger log = Logger.getLogger(WebCommonAction.class);
+	
+	// 动态SQL类型-数据库中定义的SELECT语句
+	static final int ACTION_TYPE_SELECTFROMDB = 4;
+
+	// 动态SQL类型-数据库中定义的修改(插入/删除/修改)语句
+	static final int ACTION_TYPE_FROMDB = 2;
+
+	// 参数类别 1:入参
+	static final int IN_FLAG = 1;
+
+	// 参数类别 2:出参
+	static final int OUT_FLAG = 2;
+
+	// 动态SQL的类别,4-查询,2-插入
+	private DynamicDict dynamic_dict;
+
+	private HashMap parameter;
+
+	private ArrayList parameters;
+
+	// 服务名集合
+	private String services;
+
+	// 字段绑定关系
+
+	private String m_CurAction;
+
+	// 动态SQL
+	private Connection conn;
+
+	private static Logger m_Logger = Logger.getLogger(WebCommonAction.class);
+
+	private ActionData m_CurActData = null;
+
+	public static void getLogger() {
+		if (m_Logger == null) {
+			m_Logger = Logger
+					.getLogger("com.powerise.ibss.framework.ActionDispatch");
+		}
+	}
+
+	/**
+	 * 通过Service集合调用动态SQL
+	 * 
+	 * @param p_service_names
+	 *            Service名字集合,名字与名字之间以逗号隔开
+	 * @param p_input_parameters
+	 *            入参,存在两种形式,一行记录和多条记录
+	 */
+	public WebCommonAction(DynamicDict p_dynamic_dict) throws FrameException {
+		if (p_dynamic_dict.getValueByName("parameter") != null) {
+			Object p_input_parameters = p_dynamic_dict.getValueByName(
+					"parameter", false);
+			if (p_input_parameters.getClass().getName().equalsIgnoreCase(
+					"java.util.HashMap")) {
+				// 当为插入一条记录或查询操作的时候,入参为HashMap 形式
+				parameter = (HashMap) p_input_parameters;
+			} else if (p_input_parameters.getClass().getName()
+					.equalsIgnoreCase("java.util.ArrayList")) {
+				// 当为插入一条记录或查询操作的时候,入参为HashMap 形式
+				parameters = (ArrayList) p_input_parameters;
+			}
+		}
+		services = p_dynamic_dict.m_ActionId;
+		dynamic_dict = p_dynamic_dict;
+	}
+
+	public void execute() throws FrameException {
+		execute(null);
+	}
+
+	/**
+	 * 主方法,执行客户端传过来的所有操作
+	 */
+	public void execute(String db_name) throws FrameException {
+
+		boolean bCommit = true;
+		boolean bSingle = false;
+		UserTransaction usTran = null;
+		boolean bXAType = false;
+		int iCalc = 0;
+		long lCalc = 0;
+		// 计算时间
+		long lStart = 0;
+		java.util.Date dStart, dEnd;
+		lStart = System.currentTimeMillis();
+		dStart = new java.util.Date();
+		
+		try {
+			iCalc = Integer
+					.parseInt(SysSet.getSystemSet("ConsumeSecs", "3000"));
+		} catch (Exception e) {
+			iCalc = 3000;
+		}
+		try {
+			if (db_name == null) {
+				if (SysSet.isMultiDB()) {
+					bSingle = false;
+					if (bXAType) {
+						usTran = SysSet.getUserTransaction();
+						SysSet.tpBegin(usTran);
+					}
+				} else {
+					conn = DBUtil.getConnection();
+					bSingle = true;
+				}
+			} else {
+				bSingle = true;
+				conn = DBUtil.getConnection(db_name);
+			}
+		
+			// 得到服务名列表
+			String[] arr_services = split(services, ",");
+			for (int i = 0; i < arr_services.length; i++) {
+				if (bSingle == false) {
+					// 每次都获取新的连接
+					conn = SysSet.getMultiConnection(arr_services[i], 1);
+				}
+				dynamic_dict.SetConnection(conn);
+//				RuleUtil.processBefore(dynamic_dict);
+				// 调用后台服务
+				processAction(arr_services[i]);
+//				RuleUtil.processAfter(dynamic_dict);
+				lCalc = System.currentTimeMillis() - lStart;
+				if (lCalc >= iCalc) {
+					dEnd = new java.util.Date();
+					StringBuffer logBuf = new StringBuffer();
+					logBuf.append("Action:");
+					logBuf.append(arr_services[i]);
+					logBuf.append("/");
+					logBuf.append(dStart);
+					logBuf.append("/");
+					logBuf.append(dEnd);
+					logBuf.append("/");
+					logBuf.append(lCalc);
+					logBuf.append("/");
+					logBuf.append(" ");
+					m_Logger.warn(logBuf.toString());
+					logBuf = null;
+				}
+				Monitor.setInfo("Action:" + arr_services[i], lCalc);
+			}
+		} catch (Throwable e) {
+			e.printStackTrace();
+			bCommit = false;
+			throw new FrameException(-5020, e.getMessage(), SysSet
+					.getStackMsg(e));
+		} finally {
+			try {
+				if (bSingle) {
+					if (conn != null) {
+						if (bCommit == true)
+							conn.commit();
+						else
+							conn.rollback();
+						conn.close();
+						conn = null;
+					}
+				} else {
+					if (bCommit) {
+						if (bXAType)
+							SysSet.tpCommit(usTran);
+						else
+							SysSet.commitMulti("后台查询");
+					} else {
+						if (bXAType)
+							SysSet.tpRollback(usTran);
+						else
+							SysSet.rollbackMulti("后台查询");
+					}
+					conn = null;
+					SysSet.closeDBs();
+					if (usTran != null)
+						usTran = null;
+				}
+			} catch (SQLException sqle) {
+				this.dynamic_dict.flag = -5018;
+				this.dynamic_dict.msg = "关闭数据库连接时,出现异常";
+				this.dynamic_dict.exception = sqle.getMessage();
+			}
+		}
+	}
+
+	/**
+	 * 通过ServiceName得到动态SQL绑定的字段列表,HashMap的key表示绑定的位置,value为绑定的字段名
+	 * 
+	 * @param p_service_name
+	 *            服务名,用来定位动态SQL
+	 */
+	private void bindFields(String p_service_name, PreparedStatement p_ps)
+			throws FrameException {
+		int iSize = 0;
+		ActionArg actArg = null;
+		String value = "";
+		Vector vArgs = m_CurActData.m_Args;
+		boolean bFound = false;
+		String strName = null;
+		if (vArgs != null) {
+			iSize = vArgs.size();
+			try {
+				for (int i = 0; i < iSize; i++) {
+					actArg = (ActionArg) vArgs.get(i);
+					strName = actArg.m_Name.toLowerCase();
+					if (parameter == null)
+						bFound = false;
+					else {
+						if (parameter.get(strName) == null) {
+							strName = strName.toUpperCase();//此处均是兼容原来的版本
+							if (parameter.get(strName) == null)
+								bFound = false;
+							else
+								bFound = true;
+
+						} else
+							bFound = true;
+					}
+					if (bFound == false) {
+						throw new FrameException(-5017, m_CurAction
+								+ "动态SQL要求的绑定字段" + actArg.m_Name
+								+ ",而入参没有此字段对应的值");
+					}
+					value = parameter.get(strName).toString().trim();
+					// if(value.length() >length)
+					// throw new
+					// FrameException(-5016,"动态SQL要求的绑定字段"+actArg.m_Name+"的长度为"+actArg.m_Length+",而入参此字段对应的值大于此长度");
+					if (actArg.m_Flag == WebCommonAction.IN_FLAG) {
+						if (actArg.m_Type == 1) {
+							p_ps.setInt(actArg.m_Seq, Integer.parseInt(value));
+						} else if (actArg.m_Type == 2)
+							p_ps.setString(actArg.m_Seq, value);
+						else
+							p_ps.setObject(actArg.m_Seq, value);
+					} else if (actArg.m_Flag == WebCommonAction.OUT_FLAG) {
+						;
+					} else
+						throw new FrameException(-5015, actArg.m_Name
+								+ " 为错误的参数类别");
+				}
+			} catch (SQLException e) {
+				throw new FrameException(-5014, "得到动态SQL参数列表信息时,出现异常.", e
+						.getMessage());
+			}
+		}
+	}
+
+	/**
+	 * 通过ServiceName得到动态SQL
+	 * 
+	 * @param p_service_name
+	 *            服务名,用来定位动态SQL
+	 */
+	// private void getDyanmicSQL(String p_service_name)
+	// throws FrameException {
+	// try{
+	// Statement st =m_Conn.createStatement();
+	// ResultSet rs =st.executeQuery("select action_id,
+	// seq,action_desc,action_type,action_clause"+
+	// " from tfm_action_list where action_id='"+p_service_name+"'");
+	// boolean hasFields =true;
+	// this.sql ="";
+	// boolean noSql =true;
+	// while(rs.next()){
+	// sql +=rs.getString("action_clause");
+	// dynamic_sql_type =rs.getInt("action_type");
+	// if(noSql)
+	// noSql =false;
+	// }
+	//         
+	// if(noSql){
+	// throw new FrameException(-5013,"没有配置服务名为"+p_service_name+"的动态SQL.");
+	// }
+	// }catch(SQLException sqle){
+	// throw new FrameException(-5012,"得到动态SQL参数列表信息时,出现异常.",
+	// sqle.getMessage());
+	// }
+	// }
+	private void processAction(String p_service) throws FrameException {
+		// getDyanmicSQL(p_service);
+		int iType;
+		m_CurAction = p_service;
+		m_CurActData = SysSet.getActionData(p_service, conn);//根据action_id拿到sql及其对应参数
+		iType = Integer.parseInt(m_CurActData.m_Type);
+		if (iType == ACTION_TYPE_SELECTFROMDB) {//动态SQL类型-数据库中定义的SELECT语句
+			processQueryAction(p_service);
+		} else if (iType == ACTION_TYPE_FROMDB) {
+			processModifyAction(p_service);
+		} else {
+			throw new FrameException(-5011, "错误的动态SQL类型");
+		}
+	}
+
+	private void filterArgs(String strId) throws FrameException {
+		int iSize;
+		ActionArg actArg = null;
+		Vector vArg = m_CurActData.m_Args;//sql对应参数集
+		String strSQL = null;
+		String strCountSQL = null;//物理分页新增 add by qin.guoquan 2011-8
+		Vector vNewArg = null;
+		int iStart = 0, iCurPos = 0;
+		if (vArg != null) {
+			iSize = vArg.size();
+			strSQL = m_CurActData.m_SQL;
+			strCountSQL = m_CurActData.m_CountSQL;//物理分页新增 add by qin.guoquan 2011-8
+			for (int i = 0; i < iSize; i++) {
+				actArg = (ActionArg) vArg.get(i);
+				if (actArg.m_Flag == 3) // 入参标志 ,为3 表示需要替换的参数//in_out_flag
+				{
+					// 查找seq指定的?在字符串的位置
+					iStart = strSQL.indexOf('?', 0);
+					int iNewSeq = actArg.m_Seq - iCurPos;
+					for (int k = 1; k < iNewSeq; k++) {
+						iStart = strSQL.indexOf('?', iStart + 1);
+						if (iStart == -1)
+							throw new FrameException(-22991004, strId
+									+ "配置的可替换的参数设置的序号与实际不符" + actArg.m_Name);
+					}
+					// 直接替换内部可以识别的字符串,在绑定入参值时比较好地替换
+					strSQL = strSQL.substring(0, iStart)
+							+ parameter.get(actArg.m_Name.toLowerCase())
+							+ strSQL.substring(iStart + 1);
+					//物理分页新增 add by qin.guoquan 2011-8
+					if (null != strCountSQL && !"".equals(strCountSQL.trim()))
+						strCountSQL = strCountSQL.substring(0, iStart) + parameter.get(actArg.m_Name.toLowerCase()) + strCountSQL.substring(iStart + 1);					
+					iCurPos++; // 计算当前已经替换了的替换参数数目
+					continue; // 跳过,继续下一个处理
+				}
+				actArg.m_Seq = actArg.m_Seq - iCurPos;
+				if (vNewArg == null)
+					vNewArg = new Vector();
+				vNewArg.add(actArg);
+			}
+			if (iCurPos > 0) {
+				vArg.clear();
+				vArg = null;
+				// 换成新的参数
+				m_CurActData.m_SQL = strSQL;
+				m_CurActData.m_CountSQL = strCountSQL;//物理分页新增 add by qin.guoquan 2011-8
+				m_CurActData.m_Args = vNewArg;
+			} else if (vNewArg != null) {
+				vNewArg.clear();
+				vNewArg = null;
+			}
+		}
+	}
+
+	/**
+	 * 执行查询的动态SQL
+	 */
+	private void processQueryAction(String p_service) throws FrameException {
+		// getLogger();
+		try {
+			
+			filterArgs(p_service);
+			
+			//查询count
+			PreparedStatement ps = null;
+			ResultSet rs = null;
+			
+			String pageSize = (String) this.dynamic_dict.getValueByName(Const.PAGE_PAGESIZE, false);
+			String pageIndex = (String) this.dynamic_dict.getValueByName(Const.PAGE_PAGEINDEX, false);
+			
+			if (!"".equals(pageSize.trim()) && !"".equals(pageIndex)) {
+				
+				PageModel pageModel = new PageModel();
+				int totalCount = 0;
+				ps = conn.prepareStatement(m_CurActData.m_CountSQL);
+				bindFields(p_service, ps);
+				rs = ps.executeQuery();
+				if (rs.next()) {
+					totalCount = rs.getInt(1);
+				}
+				if (null != rs) rs.close();
+				if (null != ps) ps.close();
+				
+				pageModel.setTotalCount(totalCount);
+				
+				if (totalCount == 0) {
+					this.dynamic_dict.setValueByName(p_service, "");
+					return;
+				}
+				
+				PageHelper.setPageModel(pageModel, totalCount, Integer.parseInt(pageSize), Integer.parseInt(pageIndex));
+				ps = conn.prepareStatement(PageHelper.doPreFilter(pageModel, m_CurActData.m_SQL));
+				bindFields(p_service, ps);
+				rs = ps.executeQuery();
+				this.dynamic_dict.setValueByName(p_service, rs);
+				this.dynamic_dict.setValueByName(Const.PAGE_MODEL, pageModel);
+				if (null != rs) rs.close();
+				if (null != ps) ps.close();
+			} else {
+				ps = conn.prepareStatement(m_CurActData.m_SQL);
+				bindFields(p_service, ps);
+				rs = ps.executeQuery();
+				if (rs != null) {
+					this.dynamic_dict.setValueByName(p_service, rs);
+				}
+				rs.close();
+				ps.close();				
+			}
+			
+		} catch (Exception sqle) {
+			throw new FrameException(-5010, "执行动态时出现异常.\nSQL 为:"
+					+ m_CurActData.m_SQL, sqle.getMessage());
+		}
+	}
+
+	/**
+	 * 执行修改的动态SQL
+	 */
+	private void processModifyAction(String p_service) throws FrameException {
+		try {
+			PreparedStatement ps = conn.prepareStatement(m_CurActData.m_SQL);
+			/*if (FieldsBind != null && FieldsBind.size() > 0)
+				for (int i = 0; i < FieldsBind.size(); i++) {
+					ps.setObject(i + 1, parameter.get(FieldsBind.get(String
+							.valueOf(i + 1))));
+				}
+				*/
+			this.bindFields(p_service,ps);
+			if (ps.execute()) {
+				this.dynamic_dict.setValueByName(p_service, "执行成功");
+			}
+			ps.close();
+		} catch (SQLException sqle) {
+			throw new FrameException(-5010, "执行动态时出现异常.\nSQL 为:"
+					+ m_CurActData.m_SQL, sqle.getMessage());
+		}
+	}
+
+	private static String[] split(String p_in, String p_tag) {
+		Vector v = new Vector();
+		int pos = p_in.indexOf(p_tag);
+		while (pos > 0) {
+			v.add(p_in.substring(0, pos));
+			p_in = p_in.substring(pos + p_tag.length());
+			pos = p_in.indexOf(p_tag);
+		}
+		v.add(p_in);
+		String[] a = new String[v.size()];
+		for (int i = 0; i < v.size(); i++) {
+			a[i] = (String) v.get(i);
+		}
+		v.clear();
+		return a;
+	}
+
+	/** 返回值对象 */
+	public DynamicDict getDynamicDict() {
+		return this.dynamic_dict;
+	}
+
+	/** 根据名字返回存储的对象 */
+	public Object getObject(String p_name) {
+		Object obj = null;
+		try {
+			obj = this.dynamic_dict.getValueByName(p_name);
+		} catch (FrameException e) {
+		}
+		return obj;
+	}
+
+	public void destroy() {
+		this.dynamic_dict.destroy();
+		this.parameter.clear();
+		this.parameters.clear();
+		this.services = null;
+	}
+}

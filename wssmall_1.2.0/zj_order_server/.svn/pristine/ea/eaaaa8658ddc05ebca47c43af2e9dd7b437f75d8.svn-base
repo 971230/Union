@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<!-- 上传excel专用 -->
+	<package name="struts-ecsord-2" extends="json-default"
+		namespace="/shop/admin">
+		<action name="moneyAuditExcleAction" class="moneyAuditAction">
+			<result type="json" name="success">
+				<param name="contentType">
+					text/html
+				</param>
+				<param name="includeProperties">excel_message</param>
+				<param name="excludeProperties">moneyAuditManager</param>
+				<param name="excludeProperties">dcPublicInfoManager</param>
+				<param name="excludeProperties">auditQueryParame</param>
+				<param name="excludeProperties">audit_busi_money_status</param>
+				<param name="excludeProperties">pay_type_list</param>
+				<param name="excludeProperties">order_from_list</param>
+				<param name="excludeProperties">order_type_list</param>
+				<param name="excludeProperties">payment_code_list</param>
+				<param name="excludeProperties">file</param>
+			</result>
+			<result type="json" name="error">
+				<param name="contentType">
+					text/html
+				</param>
+				<param name="includeProperties">excel_message</param>
+			</result>
+		</action>
+	</package>
+	<!-- 上传excel专用 end -->
+	<!-- 后台action -->
+	<package name="struts-ecsord" extends="shop_default" namespace="/shop/admin">
+		<!-- 退换货申请 -->
+		<action name="ordAuto" class="orderAutoAction">
+			<result name="auto_ord_list">/ecs_ord/order/auto_ord_list.jsp</result>
+			<result name="auto_ord_list2">/ecs_ord/order/auto_ord_list2.jsp</result>
+			<result name="bss_parallel_list">/ecs_ord/order/bss_parallel_list.jsp</result>
+			<result name="call_out_list">/ecs_ord/order/call_out_ord_list.jsp</result>
+			<result name="list_btns">/ecs_ord/order/btn_menu.jsp</result>
+			<result name="detail_btns">/ecs_ord/order/btn_detail_menu.jsp</result>
+			<result name="auto_ord_detail">/ecs_ord/order/auto_ord_detail.jsp</result>
+			<result name="call_out_ord_detail">/ecs_ord/order/call_out_ord_detail.jsp</result>
+			<result name="auto_flows_detail">/ecs_ord/order/auto_flows_detail.jsp</result>
+			<result name="ord_suspend">/ecs_ord/order/ord_suspend.jsp</result>
+			<result name="ord_entrust">/ecs_ord/order/ord_entrust.jsp</result>
+			<result name="ord_exception">/ecs_ord/order/ord_exception.jsp</result>
+			<result name="order_handle">/ecs_ord/order/order_handle.jsp</result>
+			<result name="quality_audit">/ecs_ord/order/quality_audit.jsp</result>
+			<result name="entity_quality_audit">/ecs_ord/order/entity_quality_audit.jsp</result>
+			<result name="ord_receipt">/ecs_ord/order/ord_receipt.jsp</result>
+			<result name="auto_order_shipping">/ecs_ord/order/shipping_order.jsp</result>
+			<result name="ord_return_apply_list">/ecs_ord/order/ord_return_apply_list.jsp</result>
+			<result name="auto_ord_list_his">/ecs_ord/order/auto_ord_list.jsp</result>
+			<result name="auto_ord_list_his2">/ecs_ord/order/auto_ord_list2.jsp</result>
+			<result name="auto_ord_list_qh">/ecs_ord/order/auto_ord_list_qh.jsp</result>
+			<result name="order_recover_list">/ecs_ord/order/order_recover_list.jsp</result>
+			<result name="auto_ord_logistics_list">/ecs_ord/order/auto_ord_logistics_list.jsp</result>
+			<result name="ord_detail_his">/ecs_ord/order/his_details.jsp</result>
+			<result name="order_manager">/ecs_ord/order/order_manager.jsp</result>
+			<result name="order_archive">/ecs_ord/order/order_archive.jsp</result>
+			<result name="outcall_logs">/ecs_ord/order/outcall_logs.jsp</result>
+			<result name="handler_logs">/ecs_ord/order/handler_logs.jsp</result>
+			<result name="exception_logs">/ecs_ord/order/exception_logs.jsp</result>
+			<result name="lockOrderList">/ecs_ord/order/lockOrderList.jsp</result>
+			<result name="writeCardPerList">/ecs_ord/order/writeCardPerList.jsp</result>
+			<result name="inputOrderList">/ecs_ord/order/inputOrderList.jsp</result>
+			<result name="unlockOrderByInput">/ecs_ord/order/unlockOrderByInput.jsp</result>
+			<result name="sds_logs">/ecs_ord/order/sds_logs.jsp</result>
+			<result name="allotOrderList">/ecs_ord/order/allotOrderList.jsp</result>
+			<result name="newAllotOrderList">/ecs_ord/order/newAllotOrderList.jsp</result>
+			<result name="orgList">/ecs_ord/order/orgList.jsp</result>
+			<result name="allotUserList">/ecs_ord/order/allotUserList.jsp</result>
+			<result name="newAllotUserList">/ecs_ord/order/newAllotUserList.jsp</result>
+			<!-- 订单分配人员  -->
+			<result name="newAllotUserPersonnelList">/ecs_ord/order/newAllotUserPersonnelList.jsp</result>
+			<!-- 订单分配团队 -->
+			<result name="newAllotUserGroupList">/ecs_ord/order/newAllotUserGroupList.jsp</result>
+			
+			<result name="allotCountyList">/ecs_ord/order/allotCountyList.jsp</result>
+			<result name="inputOrderInfo">/ecs_ord/order/inputOrderInfo.jsp</result>
+			<result name="agreement_img">/ecs_ord/order/agreement_img.jsp</result>
+			<result name="order_sfLogi">/ecs_ord/order/order_sfLogi.jsp</result>
+			<!-- 待定 -->
+			<result name="es_work_pool_list">/ecs_ord/order/es_work_pool_list.jsp</result>
+			<result name="ord_refund_list">/ecs_ord/order/ord_refund_list.jsp</result>
+
+			<!-- 报表管理页面 -->
+			<result name="monitor_order_list">/ecs_ord/order/monitor_order_list.jsp</result>
+			<!-- 宽带电商各环节订单监控表 -->
+			<result name="broadband_monitor_report">/ecs_ord/order/broadband_monitor_report.jsp</result>
+			
+			<result name="warehouse_daily_report">/ecs_ord/order/warehouse_daily_report.jsp
+			</result>
+			<result name="order_receive_report">/ecs_ord/order/ord_receive_report.jsp</result>
+			<result name="order_distribution_report">/ecs_ord/order/ord_distribution_report.jsp
+			</result>
+			<result name="order_business_report">/ecs_ord/order/order_business_report.jsp</result>
+			<result name="actual_revenue_audit_report">/ecs_ord/order/order_actual_revenue_audit_report.jsp
+			</result>
+			<result name="order_data_by_search">/ecs_ord/order/order_data_by_search_report.jsp
+			</result>
+			<result name="order_refund_report">/ecs_ord/order/order_refund_report.jsp</result>
+			<result name="actual_revenue_audit_report">/ecs_ord/order/order_actual_revenue_audit_report.jsp
+			</result>
+			<result name="order_data_by_search">/ecs_ord/order/order_data_by_search_report.jsp
+			</result>
+			<result name="v_plan_report">/ecs_ord/order/v_plan_report.jsp</result>
+			<result name="order_refund_report">/ecs_ord/order/order_refund_report.jsp</result>
+			<result name="personnel_order_quantity">/ecs_ord/order/personnel_order_quantity.jsp</result>
+			<result name="personnel_order_quantity_byname">/ecs_ord/order/personnel_order_quantity_by_name2.jsp</result>
+			<result name="personnelOrderQuantityTable">/ecs_ord/order/personnelOrderQuantityTable.jsp</result>
+			
+			<result name="release_record">/ecs_ord/order/release_record.jsp</result>
+			<result name="terminal_transfer">/ecs_ord/order/terminal_transfer.jsp</result>
+			<result name="auto_ord_receive">/ecs_ord/order/order_receive.jsp</result>
+			<result name="auto_ord_receive2">/ecs_ord/order/new_order_receive.jsp</result>
+			<result name="order_broadband_commerce">/ecs_ord/order/order_broadband_commerce.jsp</result>
+			<!-- 多商品页面 -->
+			<result name="quality_audit_more">/ecs_ord/order/moreGoods/quality_audit_more.jsp
+			</result>
+			<result name="outCallApply">/ecs_ord/order/ord_outcallapply.jsp</result>
+			<result name="delivery_order_print_list">/ecs_ord/order/delivery_order_reprint.jsp
+			</result>
+			<result name="order_input">/ecs_ord/order/orderInput.jsp</result>
+			<result name="order_print_list">/ecs_ord/order/ord_his_list.jsp</result>
+
+
+			<result name="batch_pre_ord_list">/ecs_ord/order/batch_pre_ord_list.jsp</result>
+			<result name="batch_ord_exception">/ecs_ord/order/batch_pre_ord_exception.jsp
+			</result>
+			<result name="headquartersMall">/ecs_ord/order/headquartersMallLogin.jsp</result>
+			<result name="headquartersMallDetail">/ecs_ord/order/headquartersMallDetail.jsp
+			</result>
+			<result name="addHeadquartersMall">/ecs_ord/order/addHeadquartersMall.jsp</result>
+			<result name="crawlerProperties">/ecs_ord/order/crawlerProperties.jsp</result>
+
+			<result name="orderInput_import">/ecs_ord/order/orderInput_import.jsp</result>
+			<!-- 工单页面 -->
+			<result name="ord_Work">/ecs_ord/order/ord_work_add.jsp</result>
+			<result name="work_custom_ord_work">/ecs_ord/order/intent/work_custom_ord_work.jsp</result>
+			<result name="workByOrder">/ecs_ord/order/workByOrder.jsp</result>
+			<result name="workList4Order">/ecs_ord/order/workList4Order.jsp</result>
+			<result name="closeWork">/ecs_ord/order/closeWork.jsp</result>
+			<!--订单 审核-->
+			<result name="ordAduit">/ecs_ord/order/ordAduit_add.jsp</result>
+			<!-- 退单处理  -->
+			<result name="ordDispose">/ecs_ord/order/ordDispose_add.jsp</result>
+			<!-- 订单挂起 -->
+			<result name="ordHang">/ecs_ord/order/ordHang_add.jsp</result>
+			
+			<!-- 意向单统计报表 -->
+			<result name="intent_order_report">/ecs_ord/order/intent_order_report.jsp</result>
+			<result name="commerce_develop_channel_report">/ecs_ord/order/commerce_develop_channel_report.jsp</result>
+			
+			<!-- add by cqq 20181205 -->
+			<result name="customer_contact_new">/ecs_ord/order/onlinecustomwork/customer_contact.jsp</result>
+			<result name="order_audit">/ecs_ord/order/onlinecustomwork/order_audit.jsp</result>
+			<result name="open_account">/ecs_ord/order/onlinecustomwork/open_account.jsp</result>
+			<result name="write_card">/ecs_ord/order/onlinecustomwork/write_card.jsp</result>
+			<result name="deliver_goods">/ecs_ord/order/onlinecustomwork/deliver_goods.jsp</result>
+			<result name="order_archiving">/ecs_ord/order/onlinecustomwork/order_archiving.jsp</result>
+			<result name="dispatch_url">/ecs_ord/order/onlinecustomwork/dispatch_url.jsp</result>
+			<result name="open_account_error">/ecs_ord/order/onlinecustomwork/open_account_error.jsp</result>
+			<result name="write_card_error">/ecs_ord/order/onlinecustomwork/write_card_error.jsp</result>
+			<result name="basic_back_node">/ecs_ord/order/onlinecustomwork/basic_back_node.jsp</result>
+			<result name="CancelOrderComfirm">/ecs_ord/order/onlinecustomwork/CancelOrderComfirm.jsp</result>
+			<result name="WorkflowJumpComfirm">/ecs_ord/order/onlinecustomwork/WorkflowJumpComfirm.jsp</result>
+			<!-- 杭州银行联名卡发展日报 -->
+			<result name="jointCardDevelopmentDaily">/ecs_ord/order/jointCardDevelopmentDaily.jsp</result>
+		</action>
+		<!-- 订单批量导入 -->
+		<action name="orderBatchImportAction" class="orderBatchImportAction">
+			<result name="batch_import_order_list">/ecs_ord/order/batch_import_order_list.jsp
+			</result>
+			<result name="batch_import_order_excel">/ecs_ord/order/batch_import_order_excel.jsp
+			</result>
+			<result name="batch_import_order_edit">/ecs_ord/order/batch_import_order_edit.jsp
+			</result>
+			<result name="batch_import_order_logi_excel">/ecs_ord/order/batch_import_order_logi_excel.jsp
+			</result>
+		</action>
+
+		<action name="orderFlowAction" class="orderFlowAction">
+			<result name="preDeal_Order">/ecs_ord/order/preDeal_Order.jsp</result>
+			<result name="new_preDeal_Order">/ecs_ord/order/new_preDeal_Order.jsp</result>
+			<result name="preDeal_Order_audit">/ecs_ord/order/preDeal_Order_audit.jsp</result>
+			<result name="callOutPreDeal_Order">/ecs_ord/order/callOutPreDeal_Order.jsp</result>
+			<result name="visit">/ecs_ord/order/visit.jsp</result>
+			<result name="prePick">/ecs_ord/order/prePick.jsp</result>
+			<result name="business">/ecs_ord/order/business.jsp</result>
+			<!-- result name="openAccount">/ecs_ord/order/openAccount.jsp</result> -->
+			<result name="openAccountOffline">/ecs_ord/order/openAccount.jsp</result>
+			<!-- add by sgf 库管页面 -->
+			<result name="inventoryKeeper">/ecs_ord/order/inventoryKeeperAccount.jsp</result>
+			
+			<result name="openAccountOnline">/ecs_ord/order/openAccount_online.jsp</result>
+			<result name="openAccount_update">/ecs_ord/order/openAccount_update.jsp</result>
+			<result name="fkWriteCard">/ecs_ord/order/fkWriteCard.jsp</result>
+			<result name="writeCard">/ecs_ord/order/writeCard.jsp</result>
+			<result name="writeCardTest">/ecs_ord/order/writeCard/writeCard_test.jsp
+			</result>
+			<result name="returnedOrd">/ecs_ord/order/returned_ord.jsp</result>
+			<result name="returned_ord_cfm">/ecs_ord/order/returned_ord_confirm.jsp</result>
+			<result name="order_back_desc">/ecs_ord/order/order_back_desc.jsp</result>
+
+			<!-- 订单包含页面 -->
+			<result name="order_base">/ecs_ord/order/include/order_base.jsp</result>
+			<result name="order_ext">/ecs_ord/order/include/order_ext.jsp</result>
+			<result name="prod_info">/ecs_ord/order/include/prod_info.jsp</result>
+			<result name="goods_info">/ecs_ord/order/include/goods_info.jsp</result>
+			<result name="goods_dtl">/ecs_ord/order/include/goods_dtl.jsp</result>
+			<result name="goods_open">/ecs_ord/order/include/goods_open.jsp</result>
+
+			<result name="order_ext_audit">/ecs_ord/order/include/order_ext_audit.jsp</result>
+			<result name="prod_info_audit">/ecs_ord/order/include/prod_info_audit.jsp</result>
+			<result name="goods_info_audit">/ecs_ord/order/include/goods_info_audit.jsp</result>
+			<result name="goods_open_audit">/ecs_ord/order/include/goods_open_audit.jsp</result>
+			<result name="goods_gift_audit">/ecs_ord/order/include/goods_gift_audit.jsp</result>
+			<result name="view_goods_open_audit">/ecs_ord/order/include/view_goods_open_audit.jsp</result>
+
+			<result name="phone_num_listZb">/ecs_ord/order/include/phoneInfoListZb.jsp
+			</result>
+			<result name="phone_num_listProvince">/ecs_ord/order/include/phoneInfoListProvince.jsp
+			</result>
+
+			<result name="phone_num_fuka_list">/ecs_ord/order/include/phoneFukaInfoListForChangeSelect.jsp
+			</result>
+			<result name="goods_gift">/ecs_ord/order/include/goods_gift.jsp</result>
+			<result name="fee_info">/ecs_ord/order/include/fee_info.jsp</result>
+			<result name="prePick_bak">/ecs_ord/order/prePick_bak.jsp</result>
+			<result name="relations_info">/ecs_ord/order/include/iphone6s.jsp</result>
+			<result name="auto_flow">/ecs_ord/order/auto_flows.jsp</result>
+			<!-- 订单详情页面 -->
+			<result name="order_detail_view">/ecs_ord/order/order_detail_view.jsp</result>
+			<result name="new_order_detail_view">/ecs_ord/order/new_order_detail_view.jsp</result>
+			<!-- 订单详情包含页面 -->
+			<!-- 订单包含页面 -->
+			<result name="view_order_base">/ecs_ord/order/include/view_order_base.jsp
+			</result>
+			<result name="view_order_ext">/ecs_ord/order/include/view_order_ext.jsp
+			</result>
+			<result name="view_prod_info">/ecs_ord/order/include/view_prod_info.jsp
+			</result>
+			<result name="view_goods_info">/ecs_ord/order/include/view_goods_info.jsp
+			</result>
+			<result name="view_goods_open">/ecs_ord/order/include/view_goods_open.jsp
+			</result>
+			<result name="sp_product">/ecs_ord/order/include/sp_product.jsp</result>
+			<result name="view_goods_gift">/ecs_ord/order/include/view_goods_gift.jsp
+			</result>
+			<result name="view_goods_info_more">/ecs_ord/order/include/view_goods_info_more.jsp
+			</result>
+			<result name="hsB2C_goods_info">/ecs_ord/order/include/hsB2C_goods_info.jsp
+			</result>
+			<result name="order_his">/ecs_ord/order/order_his.jsp</result>
+			<result name="order_his_before">/ecs_ord/order/order_his_before.jsp</result>
+			<result name="new_order_his_before">/ecs_ord/order/new_order_his_before.jsp</result>
+			<result name="order_change">/ecs_ord/order/order_change.jsp</result>
+			<result name="new_order_change">/ecs_ord/order/new_order_change.jsp</result>
+			<!-- 订单补录页面 -->
+			<result name="replenish_order_base">/ecs_ord/order/replenish/order_base.jsp</result>
+			<result name="replenish_order_ext">/ecs_ord/order/replenish/order_ext.jsp</result>
+			<result name="replenish_prod_info">/ecs_ord/order/replenish/prod_info.jsp</result>
+			<result name="replenish_goods_info">/ecs_ord/order/replenish/goods_info.jsp</result>
+			<result name="replenish_goods_open">/ecs_ord/order/replenish/goods_open.jsp</result>
+			<result name="replenish_goods_gift">/ecs_ord/order/replenish/goods_gift.jsp</result>
+			<result name="replenish">/ecs_ord/order/replenish.jsp</result>
+			<result name="sign_route">/ecs_ord/order/sign_route.jsp</result>
+			<result name="receipt_route">/ecs_ord/order/receipt_route.jsp</result>
+			<!-- 多商品页面 -->
+			<result name="prePickMore">/ecs_ord/order/moreGoods/prePickMore.jsp</result>
+			<result name="rehandleBusinessList">/ecs_ord/order/rehandleBusinessList.jsp</result>
+			<result name="bss_phone_num">/ecs_ord/order/bssPhoneNumList.jsp</result>
+			<result name="zb_phone_num">/ecs_ord/order/zbPhoneNumList.jsp</result>
+			
+			<result name="order_detail_view_intent">/ecs_ord/order/order_detail_view_intent.jsp</result>
+			<!-- add by cqq 20181129 自定义流程详情页面 -->
+			<result name="custom_flow">/ecs_ord/order/detail/order_detail.jsp</result>
+		</action>
+
+		<action name="orderSupplyAction" class="orderSupplyAction">
+			<result name="order_supply">/ecs_ord/order/order_supply.jsp</result>
+			<result name="order_manager">/ecs_ord/order/order_manager.jsp</result>
+		</action>
+		<action name="orderPostPrintAction" class="orderPostPrintAction">
+			<result name="quality_psot_print_add">/ecs_ord/order/quality_psot_print_add.jsp
+			</result>
+			<result name="quality_hotfree_print">/ecs_ord/order/quality_hotfree_print.jsp</result>
+			<result name="pick_hotfree_print">/ecs_ord/order/pick_hotfree_print.jsp</result>
+		</action>
+		<action name="invoicePrintAction" class="invoicePrintAction">
+			<result name="list">/ecs_ord/invoice/invoice_print_main.jsp</result>
+			<result name="template_Info">/ecs_ord/invoice/invoice_template.jsp</result>
+			<result name="select">/ecs_ord/invoice/model_edit.jsp</result>
+
+		</action>
+		<action name="orderWarningAction" class="orderWarningAction">
+			<result name="list">/ecs_ord/warning/warning_main.jsp</result>
+			<result name="add">/ecs_ord/warning/warning_add.jsp</result>
+			<result name="view">/ecs_ord/warning/warning_view.jsp</result>
+			<result name="edit">/ecs_ord/warning/warning_edit.jsp</result>
+			<result name="dev_list">/ecs_ord/order/developmentList.jsp</result>
+			<result name="county_list">/ecs_ord/order/countyList.jsp</result>
+			<result name="stdAddress_list">/ecs_ord/order/stdAddressList.jsp</result>
+			<result name="modermid_list">/ecs_ord/order/modermIDList.jsp</result>
+			<result name="new_goods_list">/ecs_ord/order/new_goods_list.jsp</result>
+		</action>
+
+
+		<action name="orderGuijiAction" class="orderGuijiAction">
+			<result name="guiji_co_queue_list">/ecs_ord/order/guiji_co_queue_list.jsp</result>
+			<result name="order_syn_service_list">/ecs_ord/order/order_syn_service_list.jsp
+			</result>
+		</action>
+
+		<action name="orderRefreshTreeAttrAction" class="orderRefreshTreeAttrAction">
+			<result name="refresh_order_tree">/ecs_ord/order/refresh_order_tree.jsp</result>
+			<result name="refresh_plan_rule">/ecs_ord/order/refresh_plan_rule.jsp</result>
+			<result name="qry_ordertree_refresh_result">/ecs_ord/order/qry_ordertree_refresh_result.jsp
+			</result>
+			<result name="refresh_repeat_order">/ecs_ord/order/refresh_repeat_order.jsp</result>
+		</action>
+
+		<!-- 受理单打印 -->
+		<action name="ordPrt" class="ordPrtAction">
+			<result name="invoice_print">/ecs_ord/order/invoice_print.jsp</result>
+			<result name="order_print_list">/ecs_ord/order/ord_prt_list.jsp</result>
+			<result name="print_template">${orderPrintURL}</result>
+			<result name="allot_order_prt">/ecs_ord/order/allot_order_prt.jsp</result>
+		</action>
+
+		<!-- 物流单打印 -->
+		<action name="orderPostModePrint" class="ordPostModePrintAction">
+			<result name="quality_psot_print_confirm">/ecs_ord/order/quality_psot_print_confirm.jsp
+			</result>
+			<result name="hs_packing_print">/ecs_ord/order/hs_packing_print.jsp</result>
+		</action>
+
+		<action name="ordReturned" class="orderReturnedAction">
+		</action>
+
+		<action name="ordInf" class="orderInfAction">
+			<result name="order_inf_content">/ecs_ord/inf/inf_content.jsp</result>
+			<result name="order_inf_compare">/ecs_ord/inf/inf_compare.jsp</result>
+			<result name="inf_compare_list">/ecs_ord/inf/inf_compare_list.jsp</result>
+			<result name="inf_compare_detail">/ecs_ord/inf/inf_compare_detail.jsp</result>
+		</action>
+
+		<action name="outOrderPrintAction" class="outOrderPrintAction">
+
+		</action>
+
+		<action name="gonghaoBindAction" class="gonghaoBindAction">
+			<result name="adminuser_list">/ecs_ord/order/gonghaoBind.jsp</result>
+			<result name="es_operator_rel_ext_list">/ecs_ord/order/binding.jsp</result>
+		</action>
+
+		<action name="infLogMonitManagerAction" class="infLogMonitManagerAction">
+			<result name="toInfLogPage">/ecs_ord/order/toInfLogPage.jsp</result>
+		</action>
+		<action name="orderExpStatisticsAction" class="orderExpStatisticsAction">
+			<result name="order_exception">/ecs_ord/order/order_exception.jsp</result>
+		</action>
+
+		<action name="workPlatformActoin" class="orderWorkPlatformAction">
+			<result name="workPlatform">/ecs_ord/order/auto_ord_platform.jsp</result>
+			<result name="workPlatformSingle">/ecs_ord/order/auto_ord_platform.jsp</result>
+			<result name="workPlatformAll">/ecs_ord/order/auto_ord_platform.jsp</result>
+		</action>
+		<action name="queueCardMateManagerAction" class="queueCardMateManagerAction">
+			<result name="queue_card_mate_list">/ecs_ord/order/queue_card_mate_list.jsp</result>
+			<result name="queue_card_mate_update">/ecs_ord/order/include/queue_card_mate_update.jsp
+			</result>
+			<result name="queue_manage_list">/ecs_ord/order/jz/queueManageList.jsp</result>
+			<result name="oneQueueInfo">/ecs_ord/order/jz/queueSigle.jsp</result>
+			<result name="queue_order_list">/ecs_ord/order/jz/queueOrderList.jsp</result>
+			<result name="queue_exception">/ecs_ord/order/jz/queue_exception.jsp</result>
+			<result name="queue_switch">/ecs_ord/order/jz/queue_switch.jsp</result>
+			<result name="queueOrderAllStatus">/ecs_ord/order/jz/queueOrderAllStatus.jsp
+			</result>
+			<result name="queueWriteCardStatus">/ecs_ord/order/jz/queueWriteCardStatus.jsp
+			</result>
+			<result name="cardwriterstatus">/ecs_ord/order/jz/cardwriterstatus.jsp</result>
+			<result name="orderitemsbystatus">/ecs_ord/order/jz/orderitemsbystatus.jsp</result>
+		</action>
+
+		<action name="noMatchFlowAction" class="noMatchFlowAction">
+			<result name="no_match_flow_list">/ecs_ord/order/no_match_flow_list.jsp</result>
+			<result name="no_match_flow_order">/ecs_ord/order/no_match_flow_order.jsp</result>
+		</action>
+
+		<!-- 系统首页 -->
+		<action name="systemPageAction" class="systemPageAction">
+			<result name="notice_page">/ecs_ord/order/systempage.jsp</result>
+		</action>
+
+		<action name="moneyAuditAction" class="moneyAuditAction">
+			<result name="money_audit_list">/ecs_ord/order/money_audit_list.jsp</result>
+			<result name="import_excel">/ecs_ord/order/money_audit_import_excel.jsp
+			</result>
+			<result name="del_excel">/ecs_ord/order/money_audit_del_excel.jsp</result>
+			<result name="manualAudit">/ecs_ord/order/manualAudit.jsp</result>
+			<result name="export">/ecs_ord/order/export.jsp</result>
+		</action>
+		<action name="auditZBAction" class="auditZBAction">
+			<result name="out_tid_list">/ecs_ord/order/out_tid_list.jsp</result>
+			<result name="out_tid_import">/ecs_ord/order/out_tid_import.jsp</result>
+			<result name="qry_bss_order_status">/ecs_ord/order/qry_bss_order_status.jsp</result>
+		</action>
+		<action name="orderCrawlerAction" class="orderCrawlerAction">
+			<result name="fee_info_list">/ecs_ord/order/openAccount_online_pc.jsp</result>
+			<result name="active_not_pass">/ecs_ord/order/active_not_pass.jsp</result>
+			<result name="crawlerConfigList">/ecs_ord/crawler/crawlerConfigList.jsp</result>
+			<result name="addOrEditCrawlerProc">/ecs_ord/crawler/addOrEditCrawlerProc.jsp
+			</result>
+			<result name="crawlerProcCond">/ecs_ord/crawler/crawlerProcCond.jsp</result>
+			<result name="orderRefundApply">/ecs_ord/order/order_refund.jsp</result>
+			<result name="orderRefundAudit">/ecs_ord/order/order_refund_audit.jsp</result>
+		</action>
+		<!-- 工号池 -->
+		<action name="workerPoolAction" class="workerPoolAction">
+			<result name="es_work_pool_list">/ecs_ord/order/es_work_pool_list.jsp</result>
+			<result name="es_work_pool_rel_list">/ecs_ord/order/es_work_pool_rel_list.jsp</result>
+			<result name="choose_worker_pool_worker">/ecs_ord/order/choose_worker_pool_worker.jsp
+			</result>
+			<result name="choose_worker_pool_organization">/ecs_ord/order/choose_worker_pool_organization.jsp
+			</result>
+		</action>
+		
+		<action name="businessRefreshAction" class="businessRefreshAction">
+		</action>
+		
+		<!-- 意向单页面 -->
+		<action name="orderIntentAction" class="orderIntentAction">
+			<result name="intentDetails">/ecs_ord/order/intentDetails.jsp</result>
+			<result name="orderDetails">/ecs_ord/order/orderDetails.jsp</result>
+			<result name="handleIntent">/ecs_ord/order/handleIntent.jsp</result>
+			<result name="intentHandle">/ecs_ord/order/intentHandle.jsp</result>
+			<result name="intentHandleQuery">/ecs_ord/order/intentHandleQuery.jsp</result>
+			<result name="intentAddRemark">/ecs_ord/order/intentAddRemarks.jsp</result>
+			<result name="intent_workflow">/ecs_ord/order/intent/intent_workflow.jsp</result>
+			<result name="customer_contact">/ecs_ord/order/intent/customer_contact.jsp</result>
+			<result name="no_res_check_customer_contact">/ecs_ord/order/intent/no_res_check_customer_contact.jsp</result>
+			<result name="re_select_goods">/ecs_ord/order/intent/re_select_goods.jsp</result>
+			<result name="intent_query_table">/ecs_ord/order/intentQueryTable.jsp</result>
+			<result name="enterprise_order_intent_check">/ecs_ord/order/intent/enterprise_order_intent_check.jsp</result>
+		
+			<result name="smsTemplateForm">/ecs_ord/order/sms/smsTemplateForm.jsp</result>
+			<result name="sendingSMSForm">/ecs_ord/order/sms/sendingSMSForm.jsp</result>
+			<result name="addSMSForm">/ecs_ord/order/sms/addSMSForm.jsp</result>
+			<result name="editSMSForm">/ecs_ord/order/sms/editSMSForm.jsp</result>
+			<result name="smsDetailsForm">/ecs_ord/order/sms/smsDetailsForm.jsp</result>
+			<result name="selectSMSForm">/ecs_ord/order/sms/selectSMSForm.jsp</result>
+			<result name="bee_action_order_query">/ecs_ord/order/beeActionOrderQuery.jsp</result>
+			<result name="sms_send_list">/ecs_ord/order//messageSendList.jsp</result>
+		</action>
+		
+		<!-- 自定义流程配置 -->
+		<action name="WorkCustom" class="WorkCustomAction">
+			<result name="work_custom_cfg">/ecs_ord/workCustom/workCustomCfg.jsp</result>
+			<result name="work_custom_cfg_table">/ecs_ord/workCustom/workCustomCfgTable.jsp</result>
+			<result name="custom_cfg_edit">/ecs_ord/workCustom/customCfgEdit.jsp</result>
+			<result name="node_edit">/ecs_ord/workCustom/nodeEdit.jsp</result>
+			<result name="label_edit">/ecs_ord/workCustom/labelEdit.jsp</result>
+			<result name="work_custom_deal_table">/ecs_ord/workCustom/dealerTable.jsp</result>
+			<result name="dealer_edit">/ecs_ord/workCustom/dealerEdit.jsp</result>
+			<result name="search_org">/ecs_ord/workCustom/searchDealerOrg.jsp</result>
+			<result name="workCustomDemo">/ecs_ord/workCustom/workCustomDemo.jsp</result>
+			<result name="basicWebCondition">/ecs_ord/workCustom/busi/basicWebCondition.jsp</result>
+			<result name="work_custom_team_table">/ecs_ord/workCustom/searchTeamTable.jsp</result>
+			<result name="order_detail">/ecs_ord/order/detail/order_detail.jsp</result>
+			<result name="CopyWorkFlowComfirm">/ecs_ord/workCustom/CopyWorkFlowComfirm.jsp</result>
+		</action>
+		
+		<!-- 人员团队 -->
+		<action name="teamAction" class="teamAction">
+			<result name="team_custom_table">/ecs_ord/order/teamCustomTable.jsp</result>
+			<result name="team_change_info">/ecs_ord/order/teamCustomChange.jsp</result>
+			<result name="team_custom_add">/ecs_ord/order/teamCustomAdd.jsp</result>
+			<result name="team_user_staff">/ecs_ord/order/teamCustomUser.jsp</result>
+		</action>
+		<action name="ordCall" class="calllogAction">
+		<result name="calllog_info_before">/ecs_ord/order/calllog_info_before.jsp</result>
+		<result name="new_calllog_info_before">/ecs_ord/order/new_calllog_info_before.jsp</result>
+		<result name="to_initiationcall">/ecs_ord/order/toinitiationCall.jsp</result>
+		</action>
+	</package>
+
+</struts>

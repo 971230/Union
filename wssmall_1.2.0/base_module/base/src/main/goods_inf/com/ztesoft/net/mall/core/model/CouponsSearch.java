@@ -1,0 +1,57 @@
+package com.ztesoft.net.mall.core.model;
+
+import java.io.Serializable;
+
+/***
+ * 优惠券查询条件实体
+ * @author hu.yi
+ * @date 2014.02.26
+ */
+public class CouponsSearch implements Serializable {
+	
+	private String cpns_name;
+	private String cpns_prefix;
+	private String cpns_type;
+	private String cpns_status;
+	private String pmt_time_begin;
+	private String pmt_time_end;
+	
+	
+	public String getCpns_name() {
+		return cpns_name;
+	}
+	public void setCpns_name(String cpns_name) {
+		this.cpns_name = cpns_name;
+	}
+	public String getCpns_prefix() {
+		return cpns_prefix;
+	}
+	public void setCpns_prefix(String cpns_prefix) {
+		this.cpns_prefix = cpns_prefix;
+	}
+	public String getCpns_type() {
+		return cpns_type;
+	}
+	public void setCpns_type(String cpns_type) {
+		this.cpns_type = cpns_type;
+	}
+	public String getCpns_status() {
+		return cpns_status;
+	}
+	public void setCpns_status(String cpns_status) {
+		this.cpns_status = cpns_status;
+	}
+	public String getPmt_time_begin() {
+		return pmt_time_begin;
+	}
+	public void setPmt_time_begin(String pmt_time_begin) {
+		this.pmt_time_begin = pmt_time_begin;
+	}
+	public String getPmt_time_end() {
+		return pmt_time_end;
+	}
+	public void setPmt_time_end(String pmt_time_end) {
+		this.pmt_time_end = pmt_time_end;
+	}
+	
+}

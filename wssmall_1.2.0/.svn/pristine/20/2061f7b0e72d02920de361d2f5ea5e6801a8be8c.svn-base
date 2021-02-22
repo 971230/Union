@@ -1,0 +1,149 @@
+package com.ztesoft.net.cache.coherence;
+
+import com.tangosol.io.pof.PortableObject;
+import com.tangosol.net.CacheFactory;
+import com.tangosol.net.NamedCache;
+import com.ztesoft.net.cache.common.ICoherenceCache;
+
+public class CoherenceRamCache implements ICoherenceCache {
+
+	private CoherenceRamCache() {
+	}
+
+	private static final CoherenceRamCache cohe = new CoherenceRamCache();
+
+	public static CoherenceRamCache getCache() {
+		return cohe;
+	}
+
+	/**
+	 * 根据Key值获取数据
+	 * 
+	 * @param key
+	 *            要获取的数据的key
+	 * @return 数据
+	 */
+	public PortableObject get(String key) {
+		String[] keyArray = key.split("#");
+		return (PortableObject) getCacheByObjectName(keyArray[0]).get(keyArray[1]);
+	}
+
+	/**
+	 * 设置数据，如果数据已经存在，则覆盖，如果不存在，则新增 <br>
+	 * 如果是新增，则有效时间为0，即不失效
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	public void set(String key, PortableObject value) {
+		String[] keyArray = key.split("#");
+		getCacheByObjectName(keyArray[0]).put(key, value);
+	}
+
+	/**
+	 * 设置数据，如果数据已经存在，则覆盖，如果不存在，则新增 <br>
+	 * 如果是新增，则有效时间为0，即不失效
+	 * 
+	 * @param cacheName
+	 * @param key
+	 * @param value
+	 */
+	public void set(String cacheName, String key, PortableObject value, long expireTime) {
+		getCacheByCacheName(cacheName).put(key, value, expireTime);
+	}
+	
+	/**
+	 * 设置数据，如果数据已经存在，则覆盖，如果不存在，则新增 <br>
+	 * 如果是新增，则有效时间为0，即不失效
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	public void set(String key, PortableObject value,long expireTime) {
+		String[] keyArray = key.split("#");
+		getCacheByObjectName(keyArray[0]).put(key, value, expireTime);
+	}
+
+	/**
+	 * 设置数据，如果数据已经存在，则覆盖，如果不存在，则新增 <br>
+	 * 如果是新增，则有效时间为0，即不失效
+	 * 
+	 * @param cacheName
+	 * @param key
+	 * @param value
+	 */
+	public void set(String cacheName, String key, PortableObject value) {
+		getCacheByCacheName(cacheName).put(key, value);
+	}
+
+	/**
+	 * 根据key值删除相应的值
+	 * 
+	 * @param key
+	 */
+	public void delete(String key) {
+		String[] keyArray = key.split("#");
+		getCacheByObjectName(keyArray[0]).remove(key);
+	}
+
+	/**
+	 * 根据CacheName和key值删除相应的值
+	 * 
+	 * @param cacheName
+	 * @param key
+	 */
+	public void delete(String cacheName, String key) {
+		getCacheByCacheName(cacheName).remove(key);
+	}
+
+//	/**
+//	 * 清除CacheName下所有cache
+//	 */
+//	public void clear(String cacheName) {
+//		getCacheByCacheName(cacheName).clear();
+//	}
+	
+	/**
+	 * 清除CacheName下所有cache
+	 */
+	public void clear(String objectname) {
+		getCacheByObjectName(objectname).clear();
+	}
+
+	/**
+	 * 根据对象获取对应Cache(每个业务对象一个Cache)
+	 * 
+	 * @param objectName
+	 *            对象名称
+	 * @return @throws Exception
+	 */
+	private NamedCache getCacheByObjectName(String objectName) {
+		try {
+			return CacheFactory.getCache(getCacheName(objectName));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	/**
+	 * 根据Cache名称获取Cache
+	 * 
+	 * @param cacheName
+	 * @return
+	 */
+	private NamedCache getCacheByCacheName(String cacheName) {
+		return CacheFactory.getCache(cacheName);
+	}
+
+	/**
+	 * 根据对象名称获取CacheName
+	 * 
+	 * @param objectName
+	 * @return
+	 */
+	private String getCacheName(String objectName) {
+		return new StringBuffer().append("dist-ram-").append(objectName).toString();
+	}
+
+}

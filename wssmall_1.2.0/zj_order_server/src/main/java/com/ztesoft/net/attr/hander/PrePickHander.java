@@ -1,0 +1,62 @@
+package com.ztesoft.net.attr.hander;
+
+import org.drools.core.util.StringUtils;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+public class PrePickHander implements IAttrHandler{
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo) throws ApiBusiException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+		// TODO Auto-generated method stub
+		AttrInstLoadResp resp = new AttrInstLoadResp();
+		resp.setField_value(params.getValue());
+		return resp;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		OrderTreeBusiRequest orderTree= CommonDataFactory.getInstance().getOrderTree(req.getOrder_id());
+		String has = CommonDataFactory.getInstance().hasTerminal(req.getOrder_id());
+		String trace_id = orderTree.getOrderExtBusiRequest().getFlow_trace_id();
+		AttrInstLoadResp resp = null;
+		
+		String terminal_num =  req.getNew_value();//CommonDataFactory.getInstance().getAttrFieldValue(req.getOrder_id(), AttrConsts.TERMINAL_NUM);
+		if("1".equals(has)&&StringUtils.isEmpty(terminal_num)&&(EcsOrderConsts.DIC_ORDER_NODE_C.equals(trace_id)||EcsOrderConsts.DIC_ORDER_NODE_D.equals(trace_id))){
+			resp = new AttrInstLoadResp();
+			resp.setField_desc("串号");
+			resp.setField_value(terminal_num);
+			resp.setCheck_message("串号不能为空。");
+		}
+		return resp;
+	}
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		OrderTreeBusiRequest orderTree= CommonDataFactory.getInstance().getOrderTree(req.getOrder_id());
+		String has = CommonDataFactory.getInstance().hasTerminal(req.getOrder_id());
+		String trace_id = orderTree.getOrderExtBusiRequest().getFlow_trace_id();
+		String terminal_num = req.getNew_value();//CommonDataFactory.getInstance().getAttrFieldValue(req.getOrder_id(), AttrConsts.TERMINAL_NUM);
+		AttrInstLoadResp resp = null;
+		if("1".equals(has)&&StringUtils.isEmpty(terminal_num)&&(EcsOrderConsts.DIC_ORDER_NODE_C.equals(trace_id)||EcsOrderConsts.DIC_ORDER_NODE_D.equals(trace_id))){
+			resp = new AttrInstLoadResp();
+			resp.setField_desc("串号");
+			resp.setField_value(terminal_num);
+			resp.setCheck_message("串号不能为空。");
+		}
+		return resp;
+	}
+
+}

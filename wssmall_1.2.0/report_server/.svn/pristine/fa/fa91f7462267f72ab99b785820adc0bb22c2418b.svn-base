@@ -1,0 +1,293 @@
+/*     */ package com.ztesoft.crm.report.config.elements;
+/*     */ 
+/*     */ import com.ztesoft.crm.report.lang.ArrayListEx;
+/*     */ import com.ztesoft.crm.report.lang.Utils;
+/*     */ import java.util.Iterator;
+/*     */ 
+/*     */ public class Header extends Element
+/*     */ {
+/*     */   private static final long serialVersionUID = -2928665120764320229L;
+/*  29 */   private ArrayListEx columns = new ArrayListEx();
+/*     */   private String format;
+/*     */   private String formatType;
+/*     */   private String fx;
+/*     */   private String href;
+/*     */   private Column label;
+/*     */   private String labelRef;
+/*     */   private String name;
+/*     */   private String parameters;
+/*     */   private String ref;
+/*     */   private String report;
+/*     */   private String text;
+/*     */   private Column value;
+/*     */   private String width;
+/*     */   private String target;
+/*     */   private String align;
+/*     */   private String aliasName;
+/*  46 */   private String emptyValue = "0.00";
+/*     */   private String linkScope;
+/*  48 */   private String linkType = "1";
+/*     */   private String mergeCell;
+/*     */   private String height;
+/*     */   private String contentStyle;
+/*     */   private String headerStyle;
+/*     */   private String styleRule;
+/*     */ 
+/*     */   public static long getSerialVersionUID()
+/*     */   {
+/*  26 */     return -2928665120764320229L;
+/*     */   }
+/*     */ 
+/*     */   public String getContentStyle()
+/*     */   {
+/*  57 */     return this.contentStyle;
+/*     */   }
+/*     */ 
+/*     */   public void setContentStyle(String contentStyle) {
+/*  61 */     this.contentStyle = contentStyle;
+/*     */   }
+/*     */ 
+/*     */   public String getHeaderStyle() {
+/*  65 */     return this.headerStyle;
+/*     */   }
+/*     */ 
+/*     */   public void setHeaderStyle(String headerStyle) {
+/*  69 */     this.headerStyle = headerStyle;
+/*     */   }
+/*     */ 
+/*     */   public String getHeight() {
+/*  73 */     return this.height;
+/*     */   }
+/*     */ 
+/*     */   public void setHeight(String height) {
+/*  77 */     this.height = height;
+/*     */   }
+/*     */ 
+/*     */   public String getMergeCell() {
+/*  81 */     return this.mergeCell;
+/*     */   }
+/*     */ 
+/*     */   public void setMergeCell(String mergeCell) {
+/*  85 */     this.mergeCell = mergeCell;
+/*     */   }
+/*     */ 
+/*     */   public String getLinkType() {
+/*  89 */     return this.linkType;
+/*     */   }
+/*     */ 
+/*     */   public void setLinkType(String linkType) {
+/*  93 */     this.linkType = linkType;
+/*     */   }
+/*     */ 
+/*     */   public String getLinkScope() {
+/*  97 */     return this.linkScope;
+/*     */   }
+/*     */ 
+/*     */   public void setLinkScope(String hrefScope) {
+/* 101 */     this.linkScope = hrefScope;
+/*     */   }
+/*     */ 
+/*     */   public final String getEmptyValue() {
+/* 105 */     return this.emptyValue;
+/*     */   }
+/*     */ 
+/*     */   public final void setEmptyValue(String emptyValue) {
+/* 109 */     this.emptyValue = emptyValue;
+/*     */   }
+/*     */ 
+/*     */   public final String getAliasName() {
+/* 113 */     return ((Utils.isEmpty(this.aliasName)) ? 
+/* 114 */       this.value.getName() : (this.value == null) ? this.name : 
+/* 114 */       this.aliasName);
+/*     */   }
+/*     */ 
+/*     */   public final void setAliasName(String aliasName) {
+/* 118 */     this.aliasName = aliasName;
+/*     */   }
+/*     */ 
+/*     */   public String getAlign() {
+/* 122 */     return this.align;
+/*     */   }
+/*     */ 
+/*     */   public void setAlign(String align) {
+/* 126 */     this.align = align;
+/*     */   }
+/*     */ 
+/*     */   public final String getTarget()
+/*     */   {
+/* 133 */     return this.target;
+/*     */   }
+/*     */ 
+/*     */   public final void setTarget(String target)
+/*     */   {
+/* 141 */     this.target = target;
+/*     */   }
+/*     */ 
+/*     */   public ArrayListEx getColumns()
+/*     */   {
+/* 155 */     return this.columns;
+/*     */   }
+/*     */ 
+/*     */   public String getFormat()
+/*     */   {
+/* 162 */     return this.format;
+/*     */   }
+/*     */ 
+/*     */   public String getFormatType()
+/*     */   {
+/* 169 */     return this.formatType;
+/*     */   }
+/*     */ 
+/*     */   public String getFx()
+/*     */   {
+/* 176 */     return this.fx;
+/*     */   }
+/*     */ 
+/*     */   public String getHref()
+/*     */   {
+/* 183 */     return this.href;
+/*     */   }
+/*     */ 
+/*     */   public Column getLabel()
+/*     */   {
+/* 190 */     return this.label;
+/*     */   }
+/*     */ 
+/*     */   public String getLabelRef()
+/*     */   {
+/* 197 */     return this.labelRef;
+/*     */   }
+/*     */ 
+/*     */   public String getName()
+/*     */   {
+/* 204 */     return this.name;
+/*     */   }
+/*     */ 
+/*     */   public String getParameters()
+/*     */   {
+/* 211 */     return this.parameters;
+/*     */   }
+/*     */ 
+/*     */   public String getRef()
+/*     */   {
+/* 218 */     return this.ref;
+/*     */   }
+/*     */ 
+/*     */   public String getReport()
+/*     */   {
+/* 225 */     return this.report;
+/*     */   }
+/*     */ 
+/*     */   public String getText()
+/*     */   {
+/* 232 */     if (Utils.isEmpty(this.text)) {
+/* 233 */       if (this.label != null)
+/* 234 */         return this.label.getText();
+/* 235 */       if (this.value != null) {
+/* 236 */         return this.value.getText();
+/*     */       }
+/*     */     }
+/*     */ 
+/* 240 */     return this.text;
+/*     */   }
+/*     */ 
+/*     */   public Column getValue()
+/*     */   {
+/* 247 */     return this.value;
+/*     */   }
+/*     */ 
+/*     */   public String getWidth()
+/*     */   {
+/* 254 */     return this.width;
+/*     */   }
+/*     */ 
+/*     */   public final String getStyleRule()
+/*     */   {
+/* 260 */     return this.styleRule;
+/*     */   }
+/*     */ 
+/*     */   protected void init(Element top)
+/*     */   {
+/* 272 */     this.value = ((Column)top.getElement(this.ref));
+/* 273 */     this.label = ((Column)top.getElement(this.labelRef));
+/* 274 */     this.columns.addNoExist(this.value);
+/* 275 */     this.columns.addNoExist(this.label);
+/* 276 */     for (Iterator objs = getChildElements(Header.class).iterator(); objs
+/* 277 */       .hasNext(); )
+/*     */     {
+/* 278 */       Header h = (Header)objs.next();
+/*     */ 
+/* 280 */       this.columns.addNoExistAll(h.getColumns());
+/*     */     }
+/* 282 */     StyleRule sty = (StyleRule)getChildElement(StyleRule.class);
+/*     */ 
+/* 284 */     if ((sty != null) && (!(Utils.isEmpty(sty.getContent()))))
+/* 285 */       this.styleRule = sty.getContent();
+/*     */   }
+/*     */ 
+/*     */   public void setFormat(String format)
+/*     */   {
+/* 294 */     this.format = format;
+/*     */   }
+/*     */ 
+/*     */   public void setFormatType(String formatType)
+/*     */   {
+/* 302 */     this.formatType = formatType;
+/*     */   }
+/*     */ 
+/*     */   public void setFx(String function)
+/*     */   {
+/* 310 */     this.fx = function;
+/*     */   }
+/*     */ 
+/*     */   public void setHref(String href)
+/*     */   {
+/* 318 */     if ((!(Utils.isEmpty(href))) && (Utils.isEmpty(this.linkType))) {
+/* 319 */       this.linkType = ((href.startsWith("javascript:")) ? "1" : 
+/* 320 */         "2");
+/*     */     }
+/* 322 */     this.href = href;
+/*     */   }
+/*     */ 
+/*     */   public void setLabelRef(String labelRef)
+/*     */   {
+/* 330 */     this.labelRef = labelRef;
+/*     */   }
+/*     */ 
+/*     */   public void setName(String name)
+/*     */   {
+/* 338 */     this.name = name;
+/*     */   }
+/*     */ 
+/*     */   public void setParameters(String parameters)
+/*     */   {
+/* 346 */     this.parameters = parameters;
+/*     */   }
+/*     */ 
+/*     */   public void setRef(String ref)
+/*     */   {
+/* 354 */     this.ref = ref;
+/*     */   }
+/*     */ 
+/*     */   public void setReport(String report)
+/*     */   {
+/* 362 */     this.report = report;
+/*     */   }
+/*     */ 
+/*     */   public void setText(String text)
+/*     */   {
+/* 370 */     this.text = text;
+/*     */   }
+/*     */ 
+/*     */   public void setWidth(String width)
+/*     */   {
+/* 378 */     if (Utils.isEmpty(width))
+/* 379 */       return;
+/* 380 */     this.width = width;
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.config.elements.Header
+ * JD-Core Version:    0.5.3
+ */

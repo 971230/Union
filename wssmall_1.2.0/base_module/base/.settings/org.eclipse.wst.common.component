@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="base">
+        <wb-resource deploy-path="/" source-path="/src/main/java"/>
+        <wb-resource deploy-path="/" source-path="/src/main/logs_server"/>
+        <wb-resource deploy-path="/" source-path="/src/main/task_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/sms_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/partner_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/workflow_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/goods_plugins_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/supplier_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/order_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/goods_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/sys_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/rule_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/uos_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/member_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/print_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/info_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/payment_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/js_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/local_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/crawler_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/card_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/zj_inf"/>
+        <wb-resource deploy-path="/" source-path="/src/main/resources"/>
+        <wb-resource deploy-path="/" source-path="/src/main/base_inf"/>
+    </wb-module>
+</project-modules>

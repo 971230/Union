@@ -1,0 +1,7 @@
+	<#if colorList??>
+	<#list colorList as color>
+		<#if color.color_code??>
+		<td><input type="checkbox" name="colors" cc="${color.color_code}">${color.color_name}</td>
+		</#if>
+	</#list>
+	</#if>

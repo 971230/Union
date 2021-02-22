@@ -1,0 +1,65 @@
+package zte.net.workCustomBean.bss;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.net.mall.core.consts.ZjEcsOrderConsts;
+
+import consts.ConstsCore;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.workCustomBean.common.BasicBusiBean;
+
+public class BssFileArchive extends BasicBusiBean {
+
+	@SuppressWarnings("unused")
+	private Logger logger = Logger.getLogger(this.getClass());
+
+	/**
+	 * 业务处理方法
+	 * @return
+	 * @throws Exception
+	 */
+	@Override
+	public String doBusi() throws Exception{
+		return "false";
+	}
+	
+	/**
+	 * 后台等待环节的处理方法，用于后台等待环节的自动判断，
+	 * 不是后台等待环节的业务处理代码无需实现该方法
+	 * @return 可以继续往下执行，返回true;继续等待返回false
+	 * @throws Exception
+	 */
+	@Override
+	public boolean doBackWaitCheck() throws Exception{
+		
+		OrderTreeBusiRequest orderTree = this.getFlowData().getOrderTree();
+		String orderId = this.getFlowData().getOrderTree().getOrder_id();
+		
+		OrderBusiRequest orderBusiRequest = orderTree.getOrderBusiRequest();
+		orderBusiRequest.setStatus(ZjEcsOrderConsts.DIC_ORDER_STATUS_92);
+		orderBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+		orderBusiRequest.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+		orderBusiRequest.store();
+		
+		//设置回单时间
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		String backTime = df.format(new Date());
+		OrderExtBusiRequest orderExtBusiRequest = orderTree.getOrderExtBusiRequest();
+		orderExtBusiRequest.setBack_time(backTime);
+		orderExtBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+		orderExtBusiRequest.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+		orderExtBusiRequest.store();
+		
+		CommonDataFactory.getInstance().updateAttrFieldValue(orderId, new String[]{AttrConsts.BACK_TIME}, new String[]{backTime});
+		
+		return true;
+	}
+}

@@ -1,0 +1,124 @@
+package com.ztesoft.net.server.sendsms;
+
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.timer.OrderMonitorSmsTimer;
+import com.ztesoft.net.outter.inf.service.DBUtils;
+import com.ztesoft.net.server.jsonserver.wcfpojo.MallUtils;
+
+public class SmsSend {
+	
+	private static DBUtils dbUtils = SpringContextHolder.getBean("dbUtils");
+	private static Logger logger = Logger.getLogger(OrderMonitorSmsTimer.class);
+	
+	public static void main(String[] args) {
+		
+		SmsSend smsSend = new SmsSend();
+		SmsEntity sms = new SmsEntity();
+		sms.setMobile_number("18680260145");
+		sms.setPriority_level("1");
+		sms.setReceive_system("10008");
+		sms.setRepeat_time("5");
+		sms.setSerial_no("ECS" + System.currentTimeMillis());
+		sms.setSms_content("短信测试，您好！");
+		sms.setSource_system("10011");
+		sms.setTime(MallUtils.getCurTime());
+		String url = "http://10.123.99.17:9002/integrationweb/integration/smsSend.sync";
+		//生产
+//		String url = "http://10.123.98.57:7001/integrationweb/integration/smsSend.sync";
+		JSONObject json = JSONObject.fromObject(sms);
+		String responseStr = smsSend.sendSms(json.toString(), url);
+		logger.info(responseStr);
+	}
+
+	/**
+	 * 发送短信到新商城，由新商城代发短信
+	 * @param json
+	 * @param url
+	 * @return
+	 */
+	public static String sendSms(String json , String url){
+		/**json格式
+		 * {
+			    "serial_no": "201402191000022222",
+			    "time": "201402190948",
+			    "source_system": "10011",
+			    "receive_system": "10008",
+			    "priority_level": "1",
+			    "mobile_number": "13560408475",
+			    "sms_content": "短信测试",
+			    "repeat_time": "3"
+			}
+		 * */
+		return MallUtils.sendPostHttpRequest(json, url);
+	}
+	
+	/**
+	 * 发送告警短信
+	 */
+	public static void sendMonitorSms(String acc_nbr){
+		try {			
+			//告警短信接收人信息
+			String sql = "select DC_SQL from es_dc_sql c where dc_name = 'MSISDN_RECEIVER'";
+			List smsReceiver = dbUtils.queryListResult(sql);
+			String tid = "";
+			String order_from = "";
+			String create_time = "";
+			String receiver = "";
+			String smsTemplate = "";
+			String mobile_no = "";
+			String []smsUser = null;
+			
+			if (null != smsReceiver && smsReceiver.size() >0) {
+				for (int j = 0; j < smsReceiver.size(); j++) {
+					Map recMap = (Map)smsReceiver.get(j);
+					mobile_no = recMap.get("mobile_no").toString();
+					smsTemplate = recMap.get("msg").toString();
+					smsUser = mobile_no.split("[，|,]");
+					smsTemplate = smsTemplate.replaceAll("msisdn", acc_nbr);
+					for (int k = 0; k < smsUser.length; k++) {
+						SmsSend.sendMonitorSms(smsUser[k], smsTemplate);
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.info(e.getMessage(), e);
+		}		
+	}
+	
+	/**
+	 * 发送告警短信
+	 * @param acc_nbr
+	 * @param smsContent
+	 * @return
+	 */
+	public static String sendMonitorSms(String acc_nbr , String smsContent){
+		
+		//获取新商城告警短信接口URL
+		String url = dbUtils.queryServiceURL("CO_SENDSMS");
+		
+		JSONObject jsonObject = null;
+		
+		SmsEntity sms = new SmsEntity();
+		sms.setMobile_number(acc_nbr);
+		sms.setPriority_level("1");
+		sms.setReceive_system("10008");
+		sms.setRepeat_time("5");
+		sms.setSerial_no("ECS" + System.currentTimeMillis());
+		sms.setSms_content(smsContent);
+		sms.setSource_system("10011");
+		sms.setTime(MallUtils.getCurTime());
+		
+		//发送短信
+		jsonObject = JSONObject.fromObject(sms);
+		String responseStr = sendSms(jsonObject.toString(), url);
+		return responseStr;
+	}
+	
+}

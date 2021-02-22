@@ -1,0 +1,47 @@
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                            http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 父模块坐标 -->
+    <groupId>com.ztesoft.crm.pass</groupId>
+    <artifactId>ebusiness</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>电商平台-开发构建</name>
+    <description>电商平台-开发构建</description>
+    
+    <!-- 定义子模块 -->
+    <modules>
+			<module>../orderexp_server</module>
+	    <module>../orderctn_server</module>
+	    <module>../orderstd_server</module>
+	    <module>../orderecc_server</module>
+	    <module>../goods_server</module>
+			<module>../goods_plugins_server</module>
+	    <module>../ecshandle_server</module>
+	    <module>../mgWeb</module>
+	    <module>../order_server</module>
+			<module>../partner_server</module>
+			<module>../print_server</module>
+			<module>../supplier_server</module>
+			<module>../sms_server</module>
+	    <module>../member_server</module>
+	    <module>../payment_server</module>
+	    <module>../num_server</module>
+	    <module>../report_server</module>
+	    <module>../info_server</module>
+	    <module>../crawler_server</module>
+	
+	        <!-- 应用构建发布 -->
+			<module>build_web</module>
+	        
+	    	<!-- 本地开发 -->
+	    <module>../ecshandle_server</module>
+			<module>../gd_order_server</module>
+			<module>../gd_goods_server</module>
+			<module>../zj_goods_server</module>
+			<module>../zj_order_server</module>
+    </modules>
+</project>

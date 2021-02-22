@@ -1,0 +1,274 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.ibss.common.util.DateFormatUtils;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.DateUtil;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.GroupBuy;
+import com.ztesoft.net.mall.core.model.GroupBuyCount;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.net.mall.core.service.IGroupBuyManager;
+import com.ztesoft.net.sqls.SF;
+import com.ztesoft.remote.params.activity.req.PromotionActEditReq;
+import com.ztesoft.remote.params.activity.req.PromotionActReq;
+
+import org.apache.log4j.Logger;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import zte.net.iservice.IOrderServices;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+
+/**
+ * 团购管理
+ * @author kingapex
+ *
+ */
+public class GroupBuyManager extends BaseSupport implements IGroupBuyManager {
+
+	private IGoodsManager goodsManager ;
+	@Resource
+	private IOrderServices orderServices;
+	private static Logger logger = Logger.getLogger(GroupBuyManager.class);
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)  
+	public void add(GroupBuy groupBuy) {
+		if(groupBuy.getDis_type()==0 && groupBuy.getDiscount()!=null){
+			Double price  =this.goodsManager.getGoods(groupBuy.getGoodsid()).getPrice();
+			price = groupBuy.getDiscount() * price;
+			groupBuy.setPrice(price);
+		}
+		groupBuy.setAdd_time(DBTUtil.current());
+		this.baseDaoSupport.insert("group_buy", groupBuy);
+		this.updateGoodsGroupBuy(groupBuy.getGoodsid(), 1);
+		
+		
+		String groupid = groupBuy.getGroupid();
+		List<GroupBuyCount> list = groupBuy.getCountRuleList();
+		for(GroupBuyCount buyCount :list){
+			buyCount.setGroupid(groupid);
+			this.baseDaoSupport.insert("group_buy_count", buyCount);
+		}
+		addDataToPromtion(groupBuy.getGroupid());
+		
+	}
+	
+	/**调用远端，将数据写入活动表
+	 * @param groupid
+	 */
+	private void addDataToPromtion(String groupid){
+		Map<String,String> param = new HashMap<String, String>();
+		GroupBuy groupBuy = this.get(groupid);
+		param.put("name", groupBuy.getTitle());
+		param.put("enable", "1");
+		param.put("begin_time", groupBuy.getStart_time());
+		param.put("end_time", groupBuy.getEnd_time());
+		param.put("pmt_code", "");
+		param.put("brief", "团购活动");
+		param.put("pmt_time_begin", groupBuy.getStart_time());
+		param.put("pmt_time_end", groupBuy.getEnd_time());
+		param.put("pmt_solution", groupBuy.getGroupid());
+		param.put("pmt_describe", groupBuy.getDescript());
+		param.put("a_flag", "1");//设置活动类型：1：团购活动  2：秒杀活动
+		PromotionActReq req = new PromotionActReq();
+		req.setMap(param);
+		orderServices.addPromtionActivity(req);
+	}
+	
+	private void updateGoodsGroupBuy(String goodsid,int isgroup){
+		this.baseDaoSupport.execute(SF.goodsSql("GOODS_UPDATE_ISGROUP"), isgroup , goodsid);
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)  
+	public void delete(String groupid) {
+		GroupBuy groupbuy  = this.get(groupid);
+		this.updateGoodsGroupBuy(groupbuy.getGoodsid(), 0);
+		this.baseDaoSupport.execute(SF.goodsSql("GROUP_BUY_COUNT_DEL"), groupid);
+		this.baseDaoSupport.execute(SF.goodsSql("GROUP_BUY_DEL"), groupid);
+	}
+	
+	@Override
+	public void editGroupState(String groupid,int disabled){
+		GroupBuy groupbuy = this.get(groupid);
+		this.baseDaoSupport.execute(SF.goodsSql("GROUP_BUY_UPDATE_0"), disabled, groupbuy.getGroupid());
+		PromotionActEditReq req = new PromotionActEditReq();
+		req.setPmt_solution(groupbuy.getGroupid());
+		if(1 == disabled){
+			this.updateGoodsGroupBuy(groupbuy.getGoodsid(), 0);
+			req.setEnable("0");
+			orderServices.promotionActEdit(req);
+		}else if(0 == disabled){
+			this.updateGoodsGroupBuy(groupbuy.getGoodsid(), 1);
+			req.setEnable("1");
+			orderServices.promotionActEdit(req);
+		}
+	}
+
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)  
+	public void edit(GroupBuy groupBuy) {
+		
+		/**
+		 * 更新原有的商品为非团购
+		 */
+		GroupBuy older  = this.get(groupBuy.getGroupid());
+		this.updateGoodsGroupBuy(older.getGoodsid(),0);
+		
+		if(groupBuy.getDis_type()==0 && groupBuy.getDiscount()!=null){
+			Double price  =this.goodsManager.getGoods(groupBuy.getGoodsid()).getPrice();
+			price = groupBuy.getDiscount() * price;
+			groupBuy.setPrice(price);
+		}
+		this.baseDaoSupport.update("group_buy", groupBuy, "groupid="+groupBuy.getGroupid());
+		this.baseDaoSupport.execute(SF.goodsSql("GROUP_BUY_COUNT_DEL_0"), groupBuy.getGroupid());
+		List<GroupBuyCount> list = groupBuy.getCountRuleList();
+		for(GroupBuyCount buyCount :list){
+			buyCount.setGroupid(groupBuy.getGroupid());
+			this.baseDaoSupport.insert("group_buy_count", buyCount);
+		}
+		
+		/**
+		 * 更新商品为团购商品
+		 */
+		this.updateGoodsGroupBuy(groupBuy.getGoodsid(), 1);
+	}
+
+	@Override
+	public void updateBuyedCount(GroupBuy groupBuy) {
+		this.baseDaoSupport.execute(SF.goodsSql("UPDATE_GROUPBY_BUYED_COUNT_SELECT_BY_ID"), groupBuy.getBuyed_count(),groupBuy.getGroupid(),groupBuy.getGoodsid());
+	}
+	
+	@Override
+	public GroupBuy get(String groupid) {
+		GroupBuy groupBuy =(GroupBuy)this.baseDaoSupport.queryForObject(SF.goodsSql("GROUP_BUY_SELECT_BY_ID"), GroupBuy.class, groupid);
+		Goods goods  =this.goodsManager.getGoods(groupBuy.getGoodsid());
+		groupBuy.setGoods(goods);
+		if(goods!=null){
+			groupBuy.setOldprice(goods.getPrice());
+		}
+		return groupBuy;
+	}
+
+	
+	@Override
+	public Page list(int pageNo, int pageSize) {
+		return this.baseDaoSupport.queryForPage(SF.goodsSql("GROUP_BUY_GET"), pageNo, pageSize, GroupBuy.class);
+	}
+	
+	@Override
+	public Page queryList(Map<String,String> map, int pageNo, int pageSize){
+		String sql = SF.goodsSql("GROUP_BUY_GET_0");
+		StringBuffer whereBuf = new StringBuffer();
+		if(map != null){
+			if(!StringUtil.isEmpty(map.get("title"))){
+				whereBuf.append(" and a.title like '%"+map.get("title")+"%'");
+			}
+			if(!StringUtil.isEmpty(map.get("disabled")) && !"-1".equals(map.get("disabled")+"")){
+				whereBuf.append(" and a.disabled=:disabled");
+			}
+			if(!StringUtil.isEmpty(map.get("goodsid"))){
+				whereBuf.append(" and a.goodsid=:goodsid");
+			}
+			if(!StringUtil.isEmpty(map.get("start_time"))){
+				whereBuf.append(" and to_char(a.start_time,'yyyy-MM-dd') >=:start_time");
+			}
+			if(!StringUtil.isEmpty(map.get("end_time"))){
+				whereBuf.append(" and to_char(a.end_time,'yyyy-MM-dd') <=:end_time");
+			}
+		}
+		sql += whereBuf.append(" order by a.add_time desc ").toString();
+		Page page = this.baseDaoSupport.queryForPageByMap(sql, pageNo, pageSize, map);
+		return page;
+	}
+
+	
+	@Override
+	public List<GroupBuy> listEnable() {
+			return this.daoSupport.queryForList(SF.goodsSql("GROUP_BUY_SELECT"),  GroupBuy.class);
+	}
+
+	 
+	@Override
+	public List<GroupBuyCount> listRule(String groupid) {
+		
+		return  this.baseDaoSupport.queryForList(SF.goodsSql("GROUP_BUY_COUNT_SELECT"),  GroupBuyCount.class , groupid);
+	}
+
+	@Override
+	public void addBuyCount() {
+
+		long now = DateUtil.getDatelineLong(); 
+		//读取出可用团购的数量增长规则
+		List<GroupBuyCount> rulelist   =this.daoSupport.queryForList(SF.goodsSql("GROUP_BUY_COUNT_SELECT_0"),  GroupBuyCount.class);
+		
+		//获取允许售卖的团购列表
+		List<GroupBuy> groupBuyList = this.listEnable();
+		
+		for(GroupBuy groupBuy:groupBuyList){
+			
+			if(GroupBuyManager.logger.isDebugEnabled()){
+				GroupBuyManager.logger.debug("计算是否要更新团购["+groupBuy.getTitle()+"]...");
+			}
+			
+			
+			long addtime = DateFormatUtils.formatStringToDate(groupBuy.getAdd_time()).getTime() ;
+			long hour = (now-addtime)/ 3600;  //计算添加至现在多少小时
+			if(GroupBuyManager.logger.isDebugEnabled()){
+				GroupBuyManager.logger.debug("添加时间距现在["+hour+"]小时");
+			}
+			
+			
+			for(GroupBuyCount buyCount :rulelist){
+				if(GroupBuyManager.logger.isDebugEnabled()){
+					GroupBuyManager.logger.debug("计算是否要更新团购["+groupBuy.getTitle()+"]...");
+				}
+				
+				long start= DateFormatUtils.formatStringToDate(buyCount.getStart_time()).getTime();   
+				long end = DateFormatUtils.formatStringToDate(buyCount.getEnd_time()).getTime();    ;
+				if( groupBuy.getGroupid() ==buyCount.getGroupid()  &&  start<=hour && end>hour){
+					int num = buyCount.getNum();
+					this.baseDaoSupport.execute(SF.goodsSql("GROUP_BUY_UPDATE"), num,groupBuy.getGroupid());
+					if(GroupBuyManager.logger.isDebugEnabled()){
+						GroupBuyManager.logger.debug("更新团购["+groupBuy.getTitle()+"]团购数加["+num+"]");
+					}
+					break;
+				}
+			}
+		}
+		
+	}
+	
+	
+	public final IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+
+	public final void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+
+	public static void main(String[] args){
+		int add_time =1301564988;
+		long now = DateUtil.getDatelineLong();
+		long end = DateUtil.toDate("2011-03-31 19:53", "yyyy-MM-dd HH:mm").getTime()/1000;
+		logger.info(now);
+		logger.info(end);
+		logger.info((end-now)/ 3600 );
+	}
+
+	
+
+	
+
+}

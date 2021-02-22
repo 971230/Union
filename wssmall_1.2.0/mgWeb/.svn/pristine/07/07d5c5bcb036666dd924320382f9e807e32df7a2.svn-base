@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <link rel="stylesheet" href="style/style.css"/>
+    <title>产品列表</title>
+</head>
+<body>
+
+
+<div class="wrap">
+
+    <div class="head-wrap">
+        <div class="head-main">
+            <div class="hd-search-box fr">
+                <button class="hd-search-btn" type="button">搜</button>
+                <label>
+                    <input type="text" class="hd-search-text"/>
+                </label>
+            </div>
+            <div class="logo"><img src="images/logo.png" alt=""/></div>
+            <div class="project-name">中国联通授权销售网点(社会渠道)</div>
+        </div>
+        <!-- head-main end -->
+    </div>
+    <!-- head-wrap end -->
+
+    <div class="nav-wrap">
+        <div class="nav-main">
+            <ul class="nav-list">
+                <li class="nav-item"><a href="#" class="nav-link active">首页</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">号卡</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">合约机</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">上网卡</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">配件</a></li>
+            </ul>
+        </div>
+    </div>
+    <!-- nav-wrap end -->
+
+    <div class="main">
+
+        <div class="crumbs">
+            <ul>
+                <li><a href="#">首页</a></li>
+                <li class="mlr5">&gt;</li>
+                <li><a href="#">号卡</a></li>
+            </ul>
+        </div>
+        <!-- crumbs end -->
+
+        <div class="keyword-main">
+            <ul>
+                <li class="keyword-item">
+                    <div class="keyword-th">
+                        <div class="keyword-tit">配送方式：</div>
+                    </div>
+                    <ul class="keyword-list">
+                        <li class="keyword-li">
+                            <a href="#" class="active">不限</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="keyword-item">
+                    <div class="keyword-th">
+                        <div class="keyword-tit">套餐名称：</div>
+                    </div>
+                    <ul class="keyword-list">
+                        <li class="keyword-li">
+                            <a href="#">不限</a>
+                        </li>
+                        <li class="keyword-li">
+                            <a href="#">76A</a>
+                        </li>
+                        <li class="keyword-li">
+                            <a href="#" class="active">96A</a>
+                        </li>
+                        <li class="keyword-li">
+                            <a href="#" class="active">136A</a>
+                        </li>
+                        <li class="keyword-li">
+                            <a href="#">166A</a>
+                        </li>
+                        <li class="keyword-li">
+                            <a href="#">196A</a>
+                        </li>
+                        <li class="keyword-li">
+                            <a href="#">296A</a>
+                        </li>
+                        <li class="keyword-li">
+                            <a href="#">396A</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        <!-- keyword-main end -->
+        
+        <ul class="product-list clear-fix">
+            <li class="product-item">
+                <a href="#" class="product-item-link">
+                    <div class="product-item-img"></div>
+                    <div class="product-item-tit">存150送1150,96元A套餐,40%返还,预存150元赠送1150元...</div>
+                    <div class="product-item-price">RMB 150.00</div>
+                </a>
+            </li>
+            <li class="product-item">
+                <a href="#" class="product-item-link">
+                    <div class="product-item-img"></div>
+                    <div class="product-item-tit">存150送1150,96元A套餐,40%返还,预存150元赠送1150元...</div>
+                    <div class="product-item-price">RMB 150.00</div>
+                </a>
+            </li>
+            <li class="product-item">
+                <a href="#" class="product-item-link">
+                    <div class="product-item-img">
+                        <img src="images/product-img.png" alt=""/>
+                    </div>
+                    <div class="product-item-tit">存150送1150,96元A套餐,40%返还,预存150元赠送1150元...</div>
+                    <div class="product-item-price">RMB 150.00</div>
+                </a>
+            </li>
+            <li class="product-item">
+                <a href="#" class="product-item-link">
+                    <div class="product-item-img"></div>
+                    <div class="product-item-tit">存150送1150,96元A套餐,40%返还,预存150元赠送1150元...</div>
+                    <div class="product-item-price">RMB 150.00</div>
+                </a>
+            </li>
+            <li class="product-item">
+                <a href="#" class="product-item-link">
+                    <div class="product-item-img"></div>
+                    <div class="product-item-tit">存150送1150,96元A套餐,40%返还,预存150元赠送1150元...</div>
+                    <div class="product-item-price">RMB 150.00</div>
+                </a>
+            </li>
+            <li class="product-item">
+                <a href="#" class="product-item-link">
+                    <div class="product-item-img"></div>
+                    <div class="product-item-tit">存150送1150,96元A套餐,40%返还,预存150元赠送1150元...</div>
+                    <div class="product-item-price">RMB 150.00</div>
+                </a>
+            </li>
+            <li class="product-item">
+                <a href="#" class="product-item-link">
+                    <div class="product-item-img"></div>
+                    <div class="product-item-tit">存150送1150,96元A套餐,40%返还,预存150元赠送1150元...</div>
+                    <div class="product-item-price">RMB 150.00</div>
+                </a>
+            </li>
+            <li class="product-item">
+                <a href="#" class="product-item-link">
+                    <div class="product-item-img"></div>
+                    <div class="product-item-tit">存150送1150,96元A套餐,40%返还,预存150元赠送1150元...</div>
+                    <div class="product-item-price">RMB 150.00</div>
+                </a>
+            </li>
+        </ul>
+        
+
+        <div class="page">
+            <a href="#" class="page-link">&lt;&lt;</a>
+            <a href="#" class="page-link active">1</a>
+            <a href="#" class="page-link">2</a>
+            <a href="#" class="page-link">3</a>
+            <a href="#" class="page-link">4</a>
+            <a href="#" class="page-link">5</a>
+            <a href="#" class="page-link">6</a>
+            <a href="#" class="page-link">7</a>
+            <a href="#" class="page-link">&gt;&gt;</a>
+        </div>
+
+        
+
+
+
+    </div>
+    <!-- main end -->
+
+    <div class="foot-wrap">
+        <div class="foot-content">
+            <p>Copyright  1999-2014  中国联通 版权所有</p>
+            <p>中华人民共和国增值电信业务经营许可证 经营许可证编号：A2.B1.B2-20090003</p>
+            <p class="mt10"><img src="images/copyright-logo1.png" alt="" class="vertical-middle"/><span class="mlr5 vertical-middle">经营性网站备案信息</span><img src="images/copyright-logo2.png" alt=""  class="vertical-middle"/></p>
+        </div>
+    </div>
+    <!-- foot-wrap end -->
+
+</div>
+<!-- wrap end -->
+
+
+</body>
+</html>

@@ -1,0 +1,179 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import services.FlowInf;
+import services.ModHandlerInf;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.SupplierResources;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.ReflectionUtil;
+import com.ztesoft.net.mall.core.service.ISupplierResourcesManager;
+import com.ztesoft.net.mall.core.service.SupplierStatus;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.core.workflow.core.FlowType;
+import com.ztesoft.net.mall.core.workflow.core.InitFlowParam;
+import com.ztesoft.net.mall.core.workflow.util.ModParams;
+import com.ztesoft.net.mall.core.workflow.util.ModVO;
+
+public class SupplierResourcesManager extends BaseSupport<SupplierResources> implements
+		ISupplierResourcesManager {
+
+	private ModHandlerInf modInfoHandler ;
+	private FlowInf flowServ;
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void add(SupplierResources supplierResources,String state) {
+		this.daoSupport.insert("es_supplier_resources", supplierResources);
+		
+		
+//		// 起流程
+		if(StringUtils.isNotEmpty(state)){
+			String currUserId = ManagerUtils.getUserId();
+			flowServ.startFlow(new InitFlowParam(FlowType.SUPP_RESOURCES_APPLY,
+					currUserId, supplierResources.getResources_id()));
+		}
+	}
+	
+	@Override
+	public List<SupplierResources> findResourcesBySupplierId(String supplierId) {
+		String sql="select * from  es_supplier_resources where supplier_id=? ";
+		List<SupplierResources> resources=this.daoSupport.queryForList(sql, SupplierResources.class, supplierId);
+		return resources;
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void dataDeal(String administration, String company_desc,
+			String employees_number, String marketing_sales, String production,
+			String research, String year, String support, String supplier_id) {
+		this.baseDaoSupport.execute("delete from es_supplier_resources where supplier_id="+supplier_id);
+		String [] sizes = administration.split(",");
+		for(int i=0;i<sizes.length;i++){
+			SupplierResources supplierResources = new SupplierResources();
+			supplierResources.setAdministration(sizes[i]);
+			supplierResources.setCompany_desc(company_desc.split(",")[i]);
+			supplierResources.setEmployees_number(employees_number.split(",")[i]);
+			supplierResources.setMarketing_sales(marketing_sales.split(",")[i]);
+			supplierResources.setProduction(production.split(",")[i]);
+			supplierResources.setRecord_state(SupplierStatus.SUPPLIER_STATE_2);
+			supplierResources.setRegister_time(DBTUtil.current());
+			supplierResources.setResearch(research.split(",")[i]);
+			supplierResources.setYear(year.split(",")[i]);
+			supplierResources.setSupport(support.split(",")[i]);
+			supplierResources.setSupplier_id(supplier_id);
+			add(supplierResources,null);
+		}
+		
+	}
+	
+	public List list(String supplier_id) {
+		String sql = "select * from es_supplier_resources where supplier_id=? order by register_time asc ";
+		return this.baseDaoSupport.queryForList(sql, SupplierResources.class,
+				supplier_id);
+	}
+	
+	public List findResourcesByUserId(String currUserId) {
+		String sql = "SELECT C.* FROM ES_SUPPLIER A, ES_ADMINUSER B, es_supplier_resources C WHERE A.USERID = B.USERID"
+				+ " AND C.SUPPLIER_ID = A.SUPPLIER_ID AND a.userid=? order by c.register_time asc";
+		return this.baseDaoSupport.queryForList(sql, SupplierResources.class,
+				currUserId);
+	}
+	
+	public SupplierResources findResourcesById(String resources_id) {
+		String sql = "SELECT *FROM es_supplier_resources WHERE resources_id =? order by register_time asc";
+		return this.baseDaoSupport.queryForObject(sql, SupplierResources.class,
+				resources_id);
+	}
+	
+	// 删除
+	@Transactional(propagation = Propagation.REQUIRED)
+	public int delete(String resources_id) {
+		if (resources_id == null || resources_id.equals("")) {
+			return 0;
+		} else {
+			String sql = "delete from es_supplier_resources where resources_id in ("
+					+ resources_id + ") ";
+			this.baseDaoSupport.execute(sql);
+			return 1;
+		}
+	}
+	
+	/*
+	 * 修改信息
+	 */
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void edit(SupplierResources supplierResources,String supplier_state) {
+//		if (SupplierStatus.SUPPLIER_STATE_2
+//				.equals(supplier_state)) {// 如果是审核后修改
+//
+//		} else {
+//			//supplier.setSupplier_state(SupplierStatus.SUPPLIER_STATE_1);
+//			
+//			HashMap fields=new HashMap();
+//			fields.put("supplier_state", SupplierStatus.SUPPLIER_STATE_1);
+//			this.baseDaoSupport.update("es_supplier", fields, " supplier_id='" + supplierResources.getSupplier_id()+"'");
+//			
+//			this.baseDaoSupport.update("es_supplier_resources", supplierResources,
+//					" resources_id=" + supplierResources.getResources_id());
+//		}
+		
+		Map supplierResourcesMap = null;
+
+		supplierResourcesMap = ReflectionUtil.po2Map(supplierResources);
+
+		List<ModVO> modInfos = new ArrayList<ModVO>();
+		ModVO modVO = new ModVO();
+
+		modVO.setTableName("ES_SUPPLIER_RESOURCES");
+		modVO.setObj(supplierResources);
+
+		modInfos.add(modVO);
+
+		ModParams param = new ModParams(FlowType.SUPP_MOD_RESOURCES, ManagerUtils
+				.getAdminUser().getUserid(), supplierResources.getResources_id(), modInfos);
+
+		this.modInfoHandler.checkAndStartFlow(param);
+
+		if (modVO.getChangedFields() != null) {
+			for (String afield_name : modVO.getChangedFields()) {
+				if (StringUtils.isNotEmpty((String) supplierResourcesMap
+						.get(afield_name))) {
+					supplierResourcesMap.remove(afield_name);
+				}
+			}
+
+			supplierResourcesMap.put("record_state", 0);
+		}
+
+		this.baseDaoSupport.update("es_supplier_resources",
+				supplierResourcesMap, "resources_id='"
+						+ supplierResourcesMap.get("resources_id") + "'");
+	}
+
+	public ModHandlerInf getModInfoHandler() {
+		return modInfoHandler;
+	}
+
+	public void setModInfoHandler(ModHandlerInf modInfoHandler) {
+		this.modInfoHandler = modInfoHandler;
+	}
+
+	public FlowInf getFlowServ() {
+		return flowServ;
+	}
+
+	public void setFlowServ(FlowInf flowServ) {
+		this.flowServ = flowServ;
+	}
+
+	
+}

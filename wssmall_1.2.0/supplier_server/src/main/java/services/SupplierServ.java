@@ -1,0 +1,212 @@
+package services;
+
+import java.util.List;
+
+import params.suppler.req.AgentTodayNewReq;
+import params.suppler.req.AgentWaitAuditReq;
+import params.suppler.req.AgentYestodayNewReq;
+import params.suppler.req.SuppCooperateReq;
+import params.suppler.req.SuppEndReq;
+import params.suppler.req.SuppTodayNewReq;
+import params.suppler.req.SuppWaitAuditReq;
+import params.suppler.req.SuppYestodayNewReq;
+import params.suppler.req.SupplierExamReq;
+import params.suppler.req.SupplierListReq;
+import params.suppler.req.SupplierObjReq;
+import params.suppler.req.SuppliersListReq;
+import params.suppler.req.SuppliersReq;
+import params.suppler.resp.SupplierCountResp;
+import params.suppler.resp.SupplierExamResp;
+import params.suppler.resp.SupplierListResp;
+import params.suppler.resp.SupplierObjResp;
+import params.suppler.resp.SupplierResp;
+import params.suppler.resp.SuppliersListResp;
+import services.ServiceBase;
+import services.SupplierInf;
+
+import com.ztesoft.net.app.base.core.model.Supplier;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.service.ISupplierManager;
+
+/**
+ * 供货商服务类
+ * 
+ * @author wui
+ * 
+ * 
+ */
+public class SupplierServ extends ServiceBase implements SupplierInf{
+
+	private ISupplierManager supplierManager;
+	
+	
+	/**
+	 * 查询供货商列表
+	 * @param json
+	 * @return
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	public SupplierResp querySuppers(SuppliersReq supplersReq) {
+		Page webpage = supplierManager.list(supplersReq.getCompany_name(), supplersReq.getSuppler_name(), supplersReq.getPhone_num(), "1", "", "", "",
+						supplersReq.getRemd(),supplersReq.getSuppler_id(), new Integer(supplersReq.getPage_index()).intValue(), new Integer(supplersReq.getPage_size()).intValue());
+		SupplierResp supplerResp = new SupplierResp();
+		supplerResp.setWebPage(webpage);
+		addReturn(supplersReq, supplerResp);
+		return supplerResp;
+	}
+	
+	
+	@Override
+	public SuppliersListResp supplierList(SuppliersListReq suppliersListReq){
+		Page webpage = supplierManager.supplierList(suppliersListReq.getSuppler_name(),suppliersListReq.getPhone_num(),
+				Integer.valueOf(suppliersListReq.getPage_index()),Integer.valueOf(suppliersListReq.getPage_size()));
+		SuppliersListResp suppliersListResp = new SuppliersListResp();
+		suppliersListResp.setWebPage(webpage);
+		addReturn(suppliersListReq, suppliersListResp);
+		return suppliersListResp;
+	}
+	
+	
+	@Override
+	public SupplierObjResp findSupplierById(SupplierObjReq supplierObjReq){
+		
+		Supplier supplier = supplierManager.findSupplierById(supplierObjReq.getSupplier_id());
+		SupplierObjResp supplierObjResp = new SupplierObjResp();
+		supplierObjResp.setSupplier(supplier);
+		addReturn(supplierObjReq, supplierObjResp);
+		
+		return supplierObjResp;
+	}
+	
+	@Override
+	public SupplierExamResp findExamineSupplier(SupplierExamReq supplierExamReq){
+		
+		Page page = supplierManager.findExamineSupplier(Integer.valueOf(supplierExamReq.getPage_index()),
+						Integer.valueOf(supplierExamReq.getPage_size()),supplierExamReq.getSuppler_name(),supplierExamReq.getCompany_name());
+		
+		SupplierExamResp supplierExamResp = new SupplierExamResp();
+		supplierExamResp.setWebPage(page);
+		addReturn(supplierExamReq, supplierExamResp);
+		
+		return supplierExamResp;
+	}
+	
+	
+	@Override
+	public SupplierListResp getSupplierByCatId(SupplierListReq supplierListReq){
+		
+		List<Supplier> list = supplierManager.getSupplierByCatId(supplierListReq.getCatid());
+		SupplierListResp supplierListResp = new SupplierListResp();
+		supplierListResp.setList(list);
+		addReturn(supplierListReq, supplierListResp);
+		
+		return supplierListResp;
+	}
+	
+	
+	@Override
+	public SupplierCountResp waitAuditSupplier(SuppWaitAuditReq suppWaitAuditReq){
+		int waitAuditSupplier = supplierManager.waitAuditSupplier();
+		SupplierCountResp supplierCountResp = new SupplierCountResp();
+		supplierCountResp.setWait_audit_supplier(waitAuditSupplier);
+		addReturn(suppWaitAuditReq, supplierCountResp);
+		
+		return supplierCountResp;
+	}
+	
+
+	@Override
+	public SupplierCountResp waitAuditAgency(AgentWaitAuditReq agentWaitAuditReq){
+		int waitAuditAgency = supplierManager.waitAuditAgency();
+		SupplierCountResp supplierCountResp = new SupplierCountResp();
+		supplierCountResp.setWait_audit_agency(waitAuditAgency);
+		addReturn(agentWaitAuditReq, supplierCountResp);
+		
+		return supplierCountResp;
+	}
+	
+	
+	@Override
+	public SupplierCountResp cooperationSupplier(SuppCooperateReq suppCooperateReq){
+		int cooperationSupplier = supplierManager.cooperationSupplier();
+		SupplierCountResp supplierCountResp = new SupplierCountResp();
+		supplierCountResp.setCooperation_supplier(cooperationSupplier);
+		addReturn(suppCooperateReq, supplierCountResp);
+		
+		return supplierCountResp;
+	}
+	
+	
+	@Override
+	public SupplierCountResp endSupplier(SuppEndReq suppEndReq){
+		int endSupplier = supplierManager.endSupplier();
+		SupplierCountResp supplierCountResp = new SupplierCountResp();
+		supplierCountResp.setEnd_supplier(endSupplier);
+		addReturn(suppEndReq, supplierCountResp);
+		
+		return supplierCountResp;
+	}
+	
+	
+	@Override
+	public SupplierCountResp todayNewSupplier(SuppTodayNewReq suppTodayNewReq){
+		int todayNewSupplier = supplierManager.todayNewSupplier();
+		SupplierCountResp supplierCountResp = new SupplierCountResp();
+		supplierCountResp.setToday_newSupplier(todayNewSupplier);
+		addReturn(suppTodayNewReq, supplierCountResp);
+		
+		return supplierCountResp;
+	}
+	
+	
+	@Override
+	public SupplierCountResp yestodayNewSupplier(SuppYestodayNewReq suppYestodayNewReq){
+		int yestodayNewSupplier = supplierManager.yestodayNewSupplier();
+		SupplierCountResp supplierCountResp = new SupplierCountResp();
+		supplierCountResp.setYestoday_newSupplier(yestodayNewSupplier);
+		addReturn(suppYestodayNewReq, supplierCountResp);
+		
+		return supplierCountResp;
+	}
+	
+	
+	@Override
+	public SupplierCountResp todayNewAgency(AgentTodayNewReq agentTodayNewReq){
+		int todayNewAgency = supplierManager.todayNewAgency();
+		SupplierCountResp supplierCountResp = new SupplierCountResp();
+		supplierCountResp.setToday_newAgency(todayNewAgency);
+		addReturn(agentTodayNewReq, supplierCountResp);
+		
+		return supplierCountResp;
+	}
+	
+	
+	@Override
+	public SupplierCountResp yestodayNewAgency(AgentYestodayNewReq agentYestodayNewReq){
+		int yestodayNewAgency = supplierManager.yestodayNewAgency();
+		SupplierCountResp supplierCountResp = new SupplierCountResp();
+		supplierCountResp.setYestoday_newAgency(yestodayNewAgency);
+		addReturn(agentYestodayNewReq, supplierCountResp);
+		
+		return supplierCountResp;
+	}
+	
+	
+	
+	
+	
+	
+	public ISupplierManager getSupplierManager() {
+		return supplierManager;
+	}
+
+	public void setSupplierManager(ISupplierManager supplierManager) {
+		this.supplierManager = supplierManager;
+	}
+
+	
+	
+	
+	
+}

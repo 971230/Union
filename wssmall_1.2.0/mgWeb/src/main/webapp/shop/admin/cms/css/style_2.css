@@ -1,0 +1,60 @@
+@charset "utf-8";
+/* CSS Document */
+body{ background:url(../images/body_bg.png) no-repeat;}
+.mtt{ margin-top:10px;}
+.mtr{ margin-right:10px;}
+.fl{ float:left;}
+.fr{ float:right;}
+.contaiter{margin:0 auto;}
+.wapper{ width:1200px; margin:0 auto;}
+.leftSide{ width:615px; float:left;}
+.mainSide{ width:580px; float:left;}
+.bannerWarp{}
+.bannerWarp .bannerFls{ position:relative; width:615px; height:378px;}
+.bannerWarp .bannerFls .playA{ background:url(../images/icon_play.png) no-repeat; width:80px; height:80px; display:block; position:absolute; left:50%; margin-left:-40px; top:50%; margin-top:-40px; cursor:pointer; overflow:hidden; text-indent:-9999px;}
+.bannerWarp .bannerSml{ margin-top:10px; height:63px;}
+.bannerWarp .bannerSml li{ float:left; width:100px; height:63px; position:relative;}
+.bannerWarp .bannerSml li.marR{ margin-right:3px;}
+.bannerWarp .bannerSml li.curr{ background:url(../images/vider_bg_curr.png) left bottom no-repeat;}
+.bannerWarp .bannerSml li .addblack{
+	position:absolute;
+	left:0px; 
+	top:0px;
+	right:0px; 
+	bottom:0px;	
+	background:#000;filter: alpha(opacity=50); /* internet explorer */
+    -khtml-opacity: 0.5;      /* khtml, old safari */
+    -moz-opacity: 0.5;       /* mozilla, netscape */
+    opacity: 0.5; }
+.squareWarp{ position:relative; width:250px; height:220px; margin-left:10px;}
+.orangeSquare{ background:#e89b2f;}
+.skyblueSquare{ background:#20c8b1;}
+.greenSquare{ background:#79ad49;}
+.blueSquare{ background:#497ad7;}
+.vedioIco{ position:absolute; left:50%; top:50%; margin-left:-60px; margin-top:-60px; width:120px; height:120px;}
+.vedioNote{ position:absolute; left:10px; bottom:10px; font-size:18px; color:#fff;}
+.icon01{ background:url(../images/icon01.png) no-repeat;}
+.icon02{ background:url(../images/icon02.png) no-repeat;}
+.icon03{ background:url(../images/icon03.png) no-repeat;}
+.icon04{ background:url(../images/icon04.png) no-repeat;}
+.icon05{ background:url(../images/icon05.png) no-repeat;}
+.icon06{ background:url(../images/icon06.png) no-repeat;}
+.icon07{ background:url(../images/icon07.png) no-repeat;}
+.icon08{ background:url(../images/icon08.png) no-repeat;}
+.footerBar{ background:url(../images/footer_bg.png) repeat-x; height:145px; margin-top:80px;}
+.footerBar ul{}
+.footerBar li{ width:14.28%; float:left; height:141px; padding-top:4px;}
+.footerBar li.curr{ background:url(../images/footer_bg_curr.png) repeat-x;}
+.footerBar li a{ display:block; height:141px; background:url(../images/footer_line.png) right 12px repeat-y; text-align:center; color:#fff; font-size:20px;}
+.footerBar li p{ margin-top:10px;}
+.footerBar li a.last{ background:none;}
+.ico_small01{ background:url(../images/icon_small_01.png) center 15px no-repeat; height:85px; display:block;}
+.ico_small02{ background:url(../images/icon_small_02.png) center 15px no-repeat; height:85px; display:block;}
+.ico_small03{ background:url(../images/icon_small_03.png) center 15px no-repeat; height:85px; display:block;}
+.ico_small04{ background:url(../images/icon_small_04.png) center 15px no-repeat; height:85px; display:block;}
+.ico_small05{ background:url(../images/icon_small_05.png) center 15px no-repeat; height:85px; display:block;}
+.ico_small06{ background:url(../images/icon_small_06.png) center 15px no-repeat; height:85px; display:block;}
+.ico_small07{ background:url(../images/icon_small_07.png) center 15px no-repeat; height:85px; display:block;}
+
+
+.wapper .nameTit{ height:80px; line-height:80px; color:#fff0c5; font-size:20px;font-weight: bold;}

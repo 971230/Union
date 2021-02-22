@@ -1,0 +1,50 @@
+package com.ztesoft.net.ecsord.params.ecaop.vo;
+
+import params.ZteResponse;
+
+/**
+ * 2.6.12 客户下用户数据查询接口
+ * 
+ * @author 宋琪
+ *
+ */
+public class UserDataVO {
+
+	private String check_result;// 查询结果 1:符合一证5卡 0:不符合
+	private String user_num;// 用户数
+	private String cert_num_list;// 证件下号码列表 多个号码通过空格符分割
+	private String numberinfo_list;// 号码信息列表
+
+	public String getCheck_result() {
+		return check_result;
+	}
+
+	public void setCheck_result(String check_result) {
+		this.check_result = check_result;
+	}
+
+	public String getUser_num() {
+		return user_num;
+	}
+
+	public void setUser_num(String user_num) {
+		this.user_num = user_num;
+	}
+
+	public String getCert_num_list() {
+		return cert_num_list;
+	}
+
+	public void setCert_num_list(String cert_num_list) {
+		this.cert_num_list = cert_num_list;
+	}
+
+	public String getNumberinfo_list() {
+		return numberinfo_list;
+	}
+
+	public void setNumberinfo_list(String numberinfo_list) {
+		this.numberinfo_list = numberinfo_list;
+	}
+
+}

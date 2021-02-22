@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+	<bean id="ruleConfigAction" class="com.ztesoft.net.mall.core.action.backend.RuleConfigAction" scope="prototype" />
+	<bean id="ruleObjectAction" class="com.ztesoft.net.mall.core.action.backend.RuleObjectAction" scope="prototype" />
+	<bean id="schemeAction" class="com.ztesoft.net.scheme.action.SchemeAction" scope="prototype"/>
+	<bean id="sysRuleAction" class ="com.ztesoft.net.mall.core.action.backend.SysRuleAction" scope="prototype"></bean>
+	<bean id="ruleManagerAction" class="com.ztesoft.rule.manager.action.RuleManagerAction" scope="prototype"></bean>
+	<bean id="workFlowAction" class ="com.ztesoft.net.mall.core.action.backend.WorkFlowAction" scope="prototype"></bean>
+	<bean id="orderRefreshCacheAction" class="com.ztesoft.rule.manager.action.OrderRefreshCacheAction" scope="prototype"></bean>
+	<bean id="dictMatchLogsAction" class="com.ztesoft.rule.manager.action.DictMatchLogsAction" scope="prototype"></bean>
+</beans>

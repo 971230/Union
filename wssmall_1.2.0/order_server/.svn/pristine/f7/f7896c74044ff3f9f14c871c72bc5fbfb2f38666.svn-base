@@ -1,0 +1,724 @@
+package util;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.log4j.Logger;
+
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.common.SpecConsts;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.rule.tache.TacheFact;
+import zte.net.params.req.RuleTreeExeReq;
+import zte.net.params.resp.RuleTreeExeResp;
+import zte.params.order.resp.HandlerOrderRoleResp;
+
+import com.ztesoft.net.app.base.core.model.RoleData;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.consts.OrderConst;
+import com.ztesoft.net.mall.core.service.IOrderRoleDataManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.OrderRole;
+
+/**
+ * 订单权限工具类
+ * @作者 MoChunrun
+ * @创建日期 2014-11-21 
+ * @版本 V 1.0
+ */
+public class OrderRoleDataUtil {
+	private static Logger logger = Logger.getLogger(OrderRoleDataUtil.class);
+	public static final String LOCK_0 = "0";
+	public static final String LOCK_1 = "1";
+	public static final String LOCK_2 = "2";
+	
+	/**
+	 * 获取所有权限
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @return
+	 */
+	public static List<RoleData> listRoleData(){
+		IOrderRoleDataManager od = SpringContextHolder.getBean("orderRoleDataManager");
+		List<RoleData> list = od.getCacheOrderRoleData();
+		return list;
+	}
+	
+	/**
+	 * 插入订单权限表
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-21 
+	 * @param order_id
+	 */
+	public static List<OrderRole> handlerOrderRole(String order_id){
+		
+		if(Consts.ECS_SOURCE_FROM.equals(ManagerUtils.getSourceFrom())){//
+		   return handlerOrderRole_ECS(order_id); //联通本地的数据权限设置
+		}else{
+		   return handlerOrderRoleOther(order_id);
+		}
+	}
+	public static List<OrderRole>  handlerOrderRoleOther(String order_id){
+		List<OrderRole> list  = null;
+		RuleTreeExeReq req = new RuleTreeExeReq();
+	    TacheFact fact = new TacheFact();
+	    fact.setOrder_id(order_id);
+	    req.setRule_id(OrderConst.ROLE_DATE_HANDLZER_RULE_ID);
+	    req.setFact(fact);
+	    RuleTreeExeResp resp = null;
+	    
+	    try{
+	      resp  = CommonDataFactory.getInstance().exeRuleTree(req);
+	      Map<String,Object> map = resp.getFact().getValueResponse();
+	      if(map!=null&&map.get(OrderConst.HANDLER_ORDER_DATE_RESP)!=null){
+	    	  list = ((HandlerOrderRoleResp)map.get(OrderConst.HANDLER_ORDER_DATE_RESP)).getOrderRoleList();
+	      }  
+	    }catch(Exception e){
+	    	e.printStackTrace();
+	    }
+		 return list;
+	}
+	
+	/**
+	 * 获取用户是否有处理该订单的权限
+	 * @param order_id
+	 * @param user_id
+	 * @return
+	 */
+	public static boolean getOrderAuthorityByUser(String order_id,String user_id){
+        IOrderRoleDataManager od = SpringContextHolder.getBean("orderRoleDataManager");
+		boolean flag = false;
+		handlerOrderRole_ECS(order_id);
+		flag = od.selectOrderAuthorityByUser(order_id, user_id);
+		return flag;
+	}
+        //联通本地的数据权限设置
+	public static List<OrderRole> handlerOrderRole_ECS(String order_id){
+        IOrderRoleDataManager od = SpringContextHolder.getBean("orderRoleDataManager");
+		
+		Set<String> set = getOrderRoles(order_id);
+		
+		List<OrderRole> list = new ArrayList<OrderRole>();
+		if(set!=null && set.size()>0){
+			Iterator it = set.iterator();
+			while(it.hasNext()){
+				String role_auth = (String) it.next();
+				if(!StringUtil.isEmpty(role_auth)){
+					String [] ss = role_auth.split("\\|");
+					if(ss.length==2){
+						OrderRole or = new OrderRole();
+						or.setOrder_id(order_id);
+						or.setRole_id(ss[0]);
+						or.setAuth_id(ss[1]);
+						list.add(or);
+					}
+				}
+			}
+			//删除原来权限数据,只在收单标准化时使用取消删除功能
+//			od.deleteOrderRole(order_id);
+			//新插入数据
+			od.batchInsertOrderRole(list);
+		}
+		return list;
+	}
+	/**
+	 * 前置规则时调用
+	 * @param param
+	 * @return
+	 */
+	public static List<OrderRole> handlerOrderRole(String order_id,String order_city_code,String flow_trace_id,String order_model){
+        IOrderRoleDataManager od = SpringContextHolder.getBean("orderRoleDataManager");
+		
+		Set<String> set = getOrderRoles(order_city_code, flow_trace_id, order_model);
+		List<OrderRole> list = new ArrayList<OrderRole>();
+		if(set!=null && set.size()>0){
+			Iterator it = set.iterator();
+			while(it.hasNext()){
+				String role_auth = (String) it.next();
+				if(!StringUtil.isEmpty(role_auth)){
+					String [] ss = role_auth.split("\\|");
+					if(ss.length==2){
+						OrderRole or = new OrderRole();
+						or.setOrder_id(order_id);
+						or.setRole_id(ss[0]);
+						or.setAuth_id(ss[1]);
+						list.add(or);
+					}
+				}
+			}
+			//删除原来权限数据
+//			od.deleteOrderRole(order_id);
+			//新插入数据
+			od.batchInsertOrderRole(list);
+		}
+		return list;
+	}
+	
+	/**
+	 * 获取订单可操作角色权限    没有匹配代理商跟锁定状态
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param order_id
+	 * @return
+	 */
+	public static Set<String> getOrderRoles(String order_id){
+		Set<String> set = new HashSet<String>();
+		OrderTreeBusiRequest orderTree= CommonDataFactory.getInstance().getOrderTree(order_id);
+		OrderBusiRequest o = orderTree.getOrderBusiRequest();
+		OrderExtBusiRequest oe = orderTree.getOrderExtBusiRequest();
+		List<RoleData> list = listRoleData();
+		if(list!=null && list.size()>0){
+			for(RoleData rd:list){
+				boolean flag = false;
+				flag = matchShippingType(rd, o.getShipping_type());
+				if(!flag)continue;
+				flag = matchAbnormalStatus(rd, (EcsOrderConsts.REFUND_DEAL_TYPE_02.equals(oe.getRefund_deal_type())?"0":"1"));//0非正常单 1正常单
+				if(!flag)continue;
+				flag = matchLandCode(rd, CommonDataFactory.getInstance().getAttrFieldValue(oe.getOrder_id(), AttrConsts.ORDER_CITY_CODE));
+				if(!flag)continue;
+				flag = matchBespoke(rd, oe.getWm_isreservation_from());
+				if(!flag)continue;
+				flag = matchOrderFrom(rd, oe.getOrder_origin());
+				if(!flag)continue;
+				flag = matchFlowTrace(rd, oe.getFlow_trace_id());
+				if(!flag)continue;
+				flag = matchHandleType(rd, oe.getShipping_quick());
+				if(!flag)continue;
+				flag = matchDevelopChannel(rd, oe.getSpread_channel());
+				if(!flag)continue;
+				//flag = matchLockUser(rd, oe.getLock_user_id(), oe.getLock_status());
+				//if(!flag)continue;
+				flag = matchProductBusiType(rd, oe.getProd_cat_id());
+				if(!flag)continue;
+				flag = matchPackType(rd, oe.getPack_type());
+				if(!flag)continue;
+				//flag = matchSpGoodsType(rd, orderTree.getOrderItemBusiRequests());
+				//if(!flag)continue;
+				flag = matchSociety(rd, orderTree.getOrderItemBusiRequests());
+				if(!flag)continue;
+				String brand_number = CommonDataFactory.getInstance().getGoodSpec(oe.getOrder_id(), null, SpecConsts.BRAND_ID);//CommonDataFactory.getInstance().getProductSpec(oe.getOrder_id(), null, SpecConsts.BRAND_ID);
+				flag = matchBrand(rd, brand_number/*orderTree.getOrderItemBusiRequests()*/);
+				if(!flag)continue;
+				flag = matchOrderModel(rd, oe.getOrder_model());
+				if(!flag)continue;
+				flag = matchPayType(rd, oe.getPay_type());
+				if(flag){
+					String role_auth = rd.getRole_code()+"|"+rd.getId();
+					set.add(role_auth);
+				}
+			}
+		}
+		return set;
+	}
+	/**
+	 * 前置规则时调用
+	 * @param order_id
+	 * @return
+	 */
+	public static Set<String> getOrderRoles(String order_city_code,String flow_trace_id,String order_model){
+		Set<String> set = new HashSet<String>();
+		List<RoleData> list = listRoleData();
+		if(list!=null && list.size()>0){
+			for(RoleData rd:list){
+				boolean flag = false;
+//				flag = matchShippingType(rd, param.get("shipping_type").toString());//配送方式
+//				if(!flag)continue;
+//				flag = matchAbnormalStatus(rd, (EcsOrderConsts.REFUND_DEAL_TYPE_02.equals(oe.getRefund_deal_type())?"0":"1"));//0非正常单 1正常单
+//				if(!flag)continue;
+				flag = matchLandCode(rd,order_city_code);//归属地市
+				if(!flag)continue;
+//				flag = matchBespoke(rd, param.get("wm_isreservation_from").toString());//是否预约单
+//				if(!flag)continue;
+//				flag = matchOrderFrom(rd,param.get("order_origin").toString());//商城来源
+//				if(!flag)continue;
+				flag = matchFlowTrace(rd,flow_trace_id);//流程环节
+				if(!flag)continue;
+//				flag = matchHandleType(rd,param.get("shipping_quick").toString());//是否闪电送
+//				if(!flag)continue;
+//				flag = matchDevelopChannel(rd, param.get("spread_channel").toString());//推广渠道
+//				if(!flag)continue;
+//				flag = matchProductBusiType(rd,param.get("prod_cat_id").toString());//货品小类
+//				if(!flag)continue;
+//				flag = matchPackType(rd, param.get("pack_type").toString());//商品包类型
+//				if(!flag)continue;
+//				flag = matchSociety(rd, orderTree.getOrderItemBusiRequests());//是否定制机
+//				if(!flag)continue;
+//				flag = matchBrand(rd, param.get("brand_id").toString() );//商品品牌ID
+//				if(!flag)continue;
+				flag = matchOrderModel(rd,  order_model);//生产模式
+//				if(!flag)continue;
+//				flag = matchPayType(rd, param.get("pay_type").toString());//付费类型
+				if(flag){
+					String role_auth = rd.getRole_code()+"|"+rd.getId();
+					set.add(role_auth);
+				}
+			}
+		}
+		return set;
+	}
+	
+	/**
+	 * 匹配代理商 该方法不使用
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param agent_code
+	 * @return
+	 */
+	@Deprecated
+	public static boolean matchAgent(String agent_code){
+		if(StringUtil.isEmpty(agent_code))return true;
+		AdminUser user = ManagerUtils.getAdminUser();
+		IOrderRoleDataManager od = SpringContextHolder.getBean("orderRoleDataManager");
+		return false;
+	}
+	
+	/**
+	 * 匹配订单支付方式 payType 权限
+	 * and (',' || vrdl_as.paytype like '%,' || t.paytype || ',%' or
+               vrdl_as.paytype is null)
+	 * @作者 MoChunrun /zhangjun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @return
+	 */
+	public static boolean matchPayType(RoleData rd,String payType){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(payType))return true;
+		if(StringUtil.isEmpty(rd.getPay_mode()))return true;
+		String [] array = rd.getPay_mode().split(",");
+		for(String s:array){
+			if(payType.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配社会机标志 PRODUCT_BRAND 订单商品品牌 es_order_items_ext的brand_number(品牌编码)  权限
+	 * and ((',' || vrdl_as.product_brand like
+               '%,' || op.BRAND_CODE || ',%' or op.BRAND_CODE is null) or
+               vrdl_as.product_brand is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @return
+	 */
+	public static boolean matchBrand(RoleData rd,String brand_number/*List<OrderItemBusiRequest> items*/){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(rd.getProduct_brand()))return true;
+		if(StringUtil.isEmpty(brand_number))return true;
+		String [] array = rd.getProduct_brand().split(",");
+		for(String s:array){
+			if(brand_number.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+		/*if(items==null)return true;
+		if(StringUtil.isEmpty(rd.getProduct_brand()))return true;
+		for(OrderItemBusiRequest oi:items){
+			String brand_number = oi.getOrderItemExtBusiRequest().getBrand_number();
+			if(StringUtil.isEmpty(brand_number))return true;
+			String [] array = rd.getProduct_brand().split(",");
+			for(String s:array){
+				if(brand_number.equalsIgnoreCase(s)){
+					return true;
+				}
+			}
+		}
+		return false;*/
+	}
+	/**
+	 * 匹配生产模式  ORDER_MODEL 订单生产模式 es_order_ext的ORDER_MODEL(品牌编码)  权限
+	 * and (',' || vrdl_as.ORDER_MODEL like
+               '%,' || t.ORDER_MODEL || ',%' or
+               vrdl_as.ORDER_MODEL is null or t.ORDER_MODEL is null)
+
+	 * @作者 zhang.jun
+	 * @创建日期 2015-03-07 
+	 * @param rd
+	 * @return
+	 */
+	public static boolean matchOrderModel(RoleData rd,String orderModel){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(orderModel))return true;
+		if(StringUtil.isEmpty(rd.getOrder_model()))return true;
+		String [] array = rd.getOrder_model().split(",");
+		for(String s:array){
+			if(orderModel.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配社会机标志 es_order_items_ext 的 is_customized(是否定制机)取反  权限
+	 * and (',' || vrdl_as.society_flag like
+               '%,' || t.SOCIETY_FLAG || ',%' or
+               vrdl_as.society_flag is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @return
+	 */
+	public static boolean matchSociety(RoleData rd,List<OrderItemBusiRequest> items){
+		if(rd==null)return false;
+		if(items==null)return true;
+		if(StringUtil.isEmpty(rd.getSociety_flag()))return true;
+		for(OrderItemBusiRequest oi:items){
+			String is_customized = oi.getOrderItemExtBusiRequest().getIs_customized();
+			if(StringUtil.isEmpty(is_customized))return true;
+			if(EcsOrderConsts.IS_DEFAULT_VALUE.equals(is_customized)){
+				is_customized = EcsOrderConsts.NO_DEFAULT_VALUE;
+			}else{
+				is_customized = EcsOrderConsts.IS_DEFAULT_VALUE;
+			}
+			String [] array = rd.getSociety_flag().split(",");
+			for(String s:array){
+				if(is_customized.equalsIgnoreCase(s)){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配需要特殊处理商品类型权限
+	 * and (',' || vrdl_as.sp_prod_type like
+               '%,' || t.sp_prod_type || ',%' or
+               vrdl_as.sp_prod_type is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	public static boolean matchSpGoodsType(RoleData rd,List<OrderItemBusiRequest> items){
+		if(rd==null)return false;
+		if(items==null)return true;
+		if(StringUtil.isEmpty(rd.getSp_prod_type()))return true;
+		for(OrderItemBusiRequest oi:items){
+			String goods_type = oi.getOrderItemExtBusiRequest().getGoods_type();
+			if(StringUtil.isEmpty(goods_type))return true;
+			String [] array = rd.getSp_prod_type().split(",");
+			for(String s:array){
+				if(goods_type.equalsIgnoreCase(s)){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配商品包类型权限
+	 * and ((',' || vrdl_as.product_sub_type like
+               '%,' || op.PACK_TYPE || ',%' or op.PACK_TYPE is null) or
+               vrdl_as.product_busi_type is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	public static boolean matchPackType(RoleData rd,String pack_type){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(rd.getProduct_sub_type()))return true;
+		if(StringUtil.isEmpty(pack_type))return true;
+		String [] array = rd.getProduct_sub_type().split(",");
+		for(String s:array){
+			if(pack_type.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配合约类型权限
+	 * and ((',' || vrdl_as.product_busi_type like
+               '%,' || oai.PACKAGE_TYPE || ',%' or
+               oai.PACKAGE_TYPE is null) or
+               vrdl_as.product_busi_type is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	public static boolean matchProductBusiType(RoleData rd,String prod_cat_id){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(prod_cat_id))return true;
+		if(StringUtil.isEmpty(rd.getProduct_busi_type()))return true;
+		String [] array = rd.getProduct_busi_type().split(",");
+		for(String s:array){
+			if(prod_cat_id.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配订 锁定状态 权限
+	 * and (',' || vrdl_as.lock_status like '%,' || (case
+                 when t.deal_sort is null or t.deal_sort = '0' then
+                  '0'
+                 when t.deal_sort = '1' and t.LOCK_USER = 'ca' then
+                  '1'
+                 when t.deal_sort = '1' and t.LOCK_USER <> 'ca' then
+                  '2'
+               end) || ',%' or vrdl_as.lock_status is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	@Deprecated
+	public static boolean matchLockUser(RoleData rd,String lock_user_id,String lock_status){
+		AdminUser user = ManagerUtils.getAdminUser();
+		String order_lock = "";
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(lock_status)){
+			order_lock = LOCK_0;
+		}else if(EcsOrderConsts.LOCK_STATUS.equals(lock_status)){
+			if(user.getUserid().equals(lock_user_id)){
+				order_lock = LOCK_1;
+			}else{
+				order_lock = LOCK_2;
+			}
+		}else{
+			order_lock = LOCK_0;
+		}
+		
+		if(StringUtil.isEmpty(rd.getLock_status()))return true;
+		String [] array = rd.getLock_status().split(",");
+		for(String s:array){
+			if(order_lock.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配订单发展归属(订单归属渠道) 权限
+	 * and ((',' || vrdl_as.develop_attribute like
+               '%,' || t.DEVELOP_ATTRIBUTION || ',%' or
+               t.DEVELOP_ATTRIBUTION is null) or
+               vrdl_as.develop_attribute is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	public static boolean matchDevelopChannel(RoleData rd,String spread_channel){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(spread_channel))return true;
+		if(StringUtil.isEmpty(rd.getDevelop_attribute()))return true;
+		String [] array = rd.getDevelop_attribute().split(",");
+		for(String s:array){
+			if(spread_channel.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配 订单处理类型权限
+	 * and (',' || vrdl_as.handle_type like '%,' || (case
+                 when t.ORDER_DEAL_TYPE is null then
+                  '02'
+                 else
+                  t.ORDER_DEAL_TYPE
+               end) || ',%' or vrdl_as.handle_type is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	public static boolean matchHandleType(RoleData rd,String hanle_type){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(hanle_type))hanle_type = EcsOrderConsts.SHIPPING_QUICK_02;
+		if(StringUtil.isEmpty(rd.getHandle_type()))return true;
+		String [] array = rd.getHandle_type().split(",");
+		for(String s:array){
+			if(hanle_type.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配 订单环节源权限
+	 * and (',' || vrdl_as.flow_node like '%,' || 'B' || ',%' or
+               vrdl_as.flow_node is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	public static boolean matchFlowTrace(RoleData rd,String trace_id){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(trace_id))return true;
+		if(StringUtil.isEmpty(rd.getFlow_node()))return true;
+		String [] array = rd.getFlow_node().split(",");
+		for(String s:array){
+			if(trace_id.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配 单来源权限
+	 * and (',' || vrdl_as.order_origin like
+               '%,' || t.ORDER_ORIGIN || ',%' or
+               vrdl_as.order_origin is null or t.ORDER_ORIGIN is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	public static boolean matchOrderFrom(RoleData rd,String order_from){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(order_from))return true;
+		if(StringUtil.isEmpty(rd.getOrder_origin()))return true;
+		String [] array = rd.getOrder_origin().split(",");
+		for(String s:array){
+			if(order_from.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配配送方式权限
+	 * and ((',' || vrdl_as.carry_mode like
+               '%,' || oc.carry_mode || ',%' or oc.carry_mode is null) or
+               vrdl_as.carry_mode is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param shipping_type
+	 * @return
+	 */
+	public static boolean matchShippingType(RoleData rd,String shipping_type){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(shipping_type))return true;
+		if(StringUtil.isEmpty(rd.getCarry_mode()))return true;
+		String [] array = rd.getCarry_mode().split(",");
+		for(String s:array){
+			if(shipping_type.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配异常单权限  异常单（错误）---正常单是指非退单，非正常单是指退单 ，更改字段   ---新系统退单状态有多个
+	 * and (',' || vrdl_as.normal_flag like '%,' || (case
+                 when t.EXT_ORDER_STATUS = '05' then
+                  '0'
+                 else
+                  '1'
+               end) || ',%' or vrdl_as.normal_flag is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param abnormal_status
+	 * @return
+	 */
+	public static boolean matchAbnormalStatus(RoleData rd,String abnormal_status){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(abnormal_status))abnormal_status = EcsOrderConsts.ABNORMAL_STATUS_0;
+		if(StringUtil.isEmpty(rd.getNormal_flag()))return true;
+		String [] array = rd.getNormal_flag().split(",");
+		for(String s:array){
+			if(abnormal_status.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 匹配订region lan_id单权限
+	 * and (',' || vrdl_as.order_region like
+               '%,' || t.ORDER_REGION || ',%' or
+               vrdl_as.order_region is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param abnormal_status
+	 * @return
+	 */
+	public static boolean matchLandCode(RoleData rd,String lan_id){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(lan_id))return true;
+		if(StringUtil.isEmpty(rd.getOrder_region()))return true;
+		String [] array = rd.getOrder_region().split(",");
+		for(String s:array){
+			if(lan_id.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 预约单标志，0预约，1非预约
+	 * and (',' || vrdl_as.bespoke_flag like
+               '%,' || t.BESPOKE_FLAG || ',%' or
+               vrdl_as.bespoke_flag is null)
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-20 
+	 * @param rd
+	 * @param abnormal_status
+	 * @return
+	 */
+	public static boolean matchBespoke(RoleData rd,String wm_isreservation_from){
+		if(rd==null)return false;
+		if(StringUtil.isEmpty(wm_isreservation_from))return true;
+		if(StringUtil.isEmpty(rd.getBespoke_flag()))return true;
+		String [] array = rd.getBespoke_flag().split(",");
+		for(String s:array){
+			if(wm_isreservation_from.equalsIgnoreCase(s)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public static void main(String[] args) {
+		String ss = "AA|BB";
+		String [] s = ss.split("\\|");
+		logger.info(s[0]+"\t"+s[1]);
+	}
+}

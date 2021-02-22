@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+
+	<bean id="ruleConfigManager" class="com.ztesoft.net.mall.core.service.impl.RuleConfigManager" parent="baseSupport" />
+	<bean id="ruleObjectManager" class="com.ztesoft.net.mall.core.service.impl.RuleObjectManager" parent="baseSupport" />
+	<bean id="schemeManager" class="com.ztesoft.net.scheme.service.impl.SchemeManager" parent="baseSupport" />
+	<bean id="orderRefreshCache" class="com.ztesoft.rule.manager.service.impl.OrderRefreshCache" parent="baseSupport" />
+	
+	<bean id="orderRealTimeFactLoader" class="com.ztesoft.net.rule.order.OrderRealTimeFactLoader" parent="baseSupport" />
+	<bean id="orderTimmerFactLoader" class="com.ztesoft.net.rule.order.OrderTimmerFactLoader" parent="baseSupport" />
+	
+	<bean id="spreadOrderTimmerFactLoader" class="com.ztesoft.net.rule.order.SpreadOrderTimmerFactLoader" parent="baseSupport" />
+	
+	<bean id="sysRuleManager" class="com.ztesoft.net.mall.core.service.impl.SysRuleManager" parent="baseSupport"></bean>
+	<bean id="workFlowManager" class="com.ztesoft.net.mall.core.service.impl.WorkFlowManager" parent="baseSupport"></bean>
+	
+	<!-- 规则定时任务 -->
+	<bean class="zte.service.RuleTimerStartService" scope="singleton"></bean>
+
+	<bean id="iRuleManagerService" class="com.ztesoft.rule.manager.service.impl.RuleManagerServiceImpl" parent="baseSupport"></bean>
+	<bean id="autoRuleImpl" class="com.ztesoft.net.auto.rule.i.impl.AutoRuleImpl" parent="baseSupport" />
+	<bean id="autoRuleCaller" class="com.ztesoft.net.auto.rule.exe.AutoRuleCaller" />
+	<bean id="planConfigManager" class="com.ztesoft.net.auto.rule.i.impl.PlanConfigManager" parent="baseSupport" />
+	<bean id="zteRuleOpenService" class="zte.net.iservice.impl.ZteRuleOpenService" />
+	<bean id="autoRuleExeAction" class="com.ztesoft.net.auto.action.AutoRuleExeAction" />
+	<bean id="dictMatchLogsManager" class="com.ztesoft.rule.manager.service.impl.DictMatchLogsManagerImpl"></bean>
+	
+</beans>

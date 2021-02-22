@@ -1,0 +1,218 @@
+package com.powerise.ibss.taglibs;
+
+import com.powerise.ibss.framework.ActionDispatch;
+import com.powerise.ibss.framework.DynamicDict;
+import com.powerise.ibss.framework.FrameException;
+
+import javax.servlet.jsp.JspException;
+import javax.servlet.jsp.tagext.TagSupport;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+public class CardMake
+    extends TagSupport {
+
+  private String serv_name;
+  private String color1;
+  private String color2;
+  private String bgcolor1;
+  private String bgcolor2;
+
+  @Override
+public int doStartTag() throws JspException {
+    javax.servlet.http.HttpServletRequest request = (javax.servlet.http.
+        HttpServletRequest) pageContext.getRequest();
+    javax.servlet.http.HttpSession session = request.getSession();
+    StringBuffer results = new StringBuffer();
+
+    String sql =
+        "SELECT SERV_NO, FIELD_ENAME, FIELD_CNAME, IS_SHOW, DEFAULT_VALUE, " +
+        "STATE, STATICPARAM_TYPE, ACTION_ID, STATICPARAM_TABLE_NAME,  " +
+        "STATICPARAM_FIELD_NAME, COLSPAN, IS_NULL, FIELD_LENGTH, CONTROL_TYPE, " +
+        "ORDER_ID, NOTE, IS_READONLY " +
+        " FROM TCC_NET_BUSINESS_PAGE" +
+        " WHERE STATE='1'" +
+        " ORDER BY ORDER_ID";
+    try {
+      results.append("<table width=\"100%\" border=\"0\" cellspacing=\"1\" cellpadding=\"1\">");
+      DynamicDict dict = new DynamicDict(1);
+      dict.m_ActionId = "NET_BUSINESS_1_101";
+      dict.setValueByName("SQL", sql);
+      dict = ActionDispatch.dispatch(dict);
+      if (dict.flag < 0) {
+        throw new JspException("调用" + dict.m_ActionId + "出现异常，Exception=" +
+                               dict.exception + "，Msg=" + dict.msg);
+      }
+      ArrayList arrayRet = new ArrayList();
+      ArrayList arrayList = (ArrayList) dict.getValueByName("RECORDSET");
+      HashMap tmp;
+      String strControl = "";
+      String strControl_Type, strColspan, strField_Length, strStaticParam_Type,
+          strAction_Id = "", strStaticParam_Table_Name = "",
+          strStaticParam_Field_Name = "",
+          strField_EName, strField_CName;
+
+      for (int i = 1; i <= arrayList.size(); i++) {
+        strControl = "";
+        tmp = (HashMap) arrayList.get(i - 1);
+        strControl_Type = (String) tmp.get("CONTROL_TYPE");
+        /* 01  TEXT       单行文本框
+           02  SELECT     选择框
+           03  CHECKBOX   复选框
+           04  DATE       日期
+           05  HIDDEN     单行隐藏文本框
+           06  TEXTAREA   滚动文本框
+           07  点击按钮打开对话框
+         */
+
+        strColspan = (String) tmp.get("COLSPAN");
+        strField_Length = (String) tmp.get("FIELD_LENGTH");
+        strStaticParam_Type = (String) tmp.get("STATICPARAM_TYPE");
+        /*
+                 1  来自TSM_PARAVALUE表
+                 2  来自TFM_ACTION表
+                 3  固定值（1是 0否）
+         */
+        strAction_Id = (String) tmp.get("ACTION_ID");
+        strStaticParam_Table_Name = (String) tmp.get("STATICPARAM_TABLE_NAME");
+        strStaticParam_Field_Name = (String) tmp.get("STATICPARAM_FIELD_NAME");
+        strField_EName = (String) tmp.get("FIELD_ENAME");
+        strField_CName = (String) tmp.get("FIELD_CNAME");
+
+        if (strControl_Type.equals("01")) {
+          strControl = "<input style='width:100%' type=\"text\" name=\"" + strField_EName + "\">";
+        }
+        else if (strControl_Type.equals("02")) {
+          if (strStaticParam_Type.equals("3")) {
+            strControl = "<select style='width:100%' name=\"" + strField_EName +
+                "\"> <option value=\"1\">是</option><option value=\"0\">否</option></select>";
+          }
+          else {
+            arrayRet = fucGetStaticParam(strStaticParam_Type, strAction_Id,
+                                         strStaticParam_Table_Name,
+                                         strStaticParam_Field_Name);
+            strControl = "<select style='width:100%' name=\"" + strField_EName + "\">";
+            for (int m = 0; m < arrayRet.size(); m++) {
+              strControl = strControl + "<option value=\"" +
+                  ( (HashMap) arrayRet.get(m)).get("ID") + "\">" +
+                  ( (HashMap) arrayRet.get(m)).get("NAME") + "</option>";
+            }
+            strControl = strControl + "</select>";
+          }
+        }
+        else if (strControl_Type.equals("04")) {
+          strControl =
+              "<table border=\"0\" cellspacing=\"0\" cellpadding=\"0\" width=\"100%\">";
+          strControl = strControl + "<tr>";
+          strControl = strControl + "<td><input name=\"" +
+              strField_EName + "\" readonly type=\"text\" id=\"" +
+              strField_EName + "\" maxlength=\"20\" style='width:100%'></td>";
+          strControl = strControl + "<td style='width:1px'><input type=\"button\" value=\"..\" onClick=\"dateSelection(document.all['" + strField_EName + "'])\"></td>";
+          strControl = strControl + "</tr>";
+          strControl = strControl + "</table>";
+        }
+        else if (strControl_Type.equals("06")) {
+          strControl = "<textarea name=\"" + strField_EName + "\" id=\"" + strField_EName + "\" style=\"width: 100%; height:60\"></textarea>";
+        }
+        else if (strControl_Type.equals("07")) {
+          strControl =
+              "<table border=\"0\" cellspacing=\"0\" cellpadding=\"0\" width=\"100%\">";
+          strControl = strControl + "<tr>";
+          strControl = strControl + "<td><input name=\"" +
+              strField_EName + "\" readonly type=\"text\" id=\"" +
+              strField_EName + "\" maxlength=\"20\" style='width:100%'></td>";
+          strControl = strControl + "<td style='width:1px'><input type=\"button\" value=\"..\" onClick=\"dateSelection(document.all['" + strField_EName + "'])\"></td>";
+          strControl = strControl + "</tr>";
+          strControl = strControl + "</table>";
+        }
+
+        if (strColspan.equals("1")) {
+          if (i % 2 == 0) {
+            results.append("<td width=\"15%\" bgcolor=\"" + bgcolor1 + "\">");
+            results.append( (String) tmp.get("FIELD_CNAME"));
+            results.append("</td>");
+            results.append("<td width=\"35%\" bgcolor=\"" + bgcolor2 + "\">");
+            results.append(strControl);
+            results.append("</td>");
+            results.append("</tr>");
+          }
+          else {
+            results.append("<tr>");
+            results.append("<td width=\"15%\" bgcolor=\"" + bgcolor1 + "\">");
+            results.append( (String) tmp.get("FIELD_CNAME"));
+            results.append("</td>");
+            results.append("<td width=\"35%\" bgcolor=\"" + bgcolor2 + "\">");
+            results.append(strControl);
+            results.append("</td>");
+          }
+        }
+        else if (strColspan.equals("2")) {
+          results.append("<tr>");
+          results.append("<td width=\"15%\" bgcolor=\"" + bgcolor1 + "\">");
+          results.append( (String) tmp.get("FIELD_CNAME"));
+          results.append("</td>");
+          results.append("<td colspan=\"3\" bgcolor=\"" + bgcolor2 + "\">");
+          results.append(strControl);
+          results.append("</td>");
+          results.append("</tr>");
+        }
+      }
+
+      results.append("</table>");
+      pageContext.getOut().print(results.toString());
+      results.setLength(0);
+      dict.destroy();
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+      throw new JspException("在输出业务信息时，出现异常！" + e.getMessage());
+    }
+
+    return (EVAL_PAGE);
+  }
+
+  private ArrayList fucGetStaticParam(String strType, String strAction,
+                                      String strTable, String strField) throws
+      FrameException {
+    ArrayList arrayRet = new ArrayList();
+    String sql = "select SM_USED_VIEW ID, SM_DISP_VIEW NAME from tsm_paravalue where SM_TABLE_ENAME='" +
+        strTable + "' and SM_FIELD_ENAME='" + strField + "' order by SM_ORDER";
+    if (strType.equals("1")) {
+      DynamicDict dict = new DynamicDict(1);
+      dict.m_ActionId = "NET_BUSINESS_1_101";
+      dict.setValueByName("SQL", sql);
+      dict = ActionDispatch.dispatch(dict);
+      if (dict.flag < 0) {
+        throw new FrameException("调用" + dict.m_ActionId + "出现异常，Exception=" +
+                                 dict.exception + "，Msg=" + dict.msg);
+      }
+      arrayRet = (ArrayList) dict.getValueByName("RECORDSET");
+    }
+    else if (strType.equals("2")) {
+
+    }
+    return arrayRet;
+  }
+
+  //以下为属性设置
+  public void setServ_Name(String value) {
+    this.serv_name = value;
+  }
+
+  public void setColor1(String value) {
+    this.color1 = value;
+  }
+
+  public void setColor2(String value) {
+    this.color2 = value;
+  }
+
+  public void setbgcolor1(String value) {
+    this.bgcolor1 = value;
+  }
+
+  public void setbgcolor2(String value) {
+    this.bgcolor2 = value;
+  }
+
+}

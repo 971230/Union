@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+
+<struts>
+    <constant name="struts.objectFactory" value="spring"/>
+    <constant name="struts.action.extension" value="do"/>
+<!--  	<constant name="struts.multipart.saveDir" value="c:/tmp"/> -->
+<!--  	<constant name="struts.multipart.maxSize" value="20480000"/> -->
+    <constant name="struts.action.excludePattern" value=".*validcode.*"/>
+		<constant name="struts.enable.DynamicMethodInvocation" value="true" />
+
+    <include file="struts-default.xml"/>
+
+    <package name="eop_default" extends="struts-default" namespace="/">
+
+        <interceptors>
+            <interceptor name="fileUpload"
+                         class="org.apache.struts2.interceptor.FileUploadInterceptor">
+                <param name="maximumSize">20480000</param>
+            </interceptor>
+            <interceptor-stack name="fileUploadStack">
+                <interceptor-ref name="fileUpload"/>
+                <interceptor-ref name="defaultStack"/>
+            </interceptor-stack>
+        </interceptors>
+
+        <global-results>
+
+            <!-- 后台信息提示页 -->
+            <result name="message" type="dispatcher">
+                <param name="location">/admin/message.jsp</param>
+            </result>
+            <result name="error" type="dispatcher">
+                <param name="location">/admin/error_message.jsp</param>
+            </result>
+            <result name="json_message" type="dispatcher">
+                <param name="location">/admin/json_message.jsp</param>
+            </result>
+            <result name="result_message" type="dispatcher">
+                <param name="location">/admin/result_message.jsp</param>
+            </result>
+        </global-results>
+
+
+        <global-exception-mappings>
+            <exception-mapping exception="java.lang.Exception" result="error"/>
+        </global-exception-mappings>
+
+    </package>
+    
+    <include file="struts/struts-info.xml"/>
+    <include file="struts-commission.xml"/>
+    <include file="struts/struts-inf.xml"/>
+    <include file="struts-base.xml"/>
+    <include file="struts-shop.xml"/>
+    <include file="struts-cms.xml"/>
+    <include file="struts/struts-order.xml"/>
+    <include file="struts-mbl.xml"/>
+    <include file="struts-commission.xml"/>
+    <include file="struts/struts-login.xml"/>
+    <include file="struts/struts-plugins.xml"/>
+    <include file="struts/struts-inventory.xml"/>
+    <include file="struts/struts-payment.xml"/>
+    <include file="struts/struts-drule.xml"/>
+    <include file="struts-task.xml" />
+    <include file="struts/struts-fj.xml"/>
+     <include file="struts/struts-hbo2o.xml"/>
+    <include file="struts/struts-llkj.xml"/>
+    <include file="struts/struts-cms.xml"/>
+    <include file="struts/struts-print.xml"/>
+    <include file="struts/cms-struts.xml"/>
+    <include file="struts/struts-ecsord.xml"/>
+    <include file="struts/struts-shpord.xml"/>
+    <include file="struts/struts-jsord.xml"/>
+    <include file="struts/struts-ecc.xml"/>
+    <include file="struts/struts-orderexp.xml"/>
+    <include file="struts/struts-community.xml"/>
+     <include file="struts/struts-card.xml"/>
+</struts>

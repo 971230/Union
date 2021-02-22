@@ -1,0 +1,808 @@
+package com.ztesoft.net.cache.common;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.model.Brand;
+import com.ztesoft.net.mall.core.model.BrandModel;
+import com.ztesoft.net.mall.core.model.Cat;
+import com.ztesoft.net.mall.core.model.CatComplex;
+import com.ztesoft.net.mall.core.model.CouponsSearch;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.GoodsType;
+import com.ztesoft.net.mall.core.model.SerializeHashMap;
+import com.ztesoft.net.mall.core.model.Tag;
+import com.ztesoft.net.mall.core.model.support.GoodsRefreshDTO;
+import com.ztesoft.net.mall.core.service.IBrandManager;
+import com.ztesoft.net.mall.core.service.IBrandModelManager;
+import com.ztesoft.net.mall.core.service.ICatComplexManager;
+import com.ztesoft.net.mall.core.service.ICouponManager;
+import com.ztesoft.net.mall.core.service.IGoodsAdjunctManager;
+import com.ztesoft.net.mall.core.service.IGoodsCatManager;
+import com.ztesoft.net.mall.core.service.IGoodsComplexManager;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.net.mall.core.service.IGoodsManagerN;
+import com.ztesoft.net.mall.core.service.IGoodsTypeManager;
+import com.ztesoft.net.mall.core.service.IPromotionActivityManager;
+import com.ztesoft.net.mall.core.service.ITagManager;
+
+public class GoodsNetCacheWrite extends GoodsNetCache{
+	
+	
+	protected IGoodsManager  goodsManager = null;
+	
+	protected IGoodsManagerN  goodsManagerN = null;
+
+	protected IGoodsComplexManager goodsComplexManager = null;
+
+	protected IGoodsAdjunctManager goodsAdjunctManager = null;
+
+	protected ICatComplexManager catComplexManager = null;
+	
+	protected IGoodsTypeManager goodsTypeManager = null;
+	
+	protected IBrandManager brandManager  = null;
+	
+	protected IGoodsCatManager goodsCatManager  = null;
+	
+	protected ICouponManager couponManager = null;
+
+	protected ITagManager tagManager = null;
+	
+	protected IPromotionActivityManager promotionActivityManager = null;
+	
+	protected IBrandModelManager brandModelManager = null;
+	
+	public void loadGood(Goods goods){
+		if(goods != null){
+			this.set(this.CACHE_GOODS+goods.getGoods_id(), goods);
+		}
+	}
+	
+	public void loadProduct(Goods product){
+		if(product != null){
+			this.set(this.CACHE_PRODUCTS+product.getProduct_id(), product);
+		}
+	}
+
+	/**
+	 * @title:商品缓存
+	 * @desc:只缓存商品基本信息、商品分类、商品品牌、商品类型、商品服务类型、商品会员售卖价格、商品规格产品列表，不包括详情页属性信息，详情信息
+	 */
+	public void loadAllGoods(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.listGoods();
+		for(Goods goods : list){
+			this.set(this.CACHE_GOODS+goods.getGoods_id(), goods);
+			List<Goods> products = goodsManager.listGoodsRelProducts(goods.getGoods_id());
+			if(products!=null && products.size()>0){
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(products);
+				this.set(this.CACHE_GOODS_REL_PRODUCTS+goods.getGoods_id(), serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title:商品缓存 sku维度
+	 * @desc:只缓存商品基本信息、商品分类、商品品牌、商品类型、商品服务类型、商品会员售卖价格、商品规格产品列表，不包括详情页属性信息，详情信息
+	 */
+	public void loadAllGoodsBySku(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.listGoods();
+		for(Goods goods : list){
+			this.set(this.CACHE_GOODS_SKU+goods.getSku(), goods);
+		}
+	}
+	
+	/**
+	 * 货品缓存
+	 */
+	public void loadAllProducts(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.listProducts();
+		for(Goods goods : list){
+			this.set(this.CACHE_PRODUCTS+goods.getProduct_id(), goods);
+		}
+	}
+	
+	/**
+	 * 缓存活动信息
+	 */
+	public void loadAllActivites(){
+		IPromotionActivityManager promotionActivityManager = SpringContextHolder.getBean("promotionActivityManager");
+		List<HashMap> acts = promotionActivityManager.listAllActivitySpecs();
+		for(HashMap act : acts){
+			this.set(this.CACHE_ACTIVITY+Const.getStrValue(act, "activity_code"), act);
+		}
+	}
+	
+	/**
+	 * 货品缓存-对应视图v_product
+	 */
+	public void loadAllVproductsByName(){
+		
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Map> list = this.goodsManager.listVproducts();
+		SerializeHashMap serialMap = new SerializeHashMap();
+		for(Map spec : list){
+			String name = (String) spec.get("name");
+			serialMap.setSpecMap(spec);
+			this.set(this.CACHE_PRODUCTS_NAME+name, serialMap);
+		}
+	}
+	
+	/**
+	 * @title:终端缓存
+	 * @desc:缓存STYPE_CODE= TERMINAL
+	 */
+	public void loadAllGoodsTerminal(){
+		String serv_type="5", serv_name="";//select stype_id serv_type from es_goods_stype where disabled = '0' AND stype_code='TERMINAL'
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.qrySysServs(serv_type, serv_name);
+		for(Goods goods : list){
+			this.set(this.GOODS_TERMINAL+goods.getGoods_id(), goods);
+		}
+	}	
+	
+	/**
+	 * @title:套餐缓存
+	 * @desc:缓存STYPE_CODE= OFFER
+	 */
+	public void loadAllGoodsTC(){
+		String serv_type="6", serv_name="";//select stype_id serv_type from es_goods_stype where disabled = '0' AND stype_code='OFFER'
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.qrySysServs(serv_type, serv_name);
+		for(Goods goods : list){
+			this.set(this.GOODS_TC+goods.getGoods_id(), goods);
+		}
+	}		
+	
+	/**
+	 * @title:合约机缓存
+	 * @desc:缓存STYPE_CODE= CONTRACT
+	 */
+	public void loadAllGoodsContract(){
+		String serv_type="7", serv_name="";//select stype_id serv_type from es_goods_stype where disabled = '0' AND stype_code='CONTRACT'
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.qrySysServs(serv_type, serv_name);
+		for(Goods goods : list){
+			this.set(this.GOODS_CONTRACT+goods.getGoods_id(), goods);
+		}
+	}
+	
+	/**
+	 * @title:缓存所有服务对应的商品
+	 * @desc:缓存STYPE_id = *
+	 */
+	public void loadAllGoodsByServ(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<HashMap> list = this.goodsManager.qryStypeList();
+		for(HashMap serv : list){
+			List<Goods> goods_list = this.goodsManager.qrySysServs((String)serv.get("key"), "");
+			SerializeList serializeList = new SerializeList();
+			serializeList.setObj(goods_list);
+			this.set(this.GOODS_SERV+serv.get("key"), serializeList);
+		}
+	}	
+	
+	/**
+	 * @title:商品促销
+	 * @desc:商品优惠促销信息
+	 */
+	public void loadAllGoodsPromotion(){
+		int pageNo = 1, pageSize = 10000;
+		String order = null;
+		this.couponManager = SpringContextHolder.getBean("couponManager");
+		CouponsSearch couponsSearch = new CouponsSearch();
+		List list = this.couponManager.list(couponsSearch,pageNo, pageSize, order).getResult();
+		for(Object obj : list){
+			HashMap map = (HashMap)obj;
+			this.set(this.GOODS_PROMOTION+map.get("pmt_id"), map);
+		}
+	}	
+
+	/**
+	 * @title:商品标签
+	 * @desc:缓存商品标签列表，精品推荐、热卖商品等
+	 */
+	public void loadAllGoodsTags(){
+		this.tagManager = SpringContextHolder.getBean("tagManager");
+		List<Tag> list = this.tagManager.list();
+		for(Tag tag : list){
+			this.set(this.GOODS_TAGS+tag.getTag_id(), tag);
+		}
+	}		
+
+	/**
+	 * @title:标签关联商品
+	 * @desc:缓存标签关联商品信息
+	 */
+	public void loadAllGoodsRelTags(){
+		this.tagManager = SpringContextHolder.getBean("tagManager");
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Tag> list = this.tagManager.list();
+		for(Tag tag : list){
+			List<Goods> l = this.goodsManager.listGoodsByRelTag(tag.getTag_id());
+			SerializeList serializeList = new SerializeList();
+			serializeList.setObj(l);
+			this.set(this.GOODS_TAGS_REL_GOODS+tag.getTag_id(), serializeList);
+		}
+	}
+	
+	/**
+	 * @title 绑定商品缓存
+	 * @desc 缓存商品绑定关联商品
+	 */
+	public void loadGoodsComplex(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		this.goodsComplexManager = SpringContextHolder.getBean("goodsComplexManager");
+		List list = this.goodsManager.listGoodsComplexNum();
+		for(int i=0;i<list.size();i++){
+			HashMap goods = (HashMap) list.get(i);
+			String goods_id = (String) goods.get("goods_id");
+			int complex_num = (Integer) goods.get("complex_num");
+			if(complex_num>0){
+				List complex = this.goodsComplexManager.listComplex(goods_id);
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(complex);
+				this.set(this.GOODS_BINDING+goods_id,serializeList);
+			}
+		}
+	}
+
+	/**
+	 * @title 商品配件缓存
+	 * @desc 缓存商品的配件信息
+	 */
+	public void loadGoodsAdjunct(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		this.goodsAdjunctManager = SpringContextHolder.getBean("goodsAdjunctManager");
+		List list = this.goodsManager.listGoodsAdjunctNum();
+		for(int i=0;i<list.size();i++){
+			HashMap goods = (HashMap) list.get(i);
+			String goods_id = (String) goods.get("goods_id");
+			Integer adj_num = (Integer) goods.get("adj_num");
+			if(adj_num>0){
+				List adjuncts = this.goodsAdjunctManager.list(goods_id);
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(adjuncts);
+				this.set(this.GOODS_ADJUNCT+goods_id,serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title 分类推荐商品缓存
+	 * @desc 缓存每一个分类的推荐商品信息
+	 */
+	public void loadCatComplex(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		this.catComplexManager = SpringContextHolder.getBean("catComplexManager");
+		List<CatComplex> list = this.catComplexManager.listCatComplex();
+		for(CatComplex catComplex : list){
+			String cat_id = catComplex.getCat_id();
+			List<Goods> catComplexList = this.goodsManager.listComplexGoodsByCatId(cat_id);
+			if(!catComplexList.isEmpty()){
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(catComplexList);
+				this.set(this.CATS_REMDGOODS+cat_id,serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title 分类商品缓存
+	 * @desc 缓存每一个分类的商品信息
+	 */
+	public void loadCatGoods(){
+		this.goodsCatManager = SpringContextHolder.getBean("goodsCatManager");
+		this.goodsManagerN = SpringContextHolder.getBean("goodsManagerN");
+		List<Map<String, String>> cats = this.goodsCatManager.getCatsByCond(null);
+		for(Map<String, String> cat:cats){
+			String cat_id = cat.get("cat_id");
+			List<Goods> goodsList = this.goodsManagerN.listGoodsByCatId(cat_id);
+			if(goodsList!=null && goodsList.size()>0){
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(goodsList);
+				this.set(this.CAT_GOODS_LIST+cat_id, serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title 广告缓存
+	 * @desc 缓存广告信息、包括：位置图片
+	 */
+	public void loadAdv(){
+		
+	}
+	
+	/**
+	 * @title 所有类型
+	 * @desc 缓存所有类型信息
+	 */
+	public void loadAllTypes(){
+		this.goodsTypeManager = SpringContextHolder.getBean("goodsTypeManager");
+		List<GoodsType> list = goodsTypeManager.listAll();
+		SerializeList serializeList = new SerializeList();
+		serializeList.setObj(list);
+		this.set(this.GOODS_TYPE_LIST,serializeList);
+	}
+	
+	public void loadAllCats(){
+		this.goodsCatManager = SpringContextHolder.getBean("goodsCatManager");
+		List<Cat> cats = this.goodsCatManager.listCats("-1");
+		for(Cat cat : cats){
+			this.set(this.GOODS_CAT_ID+cat.getCat_id(), cat);
+		}
+	}
+	
+	/**
+	 * @title 商品类型
+	 * @desc 缓存商品类型信息
+	 */
+	public void loadGoodsType(){
+		this.goodsTypeManager = SpringContextHolder.getBean("goodsTypeManager");
+		List<GoodsType> list = goodsTypeManager.listAll();
+		for(GoodsType type:list){
+			String type_id = type.getType_id();
+			this.set(this.GOODS_TYPE+type_id,type);
+		}
+	}
+	
+	/**
+	 * @title 商品类型
+	 * @desc 缓存商品类型信息
+	 */
+	public void loadProductType(){
+		this.goodsTypeManager = SpringContextHolder.getBean("goodsTypeManager");
+		List<GoodsType> list = goodsTypeManager.listAllProduct();
+		for(GoodsType type:list){
+			String type_id = type.getType_id();
+			this.set(this.PRODUCT_TYPE+type_id,type);
+		}
+	}
+	
+	/**
+	 * @title 商品品牌缓存
+	 * @desc 缓存商品品牌信息
+	 */
+	public void loadBrand(){
+		this.brandManager  = SpringContextHolder.getBean("brandManager");
+		List<Brand> list = brandManager.list();
+		for(Brand brand : list){
+			String brand_id = brand.getBrand_id();
+			this.set(this.GOODS_BRANDS+brand_id,brand);
+		}
+	}
+	
+	/**
+	 * @title 类型的品牌缓存
+	 * @desc 缓存类型的品牌信息
+	 */
+	public void loadBrandByTypeId(){
+		this.goodsTypeManager = SpringContextHolder.getBean("goodsTypeManager");
+		List<GoodsType> types = goodsTypeManager.listAll();
+		this.brandManager  = SpringContextHolder.getBean("brandManager");
+		if(types!=null && types.size()>0){
+			for(int i=0;i<types.size();i++){
+				GoodsType goodsType = types.get(i);
+				String type_id = goodsType.getType_id();
+				List<Brand> brands = brandManager.listByTypeId(type_id);
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(brands);
+				this.set(this.BRAND_LIST_BY_TYPE+type_id, serializeList);
+			}
+		}
+	}
+	
+	public void loadBrandModel(){
+		this.brandModelManager  = SpringContextHolder.getBean("brandModelManager");
+		List<BrandModel> brandModels = brandModelManager.getBrandModelListAll("-1");
+		if(brandModels!=null && brandModels.size()>0){
+			SerializeList serializeList = new SerializeList();
+			serializeList.setObj(brandModels);
+			this.set(this.BRAND_MODEL_LIST, serializeList);
+		}
+	}
+	
+	/**
+	 * @title 型号缓存
+	 * @desc 缓存型号信息
+	 */
+	public void loadBrandModelByBrandId(){
+		this.brandManager  = SpringContextHolder.getBean("brandManager");
+		this.brandModelManager  = SpringContextHolder.getBean("brandModelManager");
+		List<Brand> brands = brandManager.list();
+		if(brands!=null && brands.size()>0){
+			for(int i=0;i<brands.size();i++){
+				Brand brand = brands.get(i);
+				String brand_id = brand.getBrand_id();
+				List<BrandModel> models = brandModelManager.listModelByBrandId(brand_id);
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(models);
+				this.set(this.BRAND_MODEL_LIST+brand_id, serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title 缓存类型关联的分类列表
+	 * @desc 缓存类型关联的分类列表
+	 */
+	public void loadGoodsCatByTypeId(){
+		this.goodsTypeManager = SpringContextHolder.getBean("goodsTypeManager");
+		this.goodsCatManager  = SpringContextHolder.getBean("goodsCatManager");
+		List<GoodsType> types = goodsTypeManager.listAll();
+		if(types!=null && types.size()>0){
+			for(int i=0;i<types.size();i++){
+				GoodsType goodsType = types.get(i);
+				String type_id = goodsType.getType_id();
+				List<Cat> cats = goodsCatManager.listCatsByTypeId(type_id);
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(cats);
+				this.set(this.CAT_LIST_BY_TYPE+type_id, serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title 商品分类缓存
+	 * @desc 缓存商品分类信息，提供按会员缓存商品分类
+	 */
+	public void loadGoodsCatByLvId(){
+		this.goodsCatManager  = SpringContextHolder.getBean("goodsCatManager");
+		List lvList = goodsCatManager.listMemberLv();
+		for(Object lv:lvList){
+			String lv_id = (String) ((Map)lv).get("lv_id");
+			String cond = " and cat_id in(select cat_id from es_goods_lv_cat where lv_id="+lv_id+")";
+			List goodsCat = goodsCatManager.getCatsByWhereCond(cond);
+			if(!goodsCat.isEmpty()){
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(goodsCat);
+				this.set(this.GOODS_MEMBER_CATS+lv_id,serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title 查询分类商品
+	 * @desc 查询分类商品（门户展示一级分类下所有商品）
+	 */
+	public void loadGoodsByCatLvI(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		this.goodsCatManager  = SpringContextHolder.getBean("goodsCatManager");
+		List<Cat> listCat0 = (List)goodsCatManager.findCatNodesByParentid("0");//顶级分类
+		for(Cat Lv0tag : listCat0){
+			List<com.ztesoft.net.mall.core.model.Cat> listCatI = (List)goodsCatManager.findCatNodesByParentid(Lv0tag.getCat_id());//一级分类
+			for(Cat LvItag : listCatI){
+				List<Goods> cacheList = new ArrayList<Goods>();
+				List<Goods> list = goodsManager.listComplexGoodsByCatId(LvItag.getCat_id());
+				if(null!=list && list.size()>0){
+					cacheList.addAll(list);
+					SerializeList serializeList = new SerializeList();
+					serializeList.setObj(cacheList);
+					this.set(this.GOODS_CAT_I+LvItag.getCat_id(),serializeList);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * @title 缓存商品下的货品
+	 * @desc 
+	 */
+	public void loadGoodsRelProducts(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> goodsIds = goodsManager.listGoodsIds();
+		if(goodsIds!=null && goodsIds.size()>0){
+			for(int i=0;i<goodsIds.size();i++){
+				Goods goods = goodsIds.get(i);
+				if(StringUtils.isEmpty(goods.getGoods_id())) continue;
+				List<Goods> products = goodsManager.listGoodsRelProducts(goods.getGoods_id());
+				if(products!=null && products.size()>0){
+					SerializeList serializeList = new SerializeList();
+					serializeList.setObj(products);
+					this.set(this.CACHE_GOODS_REL_PRODUCTS+goods.getGoods_id(), serializeList);
+				}
+			}
+		}
+	}
+	
+	public void loadTerminalNumList(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<HashMap> terminalNumList = goodsManager.listTerminalNum();
+		SerializeList serializeList = new SerializeList();
+		serializeList.setObj(terminalNumList);
+		this.set(this.TERMINAL_NUM_LIST, serializeList);
+	}
+	
+	public void write(String profix, String goods_id, List datas){
+		SerializeList serializeList = new SerializeList();
+		serializeList.setObj(datas);
+		this.set(profix+goods_id, serializeList);
+	}
+	
+	/**
+	 * @title:限购数量
+	 * @desc：获取限购购物车已添加的数量
+	 */
+	public void setLimitBuy(String goods_id){
+		Object lBuyCount = this.get(this.LIMIT_GOODS+goods_id);
+		if(lBuyCount == null)
+			lBuyCount =0;
+		this.set(this.LIMIT_GOODS+goods_id,(Integer)lBuyCount+1);
+	}
+
+	public void refreshNewGoods(){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.listGoodsNew();
+		for(Goods goods : list){
+			this.set(this.CACHE_GOODS+goods.getGoods_id(), goods);
+			if(!StringUtils.isEmpty(goods.getSku())){
+				this.set(this.CACHE_GOODS_SKU+goods.getSku(), goods);
+			}
+			String goods_id = goods.getGoods_id();
+			List<Goods> products = goodsManager.listGoodsRelProducts(goods_id);
+			if(products!=null && products.size()>0){
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(products);
+				this.set(this.CACHE_GOODS_REL_PRODUCTS+goods.getGoods_id(), serializeList);
+			}
+		}
+		
+		List<Map> v_products = this.goodsManager.listVproducts();
+		SerializeHashMap serialMap = new SerializeHashMap();
+		for(Map product : v_products){
+			String name = (String) product.get("name");
+			serialMap.setSpecMap(product);
+			this.set(this.CACHE_PRODUCTS_NAME+name, serialMap);
+		}
+	}
+	
+	
+	/**
+	 * @title:商品缓存
+	 * @desc:只缓存商品基本信息、商品分类、商品品牌、商品类型、商品服务类型、商品会员售卖价格、商品规格产品列表，不包括详情页属性信息，详情信息
+	 */
+	public List<Goods> loadAllGoodsByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.listGoodsByCondition(goodsRefreshDTO);
+		for(Goods goods : list){
+			this.set(this.CACHE_GOODS+goods.getGoods_id(), goods);
+			List<Goods> products = goodsManager.listGoodsRelProducts(goods.getGoods_id());
+			if(products!=null && products.size()>0){
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(products);
+				this.set(this.CACHE_GOODS_REL_PRODUCTS+goods.getGoods_id(), serializeList);
+			}
+		}
+		return list;
+	}
+	
+	/**
+	 * @title:终端缓存
+	 * @desc:缓存STYPE_CODE= TERMINAL
+	 */
+	public void loadAllGoodsTerminalByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		String serv_type="5", serv_name="";//select stype_id serv_type from es_goods_stype where disabled = '0' AND stype_code='TERMINAL'
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.qrySysServsByCondition(serv_type, serv_name, goodsRefreshDTO);
+		for(Goods goods : list){
+			this.set(this.GOODS_TERMINAL+goods.getGoods_id(), goods);
+		}
+	}
+	
+	/**
+	 * 货品缓存
+	 */
+	public void loadAllProductsByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.listProductsByCondition(goodsRefreshDTO);
+		for(Goods goods : list){
+			this.set(this.CACHE_PRODUCTS+goods.getProduct_id(), goods);
+		}
+	}
+	/**
+	 * @title:套餐缓存
+	 * @desc:缓存STYPE_CODE= OFFER
+	 */
+	public void loadAllGoodsTCByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		String serv_type="6", serv_name="";//select stype_id serv_type from es_goods_stype where disabled = '0' AND stype_code='OFFER'
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.qrySysServsByCondition(serv_type, serv_name, goodsRefreshDTO);
+		for(Goods goods : list){
+			this.set(this.GOODS_TC+goods.getGoods_id(), goods);
+		}
+	}
+	
+	/**
+	 * @title:合约机缓存
+	 * @desc:缓存STYPE_CODE= CONTRACT
+	 */
+	public void loadAllGoodsContractByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		String serv_type="7", serv_name="";//select stype_id serv_type from es_goods_stype where disabled = '0' AND stype_code='CONTRACT'
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.qrySysServsByCondition(serv_type, serv_name,goodsRefreshDTO);
+		for(Goods goods : list){
+			this.set(this.GOODS_CONTRACT+goods.getGoods_id(), goods);
+		}
+	}
+	
+	/**
+	 * @title 绑定商品缓存
+	 * @desc 缓存商品绑定关联商品
+	 */
+	public void loadGoodsComplexByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		this.goodsComplexManager = SpringContextHolder.getBean("goodsComplexManager");
+		List list = this.goodsManager.listGoodsComplexNumByCondition(goodsRefreshDTO);
+		for(int i=0;i<list.size();i++){
+			HashMap goods = (HashMap) list.get(i);
+			String goods_id = (String) goods.get("goods_id");
+			int complex_num = (Integer) goods.get("complex_num");
+			if(complex_num>0){
+				List complex = this.goodsComplexManager.listComplex(goods_id);
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(complex);
+				this.set(this.GOODS_BINDING+goods_id,serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title 商品配件缓存
+	 * @desc 缓存商品的配件信息
+	 */
+	public void loadGoodsAdjunctByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		this.goodsAdjunctManager = SpringContextHolder.getBean("goodsAdjunctManager");
+		List list = this.goodsManager.listGoodsAdjunctNumByCondition(goodsRefreshDTO);
+		for(int i=0;i<list.size();i++){
+			HashMap goods = (HashMap) list.get(i);
+			String goods_id = (String) goods.get("goods_id");
+			Integer adj_num = (Integer) goods.get("adj_num");
+			if(adj_num>0){
+				List adjuncts = this.goodsAdjunctManager.list(goods_id);
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(adjuncts);
+				this.set(this.GOODS_ADJUNCT+goods_id,serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title:商品缓存 sku维度
+	 * @desc:只缓存商品基本信息、商品分类、商品品牌、商品类型、商品服务类型、商品会员售卖价格、商品规格产品列表，不包括详情页属性信息，详情信息
+	 */
+	public void loadAllGoodsBySkuByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> list = this.goodsManager.listGoodsParamsByCondition(goodsRefreshDTO);
+		for(Goods goods : list){
+			this.set(this.CACHE_GOODS_SKU+goods.getSku(), goods);
+		}
+	}
+	
+	
+	/**
+	 * 货品缓存-对应视图v_product
+	 */
+	public void loadAllVproductsByNameByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Map> list = this.goodsManager.listVproductsByCondition(goodsRefreshDTO);
+		SerializeHashMap serialMap = new SerializeHashMap();
+		for(Map spec : list){
+			String name = (String) spec.get("name");
+			serialMap.setSpecMap(spec);
+			this.set(this.CACHE_PRODUCTS_NAME+name, serialMap);
+		}
+	}
+
+	/**
+	 * @title:标签关联商品
+	 * @desc:缓存标签关联商品信息
+	 */
+	public void loadAllGoodsRelTagsByConditionAndGoodsInfo(List<Goods> goodsList, GoodsRefreshDTO goodsRefreshDTO){
+		if(null == goodsList) return;
+		for(Goods goods : goodsList){
+			final String cat_id = goods.getCat_id();
+			List<Goods> l = this.goodsManager.listGoodsByRelTagByCondition(cat_id,goodsRefreshDTO);
+			SerializeList serializeList = new SerializeList();
+			serializeList.setObj(l);
+			this.set(this.GOODS_TAGS_REL_GOODS+cat_id, serializeList);
+		}
+//		this.tagManager = SpringContextHolder.getBean("tagManager");
+//		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+//		List<Tag> list = this.tagManager.list();
+//		for(Tag tag : list){
+//			List<Goods> l = this.goodsManager.listGoodsByRelTagByCondition(tag.getTag_id(),goodsRefreshDTO);
+//			SerializeList serializeList = new SerializeList();
+//			serializeList.setObj(l);
+//			this.set(this.GOODS_TAGS_REL_GOODS+tag.getTag_id(), serializeList);
+//		}
+	}
+	
+	/**
+	 * @title 分类推荐商品缓存
+	 * @desc 缓存每一个分类的推荐商品信息
+	 */
+	public void loadCatComplexByConditionAndGoodsInfo(List<Goods> goodsList, GoodsRefreshDTO goodsRefreshDTO){
+		if(null == goodsList) return;
+		for(Goods goods : goodsList){
+			final String cat_id = goods.getCat_id();
+			if(StringUtils.isEmpty(cat_id)) continue;
+			List<Goods> catComplexList = this.goodsManager.listGoodsByCatIdByCondition(cat_id ,goodsRefreshDTO);
+			if(!catComplexList.isEmpty()){
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(catComplexList);
+				this.set(this.CATS_REMDGOODS+cat_id,serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title 查询分类商品
+	 * @desc 查询分类商品（门户展示一级分类下所有商品）
+	 */
+	public void loadGoodsByCatLvIByConditionAndGoodsInfo(List<Goods> goodsList,GoodsRefreshDTO goodsRefreshDTO){
+		if(null == goodsList) return;
+		for(Goods goods : goodsList){
+			final String cat_id = goods.getCat_id();
+			if(StringUtils.isEmpty(cat_id)) continue;
+			List<Goods> cacheList = new ArrayList<Goods>();
+			List<Goods> list = goodsManager.listGoodsByCatIdByCondition(cat_id,goodsRefreshDTO);
+			if(null!=list && list.size()>0){
+				cacheList.addAll(list);
+				SerializeList serializeList = new SerializeList();
+				serializeList.setObj(cacheList);
+				this.set(this.GOODS_CAT_I+cat_id,serializeList);
+			}
+		}
+	}
+	
+	/**
+	 * @title:缓存所有服务对应的商品
+	 * @desc:缓存STYPE_id = *
+	 */
+	public void loadAllGoodsByServByConditionAndGoodsInfo(List<Goods> goodsList, GoodsRefreshDTO goodsRefreshDTO){
+		if(null == goodsList) return;
+		for(Goods goods : goodsList){
+			final String stype_id = goods.getCat_id();
+			if(StringUtils.isEmpty(stype_id)) continue;
+			List<Goods> goods_list = this.goodsManager.qrySysServs(stype_id, "");
+			SerializeList serializeList = new SerializeList();
+			serializeList.setObj(goods_list);
+			this.set(this.GOODS_SERV+stype_id, serializeList);
+		}
+	}
+	
+	/**
+	 * @title 缓存商品下的货品
+	 * @desc 
+	 */
+	public void loadGoodsRelProductsByCondition(GoodsRefreshDTO goodsRefreshDTO){
+		this.goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<Goods> goodsIds = goodsManager.listGoodsIdsByCondition(goodsRefreshDTO);
+		if(goodsIds!=null && goodsIds.size()>0){
+			for(int i=0;i<goodsIds.size();i++){
+				Goods goods = goodsIds.get(i);
+				if(StringUtils.isEmpty(goods.getGoods_id())) continue;
+				List<Goods> products = goodsManager.listGoodsRelProducts(goods.getGoods_id());
+				if(products!=null && products.size()>0){
+					SerializeList serializeList = new SerializeList();
+					serializeList.setObj(products);
+					this.set(this.CACHE_GOODS_REL_PRODUCTS+goods.getGoods_id(), serializeList);
+				}
+			}
+		}
+	}
+	
+	
+}

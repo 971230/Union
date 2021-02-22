@@ -1,0 +1,769 @@
+package zte.net.iservice;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotation;
+import com.ztesoft.net.ecsord.params.ecaop.req.AmountPayReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.AppOrderCancelReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.AuditOrderCancelReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BandUserDataReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BroadbandOrderInfoRefundReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BroadbandOrderSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BroadbandPreSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BroadbandrefundReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BusiHandleAPPReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BusiHandleBSSReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BusiHandleCheckAPPReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BusiHandleCheckBSSReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.BusinessFeeQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.CancelOrderStatusQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.CardDataSyncBssReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.CardInfoGetAPPReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.CardInfoGetBSSReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.CbssrefundFeeQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.ChangeAppReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.ChangeSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.ChgcardnoPrecommitReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.CmcSmsSendReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.CustInfoOrderBindReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.DeliveryInfoUpdateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.DepositOrderReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.DownloadRecordReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.DwzCnCreateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.ElectronicVolumeSendReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.FtthPreSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.FuKaPreOpenReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.GeneralOrderQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.GroupOrderCardCheckReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.GroupOrderFixedNetworkCheckReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.GroupOrderSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.GuWangPreSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.InitiationCallReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.IntentOrderQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.KdNumberCheckReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.KdnumberQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.O2OStatusUpdateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.ObjectQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.ObjectReplacePreSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OldUserCheckReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderCancelPreCheckReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderCancelSubmitReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderChargeReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderDepositReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderDetailReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderFormalSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderGoodsQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderInfoListQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderInfoQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderInfoRefundUpdateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderInfoUpdateNewReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderInfoUpdateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderListActivateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderListByWorkQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderMakeupReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderPayPreCheckReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderPhotoInfoReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderPreSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderResultQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderStatusQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderStatusQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.PayResultAPPReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.PayWorkOrderUpdateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.PreCommitAPPReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.PromoteProductReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.QryBroadbandFeeReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.QryFtthObjIdReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.QueryCalllogReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.QueryGoodsListReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.QuerySelectNumberReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.RateStatusReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.RelSelectionNumReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.ResourCecenterAppReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.SchemeFeeQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.SelfspreadOrderinfoSynReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.TabuserBtocbSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.TradeQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.UserActivationReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.UserDataQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.WeiBoShortUrlReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.WisdomHomePreSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.WorkOrderListQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.WorkOrderMixOrdUpdateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.WorkOrderUpdateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.WotvBroadbandBindReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.WotvUserSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.WriteCardResultAPPReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.orderInfoBackfill.OrderInfoBackfillReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.orderReceiveBack.OrderReceiveBackReq;
+import com.ztesoft.net.ecsord.params.ecaop.resp.AmountPayResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.AppOrderCancelResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.AuditOrderCancelResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BandUserDataResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BroadbandOrderInfoRefundResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BroadbandOrderSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BroadbandPreSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BroadbandRefundResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BusiHandleAPPResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BusiHandleBSSResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BusiHandleCheckAPPResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BusiHandleCheckBSSResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.BusinessFeeQryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.CancelOrderStatusQryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.CardDataSyncBssResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.CardInfoGetAPPResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.CardInfoGetBSSResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.CbssrefundFeeQryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.ChangeAppResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.ChangeSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.ChgcardnoPrecommitResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.CmcSmsSendResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.CustInfoOrderBindResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.DeliveryInfoUpdateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.DepositSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.DownloadRecordResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.DwzCnCreateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.ElectronicVolumeSendResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.FtthPreSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.FuKaPreOpenResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.GeneralOrderQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.GoodsListQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.GroupOrderSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.GuWangPreSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.InitiationCallResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.IntentOrderQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.KdNumberCheckResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.KdnumberQryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.O2OStatusUpdateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.ObjectQryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.ObjectReplacePreSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OldUserCheckResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderCancelPreCheckResponse;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderCancelSubmitResponse;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderChargeResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderDetailResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderGoodsQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderInfoListQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderInfoQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderInfoRefundUpdateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderInfoUpdateNewResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderInfoUpdateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderListActivateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderListByWorkQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderMakeupResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderPhotoInfoResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderPreSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderResultQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderStatusQryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderStatusQueryResponse;
+import com.ztesoft.net.ecsord.params.ecaop.resp.PayPreCheckResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.PayResultAPPResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.PayWorkOrderUpdateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.PreCommitAPPResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.PromoteProductResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.QryBroadbandFeeResponse;
+import com.ztesoft.net.ecsord.params.ecaop.resp.QryFtthObjIDResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.QueryCalllogResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.RateStatusResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.ResourCecenterAppResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.SchemeFeeQryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.SelfspreadOrderinfoSynResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.TabuserBtocbSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.TradeQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.UserActivationResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.UserDataQryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.WeiBoShortUrlResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.WisdomHomeSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.WorkOrderListQueryResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.WorkOrderMixOrdUpdateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.WorkOrderUpdateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.WotvBroadbandBindResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.WotvUserSubResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.WriteCardResultAPPResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.orderInfoBackfill.OrderInfoBackfillRsp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.orderReceiveBack.OrderReceiveBackResp;
+
+import zte.net.ecsord.params.ecaop.req.ecaop_trades_sell_brd_sinp_open_app.AopBrdOpenAppReq;
+import zte.net.ecsord.params.ecaop.req.ecaop_trades_sell_brd_sinp_open_sub.AopBrdOpenSubReq;
+import zte.net.ecsord.params.ecaop.resp.CommAopApplyRsp;
+import zte.net.ecsord.params.ecaop.resp.CommAopSubmitRsp;
+import zte.net.ecsord.params.nd.req.OrderResultNotifyReq;
+import zte.net.ecsord.params.nd.resp.OrderResultNotifyRsp;
+
+
+
+@ZteSoftCommentAnnotation(type = "class", desc = "接口API能力封装", summary = "接口API能力封装")
+public interface IZJInfServices {
+	// public ZJTestInfResponse zjTestInf(ZJTestInfRequest req);
+
+	/**
+	 * 订单撤销申请接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单撤销申请接口", summary = "订单撤销申请接口")
+	public OrderCancelPreCheckResponse orderCancelPreCheck(OrderCancelPreCheckReq req) throws ApiBusiException;
+
+	/**
+	 * 订单正式撤单接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单正式撤单接口", summary = "订单正式撤单接口")
+	public OrderCancelSubmitResponse orderCancelSubmit(OrderCancelSubmitReq req) throws ApiBusiException;
+
+	/**
+	 * 宽带受理费用查询
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "宽带受理费用查询", summary = "宽带受理费用查询")
+	public QryBroadbandFeeResponse qryBroadbandFee(QryBroadbandFeeReq req) throws ApiBusiException;
+
+	/**
+	 * 宽带受理预提交接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "宽带受理预提交接口", summary = "宽带受理预提交接口")
+	public BroadbandPreSubResp broadbandPreSub(BroadbandPreSubReq req) throws ApiBusiException;
+
+	/**
+	 * 固网预提交接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "固网预提交接口", summary = "固网预提交接口")
+	public GuWangPreSubResp guWangPreSub(GuWangPreSubReq req) throws ApiBusiException;
+
+	/**
+	 * 融合预提交接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "融合预提交接口", summary = "融合预提交接口")
+	public GroupOrderSubResp groupOrderSub(GroupOrderSubReq req) throws ApiBusiException;
+	/**
+     * 智慧到家预提交接口
+     */
+    @ZteSoftCommentAnnotation(type = "method", desc = "智慧到家预提交接口", summary = "智慧到家预提交接口")
+    public WisdomHomeSubResp wisdomHomePreSub(WisdomHomePreSubReq req) throws ApiBusiException;
+    /**
+     * 押金预提交接口
+     */
+    @ZteSoftCommentAnnotation(type = "method", desc = "押金预提交接口", summary = "押金预提交接口")
+    public DepositSubResp depositOrderSub(DepositOrderReq req) throws ApiBusiException;
+	/**
+	 * 宽带户正式提交接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "宽带户正式提交接口", summary = "宽带户正式提交接口")
+	public BroadbandOrderSubResp broadbandOrdSub(BroadbandOrderSubReq req) throws ApiBusiException;
+
+	
+	/**
+	 * 电子卷发放接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "电子卷发放接口", summary = "电子卷发放接口")
+	public ElectronicVolumeSendResp electronicVolumeSend(ElectronicVolumeSendReq req) throws ApiBusiException;
+	/**
+	 * 根据不同模板对应的不同查询参数查询订单id
+	 *
+	 * @param requ
+	 *            请求参数
+	 * @return
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 * @throws Exception
+	 *
+	 * @date 2017年2月27日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单信息查询接口", summary = "订单信息查询接口")
+	public OrderInfoQueryResp queryOrderInfoByRequ(OrderInfoQueryReq requ) throws Exception;
+	/**
+	 * 根据不同模板对应的不同查询参数查询订单id组
+	 *
+	 * @param requ
+	 *            请求参数
+	 * @return
+	 *
+	 * @author 宋琪
+	 * @throws Exception
+	 *
+	 * @date 2017年6月1日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单信息列表查询接口", summary = "订单信息列表查询接口")
+	public OrderInfoListQueryResp queryOrderInfoListByRequ(OrderInfoListQueryReq requ) throws Exception;
+
+	/**
+	 * 工单列表查询
+	 * 
+	 * @author 宋琪
+	 * @date 2017年12月1日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单信息列表查询接口", summary = "订单信息列表查询接口")
+	public WorkOrderListQueryResp queryWorkOrderListByRequ(WorkOrderListQueryReq requ) throws Exception;
+
+	/**
+	 * 工单状态同步接口
+	 * 
+	 * @author 宋琪
+	 * @date 2017年12月1日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "工单状态同步接口", summary = "工单状态同步接口")
+	public WorkOrderUpdateResp updateWorkOrderUpdateByRequ(WorkOrderUpdateReq requ) throws Exception;
+
+	/**
+	 * 收费单同步接口
+	 * 
+	 * @author 宋琪
+	 * @date 2017年12月1日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "收费单同步接口", summary = "收费单同步接口")
+	public PayWorkOrderUpdateResp updatePayWorkOrderUpdateByRequ(PayWorkOrderUpdateReq requ) throws Exception;
+	/**
+	 * 2.3.8. 订单收单结果查询接口
+	 * 
+	 * @param requ
+	 *            请求参数
+	 * @author 宋琪
+	 * @throws Exception
+	 * @date 2017年6月29日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单收单结果查询接口", summary = "订单收单结果查询接口")
+	public OrderResultQueryResp queryOrderResultByRequ(OrderResultQueryReq requ) throws Exception;
+
+	/**
+	 * 根据订单信息更新订单状态
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单信息更新接口", summary = "订单信息更新接口")
+	public OrderInfoUpdateResp updateOrderInfoByRequ(OrderInfoUpdateReq requ) throws Exception;
+
+	/**
+	 * 根据订单信息更新订单状态 new
+	 * 
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 * @author songqi
+	 * @date 2017年10月19日 11:41:46
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单信息更新接口new", summary = "订单信息更新接口new")
+	public OrderInfoUpdateNewResp newUpdateOrderInfoByRequ(OrderInfoUpdateNewReq requ) throws Exception;
+
+	/**
+	 * 用户激活接口
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "用户激活接口", summary = "用户激活接口")
+	public UserActivationResp callUserActivation(UserActivationReq requ) throws Exception;
+
+	/**
+	 * 订单协议图片信息接口(接收码上购协议照片)
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单协议图片信息接口", summary = "订单协议图片信息接口")
+	public OrderPhotoInfoResp dealOrderPhotoInfoByRequ(OrderPhotoInfoReq requ) throws Exception;
+
+	/**
+	 * 客户资料与订单绑定接口
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "客户资料与订单绑定接口", summary = "客户资料与订单绑定接口")
+	public CustInfoOrderBindResp callCustInfoOrderBind(CustInfoOrderBindReq requ) throws Exception;
+
+	/**
+	 * 订单接收接口
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单接收接口", summary = "订单接收接口")
+	public OrderMakeupResp orderMakeupInsert(OrderMakeupReq requ) throws Exception;
+
+	/**
+	 * 业务办理校验接口(APP)
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "业务办理校验接口", summary = "业务办理校验接口")
+	public BusiHandleCheckAPPResp busiHandleCheckAPP(BusiHandleCheckAPPReq requ) throws Exception;
+
+	/**
+	 * 业务办理校验接口(BSS)
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "业务办理校验接口", summary = "业务办理校验接口")
+	public BusiHandleCheckBSSResp busiHandleCheckBSS(BusiHandleCheckBSSReq requ) throws Exception;
+
+	/**
+	 * 业务办理预提交接口(APP)
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "业务办理预提交接口", summary = "业务办理预提交接口")
+	public BusiHandleAPPResp busiHandleAPP(BusiHandleAPPReq requ) throws Exception;
+
+	/**
+	 * 业务办理预提交接口(BSS)
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "业务办理预提交接口", summary = "业务办理预提交接口")
+	public BusiHandleBSSResp busiHandleBSS(BusiHandleBSSReq requ) throws Exception;
+
+	/**
+	 * 订单收费接口
+	 *
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 *
+	 * @author liu.quan68@ztesoft.com
+	 *
+	 * @date 2017年2月28日
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单收费接口", summary = "订单收费接口")
+	public OrderChargeResp callOrderCharge(OrderChargeReq requ) throws Exception;
+
+	// 订单撤单接口
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单撤单接口", summary = "订单撤单接口")
+	public OrderInfoRefundUpdateResp orderInfoRefundUpdate(OrderInfoRefundUpdateReq req) throws ApiBusiException;
+
+	// 订单退款接口
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单退款接口(APP)", summary = "订单退款接口(APP)")
+	public BroadbandRefundResp broadbandRefund(BroadbandrefundReq req) throws ApiBusiException;
+
+	/**
+	 * 订单状态查询接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单状态查询接口", summary = "订单状态查询接口")
+	public OrderStatusQueryResponse orderStatusQuery(OrderStatusQueryReq req) throws ApiBusiException;
+
+	// 获取商品报文
+	@ZteSoftCommentAnnotation(type = "method", desc = "商品报文", summary = "商品报文")
+	public OrderGoodsQueryResp queryOrderGoodsByRequ(OrderGoodsQueryReq req) throws ApiBusiException;
+	
+	/**
+	 * 商品筛选接口
+	 * @param req
+	 * @return
+	 * @throws ApiBusiException
+	 */
+	public GoodsListQueryResp queryGoodsListByRequ(QueryGoodsListReq req) throws ApiBusiException;
+	/**
+	 * 订单支付前校验
+	 * @param req
+	 * @return
+	 * @throws ApiBusiException
+	 */
+	public PayPreCheckResp orderPayPreCheck(OrderPayPreCheckReq req) throws ApiBusiException;
+
+	/**
+	 * 订单退款接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单退款接口", summary = "订单退款接口")
+	public BroadbandOrderInfoRefundResp broadbandOrderInfoRefund(BroadbandOrderInfoRefundReq req) throws ApiBusiException;
+
+	/**
+	 * 订单正式提交接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单正式提交接口", summary = "订单正式提交接口")
+	public BroadbandOrderSubResp orderFormalSub(OrderFormalSubReq requ) throws Exception;
+
+	/**
+	 * 卡数据同步(省内)
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "卡数据同步接口(省内)", summary = "卡数据同步接口(省内)")
+	CardDataSyncBssResp cardDataSyncBss(CardDataSyncBssReq requ) throws Exception;
+
+	/**
+	 * 接收外系统预开户申请
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "接收外系统预开户申请", summary = "接收外系统预开户申请")
+	public OrderPreSubResp orderPreSub(OrderPreSubReq req) throws ApiBusiException;
+
+	// ECS省份业务用户提速续费改资料接口
+	@ZteSoftCommentAnnotation(type = "method", desc = "ECS省份业务用户提速续费改资料接口", summary = "ECS省份业务用户提速续费改资料接口")
+	public BandUserDataResp bandUserData(BandUserDataReq req) throws ApiBusiException;
+
+	/**
+	 * 卡信息获取
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单退款接口", summary = "订单退款接口")
+	public CardInfoGetAPPResp cardInfoGet(CardInfoGetAPPReq req) throws ApiBusiException;
+
+	/**
+	 * 白卡获取接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单退款接口", summary = "订单退款接口")
+	public CardInfoGetBSSResp getWhiteCardInfo(CardInfoGetBSSReq req) throws ApiBusiException;
+
+	/**
+	 * 订单预提交接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单预提交接口", summary = "订单预提交接口")
+	public PreCommitAPPResp preCommitService(PreCommitAPPReq req) throws ApiBusiException;
+
+	/**
+	 * 写卡结果通知接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单预提交接口", summary = "订单预提交接口")
+	public WriteCardResultAPPResp writeCardResultService(WriteCardResultAPPReq req) throws ApiBusiException;
+
+	/**
+	 * 沃TV新装接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "沃TV新装接口", summary = "沃TV新装接口")
+	public WotvUserSubResp wotvUserSub(WotvUserSubReq req) throws ApiBusiException;
+
+	/**
+	 * 沃TV新装接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "宽带绑沃TV接口", summary = "宽带绑沃TV接口")
+	public WotvBroadbandBindResp wotvBroadbandBind(WotvBroadbandBindReq req) throws ApiBusiException;
+
+	/**
+	 * 沃TV新装接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "光改预提交接口", summary = "光改预提交接口")
+	public FtthPreSubResp ftthPreSub(FtthPreSubReq req) throws ApiBusiException;
+
+	/**
+	 * 写卡结果通知接口
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "等待支付结果接口", summary = "等待支付结果接口")
+	public PayResultAPPResp PayResultService(PayResultAPPReq req) throws ApiBusiException;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "BSS订单状态查询接口", summary = "BSS订单状态查询接口")
+	public OrderStatusQryResp orderStatusQry(OrderStatusQryReq req) throws ApiBusiException;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "BSS返销订单状态查询接口", summary = "BSS返销订单状态查询接口")
+	public CancelOrderStatusQryResp cancelOrderStatusQry(CancelOrderStatusQryReq req) throws ApiBusiException;
+
+	// 2.2.3 产品受理接口
+	@ZteSoftCommentAnnotation(type = "method", desc = "产品受理接口", summary = "产品受理接口")
+	public PromoteProductResp promoteProduct(PromoteProductReq req) throws ApiBusiException;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "CBSS返销费用查询接口", summary = "CBSS返销费用查询接口")
+	public CbssrefundFeeQryResp cbssrefundFeeQry(CbssrefundFeeQryReq req) throws ApiBusiException;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "BSS工号转CB工号接口", summary = "BSS工号转CB工号接口")
+	public TabuserBtocbSubResp tabuserBtocbSub(TabuserBtocbSubReq req) throws ApiBusiException;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "二次选占接口", summary = "二次选占接口")
+	public ResourCecenterAppResp resourCecenterApp(ResourCecenterAppReq req) throws ApiBusiException;
+	@ZteSoftCommentAnnotation(type = "method", desc = "成卡卡号校验", summary = "二次选占接口")
+    public  ResourCecenterAppResp checkCreateCard(GroupOrderCardCheckReq req) throws ApiBusiException;
+	@ZteSoftCommentAnnotation(type = "method", desc = "终端串号校验", summary = "二次选占接口")
+    public ResourCecenterAppResp checkApiTerminal(GroupOrderFixedNetworkCheckReq req) throws ApiBusiException;
+	/**
+	 * @author 宋琪 2017年7月5日 17:34:41
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "客户下用户数据查询接口", summary = "客户下用户数据查询接口")
+	public UserDataQryResp userDataQry(UserDataQryReq req) throws ApiBusiException;
+
+	// 码上购状态同步接口
+	@ZteSoftCommentAnnotation(type = "method", desc = "码上购状态同步接口", summary = "码上购状态同步接口")
+	public O2OStatusUpdateResp o2OStatusUpdate(O2OStatusUpdateReq req) throws ApiBusiException;
+
+	// 活动费用查询接口
+	@ZteSoftCommentAnnotation(type = "method", desc = "活动费用查询接口", summary = "活动费用查询接口")
+	public SchemeFeeQryResp schemeFeeQry(SchemeFeeQryReq req) throws ApiBusiException;
+
+	// 营业费用查询接口
+	@ZteSoftCommentAnnotation(type = "method", desc = "活动费用查询接口", summary = "活动费用查询接口")
+	public BusinessFeeQryResp businessFeeQry(BusinessFeeQryReq req) throws ApiBusiException;
+
+	// 获取宽带账号/编码
+	@ZteSoftCommentAnnotation(type = "method", desc = "获取宽带账号/编码", summary = "获取宽带账号/编码")
+	public KdnumberQryResp kdnumberQry(KdnumberQryReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "光猫ID获取", summary = "光猫ID获取")
+	public QryFtthObjIDResp qryFtthObjID(QryFtthObjIdReq req)throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "新老客户校验", summary = "新老客户校验")
+	public OldUserCheckResp oldUserCheck(OldUserCheckReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "宽带账号校验", summary = "宽带账号校验")
+	public KdNumberCheckResp kdNumberCheck(KdNumberCheckReq req) throws ApiBusiException;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "赠品查询接口", summary = "赠品查询接口")
+	public ObjectQryResp objectQry(ObjectQryReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "宽带新装、移机、修障进度查询接口", summary = "宽带新装、移机、修障进度查询接口")
+	public RateStatusResp rateStatusQry(RateStatusReq req) throws ApiBusiException;
+
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "宽带账号校验", summary = "宽带账号校验")
+	public OrderDetailResp queryOrderDetailByRequ(OrderDetailReq requ) throws Exception;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "工单相关订单列表查询", summary = "工单相关订单列表查询")
+	public OrderListByWorkQueryResp queryOrderListByWork(OrderListByWorkQueryReq requ) throws Exception;
+
+	
+	/**
+	 * 固移融合单工单状态更新接口
+	 * @param requ
+	 * @return
+	 * @throws Exception
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "固移融合单工单状态更新接口", summary = "固移融合单工单状态更新接口")
+	public WorkOrderMixOrdUpdateResp doWorkOrderMixOrdUpdate(WorkOrderMixOrdUpdateReq requ) throws Exception;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "用户缴费接口（支持4G用户）", summary = "用户缴费接口（支持4G用户）")
+	public AmountPayResp paymentByBSS (AmountPayReq req) throws Exception;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "意向单查询接口", summary = "意向单查询接口")
+	public IntentOrderQueryResp intentOrderQuery(IntentOrderQueryReq req)throws Exception;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "行销APP撤单接口", summary = "行销APP撤单接口")
+	public AppOrderCancelResp cancelOrderByRequ(AppOrderCancelReq requ) throws Exception ;
+
+	/**
+	 * 冰淇淋宽带预提交
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "冰淇淋宽带预提交", summary = "冰淇淋宽带预提交")
+	public CommAopApplyRsp doAopBrdOpenApp(AopBrdOpenAppReq req) throws ApiBusiException;
+	
+	/**
+	 * 冰淇淋宽带正式提交
+	 * @param req
+	 * @return
+	 * @throws ApiBusiException
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "冰淇淋宽带正式提交", summary = "冰淇淋宽带正式提交")
+	public CommAopSubmitRsp doAopBrdOpenSub(AopBrdOpenSubReq req) throws ApiBusiException;
+	
+	/**
+	 * 订单生产结果通知外围
+	 * @param req
+	 * @return
+	 * @throws ApiBusiException
+	 */
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单生产结果通知外围", summary = "订单生产结果通知外围")
+	public OrderResultNotifyRsp doOrderResultNotify(OrderResultNotifyReq req) throws ApiBusiException;
+	
+//	@ZteSoftCommentAnnotation(type = "method", desc = "行销APP撤单接口", summary = "行销APP撤单接口")
+//	public AppOrderCancelResp cancelOrderByRequ(AppOrderCancelReq requ) throws Exception ;
+	
+	
+	
+	
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "分享卡 副卡新开户预提交接口", summary = "分享卡 副卡新开户预提交接口")
+	public FuKaPreOpenResp kuKaPreOpen(FuKaPreOpenReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "统一补换卡预提交", summary = "统一补换卡预提交")
+	public ChangeAppResp changeAppPre(ChangeAppReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "统一补换卡正式提交", summary = "统一补换卡正式提交")
+	public ChangeSubResp changeSub(ChangeSubReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单中心补换卡预提交", summary = "订单中心补换卡预提交")
+	public ChgcardnoPrecommitResp chgcardnoPrecommit(ChgcardnoPrecommitReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "稽核退款", summary = "稽核退款")
+	public AuditOrderCancelResp auditOrderCancel(AuditOrderCancelReq requ);
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单中心自传播平台订单同步接口", summary = "订单中心自传播平台订单同步接口")
+	public SelfspreadOrderinfoSynResp selfspreadOrderinfoSyn(SelfspreadOrderinfoSynReq req);
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "商品预定回填接口", summary = "商品预定回填接口")
+	public OrderReceiveBackResp orderReceiveBack(OrderReceiveBackReq req);
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "交易结果查询接口", summary = "交易结果查询接口")
+	public TradeQueryResp tradeQuery (TradeQueryReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "短网址生成接口", summary = "短网址生成接口")
+	public DwzCnCreateResp dwzCnCreate(DwzCnCreateReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "异网短信接口", summary = "异网短信接口")
+	public CmcSmsSendResp cmcSmsSend(CmcSmsSendReq req) throws ApiBusiException, Exception;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "订单信息回填接口", summary = "订单信息回填接口")
+	public OrderInfoBackfillRsp orderInfoBackfill(OrderInfoBackfillReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "自动外呼IVR请求接口", summary = "自动外呼IVR请求接口")
+	public InitiationCallResp initiationCall (InitiationCallReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "外呼记录查询接口", summary = "外呼记录查询接口")
+	public QueryCalllogResp queryCalllog (QueryCalllogReq req) throws ApiBusiException;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "外呼录音下载接口", summary = "外呼录音下载接口")
+	public DownloadRecordResp downloadRecord (DownloadRecordReq req) throws ApiBusiException;
+
+	@ZteSoftCommentAnnotation(type = "method", desc = "终端更换预提交", summary = "终端更换预提交")
+	public ObjectReplacePreSubResp objectReplace(ObjectReplacePreSubReq req) ;
+	
+	@ZteSoftCommentAnnotation(type = "method", desc = "押金业务收单接口", summary = "押金业务收单接口")
+	public OrderMakeupResp orderDepositInsert(OrderDepositReq requ) throws Exception;
+	
+
+    @ZteSoftCommentAnnotation(type = "method", desc = "简单订单信息查询", summary = "简单订单信息查询")
+    public OrderListActivateResp queryOrderActivate(OrderListActivateReq req);
+    
+    @ZteSoftCommentAnnotation(type = "method", desc = "物流信息跟新接口", summary = "物流信息跟新接口")
+    public	DeliveryInfoUpdateResp deliveryInfoUpdate(DeliveryInfoUpdateReq req);
+    
+    @ZteSoftCommentAnnotation(type = "method", desc = "预、选占号码查询接口", summary = "号码资源释放接口")
+    public ResourCecenterAppResp QuerySelectNumber(QuerySelectNumberReq req)throws Exception;
+    
+    @ZteSoftCommentAnnotation(type = "method", desc = "号码手动释放", summary = "号码资源释放接口")
+    public ResourCecenterAppResp RelSelectionNum(RelSelectionNumReq req)throws Exception;
+    
+    
+    @ZteSoftCommentAnnotation(type = "method", desc = "微博短链接", summary = "微博短链接")
+    public WeiBoShortUrlResp getShortUrl (WeiBoShortUrlReq req);
+    
+    /*@ZteSoftCommentAnnotation(type = "method", desc = "裸机销售", summary = "裸机销售")
+    public MobileComteSaleResp mobileComteSale(MobileComteSaleReq req);*/
+    
+    @ZteSoftCommentAnnotation(type = "method", desc = "通用收单接口", summary = "通用收单接口")
+    public	GeneralOrderQueryResp generalOrderQuery(GeneralOrderQueryReq req);
+
+}

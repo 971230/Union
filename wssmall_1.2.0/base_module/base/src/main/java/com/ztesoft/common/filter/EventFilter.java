@@ -1,0 +1,324 @@
+package com.ztesoft.common.filter;
+
+import com.powerise.ibss.framework.FrameException;
+import com.ztesoft.common.util.ContextHelper;
+import com.ztesoft.ibss.ct.vo.PageLogVO;
+import org.apache.commons.lang.StringUtils;
+
+import javax.servlet.*;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
+
+/**
+ * @author Reason.Yea
+ * @version Created Jul 6, 2012
+ */
+/*
+	--insert service
+	insert into tfm_services (SERVICE_NAME, MODULE_ID, SERVICE_DESC, CLASS_NAME)
+	values ('PAGE_LOG', 'WT', '记录用户访问日志', 'com.ztesoft.ibss.ct.bo.PageLogBO');
+	-- Create sequence 
+	create sequence s_twb_event	minvalue 1 	maxvalue 999999 start with 1 	increment by 1	cycle;
+	
+	<filter>
+		<filter-name>EventFilter</filter-name>
+		<filter-class>com.ztesoft.common.filter.EventFilter</filter-class>
+		<init-param>
+			<param-name>noEventPage</param-name>
+			<param-value>
+				404.jsp,500.jsp
+			</param-value>
+		</init-param>
+	</filter>
+	
+	<filter-mapping>
+		<filter-name>EventFilter</filter-name>
+		<url-pattern>/tr.gif</url-pattern>
+	</filter-mapping>
+ */
+public class EventFilter implements Filter {
+	
+	private FilterConfig filterConfig;
+	private String[] noFilterPages ;
+	
+	@Override
+	public void doFilter(ServletRequest arg0, ServletResponse arg1, FilterChain chain) throws IOException, ServletException {
+		HttpServletRequest request = (HttpServletRequest) arg0;
+		HttpServletResponse response = (HttpServletResponse) arg1;
+		if(!checkNoise(request, response)){
+			chain.doFilter(request, response);
+			return;
+		}
+		try{
+			doEventService(request,response);
+		}catch (Exception e) {
+		}
+		chain.doFilter(request, response);
+	}
+
+	private void doEventService(HttpServletRequest request, HttpServletResponse response) throws UnsupportedEncodingException, FrameException {
+		Map map = new HashMap();
+		String ip = ContextHelper.getRequestIp(request) ;
+		map.put(PageLogVO.PARAM_VISIT_IP, ip ) ;
+		String channel = request.getParameter("channel");
+		if("wap".equals(channel)){
+			getWapClientData(map,request);
+		}else{
+			Enumeration paramNames = request.getParameterNames();
+			while (paramNames.hasMoreElements()) {
+				String paramName = (String) paramNames.nextElement();
+				String[] paramValues = request.getParameterValues(paramName);
+				if (paramValues.length >= 1) {
+					String paramValue = paramValues[0];
+					paramValue = new String(paramValue.getBytes("iso-8859-1"),"UTF-8");
+					if (paramValue.length() != 0) {
+						map.put(paramName, paramValue);
+					}
+				}
+			}
+		}
+		//logger.info("map:::"+map);
+		if(!map.containsKey(PageLogVO.PARAM_SESSION_ID)){//页面生成session_id
+			map.put(PageLogVO.PARAM_SESSION_ID, request.getSession().getId());
+		}
+		
+		PageLogVO log = new PageLogVO();
+		processSession(request,map);
+		log.loadFromHashMap(map);
+		log.save();
+	}
+	
+	private void getWapClientData(Map map, HttpServletRequest request) {
+		String strSourceURL = request.getHeader("referer");
+		String agent = request.getHeader("User-Agent");
+		Cookie [] c=request.getCookies();
+        StringTokenizer st = new StringTokenizer(agent, ";");
+        String[] agents = agent.split(";") ;
+        String browser = "";
+        String os = "";
+		String cookie_id="";
+		String mob_regex = "IPAD,IPHONE,ANDROID,MIDP,OPERA MOBI,OPERA MINI,BLACKBERRY,HP IPAQ,IEMOBILE, MSIEMOBILE,WINDOWS PHONE,SYMBIAN,WINDOWS CE,WINDOWSCE,SMARTPHONE,WEBOS, PALM,UCWEB";
+		String [] browers = {"se360","se","maxthon","qq","tt","theworld","cometbrowser","greenbrowser","ie","chrome","netscape","firefox","opera","safari","konq","uc"};
+		String mob_flag ="1";
+		String win_regex = ".*(Windows).*";
+		String [] r = mob_regex.split(",");
+		for(int i=0;i<r.length;i++){
+			String b = r[i];
+			if((agent.toUpperCase()).indexOf(b)>-1) {
+				 mob_flag="0";
+				 break;
+			}
+		}
+		if(agent.matches(win_regex)) {
+			String windows = agent.substring(agent.indexOf("Windows"));
+			String [] win_v =  windows.split(" ");
+			if(win_v[1].equals("NT")){
+				if(win_v[2].indexOf("5.0")>-1){
+					os="Windows 2000";
+				}else if(win_v[2].indexOf("5.1")>-1){
+					os="Windows xp";
+				}else if(win_v[2].indexOf("6.0")>-1){
+					os="Windows vista";
+				}else if(win_v[2].indexOf("6.1")>-1){
+					os="Windows 7";
+				}else{
+					os="Windows nt";
+				}
+			}else if(win_v[1].equals("9x")){
+				os="Windows me";
+			}else{
+				os="Windows "+win_v[1];
+			}
+		}
+		if(os!=null&&!"".equals("")){
+		for(int i=0;i<browers.length;i++){
+			if(browers[i].equals("se360")){
+				if(agent.matches(".*se360.*")){
+					browser=agent.substring(agent.indexOf("se360"),agent.indexOf(" "));
+					break;
+				}
+			}else if(browers[i].equals("se")){
+				if(agent.matches(".*se.*")){
+					browser=agent.substring(agent.indexOf("se"),agent.indexOf(" "));
+					break;
+				}
+			}else if(browers[i].equals("qq")){
+				if(agent.matches(".*qq.*")){
+					browser=agent.substring(agent.indexOf("qq"),agent.indexOf(" "));
+					break;
+				}
+			}else if(browers[i].equals("tt")){
+				if(agent.matches(".*tt.*")){
+					browser=agent.substring(agent.indexOf("tt"),agent.indexOf(" "));
+					break;
+				}
+			}else if(browers[i].equals("safari")){
+				if(agent.matches(".*safari.*")){
+					browser=agent.substring(agent.indexOf("safari"),agent.indexOf(" "));
+					break;
+				}
+			}else if(browers[i].equals("konq")){
+				if(agent.matches(".*konq.*")){
+					browser=agent.substring(agent.indexOf("konq"),agent.indexOf(" "));
+					break;
+				}
+				
+			}else if(browers[i].equals("netscape")){
+				if(agent.matches(".*netscape.*")){
+					browser=agent.substring(agent.indexOf("netscape"),agent.indexOf(" "));
+					break;
+				}
+			}else{
+				if((agent.toUpperCase()).indexOf(browers[i].toUpperCase())>-1){
+					int start = (agent.toUpperCase()).indexOf(browers[i].toUpperCase());
+					int end = agent.indexOf(";",start);
+					if(agent.indexOf(" ",start)<end)
+					{
+						end=agent.indexOf(" ",start);
+					}
+					
+					if(end==-1){
+						browser=agent.substring(start);
+					}else{
+						browser=agent.substring(start,end);
+					}
+					break;
+				}
+			}
+		}
+		}
+		if(os==null||"".equals(os)){
+			if(agent.indexOf("JUC")>-1){
+				os="Android "+agents[2];
+			}else {
+				os=agents[2];
+			}
+		}
+		
+		if(browser==null||"".equals(browser)){
+			browser=agent.substring(0,agent.indexOf(" ("));
+		}
+		if(c!=null){
+			for(int i=0;i<c.length;i++){
+				Cookie cookie = c[i];
+				if("JSESSIONID".equals(cookie.getName())){
+					//cookie_id = cookie.getValue();
+				}
+				if("WSSNETID".equals(cookie.getName())){
+					cookie_id = cookie.getValue();
+				}			
+			}
+		}
+		if(cookie_id==null)cookie_id=String.valueOf(System.currentTimeMillis());
+		String user_id = "";//"189"+(String.valueOf(System.currentTimeMillis())).substring(0,8);
+		String area_code = "";//"020";
+		map.put("f", "0");
+		map.put("os", os);
+		map.put("browser", browser);
+		map.put("if_logined", "0");//cookie
+		map.put("c_id", cookie_id);//cookie id// 参照前台
+		map.put("area_code", area_code);//cookie    >应该是前台传
+		map.put("user_id", user_id);// 参照前台   >应该是前台传
+		map.put("user_no", user_id);// 参照前台   >应该是前台传
+		map.put("user_type", "");// 参照前台    >应该是前台传
+		map.put("s_id", request.getRequestedSessionId());//session_id
+		map.put("visit_url", strSourceURL);
+		map.put("screen", "");//?
+		map.put("identify_id", String.valueOf(System.currentTimeMillis()));// 参照前台
+		map.put("source_url", request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+"/index.html");// 参照前台//
+		map.put("terminal_type", mob_flag);// 参照前台
+		
+		if(agents != null && agents.length>4){
+			String tn = agents[4].trim().toLowerCase() ;
+			if(tn.indexOf("build") != -1){
+				tn = tn.substring(0, tn.indexOf("build")).trim() ;
+			}else{
+				tn ="u" ;
+			}
+			map.put("terminal_name",tn );
+		}
+//		logger.info(map);
+		
+	}
+
+	private void processSession(HttpServletRequest request, Map map) {
+		HttpSession session = request.getSession();
+		String strSeqNo = session.getAttribute("SEQ_NO") == null ? "1" : (String) session.getAttribute("SEQ_NO");
+		if (strSeqNo.equals("")) strSeqNo = "1";
+		map.put(PageLogVO.PARAM_SEQU, strSeqNo);
+		
+		HashMap user = (HashMap) session.getAttribute("user")==null ? 
+				(HashMap) session.getAttribute("USER_BEFORE_LOGIN"):(HashMap) session.getAttribute("user");
+		if(user!=null){
+			String vLogin_Name = user.get("LOGIN_NAME") == null ? "": (String) user.get("LOGIN_NAME");
+			String vLOGIN_TYPE = user.get("LOGIN_TYPE") == null ? "": (String) user.get("LOGIN_TYPE");
+			String vUSER_NO = user.get("USER_NO") == null ? "" : (String) user.get("USER_NO");
+			String vLOGIN_PROD_NO = user.get("PRODUCT_ID") == null ? "": (String) user.get("PRODUCT_ID");
+			String vLOGIN_AREA_CODE = user.get("AREA_CODE") == null ? "": (String) user.get("AREA_CODE");
+			String vOPR_PROD_NO = user.get("PRODUCT_ID") == null ? "": (String) user.get("PRODUCT_ID");
+			String vCUSTGROUP = user.get("CUST_GROUP") == null ? "": (String) user.get("CUST_GROUP");
+			
+			map.put(PageLogVO.PARAM_USER_NO, vUSER_NO);
+			map.put(PageLogVO.PARAM_LOGIN_AREA_CODE, vLOGIN_AREA_CODE);
+			map.put(PageLogVO.PARAM_LOGIN_PROD_NO, vLOGIN_PROD_NO);
+			map.put(PageLogVO.PARAM_LOGIN_TYPE, vLOGIN_TYPE);
+			map.put(PageLogVO.PARAM_LOGON_NAME, vLogin_Name);
+			map.put(PageLogVO.PARAM_OPR_AREA_CODE, vLOGIN_AREA_CODE);
+			map.put(PageLogVO.PARAM_OPR_PROD_NO, vOPR_PROD_NO);
+			map.put(PageLogVO.PARAM_OPR_USER_NO, vUSER_NO);
+			map.put(PageLogVO.PARAM_CUSTGROUP, vCUSTGROUP);
+			
+			//客户列表
+			ArrayList cust_list = (ArrayList) user.get("CUST_LIST");
+			if (cust_list!=null && cust_list.size() > 0 && cust_list.get(0)!=null) {
+				
+				HashMap custInfo = (HashMap) cust_list.get(0);
+				String vCUSTBRAND = custInfo.get("cust_brand") == null ? "": (String) custInfo.get("cust_brand");
+
+				map.put(PageLogVO.PARAM_CUSTBRAND, vCUSTBRAND);
+				
+			}
+		}
+		int nextSeqNo = Integer.parseInt(strSeqNo)+1;
+		session.setAttribute("SEQ_NO", String.valueOf(nextSeqNo));
+	}
+
+	/**
+	 * 屏蔽无须记录访问事件的数据，例如
+	 * 1.无用界面：404.jsp，500.jsp
+	 * @return
+	 */
+	private boolean checkNoise(HttpServletRequest request, HttpServletResponse response) {
+		//逻辑处理
+    	String vistUrl = request.getParameter(PageLogVO.PARAM_VISIT_URL) ;
+    	if(StringUtils.isEmpty(vistUrl)){
+    		vistUrl= request.getRequestURI();
+    	}
+    	
+		for (int i = 0; i < noFilterPages.length; i++) {
+			if(vistUrl.indexOf(noFilterPages[i])>-1){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public void init(FilterConfig arg0) throws ServletException {
+		this.filterConfig = arg0;
+		String pages = this.filterConfig.getInitParameter("noEventPage");
+    	if(!pages.equals("")){
+    		this.noFilterPages=pages.split(",");
+    	}
+	}
+	
+	@Override
+	public void destroy() {
+		
+	}
+}

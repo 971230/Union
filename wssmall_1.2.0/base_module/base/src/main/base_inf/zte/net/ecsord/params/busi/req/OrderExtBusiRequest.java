@@ -1,0 +1,1290 @@
+package zte.net.ecsord.params.busi.req;
+
+import params.ZteBusiRequest;
+import params.ZteResponse;
+import rule.IZteBusiRequestHander;
+import zte.net.common.annontion.context.request.RequestBeanAnnontion;
+import zte.net.common.annontion.context.request.RequestFieldAnnontion;
+import zte.net.common.params.req.ZteInstQueryRequest;
+import zte.net.common.params.req.ZteInstUpdateRequest;
+import zte.net.common.params.resp.QueryResponse;
+import zte.net.treeInst.RequestStoreExector;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.framework.database.NotDbField;
+
+/**
+ * 
+ * @author wu.i 订单数对象
+ * 
+ */
+@RequestBeanAnnontion(primary_keys = "order_id", table_name = "es_order_ext", service_desc = "订单扩展信息横表")
+public class OrderExtBusiRequest extends ZteBusiRequest<ZteResponse> implements IZteBusiRequestHander {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	@RequestFieldAnnontion()
+	private String order_id;
+	@RequestFieldAnnontion()
+	private String plat_type;
+	@RequestFieldAnnontion()
+	private String out_tid;
+	@RequestFieldAnnontion()
+	private String order_num;
+	@RequestFieldAnnontion()
+	private String src_out_tid;
+	@RequestFieldAnnontion()
+	private String wm_isreservation_from;
+	@RequestFieldAnnontion()
+	private String tid_time;
+	@RequestFieldAnnontion()
+	private String is_adv_sale;
+	@RequestFieldAnnontion()
+	private String tid_category;
+	@RequestFieldAnnontion()
+	private String order_from;
+	@RequestFieldAnnontion()
+	private String order_channel;
+	@RequestFieldAnnontion()
+	private String abnormal_status;
+	@RequestFieldAnnontion()
+	private String shipping_quick;
+	@RequestFieldAnnontion()
+	private String col2;
+	@RequestFieldAnnontion()
+	private String col3;
+	@RequestFieldAnnontion()
+	private String col4;
+	@RequestFieldAnnontion()
+	private String col5;
+	@RequestFieldAnnontion()
+	private String col6;
+	@RequestFieldAnnontion()
+	private String col7;
+	@RequestFieldAnnontion()
+	private String order_model;
+	@RequestFieldAnnontion()
+	private String pending_reason;
+	@RequestFieldAnnontion()
+	private String lock_time;
+	@RequestFieldAnnontion()
+	private String lock_user_id;
+	@RequestFieldAnnontion()
+	private String lock_user_name;
+	@RequestFieldAnnontion()
+	private String lock_status;
+	@RequestFieldAnnontion()
+	private String flow_id;
+	@RequestFieldAnnontion()
+	private String flow_inst_id;
+	@RequestFieldAnnontion()
+	private String flow_trace_name;
+	@RequestFieldAnnontion()
+	private String flow_trace_inst_id;
+	@RequestFieldAnnontion()
+	private String flow_trace_id;
+	@RequestFieldAnnontion()
+	private String wms_status;
+	@RequestFieldAnnontion()
+	private String is_send_wms;
+	@RequestFieldAnnontion()
+	private String bss_cancel_status;
+	@RequestFieldAnnontion()
+	private String ess_cancel_status;
+	@RequestFieldAnnontion()
+	private String send_zb;
+	@RequestFieldAnnontion()
+	private String refund_type;
+	@RequestFieldAnnontion()
+	private String refund_status;
+	@RequestFieldAnnontion()
+	private String refund_deal_type;
+	@RequestFieldAnnontion()
+	private String sub_refund_deal_type;
+	@RequestFieldAnnontion()
+	private String exception_type;
+	@RequestFieldAnnontion()
+	private String refund_trace_inst_id;
+	@RequestFieldAnnontion()
+	private String is_ship;
+	@RequestFieldAnnontion()
+	private String is_account;
+	@RequestFieldAnnontion()
+	private String simple_order_id;
+	@RequestFieldAnnontion()
+	private String flow_status;
+	@RequestFieldAnnontion()
+	private String pay_type;
+	@RequestFieldAnnontion()
+	private String pay_mothed;
+	@RequestFieldAnnontion()
+	private String abnormal_type;
+	@RequestFieldAnnontion()
+	private String zb_status;
+	@RequestFieldAnnontion()
+	private String quick_ship_status;
+	@RequestFieldAnnontion()
+	private String quick_ship_company_code;
+	@RequestFieldAnnontion()
+	private String visible_status;
+	@RequestFieldAnnontion()
+	private String write_card_status;
+	@RequestFieldAnnontion()
+	private String error_comments;
+	@RequestFieldAnnontion()
+	private String material_retrieve;//回收资料 j回收资料 json数据[{code:"01",name:"身份证",file_path:""},{code:"02",name:"XX证",file_path:""}]
+	@RequestFieldAnnontion()
+	private String agent_code;
+	@RequestFieldAnnontion()
+	private String old_flow_id;
+	@RequestFieldAnnontion()
+	private String zb_inf_id;
+	@RequestFieldAnnontion()
+	private String spread_channel;
+	@RequestFieldAnnontion()
+	private String prod_cat_id;
+	@RequestFieldAnnontion()
+	private String pack_type;
+	@RequestFieldAnnontion()
+	private String order_origin;
+	@RequestFieldAnnontion()
+	private String write_card_result;
+	@RequestFieldAnnontion()
+	private String exception_desc;
+	@RequestFieldAnnontion()
+	private String last_deal_time;
+	@RequestFieldAnnontion()
+	private String refund_time;
+	@RequestFieldAnnontion()
+	private String bss_reset_time;
+	@RequestFieldAnnontion()
+	private String ess_reset_time;
+	@RequestFieldAnnontion()
+	private String sf_status;
+	@RequestFieldAnnontion()
+	private String nd_status;
+	@RequestFieldAnnontion()
+	private String syn_wl_time;
+	@RequestFieldAnnontion()
+	private String sf_status_desc;
+	@RequestFieldAnnontion()
+	private String nd_status_desc;
+	@RequestFieldAnnontion()
+	private String old_order_model;
+	@RequestFieldAnnontion()
+	private String is_exception_flow;
+	@RequestFieldAnnontion()
+	private String order_points;
+	@RequestFieldAnnontion()
+	private String is_zhwj;
+	@RequestFieldAnnontion()
+	private String is_aop;
+	@RequestFieldAnnontion()
+	private String order_city_code;
+	@RequestFieldAnnontion()
+	private String contact_addr;
+	//归档天数--zengxianlian
+	@RequestFieldAnnontion()
+	private String archive_time;
+	//回单时间--zengxianlian
+	@RequestFieldAnnontion()
+	private String back_time;
+	//是否作废单--zengxianlian
+	@RequestFieldAnnontion()
+	private String order_if_cancel;
+	//关联单号--Rapon
+	@RequestFieldAnnontion()
+	private String related_order_id;
+	//订单库存状态（0-未处理、1-已扣减、2-已回退）--Rapon
+	@RequestFieldAnnontion()
+	private String stock_state;
+	//订单生产中心（0-省中心、1-非省中心）--Rapon
+	@RequestFieldAnnontion()
+	private String produce_center;
+	//代金券的锁定状态
+	@RequestFieldAnnontion()
+	private String coupons_locked;
+	//照片上传状态，
+	@RequestFieldAnnontion()
+	private String if_Send_Photos;
+	//BSS交互订单号
+	@RequestFieldAnnontion()
+	private String bss_inf_id;
+
+	//退单审核模式
+	@RequestFieldAnnontion()
+	private String refund_audit_mode;
+	
+	//BSS号段
+	@RequestFieldAnnontion()
+	private String phone_para_bss;
+	
+	//ESS号段
+	@RequestFieldAnnontion()
+	private String phone_para_ess;
+	
+	//退单原因
+	@RequestFieldAnnontion()
+	private String refund_desc;
+	//归档类型
+	@RequestFieldAnnontion()
+	private String archive_type;
+	//恢复时间
+	@RequestFieldAnnontion()
+	private String recover_time;
+	//销售商品名称（商城前台销售商品的名称）
+	@RequestFieldAnnontion()
+	private String sales_name;
+	//是否已逻辑归档
+	@RequestFieldAnnontion()
+	private String is_archive;
+	
+	@RequestFieldAnnontion()
+	private String receive_num;
+	
+	
+	@RequestFieldAnnontion()
+	private String archive_num;
+	@RequestFieldAnnontion()
+	private Integer net_certi;
+	
+	@RequestFieldAnnontion()
+	private Integer accept_agree;
+	
+	@RequestFieldAnnontion()
+	private Integer liang_agree;
+	@RequestFieldAnnontion()
+	private String supplier_order_id;
+	
+	@RequestFieldAnnontion()
+	private String audit_busi_money_status;//营业款稽核状态
+	@RequestFieldAnnontion()
+	private String audit_receive_money_status;//实收款稽核状态
+	@RequestFieldAnnontion()
+	private String audit_udp;//udp号
+	@RequestFieldAnnontion()
+	private String audit_remark;//稽核备注
+	@RequestFieldAnnontion()
+	private String return_flag;//退单标识
+	@RequestFieldAnnontion()
+	private String returned_reason_code;//退单原因code
+	@RequestFieldAnnontion()
+	private String is_refund;//爬虫 是否退款
+	//开户方式 1 线下；0：线上
+	@RequestFieldAnnontion()
+	private String open_acc_mode;
+	@RequestFieldAnnontion()
+	private String zb_open_type;
+
+	//ding.xiaotao 数据库字段
+	@RequestFieldAnnontion()
+	private String o_ship_status;//外系统发货状态
+	@RequestFieldAnnontion()
+    private String model_code;
+	@RequestFieldAnnontion()
+    private String model_name;
+	@RequestFieldAnnontion()
+    private String channel_mark;
+
+	@RequestFieldAnnontion()
+    private String audit_type ;
+	
+	@RequestFieldAnnontion()
+	private String is_work_custom;
+	
+	@RequestFieldAnnontion()
+	private String order_deal_method;//线上线下订单处理方式：1--线上，2--线下
+	
+	
+	public String getAudit_type() {
+		return audit_type;
+	}
+
+	public void setAudit_type(String audit_type) {
+		this.audit_type = audit_type;
+	}
+
+	public String getChannel_mark() {
+        return channel_mark;
+    }
+
+    public void setChannel_mark(String channel_mark) {
+        this.channel_mark = channel_mark;
+    }
+
+    public String getModel_name() {
+        return model_name;
+    }
+
+    public void setModel_name(String model_name) {
+        this.model_name = model_name;
+    }
+
+    public String getModel_code() {
+        return model_code;
+    }
+
+    public void setModel_code(String model_code) {
+        this.model_code = model_code;
+    }
+
+    public String getO_ship_status() {
+		return o_ship_status;
+	}
+
+	public void setO_ship_status(String o_ship_status) {
+		this.o_ship_status = o_ship_status;
+	}
+
+	public String getRefund_audit_mode() {
+		return refund_audit_mode;
+	}
+
+	public void setRefund_audit_mode(String refund_audit_mode) {
+		this.refund_audit_mode = refund_audit_mode;
+	}
+	
+	public String getRefund_time() {
+		return refund_time;
+	}
+
+	public void setRefund_time(String refund_time) {
+		this.refund_time = refund_time;
+	}
+
+	public String getBss_reset_time() {
+		return bss_reset_time;
+	}
+
+	public void setBss_reset_time(String bss_reset_time) {
+		this.bss_reset_time = bss_reset_time;
+	}
+
+	public String getEss_reset_time() {
+		return ess_reset_time;
+	}
+
+	public void setEss_reset_time(String ess_reset_time) {
+		this.ess_reset_time = ess_reset_time;
+	}
+
+	public String getLast_deal_time() {
+		return last_deal_time;
+	}
+
+	public void setLast_deal_time(String last_deal_time) {
+		this.last_deal_time = last_deal_time;
+	}
+
+	public String getOrder_origin() {
+		return order_origin;
+	}
+
+	public void setOrder_origin(String order_origin) {
+		this.order_origin = order_origin;
+	}
+
+	public String getPack_type() {
+		return pack_type;
+	}
+
+	public void setPack_type(String pack_type) {
+		this.pack_type = pack_type;
+	}
+
+	public String getProd_cat_id() {
+		return prod_cat_id;
+	}
+
+	public void setProd_cat_id(String prod_cat_id) {
+		this.prod_cat_id = prod_cat_id;
+	}
+
+	public String getSpread_channel() {
+		return spread_channel;
+	}
+
+	public void setSpread_channel(String spread_channel) {
+		this.spread_channel = spread_channel;
+	}
+
+	public String getOld_flow_id() {
+		return old_flow_id;
+	}
+
+	public void setOld_flow_id(String old_flow_id) {
+		this.old_flow_id = old_flow_id;
+	}
+
+	public String getAgent_code() {
+		return agent_code;
+	}
+
+	public void setAgent_code(String agent_code) {
+		this.agent_code = agent_code;
+	}
+
+	public String getPay_mothed() {
+		return pay_mothed;
+	}
+
+	public void setPay_mothed(String pay_mothed) {
+		this.pay_mothed = pay_mothed;
+	}
+
+	@Override
+	@NotDbField
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	@NotDbField
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public String getOrder_id() {
+		return order_id;
+	}
+
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+
+	@Override
+	@NotDbField
+	public <T> T store() {
+		ZteInstUpdateRequest<OrderExtBusiRequest> updateRequest = new ZteInstUpdateRequest<OrderExtBusiRequest>();
+		return RequestStoreExector.orderBusiStoreAssemble(updateRequest, this);
+	}
+
+	@Override
+	@NotDbField
+	public <T> T load(ZteInstQueryRequest instQuery) {
+		// 构造参数
+		QueryResponse<OrderExtBusiRequest> resp = new QueryResponse<OrderExtBusiRequest>();
+		return RequestStoreExector.orderBusiLoadAssemble(instQuery, resp, this);
+	}
+
+	public String getPlat_type() {
+		return plat_type;
+	}
+
+	public void setPlat_type(String plat_type) {
+		this.plat_type = plat_type;
+	}
+
+	public String getOut_tid() {
+		return out_tid;
+	}
+
+	public void setOut_tid(String out_tid) {
+		this.out_tid = out_tid;
+	}
+
+	public String getOrder_num() {
+		return order_num;
+	}
+
+	public void setOrder_num(String order_num) {
+		this.order_num = order_num;
+	}
+
+	public String getSrc_out_tid() {
+		return src_out_tid;
+	}
+
+	public void setSrc_out_tid(String src_out_tid) {
+		this.src_out_tid = src_out_tid;
+	}
+
+	public String getWm_isreservation_from() {
+		return wm_isreservation_from;
+	}
+
+	public void setWm_isreservation_from(String wm_isreservation_from) {
+		this.wm_isreservation_from = wm_isreservation_from;
+	}
+
+	public String getTid_time() {
+		return tid_time;
+	}
+
+	public void setTid_time(String tid_time) {
+		this.tid_time = tid_time;
+	}
+
+	public String getIs_adv_sale() {
+		return is_adv_sale;
+	}
+
+	public void setIs_adv_sale(String is_adv_sale) {
+		this.is_adv_sale = is_adv_sale;
+	}
+
+	public String getTid_category() {
+		return tid_category;
+	}
+
+	public void setTid_category(String tid_category) {
+		this.tid_category = tid_category;
+	}
+
+	public String getOrder_from() {
+		return order_from;
+	}
+
+	public void setOrder_from(String order_from) {
+		this.order_from = order_from;
+	}
+
+	public String getOrder_channel() {
+		return order_channel;
+	}
+
+	public void setOrder_channel(String order_channel) {
+		this.order_channel = order_channel;
+	}
+
+	public String getAbnormal_status() {
+		return abnormal_status;
+	}
+
+	public void setAbnormal_status(String abnormal_status) {
+		this.abnormal_status = abnormal_status;
+	}
+
+	public String getShipping_quick() {
+		return shipping_quick;
+	}
+
+	public void setShipping_quick(String shipping_quick) {
+		this.shipping_quick = shipping_quick;
+	}
+
+	public String getCol2() {
+		return col2;
+	}
+
+	public void setCol2(String col2) {
+		this.col2 = col2;
+	}
+
+	public String getCol3() {
+		return col3;
+	}
+
+	public void setCol3(String col3) {
+		this.col3 = col3;
+	}
+
+	public String getCol4() {
+		return col4;
+	}
+
+	public void setCol4(String col4) {
+		this.col4 = col4;
+	}
+
+	public String getCol5() {
+		return col5;
+	}
+
+	public void setCol5(String col5) {
+		this.col5 = col5;
+	}
+
+	public String getCol6() {
+		return col6;
+	}
+
+	public void setCol6(String col6) {
+		this.col6 = col6;
+	}
+
+	public String getCol7() {
+		return col7;
+	}
+
+	public void setCol7(String col7) {
+		this.col7 = col7;
+	}
+
+	public String getOrder_model() {
+		return order_model;
+	}
+
+	public void setOrder_model(String order_model) {
+		this.order_model = order_model;
+	}
+
+	public String getPending_reason() {
+		return pending_reason;
+	}
+
+	public void setPending_reason(String pending_reason) {
+		this.pending_reason = pending_reason;
+	}
+
+	public String getLock_time() {
+		return lock_time;
+	}
+
+	public void setLock_time(String lock_time) {
+		this.lock_time = lock_time;
+	}
+
+	public String getLock_user_id() {
+		return lock_user_id;
+	}
+
+	public void setLock_user_id(String lock_user_id) {
+		this.lock_user_id = lock_user_id;
+	}
+
+	public String getLock_status() {
+		return lock_status;
+	}
+
+	public void setLock_status(String lock_status) {
+		this.lock_status = lock_status;
+	}
+
+	public String getFlow_id() {
+		return flow_id;
+	}
+
+	public void setFlow_id(String flow_id) {
+		this.flow_id = flow_id;
+	}
+
+	public String getFlow_inst_id() {
+		return flow_inst_id;
+	}
+
+	public void setFlow_inst_id(String flow_inst_id) {
+		this.flow_inst_id = flow_inst_id;
+	}
+
+	public String getFlow_trace_name() {
+		return flow_trace_name;
+	}
+
+	public void setFlow_trace_name(String flow_trace_name) {
+		this.flow_trace_name = flow_trace_name;
+	}
+
+	public String getFlow_trace_inst_id() {
+		return flow_trace_inst_id;
+	}
+
+	public void setFlow_trace_inst_id(String flow_trace_inst_id) {
+		this.flow_trace_inst_id = flow_trace_inst_id;
+	}
+
+	public String getWms_status() {
+		return wms_status;
+	}
+
+	public void setWms_status(String wms_status) {
+		this.wms_status = wms_status;
+	}
+
+	public String getIs_send_wms() {
+		return is_send_wms;
+	}
+
+	public void setIs_send_wms(String is_send_wms) {
+		this.is_send_wms = is_send_wms;
+	}
+
+	public String getBss_cancel_status() {
+		return bss_cancel_status;
+	}
+
+	public void setBss_cancel_status(String bss_cancel_status) {
+		this.bss_cancel_status = bss_cancel_status;
+	}
+
+	public String getEss_cancel_status() {
+		return ess_cancel_status;
+	}
+
+	public void setEss_cancel_status(String ess_cancel_status) {
+		this.ess_cancel_status = ess_cancel_status;
+	}
+
+	public String getSend_zb() {
+		return send_zb;
+	}
+
+	public void setSend_zb(String send_zb) {
+		this.send_zb = send_zb;
+	}
+
+	public String getRefund_type() {
+		return refund_type;
+	}
+
+	public void setRefund_type(String refund_type) {
+		this.refund_type = refund_type;
+	}
+
+	public String getRefund_status() {
+		return refund_status;
+	}
+
+	public void setRefund_status(String refund_status) {
+		this.refund_status = refund_status;
+	}
+
+	public String getRefund_deal_type() {
+		return refund_deal_type;
+	}
+
+	public void setRefund_deal_type(String refund_deal_type) {
+		this.refund_deal_type = refund_deal_type;
+	}
+	
+	public String getSub_refund_deal_type() {
+		return sub_refund_deal_type;
+	}
+
+	public void setSub_refund_deal_type(String sub_refund_deal_type) {
+		this.sub_refund_deal_type = sub_refund_deal_type;
+	}
+
+	public String getException_type() {
+		return exception_type;
+	}
+
+	public void setException_type(String exception_type) {
+		this.exception_type = exception_type;
+	}
+
+	public String getRefund_trace_inst_id() {
+		return refund_trace_inst_id;
+	}
+
+	public void setRefund_trace_inst_id(String refund_trace_inst_id) {
+		this.refund_trace_inst_id = refund_trace_inst_id;
+	}
+
+	public String getIs_ship() {
+		return is_ship;
+	}
+
+	public void setIs_ship(String is_ship) {
+		this.is_ship = is_ship;
+	}
+
+	public String getIs_account() {
+		return is_account;
+	}
+
+	public void setIs_account(String is_account) {
+		this.is_account = is_account;
+	}
+
+	public String getFlow_trace_id() {
+		return flow_trace_id;
+	}
+
+	public void setFlow_trace_id(String flow_trace_id) {
+		this.flow_trace_id = flow_trace_id;
+	}
+
+	public String getLock_user_name() {
+		return lock_user_name;
+	}
+
+	public void setLock_user_name(String lock_user_name) {
+		this.lock_user_name = lock_user_name;
+	}
+
+	public String getSimple_order_id() {
+		return simple_order_id;
+	}
+
+	public void setSimple_order_id(String simple_order_id) {
+		this.simple_order_id = simple_order_id;
+	}
+
+	public String getFlow_status() {
+		return flow_status;
+	}
+
+	public void setFlow_status(String flow_status) {
+		this.flow_status = flow_status;
+	}
+
+	public String getPay_type() {
+		return pay_type;
+	}
+
+	public void setPay_type(String pay_type) {
+		this.pay_type = pay_type;
+	}
+
+	public String getQuick_ship_status() {
+		return quick_ship_status;
+	}
+
+	public void setQuick_ship_status(String quick_ship_status) {
+		this.quick_ship_status = quick_ship_status;
+	}
+
+	public String getQuick_ship_company_code() {
+		return quick_ship_company_code;
+	}
+
+	public void setQuick_ship_company_code(String quick_ship_company_code) {
+		this.quick_ship_company_code = quick_ship_company_code;
+	}
+
+	public String getAbnormal_type() {
+		return abnormal_type;
+	}
+
+	public void setAbnormal_type(String abnormal_type) {
+		this.abnormal_type = abnormal_type;
+	}
+
+	public String getZb_status() {
+		return zb_status;
+	}
+
+	public void setZb_status(String zb_status) {
+		this.zb_status = zb_status;
+	}
+
+	public String getVisible_status() {
+		return visible_status;
+	}
+
+	public void setVisible_status(String visible_status) {
+		this.visible_status = visible_status;
+	}
+
+	public String getWrite_card_status() {
+		return write_card_status;
+	}
+
+	public void setWrite_card_status(String write_card_status) {
+		this.write_card_status = write_card_status;
+	}
+
+	public String getError_comments() {
+		return error_comments;
+	}
+
+	public void setError_comments(String error_comments) {
+		this.error_comments = error_comments;
+	}
+
+	public String getMaterial_retrieve() {
+		return material_retrieve;
+	}
+
+	public void setMaterial_retrieve(String material_retrieve) {
+		this.material_retrieve = material_retrieve;
+	}
+
+	public String getZb_inf_id() {
+		return zb_inf_id;
+	}
+
+	public void setZb_inf_id(String zb_inf_id) {
+		this.zb_inf_id = zb_inf_id;
+	}
+
+	public String getWrite_card_result() {
+		return write_card_result;
+	}
+
+	public void setWrite_card_result(String write_card_result) {
+		this.write_card_result = write_card_result;
+	}
+
+	public String getException_desc() {
+		return exception_desc;
+	}
+
+	public void setException_desc(String exception_desc) {
+		this.exception_desc = exception_desc;
+	}
+	
+	public String getSf_status(){
+		return sf_status;
+	}
+	
+	public void setSf_status(String sf_status){
+		this.sf_status = sf_status;
+	}
+	
+	public String getNd_status(){
+		return nd_status;
+	}
+	
+	public void setNd_status(String nd_status){
+		this.nd_status = nd_status;
+	}
+	
+	public String getSyn_wl_time(){
+		return syn_wl_time;
+	}
+	
+	public void setSyn_wl_time(String syn_wl_time){
+		this.syn_wl_time = syn_wl_time ;
+	}
+	
+	public String getSf_status_desc(){
+		return sf_status_desc;
+	}
+	
+	public void setSf_status_desc(String sf_status_desc){
+		this.sf_status_desc = sf_status_desc;
+	}
+	
+	public String getNd_status_desc(){
+		return nd_status_desc;
+	}
+	
+	public void setNd_status_desc(String nd_status_desc){
+		this.nd_status_desc = nd_status_desc;
+	}
+
+	public String getOld_order_model() {
+		return old_order_model;
+	}
+
+	public void setOld_order_model(String old_order_model) {
+		this.old_order_model = old_order_model;
+	}
+
+	public String getIs_exception_flow() {
+		return is_exception_flow;
+	}
+
+	public void setIs_exception_flow(String is_exception_flow) {
+		this.is_exception_flow = is_exception_flow;
+	}
+
+	public String getOrder_points() {
+		return order_points;
+	}
+
+	public void setOrder_points(String order_points) {
+		this.order_points = order_points;
+	}
+
+	public String getIs_zhwj() {
+		return is_zhwj;
+	}
+
+	public void setIs_zhwj(String is_zhwj) {
+		this.is_zhwj = is_zhwj;
+	}
+
+	public String getIs_aop() {
+		return is_aop;
+	}
+
+	public void setIs_aop(String is_aop) {
+		this.is_aop = is_aop;
+	}
+	
+	public String getOrder_city_code(){
+		return order_city_code;
+	}
+	
+	public void setOrder_city_code(String order_city_code){
+		this.order_city_code = order_city_code;
+	}
+
+	public String getContact_addr() {
+		return contact_addr;
+	}
+
+	public void setContact_addr(String contact_addr) {
+		this.contact_addr = contact_addr;
+	}
+
+	public String getArchive_time() {
+		return archive_time;
+	}
+
+	public void setArchive_time(String archive_time) {
+		this.archive_time = archive_time;
+	}
+
+	public String getBack_time() {
+		return back_time;
+	}
+
+	public void setBack_time(String back_time) {
+		this.back_time = back_time;
+	}
+
+	public String getOrder_if_cancel() {
+		return order_if_cancel;
+	}
+
+	public void setOrder_if_cancel(String order_if_cancel) {
+		this.order_if_cancel = order_if_cancel;
+	}
+
+	public String getRelated_order_id() {
+		return related_order_id;
+	}
+
+	public void setRelated_order_id(String related_order_id) {
+		this.related_order_id = related_order_id;
+	}
+
+	public String getStock_state() {
+		return stock_state;
+	}
+
+	public void setStock_state(String stock_state) {
+		this.stock_state = stock_state;
+	}
+
+	public String getProduce_center() {
+		return produce_center;
+	}
+
+	public void setProduce_center(String produce_center) {
+		this.produce_center = produce_center;
+	}
+
+	public String getCoupons_locked() {
+		return coupons_locked;
+	}
+
+	public void setCoupons_locked(String coupons_locked) {
+		this.coupons_locked = coupons_locked;
+	}
+
+	public String getIf_Send_Photos() {
+		return if_Send_Photos;
+	}
+
+	public void setIf_Send_Photos(String if_Send_Photos) {
+		this.if_Send_Photos = if_Send_Photos;
+	}
+
+	public String getBss_inf_id() {
+		return bss_inf_id;
+	}
+
+	public void setBss_inf_id(String bss_inf_id) {
+		this.bss_inf_id = bss_inf_id;
+	}
+
+	public String getRefund_desc() {
+		return refund_desc;
+	}
+
+	public void setRefund_desc(String refund_desc) {
+		this.refund_desc = refund_desc;
+	}
+
+	public String getArchive_type() {
+		return archive_type;
+	}
+
+	public void setArchive_type(String archive_type) {
+		this.archive_type = archive_type;
+	}
+
+	public String getRecover_time() {
+		return recover_time;
+	}
+
+	public void setRecover_time(String recover_time) {
+		this.recover_time = recover_time;
+	}
+
+	public String getPhone_para_bss() {
+		return phone_para_bss;
+	}
+
+	public void setPhone_para_bss(String phone_para_bss) {
+		this.phone_para_bss = phone_para_bss;
+	}
+
+	public String getPhone_para_ess() {
+		return phone_para_ess;
+	}
+
+	public void setPhone_para_ess(String phone_para_ess) {
+		this.phone_para_ess = phone_para_ess;
+	}
+
+	public String getSales_name() {
+		return sales_name;
+	}
+
+	public void setSales_name(String sales_name) {
+		this.sales_name = sales_name;
+	}
+
+	public String getIs_archive() {
+		return is_archive;
+	}
+
+	public void setIs_archive(String is_archive) {
+		this.is_archive = is_archive;
+	}
+
+	public String getReceive_num() {
+		return receive_num;
+	}
+
+	public void setReceive_num(String receive_num) {
+		this.receive_num = receive_num;
+	}
+
+	public String getArchive_num() {
+		return archive_num;
+	}
+
+	public void setArchive_num(String archive_num) {
+		this.archive_num = archive_num;
+	}
+
+	public Integer getNet_certi() {
+		return net_certi;
+	}
+
+	public void setNet_certi(Integer net_certi) {
+		this.net_certi = net_certi;
+	}
+
+	public Integer getAccept_agree() {
+		return accept_agree;
+	}
+
+	public void setAccept_agree(Integer accept_agree) {
+		this.accept_agree = accept_agree;
+	}
+
+	public Integer getLiang_agree() {
+		return liang_agree;
+	}
+
+	public void setLiang_agree(Integer liang_agree) {
+		this.liang_agree = liang_agree;
+	}
+
+	public String getSupplier_order_id() {
+		return supplier_order_id;
+	}
+
+	public void setSupplier_order_id(String supplier_order_id) {
+		this.supplier_order_id = supplier_order_id;
+	}
+
+	public String getAudit_busi_money_status() {
+		return audit_busi_money_status;
+	}
+
+	public void setAudit_busi_money_status(String audit_busi_money_status) {
+		this.audit_busi_money_status = audit_busi_money_status;
+	}
+
+	public String getAudit_receive_money_status() {
+		return audit_receive_money_status;
+	}
+
+	public void setAudit_receive_money_status(String audit_receive_money_status) {
+		this.audit_receive_money_status = audit_receive_money_status;
+	}
+
+	public String getAudit_udp() {
+		return audit_udp;
+	}
+
+	public void setAudit_udp(String audit_udp) {
+		this.audit_udp = audit_udp;
+	}
+
+	public String getAudit_remark() {
+		return audit_remark;
+	}
+
+	public void setAudit_remark(String audit_remark) {
+		this.audit_remark = audit_remark;
+	}
+
+	public String getReturn_flag() {
+		return return_flag;
+	}
+
+	public void setReturn_flag(String return_flag) {
+		this.return_flag = return_flag;
+	}
+
+	public String getReturned_reason_code() {
+		return returned_reason_code;
+	}
+
+	public void setReturned_reason_code(String returned_reason_code) {
+		this.returned_reason_code = returned_reason_code;
+	}
+
+	public String getIs_refund() {
+		return is_refund;
+	}
+
+	public void setIs_refund(String is_refund) {
+		this.is_refund = is_refund;
+	}
+	
+	public String getOpen_acc_mode() {
+		return open_acc_mode;
+	}
+
+	public void setOpen_acc_mode(String open_acc_mode) {
+		this.open_acc_mode = open_acc_mode;
+	}
+
+	public String getZb_open_type() {
+		return zb_open_type;
+	}
+
+	public void setZb_open_type(String zb_open_type) {
+		this.zb_open_type = zb_open_type;
+	}
+	
+	public String getIs_work_custom() {
+		return is_work_custom;
+	}
+
+	public void setIs_work_custom(String is_work_custom) {
+		this.is_work_custom = is_work_custom;
+	}
+	
+	/**
+     * 只插入数据库，不更新缓存，在标准化入库时执行
+     */
+    @NotDbField
+    public ZteResponse  insertNoCache(){
+        return RequestStoreExector.getInstance().insertZteRequestInst(this);
+    }
+
+	public String getOrder_deal_method() {
+		return order_deal_method;
+	}
+
+	public void setOrder_deal_method(String order_deal_method) {
+		this.order_deal_method = order_deal_method;
+	}
+
+}

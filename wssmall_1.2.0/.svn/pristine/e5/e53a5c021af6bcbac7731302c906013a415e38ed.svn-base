@@ -1,0 +1,453 @@
+package com.ztesoft.services;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Resource;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.api.internal.utils.StringUtils;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotation;
+import com.ztesoft.net.auto.rule.exe.IAutoRuleCaller;
+import com.ztesoft.net.auto.rule.fact.AutoFact;
+import com.ztesoft.net.auto.rule.i.IAutoRule;
+import com.ztesoft.net.auto.rule.i.IPlanConfigManager;
+import com.ztesoft.net.auto.rule.vo.Plan;
+import com.ztesoft.net.auto.rule.vo.PlanRule;
+import com.ztesoft.net.auto.rule.vo.RuleExeLog;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.SqlBuilderInterface;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.model.RuleConfig;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SqlInBuilder;
+import com.ztesoft.zsmart.hound.client.HoundAPI;
+import com.ztesoft.zsmart.hound.client.HoundClientContext;
+import com.ztesoft.zsmart.hound.client.HoundInvocation;
+
+import commons.CommonTools;
+import consts.ConstsCore;
+import params.ZteError;
+import params.ZteResponse;
+import services.ServiceBase;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.nd.req.OrderResultNotifyReq;
+import zte.net.ecsord.params.nd.resp.OrderResultNotifyRsp;
+import zte.net.iservice.IRuleService;
+import zte.net.params.req.CataloguePlanExeReq;
+import zte.net.params.req.PlanQueryReq;
+import zte.net.params.req.PlanRuleTreeExeReq;
+import zte.net.params.req.PlanRuleTreeQueryReq;
+import zte.net.params.req.RuleConfigGetReq;
+import zte.net.params.req.RuleExeLogDelReq;
+import zte.net.params.req.RuleLogQueryReq;
+import zte.net.params.req.RuleLogReq;
+import zte.net.params.req.RuleTreeExeReq;
+import zte.net.params.resp.CataloguePlanExeResp;
+import zte.net.params.resp.PlanQueryResp;
+import zte.net.params.resp.PlanRuleTreeExeResp;
+import zte.net.params.resp.PlanRuleTreeQueryResp;
+import zte.net.params.resp.RuleConfigGetResp;
+import zte.net.params.resp.RuleExeLogDelResp;
+import zte.net.params.resp.RuleLogQueryResp;
+import zte.net.params.resp.RuleLogRsp;
+import zte.net.params.resp.RuleTreeExeResp;
+
+@ZteSoftCommentAnnotation(type = "class", desc = "规则管理API", summary = "规则管理API")
+public class RuleService extends ServiceBase implements IRuleService {
+	
+	@Resource
+    private ICacheUtil cacheUtil;
+
+	private IPlanConfigManager planConfigManager;
+	private IAutoRuleCaller autoRuleCaller;
+	private IAutoRule autoRuleImpl;
+
+	public void setPlanConfigManager(IPlanConfigManager planConfigManager) {
+		this.planConfigManager = planConfigManager;
+	}
+
+	public void setAutoRuleCaller(IAutoRuleCaller autoRuleCaller) {
+		this.autoRuleCaller = autoRuleCaller;
+	}
+
+	public void setAutoRuleImpl(IAutoRule autoRuleImpl) {
+		this.autoRuleImpl = autoRuleImpl;
+	}
+
+	@Override
+	public PlanQueryResp queryPlan(PlanQueryReq req) {
+		Plan plan = planConfigManager.getPlan(req.getPlan_id());
+		PlanQueryResp resp = new PlanQueryResp();
+		resp.setPlan(plan);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req, resp);
+		return resp;
+	}
+
+	@Override
+	public PlanRuleTreeQueryResp queryPlanRuleTree(PlanRuleTreeQueryReq req) {
+		List<RuleConfig> list = planConfigManager.queryLoopRuleConfigByConfig(
+				req.getPlan_id(), "0", req.getObj_id(), req.getIs_his_order());
+		PlanRuleTreeQueryResp resp = new PlanRuleTreeQueryResp();
+		resp.setPlanRuleTreeList(list);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req, resp);
+		return resp;
+	}
+
+	@Override
+	public PlanRuleTreeExeResp exePlanRuleTree(PlanRuleTreeExeReq req) {
+
+//		HoundClientContext houndContext = HoundAPI.createContext();
+		PlanRuleTreeExeResp resp = new PlanRuleTreeExeResp();
+		// String reqStr = "apiMethodName:" + req.getApiMethodName() +
+		// ",userSessionId=" + req.getUserSessionId()
+		// + ",obj_id=" + req.getFact().getObj_id() + ",plan_id=" +
+		// req.getPlan_id();
+//		HoundInvocation serverInvocation = HoundAPI.beginLocalInvocation(this
+//				.getClass().getName() + "-exeRuleTree", req);
+
+		try {
+			Map map = new HashMap();
+			map.put("deal_from", req.getDeal_from());
+			map.put("deal_type", req.getDeal_type());
+			map.put("deal_desc", req.getDeal_desc());
+
+			autoRuleCaller.exePlan(req.getPlan_id(), req.getFact(),
+					req.isReCurrRule(), false, req.getAuto_exe(),
+					req.isDeleteLogs(), null, map);
+
+			if (req.getFact().getRule() != null) {
+				resp.setRuleExecute(req.getFact().isExecute());
+			}
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+
+//			serverInvocation.finish(resp);
+
+		} catch (ApiBusiException ex) {
+			if ( ex.getMessage().indexOf("手动规则没有执行") == -1)
+				ex.printStackTrace(); // add by wui统一提到业务组件里面抛出错误
+			String msg="";
+			resp.setError_code("1");
+			AutoFact fact = req.getFact();
+			Map<String, ZteResponse> resps = fact.getResponses();
+			if (resps != null && resps.size() > 0) {
+				Iterator it = resps.keySet().iterator();
+				while (it.hasNext()) {
+					String key = (String) it.next();
+					ZteResponse zr = resps.get(key);
+					if (!"0".equals(zr.getError_code())) {
+						if (!StringUtil.isEmpty(zr.getError_msg()))
+							msg += zr.getError_msg() + ",";
+					}
+				}
+			}
+			if (StringUtil.isEmpty(msg))
+				msg = ex.getMessage();
+			if (msg != null)
+				msg = msg.replace("\r\n", "").replace("\n", "")
+						.replace("\r", "");
+			resp.setError_code("1");
+			if (msg != null && msg.indexOf("手动规则没有执行") != -1) {
+				resp.setError_code("0");
+				resp.setError_msg("成功");
+			} else {
+				resp.setError_msg("执行失败[" + msg + "]");
+			}
+
+//			serverInvocation.finish(resp, ex);
+			String orderId = fact.getObj_id();
+			
+			if(!"0".equals(resp.getError_code())){
+				this.doOrderResultNotify(orderId, msg,fact);
+			}
+		} finally {
+
+//			houndContext.finish();
+		}
+		resp.setFact(req.getFact());
+		addReturn(req, resp);
+		return resp;
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "执行规则树", summary = "执行规则树")
+	public RuleTreeExeResp exeRuleTree(RuleTreeExeReq req) {
+
+		HoundClientContext houndContext = HoundAPI.createContext();
+		RuleTreeExeResp resp = new RuleTreeExeResp();
+		// String reqStr = "apiMethodName:" + req.getApiMethodName() +
+		// ",userSessionId=" + req.getUserSessionId()
+		// + ",obj_id" + req.getFact().getObj_id() + ",plan_id" +
+		// req.getPlan_id()+ ",rule_id" + req.getRule_id();
+
+		HoundInvocation serverInvocation = HoundAPI.beginLocalInvocation(this
+				.getClass().getName() + "-exeRuleTree", req);
+		try {
+			Map map = new HashMap();
+			map.put("deal_from", req.getDeal_from());
+			map.put("deal_type", req.getDeal_type());
+			map.put("deal_desc", req.getDeal_desc());
+			autoRuleCaller.exePlanRule(req.getPlan_id(), req.getRule_id(),
+					req.getFact(), req.isReCurrRule(), false,
+					req.isExePeerAfRules(), req.isExeParentsPeerAfRules(),
+					req.isCheckCurrRelyOnRule(), req.isCheckAllRelyOnRule(),
+					map);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+			serverInvocation.finish(resp);
+		} catch (Exception ex) {
+			String msg = "";
+			if (msg != null && msg.indexOf("手动规则没有执行") == -1)
+				ex.printStackTrace();
+			resp.setError_code("1");
+			AutoFact fact = req.getFact();
+			Map<String, ZteResponse> resps = fact.getResponses();
+			if (resps != null && resps.size() > 0) {
+				Iterator it = resps.keySet().iterator();
+				while (it.hasNext()) {
+					String key = (String) it.next();
+					ZteResponse zr = resps.get(key);
+					if (!"0".equals(zr.getError_code())) {
+						if (!StringUtil.isEmpty(zr.getError_msg()))
+							msg += zr.getError_msg() + ",";
+					}
+				}
+			}
+			if (StringUtil.isEmpty(msg))
+				msg = ex.getMessage();
+			if (msg != null)
+				msg = msg.replace("\r\n", "").replace("\n", "")
+						.replace("\r", "");
+			if (msg != null && msg.indexOf("手动规则没有执行") != -1) {
+				resp.setError_code("0");
+				resp.setError_msg("成功");
+			} else {
+				resp.setError_msg("执行失败[" + msg + "]");
+			}
+
+			serverInvocation.finish(resp, ex);
+			
+			String orderId = fact.getObj_id();
+			
+			if(!"0".equals(resp.getError_code())){
+				this.doOrderResultNotify(orderId, msg,fact);
+			}
+		} finally {
+			houndContext.finish();
+		}
+		resp.setFact(req.getFact());
+		addReturn(req, resp);
+
+		return resp;
+	}
+	
+	/**
+	 * 规则执行失败，通知外围平台
+	 * @param orderId
+	 * @param msg
+	 * @param fact
+	 */
+	private void doOrderResultNotify(String orderId,String msg,AutoFact fact) {
+		boolean isNotify = true;
+		
+		ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		String notifyPath = cacheUtil.getConfigInfo("ORDER_RESULT_NOTIFY_PATH");
+		
+		if(org.apache.commons.lang.StringUtils.isBlank(notifyPath)){
+			notifyPath = "ZteOrderBackTraceRule.orderResultNotify";
+		}
+		
+		if(fact!=null && fact.getCurr_log()!=null
+				&& notifyPath.equals(fact.getCurr_log().getEngine_path())){
+			isNotify = false;
+		}
+		
+		if(!isNotify)
+			return;
+		
+		OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(orderId);
+		
+		if (orderTree != null && orderTree.getOrderExtBusiRequest() != null) {
+			OrderExtBusiRequest orderExt = orderTree.getOrderExtBusiRequest();
+
+			// "10083"  "10094"  "10103"	
+			String cfg = cacheUtil.getConfigInfo("ASYNCHRONIZATION_IFORM_ORDER_FROM");
+			String[] beans = cfg.split(",");
+			
+			List<String> beansList = Arrays.asList(beans);
+			Set<String> beansSet =new  HashSet<String>(beansList);
+			
+			if(beansSet.contains(orderExt.getOrder_from())) {
+				// 通知微信平台
+
+				String out_id = orderTree.getOrderExtBusiRequest().getOut_tid();
+				String code = "-1";
+				String method = CommonDataFactory.getInstance().getAttrFieldValue(orderId, "result_url");
+				OrderResultNotifyReq req = new OrderResultNotifyReq();
+
+				// 设置参数
+				req.setOrder_id(orderId);
+				req.setOut_order_id(out_id);
+				req.setResult_code(code);
+				req.setResult_msg(msg);
+				// 取异步通知接口的服务名
+				req.setNotify_method(method);
+
+				// 访问的方法ZteInfOpenService--doOrderResultNotify（wssmall.order.result.notify）
+				ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+				client.execute(req, OrderResultNotifyRsp.class);
+			}
+		}
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "目录方案", summary = "目录方案[所有方案互斥]")
+	public CataloguePlanExeResp exeCataloguePlan(CataloguePlanExeReq req) {
+
+		HoundClientContext houndContext = HoundAPI.createContext();
+
+		// String reqStr = "apiMethodName:" + req.getApiMethodName() +
+		// ",userSessionId=" + req.getUserSessionId()
+		// + ",obj_id" + req.getFact().getObj_id() + ",catalogue_id" +
+		// req.getCatalogue_id();
+
+		CataloguePlanExeResp resp = new CataloguePlanExeResp();
+		HoundInvocation serverInvocation = HoundAPI.beginLocalInvocation(this
+				.getClass().getName() + "-exeCataloguePlan", req);
+
+		try {
+			Map map = new HashMap();
+			map.put("deal_from", req.getDeal_from());
+			autoRuleCaller.exeCataloguePlan(req.getCatalogue_id(),
+					req.getFact(), req.isDeleteLogs(), map);
+			resp.setFact(req.getFact());
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+			serverInvocation.finish(resp);
+		} catch (Exception ex) {
+			String msg = "";
+			if (msg != null && msg.indexOf("手动规则没有执行") == -1)
+				ex.printStackTrace();
+			AutoFact fact = req.getFact();
+			Map<String, ZteResponse> resps = fact.getResponses();
+			if (resps != null && resps.size() > 0) {
+				Iterator it = resps.keySet().iterator();
+				while (it.hasNext()) {
+					String key = (String) it.next();
+					ZteResponse zr = resps.get(key);
+					if (!"0".equals(zr.getError_code())) {
+						if (!StringUtil.isEmpty(zr.getError_msg()))
+							msg += zr.getError_msg() + ",";
+					}
+				}
+			}
+			if (StringUtil.isEmpty(msg))
+				msg = ex.getMessage();
+			if (msg != null)
+				msg = msg.replace("\r\n", "").replace("\n", "")
+						.replace("\r", "");
+			resp.setError_code("1");
+			if (msg != null && msg.indexOf("手动规则没有执行") != -1) {
+				resp.setError_code("0");
+				resp.setError_msg("成功");
+			} else {
+				resp.setError_msg("执行失败[" + msg + "]");
+			}
+			serverInvocation.finish(resp, ex);
+		} finally {
+			houndContext.finish();
+		}
+		addReturn(req, resp);
+		return resp;
+	}
+
+	public RuleExeLogDelResp delRuleExeLog(RuleExeLogDelReq req) {
+		if (StringUtils.isEmpty(req.getObj_id()))
+			CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,
+					"obj_id不能为空"));
+		autoRuleImpl.deleteRuleExeLogs(req.getPlan_id(), req.getRule_id(),
+				req.getObj_id());
+		RuleExeLogDelResp resp = new RuleExeLogDelResp();
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req, resp);
+		return resp;
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "查询规则", summary = "查询规则")
+	public RuleConfigGetResp getRuleConfig(RuleConfigGetReq req) {
+		PlanRule rule = autoRuleImpl.getPlanRule(req.getRule_id(), null,
+				EcsOrderConsts.RULE_EXE_ALL);
+		RuleConfigGetResp resp = new RuleConfigGetResp();
+		resp.setRule(rule);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req, resp);
+		return resp;
+	}
+
+	// @Override
+	// @ZteSoftCommentAnnotation(type = "method", desc = "根据环节查询方案", summary =
+	// "根据环节查询方案")
+	// public PlanGetResp getPlanByTache(PlanGetReq req) {
+	// Plan plan = autoRuleImpl.getPlanByTacheCode(req.getTache_code());
+	// PlanGetResp resp = new PlanGetResp();
+	// resp.setPlan(plan);
+	// resp.setError_code("0");
+	// resp.setError_msg("成功");
+	// addReturn(req, resp);
+	// return resp;
+	// }
+
+	@Override
+	public RuleLogQueryResp queryRuleLog(RuleLogQueryReq req) {
+		List<RuleExeLog> list = planConfigManager.queryRuleExeLog(null,req.getRule_id(), req.getObj_id(), req.getIs_his_order());
+		RuleLogQueryResp resp = new RuleLogQueryResp();
+		resp.setPlanRuleTreeList(list);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req, resp);
+		return resp;
+	}
+
+	@Override
+	public RuleLogRsp qryRuleLog(RuleLogReq req) throws Exception {
+		RuleLogRsp rsp = new RuleLogRsp();
+		
+		RuleExeLog pojo = req.getRuleLog();
+		if(pojo==null)
+			pojo = new RuleExeLog();
+		
+		List<SqlBuilderInterface> sqlBuilds = new ArrayList<SqlBuilderInterface>();
+		
+		SqlInBuilder objIdBuiler = new SqlInBuilder("obj_id", req.getOrderIds());
+		SqlInBuilder ruleIdBuiler = new SqlInBuilder("rule_id",req.getRuleIds());
+		
+		sqlBuilds.add(objIdBuiler);
+		sqlBuilds.add(ruleIdBuiler);
+		
+		List<RuleExeLog> ret = planConfigManager.qryRuleLogByPojo(pojo, sqlBuilds);
+		
+		rsp.setRuleLogs(ret);
+		
+		return rsp;
+	}
+}

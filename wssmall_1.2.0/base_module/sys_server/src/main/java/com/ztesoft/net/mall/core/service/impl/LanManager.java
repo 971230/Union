@@ -1,0 +1,121 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+
+import java.util.List;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import com.ztesoft.net.app.base.core.model.Lan;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.service.ILanManager;
+
+/**
+ * Saas式的标签管理
+ * @author kingapex
+ * 2010-1-18上午10:57:35
+ */
+public class LanManager extends BaseSupport<Lan> implements ILanManager {
+	private IDaoSupport daoSupport;
+	
+	private JdbcTemplate jdbcTemplate;
+	
+	@Override
+	public List<String> list(String lanid) {
+		String sql= "select lan_id from es_goods_area where goods_id='"+lanid+"' and (state='0' or state='1')";
+		return this.jdbcTemplate.queryForList(sql, String.class);
+	}
+	
+
+	@Override
+	public List<Lan> listEdit() {
+		String sql  ="select * from es_lan";
+		return this.baseDaoSupport.queryForList(sql,Lan.class);
+	}
+
+
+	@Override
+	public String add(Lan lan) {
+		
+	    this.baseDaoSupport.insert("lan", lan);
+	    String lanid = lan.getLan_id();
+		return lanid;
+	}
+
+	@Override
+	public void delete(String lanid) {
+	     
+	}
+
+	@Override
+	public List<Lan> listLan() {
+		return this.baseDaoSupport.queryForList("select * from lan order by lan_id ", Lan.class);
+	}
+
+	@Override
+	public void update(Lan lan) {
+		/*
+		String lanid = 
+         this.baseDaoSupport.update("lan", lan, "lanid="+lanid);
+		*/
+	}
+
+
+	@Override
+	public void saveRels(String goodsid, Integer[] lanids) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public IDaoSupport getDaoSupport() {
+		return daoSupport;
+	}
+
+
+	@Override
+	public void setDaoSupport(IDaoSupport daoSupport) {
+		this.daoSupport = daoSupport;
+	}
+
+
+	public JdbcTemplate getJdbcTemplate() {
+		return jdbcTemplate;
+	}
+
+
+	public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
+	}
+
+
+	@Override
+	public String getLanNameByID(String lan_id) {
+	
+		 String lan_name = this.baseDaoSupport.queryForString("select lan_name from es_lan where lan_id ="+lan_id);
+		  return lan_name;
+	}
+
+
+	@Override
+	public Lan getLanByID(String lan_id) {
+		String sql = "select * from es_lan where lan_id = ?";
+		return baseDaoSupport.queryForObject(sql, Lan.class, lan_id);
+	}
+
+    @Override
+    public List queryTreeList(String arg) {
+        String sql="select * from es_lan t connect by prior t.lan_id=t.parent_id\n" +
+                "start with t.parent_id=?";
+        return daoSupport.queryForList(sql,arg);  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public List queryFirstList() {
+        String sql="select * from es_lan t where t.parent_id=0";
+        return daoSupport.queryForList(sql);  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+
+}

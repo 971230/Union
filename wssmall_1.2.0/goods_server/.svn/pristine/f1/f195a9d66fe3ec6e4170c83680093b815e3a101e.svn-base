@@ -1,0 +1,916 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.methods.ByteArrayRequestEntity;
+import org.apache.commons.httpclient.methods.EntityEnclosingMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.RequestEntity;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.GoodsImportLog;
+import com.ztesoft.net.mall.core.model.GoodsPackage;
+import com.ztesoft.net.mall.core.model.GoodsParam;
+import com.ztesoft.net.mall.core.model.Relations;
+import com.ztesoft.net.mall.core.model.support.GoodsTypeDTO;
+import com.ztesoft.net.mall.core.model.support.ParamGroup;
+import com.ztesoft.net.mall.core.service.IGoodsImportHandler;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.net.mall.core.service.IGoodsTypeManager;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.plugin.standard.type.GoodsTypeUtil;
+import com.ztesoft.net.sqls.SF;
+
+/**
+ * 商品批量导入处理类
+ * @author Administrator
+ * @date 2014-6-30
+ */
+@SuppressWarnings("all")
+public class GoodsImportHandler extends BaseSupport implements IGoodsImportHandler {
+
+	private IGoodsTypeManager goodsTypeManager;
+	private IGoodsManager goodsManager;
+	
+	@Transactional(propagation = Propagation.REQUIRED)
+	public boolean importGoods() throws RuntimeException{
+		try{
+			String sql = SF.goodsSql("GOODS_IMPORT_LOGS");
+			sql += " and deal_flag=0 ";
+			List<GoodsImportLog> logs = this.baseDaoSupport.queryForList(sql, GoodsImportLog.class, null);
+			importGoods(logs);
+			return true;
+		}catch(Exception ex){
+			ex.printStackTrace();
+			throw new RuntimeException("导入商品失败!"+ex.getMessage());
+		}
+	}
+	
+	public void importGoods(List<GoodsImportLog> logs){
+		String[] sns = null;
+		String[] typeids = null;
+		String[] goods_ids = null;
+
+		boolean isExists = false;//正在导入的合约机或号卡是否已经存在，true存在，false不存在
+		
+		if(logs!=null && logs.size()>0){
+			for(int ii=0;ii<logs.size();ii++){
+				Goods good = new Goods();
+				Map<String,Object> paramValues = new HashMap<String,Object>();
+				GoodsImportLog log = logs.get(ii);
+				try{
+					Double price = getParamsMap(log,paramValues);
+					Map rtnMap = setGoodsValues(good,log,price);
+					
+					String type_id = Const.getStrValue(rtnMap, "type_id");
+					String package_type = Const.getStrValue(rtnMap, "package_type");
+					String contract_model_code = Const.getStrValue(rtnMap, "contract_model_code");
+					
+					String atv_code_value = log.getAtv_code();
+					String oper_id = log.getOper_id();
+					String package_limit = log.getAtv_months(); 
+					String rel_code = log.getRel_code(); 
+					String product_code = log.getProduct_code();
+					
+					GoodsPackage goodsPackage = new GoodsPackage();
+					goodsPackage.setP_code(rel_code);
+					//取套餐
+					Map offer = getOffer(log.getProduct_code());
+					if(offer.isEmpty()){
+						//没有套餐，该记录不做导入处理
+						String deal_desc = "失败，套餐不存在";
+						int deal_flag = 2;
+						updateLogStatus(deal_flag,deal_desc,log);
+						continue;
+					}
+					//取合约计划
+					String z_goods_id = Const.getStrValue(offer, "goods_id");
+					String product_id = Const.getStrValue(offer, "product_id");
+					Map<String,Object> cparams = new HashMap<String,Object>();
+					cparams.put("package_type", package_type);
+					cparams.put("package_limit", package_limit);
+					
+					Map contract = null;
+					Map terminal = null;
+					if(atvCodeExists(atv_code_value)){
+						contract = getContract(log.getProduct_name(),atv_code_value,package_limit);
+						if(contract.isEmpty()){
+							String deal_desc = "失败，合约计划不存在";
+							int deal_flag = 2;
+							updateLogStatus(deal_flag,deal_desc,log);
+							continue;
+						}
+						//如果导入的商品是合约机，需要获取终端
+						terminal = getTerminalBySn(log.getTerminals_code());
+						if(!terminal.isEmpty()){
+							
+							//合约机配置，检查是否已经存在，存在则更新价格和参数
+							String terminal_id = terminal.get("product_id").toString();
+							String contract_id = contract.get("product_id").toString();
+							String offer_id = offer.get("product_id").toString();
+							String terminal_cat_id = Const.getStrValue(terminal, "cat_id");
+							
+							//合约机商品已经存在，并修改价格和参数，返回true
+							isExists = checkAndUpdateGoods(goodsPackage.getP_code(),oper_id,price,paramValues,terminal_id,contract_id,offer_id);
+							if(!isExists){
+								//合约机的sn取终端的sn，品牌为终端的品牌
+								good.setSn(Const.getStrValue(terminal, "sku"));
+								good.setBrand_id(Const.getStrValue(terminal, "brand_id"));
+								good.setModel_code(Const.getStrValue(terminal, "model_code"));
+								
+								String atv_type = "";
+								String atv_name = "";
+								//197335  商品的cat_id根据终端货品分类(cat_id)+活动类型编码来确定
+								if (Consts.GOODS_CAT_CUSTOM_MACHINE.equals(terminal_cat_id)) {
+									atv_type = "1";
+									atv_name = "定制机";
+//									if (Consts.ATV_CODE_VALUE_4.equals(atv_code_value)) {
+//										
+//										//1)cat_id: 690002000（定制机）+活动类型编码：4（存费送机）对应69030101（定制机全国存费送机）
+//										good.setCat_id(Consts.GOODS_CAT_ID_DZJQGCFSJ);
+//									} else if (Consts.ATV_CODE_VALUE_5.equals(atv_code_value)) {
+//										
+//										//2)cat_id: 690002000（定制机）+活动类型编码：5（购机送费）对应69030102(定制机全国购机送费)；
+//										good.setCat_id(Consts.GOODS_CAT_ID_DZJQGGJSF);
+//									} else if (Consts.ATV_CODE_VALUE_6.equals(atv_code_value)) {
+//										
+//										//3)终端的cat_id：690002000（定制机）+活动类型编码：6（合约惠机）时，对应690301041（定制机全国合约惠机A）；  
+//										good.setCat_id(Consts.GOODS_CAT_ID_DZJQGHYHJ);
+//									}else if (Consts.ATV_CODE_VALUE_7.equals(atv_code_value)) {
+//										
+//										//3)终端的cat_id：690002000（定制机）+活动类型编码：6（合约惠机）时，对应690301042（定制机全国合约惠机B）；  
+//										good.setCat_id(Consts.GOODS_CAT_ID_DZJQGHYHJB);
+//									}
+								} else if (Consts.GOODS_CAT_SOCIAL_MACHINE.equals(terminal_cat_id)) {
+									atv_type = "2";
+									atv_name = "社会机";
+//									if (Consts.ATV_CODE_VALUE_4.equals(atv_code_value)) {
+//										
+//										//4)cat_id: 690001000（社会机）+活动类型编码：4（存费送机）对应69030201 (社会机全国存费送机)；
+//										good.setCat_id(Consts.GOODS_CAT_ID_SHJQGCFSJ);
+//									} else if (Consts.ATV_CODE_VALUE_5.equals(atv_code_value)) {
+//										
+//										//5)cat_id: 690001000（社会机）+活动类型编码：5（购机送费）对应69030202 (社会机全国购机送费)
+//										good.setCat_id(Consts.GOODS_CAT_ID_SHJQGGJSF);
+//									} else if (Consts.ATV_CODE_VALUE_6.equals(atv_code_value)) {
+//										
+//										//6)终端的cat_id: 690001000（社会机）+活动类型编码：6（合约惠机）是，对应69030204（社会机全国合约惠机）；
+//										good.setCat_id(Consts.GOODS_CAT_ID_SHJQGHYHJ);
+//									}else if (Consts.ATV_CODE_VALUE_7.equals(atv_code_value)) {
+//										
+//										//6)终端的cat_id: 690001000（社会机）+活动类型编码：6（合约惠机）是，对应69030204（社会机全国合约惠机）；
+//										good.setCat_id(Consts.GOODS_CAT_ID_SHJQGHYHJB);
+//									}
+								}
+								String cat_id = getAtvCodeCatId(atv_code_value,atv_type);
+								if(null != cat_id && !"".equals(cat_id)){
+									good.setCat_id(cat_id);
+								}else{
+									updateLogStatus(2,"获取商品小类失败[" + atv_name + "," + atv_code_value+ "]",log);
+									continue;
+								}
+							}
+						}
+						else{
+							//合约机导入，没有终端，该记录不做导入处理
+							String deal_desc = "失败，终端不存在";
+							int deal_flag = 2;
+							updateLogStatus(deal_flag,deal_desc,log);
+							continue;
+						}
+					}
+					else{
+						//号卡
+						contract = getContract(log.getAtv_name(),contract_model_code,z_goods_id,product_id,rel_code,price,cparams);
+						if(contract.isEmpty()){
+							String deal_desc = "失败，合约计划不存在";
+							int deal_flag = 2;
+							updateLogStatus(deal_flag,deal_desc,log);
+							continue;
+						}
+						
+						String contract_id = contract.get("product_id").toString();
+						String offer_id = offer.get("product_id").toString();
+						String name = log.getAtv_name() + offer.get("name");
+											
+						isExists = checkAndUpdateGoods(goodsPackage.getP_code(),oper_id,price,paramValues,contract_id,offer_id,goodsPackage.getP_code());
+						if(!isExists){
+							String cat_id = getCardCatId(offer_id);
+							if(StringUtils.isEmpty(cat_id)){
+								String deal_desc = "号卡分类不是“后付费套餐3G号卡”，“后付费套餐4G号卡”或“iphone专用套餐”，不做导入处理";
+								int deal_flag = 2;
+								updateLogStatus(deal_flag,deal_desc,log);
+								continue;
+							}
+							else{
+								good.setCat_id(cat_id);
+								good.setBrand_id("2014032710061");
+								good.setSn(Const.getStrValue(offer, "sku"));
+								good.setModel_code(Const.getStrValue(offer, "model_code"));
+								good.setName(name);
+							}
+						}
+					}
+					if(!isExists){
+						getGoodsParamJson(good, type_id,paramValues);
+						String goods_id = this.baseDaoSupport.getSequences("S_ES_GOODS", "4", 18);
+						good.setGoods_id(goods_id);					
+						goodsManager.importAdd(good);
+						goodsManager.insertProduct(good);
+						//addPackageMember(goods_id,good.getType_id(),contract,offer,terminal);
+						//商品成员处理
+						if(atvCodeExists(atv_code_value)){
+							addGoodRelProduct(goods_id,terminal,offer,contract);
+							goods_ids = new String[]{Const.getStrValue(terminal, "goods_id"),Const.getStrValue(offer, "goods_id"),Const.getStrValue(contract, "goods_id")};
+							sns = new String[]{Const.getStrValue(terminal, "sn"),Const.getStrValue(offer, "sn"),Const.getStrValue(contract, "sn")};
+							typeids = new String[]{"10000","10002","10001"};
+						}
+						else{
+							addGoodRelProduct(goods_id,offer,contract);
+							goods_ids = new String[]{Const.getStrValue(offer, "goods_id"),Const.getStrValue(contract, "goods_id")};
+							sns = new String[]{Const.getStrValue(offer, "sku"),Const.getStrValue(contract, "sku")};
+							typeids = new String[]{"10002","10001"};
+							//商品包sn取产品编码
+							goodsPackage.setSn(product_code);
+						}
+						//商品包处理
+						addGoodsPackageData(goods_id,sns,typeids,goods_ids,goodsPackage);
+						GoodsImportLog logFields = new GoodsImportLog();
+						String deal_desc = "成功导入";
+						int deal_flag = 1;
+						updateLogStatus(deal_flag,deal_desc,log);
+						
+					}
+					else{
+						String deal_desc = "成功更新";
+						int deal_flag = 1;
+						updateLogStatus(deal_flag,deal_desc,log);
+					}
+				}catch(Exception e1){
+					String deal_desc = "导入商品数据发生异常!";
+					if(null != e1.getMessage() && e1.getMessage().length() > 100){
+						deal_desc += "异常信息:"+e1.getMessage().substring(0,100)+"...";
+					}else{
+						deal_desc += "异常信息:"+e1.getMessage();
+					}
+					int deal_flag = 2;
+					updateLogStatus(deal_flag,deal_desc,log);
+					e1.printStackTrace();
+				}
+			}
+		}
+	}
+	
+
+	public void addPackageMember(String goods_id,String type_id,Map contract,Map offer,Map terminal){
+		Map params = new HashMap();
+		params.put("type_id", type_id);
+		params.put("contract_goods_id", Const.getStrValue(contract, "goods_id"));
+		params.put("model_code", Const.getStrValue(terminal, "model_code"));
+		Relations relation = goodsManager.getPackage(params);
+		if(relation!=null){
+			String relation_id = relation.getRelation_id();
+			goodsManager.addPackageMember(relation_id, goods_id);
+		}
+	}
+	
+	public Double getParamsMap(GoodsImportLog log,Map<String,Object> paramValues){
+		Double price = (log.getContract_fee()==null?0:log.getContract_fee())/1000;
+		Double deposit_fee = (log.getDeposit_fee()==null?0:log.getDeposit_fee())/1000;
+		Double order_return = (log.getOrder_return()==null?0:log.getOrder_return())/1000;
+		Double mon_return = (log.getMon_return()==null?0:log.getMon_return())/1000;
+		Double mobile_price = price-deposit_fee;
+		
+		//参数，key设置成参数的ename
+		paramValues.put("deposit_fee", deposit_fee);
+		paramValues.put("mon_return", mon_return);
+		paramValues.put("order_return", order_return);
+		paramValues.put("mobile_price", mobile_price);
+		
+		return price;
+	}
+	
+	/**
+	 * 导入合约机-获取终端
+	 * @param model_code 型号编码
+	 * @param color 颜色编码
+	 * @return
+	 */
+	public Map getTerminal(String model_code,String color){
+		String sql = SF.goodsSql("TERMINAL_BY_MODELCODE_COLOR");
+		List<Map> terminals = this.baseDaoSupport.queryForList(sql, model_code,color);
+		return (terminals!=null && terminals.size()>0) ? terminals.get(0) : new HashMap();
+	}
+	
+	/**
+	 * 导入合约机-获取终端
+	 * @param model_code 型号编码
+	 * @param color 颜色编码
+	 * @return
+	 */
+	public Map getTerminalBySn(String terminalsCode){
+		String sql = SF.goodsSql("TERMINAL_BY_TERMINALS_CODE");
+		List<Map> terminals = this.baseDaoSupport.queryForList(sql, terminalsCode);
+		return (terminals!=null && terminals.size()>0) ? terminals.get(0) : new HashMap();
+	}
+	
+	/**
+	 * 导入合约机-获取合约
+	 * @param product_name 货品-合约计划名称
+	 * @param contract_cat_id 合约计划分类
+	 * @param contract_model_code 合约计划货品型号
+	 * @param months 参数-活动期限
+	 * @param a_goods_id 关联的套餐
+	 * @param product_id
+	 * @return
+	 */
+	public Map getContract(String product_name,String contract_type,String contract_limit){
+		String contract_net = "3G";
+		String is_iphone = "0";
+		String sql = SF.goodsSql("CONTRACT_GET_BY_SPEC");
+		if(!StringUtils.isEmpty(product_name) && product_name.toLowerCase().indexOf("4g")>=0){
+			contract_net = "4G";
+		}
+		if(!StringUtils.isEmpty(product_name) && product_name.toLowerCase().indexOf("iphone")>=0){
+			is_iphone = "1";
+		}
+		List<Map> contracts = this.baseDaoSupport.queryForList(sql, contract_type,contract_limit,contract_net,is_iphone);
+		//查不到合约，则新增合约
+		return (contracts!=null && contracts.size()>0) ? contracts.get(0) : new HashMap();
+		
+	}
+	
+	/**
+	 * 导入号卡-获取合约
+	 * @param product_name 货品-合约计划名称
+	 * @param contract_cat_id 合约计划分类
+	 * @param contract_model_code 合约计划货品型号
+	 * @param months 参数-活动期限
+	 * @param a_goods_id 关联的套餐
+	 * @param product_id
+	 * @return
+	 */
+	public Map getContract(String product_name,String contract_model_code,String z_goods_id,String product_id,String rel_code,Double price,Map<String,Object> cparams){
+		String goods_type="3";
+		String sql = SF.goodsSql("CONTRACT_GET_BY_NAME");
+		String type_id = Consts.GOODS_TYPE_CONTRACT;
+		List<Map> contracts = this.baseDaoSupport.queryForList(sql, product_name);
+		//查不到合约，则新增合约
+		if(contracts==null || contracts.size()==0){
+			Goods contract = new Goods();
+			contract.setName(product_name);
+			contract.setType_id("10001");
+			contract.setCat_id(Const.getStrValue(cparams, "package_type"));
+			contract.setBrand_id("2014032710002");
+			contract.setModel_code(contract_model_code);
+			contract.setType("product");
+			contract.setGoods_type("normal");
+			contract.setPrice(price);
+			contract.setMktprice(price);
+			contract.setCreate_time(DBTUtil.current());
+			contract.setLast_modify(DBTUtil.current());
+			
+			getGoodsParamJson(contract, type_id,cparams);
+			
+			try {
+				//添加合约计划
+				goodsManager.importAdd(contract);
+				//addGoodsPackageData(contract.getGoods_id(),null,null,null,new GoodsPackage());
+				//写es_product表
+				goodsManager.insertProduct(contract);
+				//添加合约计划与套餐之间的关系
+				Map rel = new HashMap();
+				rel.put("goods_id", z_goods_id);
+				rel.put("product_id", product_id);
+				rel.put("rel_code", rel_code);
+				rel.put("rel_type", "CONTRACT_OFFER");
+				
+				addGoodRelProduct(contract.getGoods_id(),rel);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new RuntimeException("新增合约计划失败！"+e.getMessage());
+			}
+			contracts = this.baseDaoSupport.queryForList(SF.goodsSql("CONTRACT_GET"), contract.getGoods_id());
+		}
+		return (contracts!=null && contracts.size()>0) ? contracts.get(0) : new HashMap();
+		
+	}
+	
+	/**
+	 * 导入合约机-获取套餐
+	 * @param product_code
+	 * @return
+	 */
+	public Map getOffer(String product_code){
+		String sql = SF.goodsSql("OFFER_GET_BY_ESSCODE");
+		sql += " and a.params like '%"+product_code+"%' ";
+		List<Map> offers = this.baseDaoSupport.queryForList(sql);
+		return (offers!=null && offers.size()>0) ? offers.get(0) : new HashMap();
+	}
+	
+	/**
+	 * 获取分类ID
+	 * @param offer_id 套餐ID
+	 * @return
+	 */
+	public String getCardCatId(String offer_id){
+		String cat_id = this.baseDaoSupport.queryForString(SF.goodsSql("CAT_ID"), offer_id);
+		if(Consts.GOODS_CAT_ID_1.equals(cat_id))
+			return "69010203";
+		if(Consts.GOODS_CAT_ID_2.equals(cat_id))
+			return "69010205";
+		if(Consts.GOODS_CAT_ID_3.equals(cat_id))
+			return "69010300";
+		return "";
+	}
+	
+	/**
+	 * 根据货品成员查找合约机商品或号卡商品，找到则更新价格和参数
+	 * @param terminal_id
+	 * @param contract_id
+	 * @param offer_id
+	 * @return
+	 */
+	public boolean checkAndUpdateGoods(String p_code,String oper_id,Double price,Map<String,Object> paramValues,String ... args){//String terminal_id,String contract_id,String offer_id
+		boolean isExists = false;
+		String type_id = null;
+		List goodList = null;
+		if(args.length==3){//查找合约机商品
+			type_id = Consts.GOODS_TYPE_CONTRACT_MACHINE;
+			goodList = this.baseDaoSupport.queryForList(SF.goodsSql("CONTRACT_MACHINE"), Goods.class, new String[]{args[0],args[1],args[2]});
+		}
+		if(args.length==2){//查找号卡商品
+			type_id = Consts.GOODS_TYPE_NUM_CARD;
+			goodList = this.baseDaoSupport.queryForList(SF.goodsSql("NUMBER_CARD_GET"), Goods.class, new String[]{args[0],args[1]});
+		}
+		if(goodList!=null && goodList.size()>0){
+			
+			Goods good = (Goods) goodList.get(0);
+			String goods_id = good.getGoods_id();
+			String brand_id = good.getBrand_id();
+			
+			Goods fields = new Goods();
+			fields.setGoods_id(goods_id);
+			fields.setBrand_id(brand_id);
+			fields.setPrice(price);
+			fields.setMktprice(price);
+			fields.setType("goods");
+			fields.setLast_modify(DBTUtil.current());
+			getGoodsParamJson(fields, type_id, paramValues);
+			this.baseDaoSupport.update("es_goods", fields, " goods_id='"+goods_id+"'");
+			
+			//更新活动编码（P_CODE）
+			GoodsPackage fields_p = new GoodsPackage();
+			fields_p.setP_code(p_code);
+			this.baseDaoSupport.update("es_goods_package", fields_p, " goods_id = '" + goods_id + "'");
+			
+			goodsManager.insertCoQueue("goods",oper_id,goods_id,2);
+			isExists = true;
+			
+			//修改成功后,同时刷新订单商品的缓存---zengxianlian
+			updateGoodsCache(goods_id);
+		}
+		return isExists;
+	}
+	
+	/**
+	 * @author zengxianlian
+	 * 商品修改/导入需要更新订单中商品缓存
+	 */
+	private void updateGoodsCache(String goodsIds){
+		ICacheUtil util = (ICacheUtil)SpringContextHolder.getBean("cacheUtil");
+		String url1 = util.getConfigInfo("REFRESH_GOODS_CACHE_1.0");
+		String url2 = util.getConfigInfo("REFRESH_GOODS_CACHE_2.0");
+		String json = "{\"reqId\": \"sp-valid\"," +
+				"\"reqType\": \"sp_refresh_goods_cache\"," +
+				"\"serial_no\": \"999999999\"," +
+				"\"time\": \""+new Date()+"\"," +
+				"\"source_system\": \"10011\"," +
+				"\"receive_system\": \"10008\"," +
+				"\"goodsIds\": \""+goodsIds+"\"}";
+		
+		String url = null;
+		String msg = null;
+		if(!StringUtil.isEmpty(url1)){
+			url = url1+"?reqId=sp-valid&reqType=sp_refresh_goods_cache";
+			JSONObject jsonObject = JSONObject.fromObject(json);
+			logger.info(jsonObject.toString());
+			msg = postHttpReq(jsonObject.toString(), url);
+			logger.info("返回信息 : "+msg+"===============================");
+		}
+		if(!StringUtil.isEmpty(url2)){
+			url = url2+"?reqId=sp-valid&reqType=sp_refresh_goods_cache";
+			JSONObject jsonObject = JSONObject.fromObject(json);
+			logger.info(jsonObject.toString());
+			msg = postHttpReq(jsonObject.toString(), url);
+			logger.info("返回信息 : "+msg+"===============================");
+		}
+	}
+	
+	private String postHttpReq(String json, String url) {
+		HttpClient httpClient = new HttpClient();
+
+		EntityEnclosingMethod postMethod = new PostMethod();
+		try {
+			byte b[] = json.getBytes("utf-8");
+			RequestEntity requestEntity = new ByteArrayRequestEntity(b);
+			postMethod.setRequestEntity(requestEntity);// 设置数据
+		} catch (UnsupportedEncodingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}// 把字符串转换为二进制数据
+
+		postMethod.setPath(url);// 设置服务的url
+		postMethod.setRequestHeader("Content-Type", "text/html;charset=utf-8");// 设置请求头编码
+
+		// 设置连接超时
+		httpClient.getHttpConnectionManager().getParams()
+				.setConnectionTimeout(5 * 1000);
+		// 设置读取超时
+		httpClient.getHttpConnectionManager().getParams()
+				.setSoTimeout(200 * 1000);
+
+		String responseMsg = "";
+		int statusCode = 0;
+		try {
+			statusCode = httpClient.executeMethod(postMethod);// 发送请求
+			responseMsg = postMethod.getResponseBodyAsString();// 获取返回值
+			logger.info("--------------------------------");
+		} catch (HttpException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			postMethod.releaseConnection();// 释放连接
+		}
+
+		if (statusCode != HttpStatus.SC_OK) {
+			logger.info("CCCCCCCCCCCCCCCCCCCC================================HTTP服务异常"+ statusCode);
+		}
+		return responseMsg;
+	}
+	
+	/**
+	 * 商品货品关系数据
+	 * @param a_goods_id
+	 * @param args
+	 */
+	public void addGoodRelProduct(String a_goods_id,Map ... args){
+		String[] goods_ids = null;
+		String[] product_ids = null;
+		String[] rel_codes = null;
+		String[] rel_types = null;
+		String[] sns = null;
+		String[] typeids = null;
+		if(args.length==1){
+			goods_ids = new String[]{Const.getStrValue(args[0], "goods_id")};
+			product_ids = new String[]{Const.getStrValue(args[0], "product_id")};
+			rel_codes = new String[]{Const.getStrValue(args[0], "rel_code")};
+			rel_types = new String[]{Const.getStrValue(args[0], "rel_type")};
+		}
+		else if(args.length==2){
+			goods_ids = new String[]{Const.getStrValue(args[0], "goods_id"),Const.getStrValue(args[1], "goods_id")};
+			product_ids = new String[]{Const.getStrValue(args[0], "product_id"),Const.getStrValue(args[1], "product_id")};
+			rel_codes = new String[]{"",""};
+			rel_types = new String[]{"PRO_REL_GOODS","PRO_REL_GOODS"};
+			sns = new String[]{};
+			typeids = new String[]{};
+		}
+		else if(args.length==3){
+			goods_ids = new String[]{Const.getStrValue(args[0], "goods_id"),Const.getStrValue(args[1], "goods_id"),Const.getStrValue(args[2], "goods_id")};
+			product_ids = new String[]{Const.getStrValue(args[0], "product_id"),Const.getStrValue(args[1], "product_id"),Const.getStrValue(args[2], "product_id")};
+			rel_codes = new String[]{"","",""};
+			rel_types = new String[]{"PRO_REL_GOODS","PRO_REL_GOODS","PRO_REL_GOODS"};
+			sns = new String[]{Const.getStrValue(args[0], "sn"),Const.getStrValue(args[1], "sn"),Const.getStrValue(args[2], "sn")};
+			typeids = new String[]{"10000","10002","10001"};
+		}
+		
+		addGoodRelProduct(a_goods_id, goods_ids, product_ids, rel_codes, rel_types);
+	}
+	
+	/**
+	 * 
+	 * @param a_goods_id 商品ID
+	 * @param z_goods_ids 货品goods_id
+	 * @param productids 货品product_id
+	 * @param rel_codes 关系编码
+	 * @param rel_types 关系类型：TERMINAL_PLAN,CONTRACT_OFFER,PRO_REL_GOODS
+	 */
+	public void addGoodRelProduct(String a_goods_id,String[] z_goods_ids,String[] productids,String[] rel_codes,String[] rel_types){
+		if(productids==null || productids.length==0)
+			return ;
+		for(int i=0;i<productids.length;i++){
+			String product_id = productids[i];
+			String z_goods_id = z_goods_ids[i];
+			String rel_code = rel_codes[i];
+			String rel_type = rel_types[i];
+			
+			Map data = new HashMap();
+			data.put("a_goods_id", a_goods_id);
+			data.put("z_goods_id", z_goods_id);
+			data.put("rel_type", rel_type);
+			data.put("rel_code", rel_code);
+			data.put("product_id", product_id);
+			data.put("source_from", ManagerUtils.getSourceFrom());
+			this.baseDaoSupport.insert("es_goods_rel", data);
+		}
+	}
+	
+	/**
+	 * 添加商品包
+	 * @param goods_id
+	 * @param sns
+	 * @param typeids
+	 * @param z_goods_ids
+	 * @param goodsPackage
+	 */
+	public void addGoodsPackageData(String goods_id,String[] sns,String[] typeids,String[] z_goods_ids,GoodsPackage goodsPackage){
+		if(goodsPackage==null)
+			goodsPackage = new GoodsPackage();
+		String contract_goods_id = null;//合约计划
+		String offer_goods_id = null;
+		String sn = null;
+		if(typeids!=null && typeids.length>0){
+			for(int i=0;i<typeids.length;i++){
+				String typeid = typeids[i];
+				if((Consts.GOODS_TYPE_TERMINAL.equals(typeid) 
+						|| Consts.PRODUCT_TYPE_FIN_CARD.equals(typeid)
+						|| Consts.PRODUCT_TYPE_ADJUNCT.equals(typeid)
+						|| Consts.PRODUCT_TYPE_INTERNET.equals(typeid))
+						&& sns[i]!=null && !"".equals(sns[i])){
+					sn = sns[i];
+					goodsPackage.setSn(sn);
+				}
+				if(Consts.GOODS_TYPE_CONTRACT.equals(typeid))
+					contract_goods_id = z_goods_ids[i];
+				if(Consts.GOODS_TYPE_OFFER.equals(typeid))
+					offer_goods_id = z_goods_ids[i];
+			}
+		}
+		
+		String p_code = "";
+		//合约、套餐都不为空时，取p_code
+		if(StringUtils.isEmpty(goodsPackage.getP_code()) && StringUtils.isNotEmpty(contract_goods_id) && StringUtils.isNotEmpty(offer_goods_id)){
+			String sql = SF.goodsSql("P_CODE");
+			List<Map> list = this.baseDaoSupport.queryForList(sql, contract_goods_id,offer_goods_id);
+			if(list!=null && list.size()>0){
+				Map codeMap = list.get(0);
+				goodsPackage.setP_code(codeMap.get("rel_code").toString());
+			}
+			
+		}
+		goodsPackage.setGoods_id(goods_id);
+		goodsPackage.setSource_from(ManagerUtils.getSourceFrom());
+		goodsManager.savaGoodsPackage(goodsPackage);
+	}
+
+	
+	/**
+	 * 设置商品信息
+	 * @param good
+	 */
+	public Map setGoodsValues(Goods good,GoodsImportLog log,Double price){
+		String package_type = "";
+		String contract_model_code= "";
+		String name = "";
+		String cat_id = "";
+		String type_id = "";
+		String oper_id = log.getOper_id();
+		String package_limit = log.getAtv_months();
+		String atv_code_value = log.getAtv_code();
+		Map rtnMap = new HashMap();
+		if(Consts.ATV_CODE_VALUE_3.equals(atv_code_value)){
+			cat_id = "";
+			type_id = "20000";
+			package_type = "690303000";
+			contract_model_code = "CFZF";
+			name = log.getAtv_name();
+		}
+		else if(Consts.ATV_CODE_VALUE_4.equals(atv_code_value)){
+			cat_id = "69030101";
+			type_id = "20002";
+			package_type = "690302000";
+			contract_model_code = "ZNJCFSJ";
+			name = log.getTerminals_name()+package_limit+"月存费送机"+log.getProduct_name();
+		}
+		else if(Consts.ATV_CODE_VALUE_5.equals(atv_code_value)){
+			cat_id = "69030102";
+			type_id = "20002";
+			package_type = "690301000";
+			contract_model_code = "ZNJGJSF";
+			name = log.getTerminals_name()+package_limit+"月购机送费"+log.getProduct_name();
+		}else if(Consts.ATV_CODE_VALUE_6.equals(atv_code_value)) {
+			cat_id = "690301041";
+			type_id = "20002";
+			package_type = "690307000";
+			contract_model_code = "ZNJHYHJA";
+			name = log.getTerminals_name()+package_limit+"合约惠机A"+log.getProduct_name();
+		}else{
+			cat_id = "690301042";
+			type_id = "20002";
+			package_type = "690308000";
+			contract_model_code = "ZNJHYHJB";
+			name = log.getTerminals_name()+package_limit+"合约惠机B"+log.getProduct_name();
+		}
+		good.setType_id(type_id);
+		good.setCat_id(cat_id);
+		good.setName(name);
+		good.setModel_code(log.getModel_code());
+		good.setPrice(price);
+		good.setMktprice(price);
+		good.setType("goods");
+		good.setCreate_time(DBTUtil.current());
+		good.setLast_modify(DBTUtil.current());
+		
+		List adminUsers = this.baseDaoSupport.queryForList(SF.goodsSql("ADMINUSER"), oper_id);
+		Map adminUser = adminUsers.size()>0?(Map) adminUsers.get(0):new HashMap();
+		String paruserid = Const.getStrValue(adminUser, "paruserid");
+		String founder = Const.getStrValue(adminUser, "founder");
+		String userId = null;
+		if(Consts.CURR_FOUNDER_0.equals(founder) || Consts.CURR_FOUNDER_1.equals(founder)){
+			userId = "-1" ;
+			good.setAudit_state(Consts.GOODS_AUDIT_SUC);
+		}
+		else{
+			if(Consts.CURR_FOUNDER_4.equals(founder)){//供货商
+				userId = oper_id;
+			}
+			else{
+				userId = paruserid;
+			}
+			good.setAudit_state(Consts.GOODS_AUDIT_NOT) ; //待审核商品
+		}
+		good.setCreate_time(DBTUtil.getDBCurrentTime());
+		good.setStaff_no(userId);
+		good.setCreator_user(oper_id);
+		good.setGoods_type("normal");
+		good.setLast_modify(DBTUtil.current());
+		
+		if(good.getType_id()!=null){
+			GoodsTypeDTO goodsType=goodsTypeManager.get(good.getType_id());
+			good.setType_code(goodsType.getType_code());
+		}
+		
+		rtnMap.put("package_type", package_type);
+		rtnMap.put("contract_model_code", contract_model_code);
+		rtnMap.put("type_id", type_id);
+		return rtnMap;
+	}
+
+	/**
+	 * 把导入的合约费用，预存金额，每月返回金额等组装成json参数格式
+	 * @param goods
+	 * @param type_id
+	 * @param paramValues key==ename
+	 */
+	public void getGoodsParamJson(Goods goods, String type_id, Map<String,Object> paramValues) {
+		String[] groupnames = new String[10];
+		String[] paramnums = new String[10];
+		String[] paramnames = new String[100];
+		String[] paramvalues = new String[100];
+		String[] enames = new String[100];
+		String[] attrCodes = new String[100];
+		String[] attrvaltypes = new String[100];
+		String[] attrtypes = new String[100];
+		String[] required = new String[100];
+		
+		String sql = SF.goodsSql("GOODS_TYPE_PARAMS");
+		String tparams = this.baseDaoSupport.queryForString(sql, goods.getType(),type_id);
+		ParamGroup[] tpgs = GoodsTypeUtil.converFormString( tparams);// 处理参数
+		
+		int c = 0;
+		for(int i=0;i<tpgs.length;i++){
+			ParamGroup tpg = tpgs[i];
+			groupnames[i] = tpg.getName();
+			List<GoodsParam> paramList = tpg.getParamList();
+			paramnums[i] = String.valueOf(paramList.size());
+			for(int j=0;j<paramList.size();j++){
+				GoodsParam param = paramList.get(j);
+				paramnames[c] = param.getName();
+				paramvalues[c] = paramValues.get(param.getEname())==null?"":paramValues.get(param.getEname()).toString();
+				enames[c] = param.getEname();
+				attrCodes[c] = param.getAttrcode();
+				attrvaltypes[c] = param.getAttrvaltype();
+				attrtypes[c] = param.getAttrtype();
+				required[c] = param.getRequired();
+				c++;
+			}
+		}
+		
+		IGoodsTypeManager goodsTypeManager = SpringContextHolder.getBean("goodsTypeManager");
+		String params = goodsTypeManager.getParamString(paramnums, groupnames,
+				paramnames, paramvalues, enames, attrvaltypes, attrtypes,attrCodes,required);
+		goods.setParams(params);
+		
+		//广东联通ECS，当货品类型是套餐时，stype_id字段保存套餐档次
+		if(Consts.ECS_SOURCE_FROM.equals(ManagerUtils.getSourceFrom())){
+			if(enames!=null && enames.length>0 && Consts.OFFER_ID.equals(goods.getType_id())){
+				for(int i=0;i<enames.length;i++){
+					String ename = enames[i];
+					if(Consts.MONTH_FEE.equals(ename)){
+						goods.setStype_id(paramvalues[i]);
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * 修改商品批量导入日志状态
+	 */
+	public void updateLogStatus(int deal_flag,String deal_desc,GoodsImportLog log){
+		GoodsImportLog logFields = new GoodsImportLog();
+		logFields.setStatus_date(DBTUtil.current());
+		logFields.setDeal_num(log.getDeal_num()+1);
+		logFields.setDeal_desc(deal_desc);
+		logFields.setDeal_flag(deal_flag);
+		Map whereMap = new HashMap();
+		whereMap.put("log_id", log.getLog_id());
+		this.baseDaoSupport.update("es_goods_import_logs", logFields, whereMap);
+	}
+	
+	public void test(){
+		logger.info("调用了test()方法");
+	}
+
+	public IGoodsTypeManager getGoodsTypeManager() {
+		return goodsTypeManager;
+	}
+
+	public void setGoodsTypeManager(IGoodsTypeManager goodsTypeManager) {
+		this.goodsTypeManager = goodsTypeManager;
+	}
+
+	public IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+
+	public void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+	
+	/**
+	 * 合约类型是否存在
+	 * @param atvCode
+	 * @return
+	 */
+	public boolean atvCodeExists(String atvCode){
+		boolean flag = true;
+		try{
+			String sql = SF.goodsSql("QUERY_ACT_CODE_VALUE_EXISTS");
+			if(this.baseDaoSupport.queryForInt(sql, atvCode) == 0){
+				flag = false;
+			}
+		}catch(Exception e){
+			flag = false;
+			logger.info(e.getMessage(), e);
+		}
+		return flag;
+	}
+	
+	/**
+	 * 获取商品小类
+	 * @param atvCode
+	 * @param atvType
+	 * @return
+	 */
+	public String getAtvCodeCatId(String atvCode,String atvType){
+		String cat_id = "";
+		try{
+			String sql = "";
+			if("1".equals(atvType)){
+				//定制机
+				sql = SF.goodsSql("QUERY_ACT_CODE_CAT_ID_DZ");
+			}else{
+				//社会机
+				sql = SF.goodsSql("QUERY_ACT_CODE_CAT_ID_SH");
+			}
+			cat_id = this.baseDaoSupport.queryForString(sql, atvCode);
+		}catch(Exception e){
+			cat_id = "";
+			logger.info(e.getMessage(), e);
+		}
+		return cat_id;
+	}
+	
+}

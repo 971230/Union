@@ -1,0 +1,106 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <!-- 定义父模块 -->
+    <parent>
+        <groupId>com.ztesoft.crm.pass</groupId>
+        <artifactId>ebusiness</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+    
+    <!-- 定义坐标 -->
+    <artifactId>inf_server</artifactId>
+    <packaging>jar</packaging>
+    <name>inf_server-jar</name>
+    <description>电商平台(联通)inf_server模块</description>
+    
+    <dependencies>
+    	<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>base</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
+    
+	    <dependency>
+			<groupId>com.google.gson</groupId>
+		  	<artifactId>gson</artifactId>
+		</dependency>	
+		<dependency>
+		  	<groupId>com.thoughtworks.xstream</groupId>
+		  	<artifactId>xstream</artifactId>
+		  	<version>1.3.1</version>
+		</dependency>
+		<dependency>
+		  	<groupId>UppUtil</groupId>
+		  	<artifactId>UppUtil</artifactId>
+		  	<version>1.0.0</version>
+		</dependency>			
+		<dependency>
+		  	<groupId>com.ztesoft.crm.pass</groupId>
+		  	<artifactId>htmlparser-0.0.1</artifactId>
+		  	<version>0.0.1</version>
+		</dependency>		
+		<dependency>
+		  	<groupId>com.ztesoft.crm.pass</groupId>
+		  	<artifactId>spring-security-core</artifactId>
+		  	<version>3.1.2.RELEASE</version>
+		</dependency>	
+		<dependency>
+		  	<groupId>com.ztesoft.crm.pass</groupId>
+		  	<artifactId>spring-webmvc</artifactId>
+		  	<version>3.1.2.RELEASE</version>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>pjl-comp-filter</groupId>
+			<artifactId>pjl-comp-filter</artifactId>
+			<version>1.6.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>3.6</version>
+		</dependency>
+	    <dependency>
+	 		<groupId>com.ztesoft.crm.pass</groupId>
+	 		<artifactId>eop-client-0.0.1</artifactId>
+			<version>0.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+		 	<artifactId>ecaop-client-0.0.1</artifactId>
+		  	<version>0.0.1</version>
+		</dependency>
+		<!-- inner end -->
+	</dependencies>
+    
+    <!-- 继承的插件 -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+    <distributionManagement>
+		<snapshotRepository>
+			<id>nexus-snapshots</id>
+			<name>ztesoft distribution snapshot repository</name>
+			<url>http://10.45.47.168:8081/nexus/content/repositories/snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
+</project>

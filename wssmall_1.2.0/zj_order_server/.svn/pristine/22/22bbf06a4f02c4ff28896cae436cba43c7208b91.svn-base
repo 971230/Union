@@ -1,0 +1,106 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.jdbc.core.RowMapper;
+
+import zte.net.common.rule.ZteTraceBaseRule;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderStatusQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderStatusQryResp;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.service.impl.RequestStoreManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+public class KdyydStatusQryTimer {
+
+	private String qry_sql = " select t.order_id,e.out_tid from es_order t,es_order_ext e where t.order_id=e.order_id and t.order_state='4' and t.source_from=e.source_from and t.source_from='"+ManagerUtils.getSourceFrom()+"' ";
+	static INetCache cache;
+	public static int NAMESPACE = 308;
+	public static String CURR_ORDER_CLICK_PAGE = "CURR_ORDER_CLICK_PAGE_";
+	static{
+		cache = (INetCache) com.ztesoft.net.cache.common.CacheFactory.getCacheByType("");
+	}
+	
+	public void run(){
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "run")) {
+  			return;
+		}
+		//System.out.println("KdyydStatusQryTimer------------begin-----------------");
+		IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+		Page syn_page = baseDaoSupport.queryForPage(qry_sql, 1, 100, new RowMapper(){
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				Map data  = new HashMap();
+				data.put("order_id",rs.getString("order_id"));
+				data.put("out_tid",rs.getString("out_tid"));
+				return data;
+			}
+		}, null);
+		List list = syn_page.getResult();
+		for (int i = 0; i < list.size(); i++) {
+			Map map = (Map)list.get(i);
+			ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+			OrderStatusQryReq req = new OrderStatusQryReq();
+			String order_id = Const.getStrValue(map, "order_id");
+			req.setNotNeedReqStrOrderId(order_id);
+			OrderStatusQryResp resp = client.execute(req, OrderStatusQryResp.class);
+			if (resp.getCode().equals(EcsOrderConsts.INF_RESP_CODE_00000)) {
+				String set_sql = "";
+				OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+				OrderBusiRequest orderBusiRequest = orderTree.getOrderBusiRequest();
+				String dealstate = "";
+				if("4".equals(resp.getRespJson().getOrder_status())){
+					set_sql = " order_state = '-1' ";
+					orderBusiRequest.setOrderStatus("-1");
+					dealstate = "4";
+				}else if ("9".equals(resp.getRespJson().getOrder_status())){
+					set_sql = " order_state = '5' ";
+					orderBusiRequest.setOrderStatus("5");
+					dealstate = "3";
+				}
+				updateOrderTree(set_sql,"es_order",order_id,orderTree,baseDaoSupport);
+				insertSyn(map,baseDaoSupport,dealstate);
+			}
+		}
+		
+	}
+	
+	public void updateOrderTree(String set_sql,String table_name,String order_id,OrderTreeBusiRequest orderTree,IDaoSupport baseDaoSupport){
+		String sql ="update "+table_name+" set "+set_sql+" where order_id=?";
+		if(baseDaoSupport==null){
+			baseDaoSupport=SpringContextHolder.getBean("baseDaoSupport");
+		}
+	        baseDaoSupport.execute(sql, order_id);
+		//更新订单树缓存
+		cache.set(RequestStoreManager.NAMESPACE, RequestStoreManager.DC_TREE_CACHE_NAME_KEY+"order_id"+ order_id,orderTree, RequestStoreManager.time);
+		
+	}
+	
+	public void insertSyn(Map map,IDaoSupport baseDaoSupport,String dealstate){
+		String qry_sql = " select id from es_kd_order_status_syn where syn_status not in ('CLZ','CLCG') and order_id=? ";
+		List list = baseDaoSupport.queryForList(qry_sql, new String[]{Const.getStrValue(map, "order_id")});
+		if(list.size()>0){
+			String update_sql = " update es_kd_order_status_syn set syn_status='WCL',syn_num=0,dealstate=?,dealtime=to_char(sysdate,'yyyy-mm-dd hh24:mi:ss') where id=? ";
+			baseDaoSupport.execute(update_sql, new String[]{dealstate,Const.getStrValue((Map)list.get(0), "id")});
+		}else{
+			String insert_sql = " insert into es_kd_order_status_syn (id,bespeakid,order_id,dealstate,dealtime,syn_status,syn_num,source_from) values (?,?,?,?,to_char(sysdate,'yyyy-mm-dd hh24:mi:ss'),'WCL','0','ECS') " ;
+			
+			baseDaoSupport.execute(insert_sql, new String[]{baseDaoSupport.getSequences("seq_kd_status_syn"),Const.getStrValue(map, "out_tid"),Const.getStrValue(map, "order_id"),dealstate});
+		}
+	}
+	//this.baseDaoSupport.getSequences("seq_kd_status_syn")
+}

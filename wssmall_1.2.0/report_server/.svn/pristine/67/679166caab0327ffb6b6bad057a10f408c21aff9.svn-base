@@ -1,0 +1,106 @@
+/*     */ package com.ztesoft.crm.report.interfaces;
+/*     */ 
+/*     */ import java.util.ArrayList;
+/*     */ import java.util.Iterator;
+/*     */ import java.util.List;
+/*     */ 
+/*     */ public final class StaticData
+/*     */ {
+/*     */   private List childs;
+/*  16 */   private boolean leaf = false;
+/*     */   private String parent;
+/*     */   private String text;
+/*     */   private String value;
+/*  20 */   private boolean isdefault = false;
+/*     */ 
+/*     */   public boolean isDefault() {
+/*  23 */     return this.isdefault;
+/*     */   }
+/*     */ 
+/*     */   public void setDefault() {
+/*  27 */     this.isdefault = true;
+/*     */   }
+/*     */ 
+/*     */   public StaticData()
+/*     */   {
+/*  35 */     this.childs = new ArrayList();
+/*     */   }
+/*     */ 
+/*     */   public StaticData(String value, String text, String parent, boolean leaf)
+/*     */   {
+/*  40 */     this.value = value;
+/*  41 */     this.text = text;
+/*  42 */     this.parent = parent;
+/*  43 */     this.leaf = leaf;
+/*     */   }
+/*     */ 
+/*     */   public void add(StaticData data) {
+/*  47 */     this.childs.add(data);
+/*     */   }
+/*     */ 
+/*     */   public List children() {
+/*  51 */     return this.childs;
+/*     */   }
+/*     */ 
+/*     */   public String getParent()
+/*     */   {
+/*  58 */     return this.parent;
+/*     */   }
+/*     */ 
+/*     */   public String getText()
+/*     */   {
+/*  65 */     return this.text;
+/*     */   }
+/*     */ 
+/*     */   public String getValue()
+/*     */   {
+/*  72 */     return this.value;
+/*     */   }
+/*     */ 
+/*     */   public boolean isLeaf()
+/*     */   {
+/*  79 */     return this.leaf;
+/*     */   }
+/*     */ 
+/*     */   public void setLeaf(boolean leaf)
+/*     */   {
+/*  87 */     this.leaf = leaf;
+/*     */   }
+/*     */ 
+/*     */   public void setParent(String parent)
+/*     */   {
+/*  95 */     this.parent = parent;
+/*     */   }
+/*     */ 
+/*     */   public void setText(String text)
+/*     */   {
+/* 103 */     this.text = text;
+/*     */   }
+/*     */ 
+/*     */   public void setValue(String value)
+/*     */   {
+/* 111 */     this.value = value;
+/*     */   }
+/*     */ 
+/*     */   public String toString()
+/*     */   {
+/* 121 */     StringBuffer sb = new StringBuffer();
+/* 122 */     sb.append("{");
+/* 123 */     sb.append("value:'").append(this.value).append("',text:'").append(this.text)
+/* 124 */       .append("',");
+/* 125 */     sb.append("leaf:").append(this.leaf).append(",children:[");
+/* 126 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 127 */       sb.append(objs.next().toString());
+/* 128 */       if (objs.hasNext()) {
+/* 129 */         sb.append(",");
+/*     */       }
+/*     */     }
+/* 132 */     sb.append("]}");
+/* 133 */     return sb.toString();
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.interfaces.StaticData
+ * JD-Core Version:    0.5.3
+ */

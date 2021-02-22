@@ -1,0 +1,240 @@
+package com.ztesoft.gray.action.backend;
+
+import java.util.HashMap;
+
+import com.ztesoft.gray.service.IRouterGrategyCfgManager;
+import com.ztesoft.net.framework.action.WWAction;
+
+public class RouterGrategyCfgAction extends WWAction {
+	private String run_status;
+	private String cfg_id;
+	private String env_url;
+	private String env_type;
+	private String env_code;
+	private String policyid;
+	private String gray_moment;
+	private String separate_status;//yes no
+	private String limit_count;
+	private String execed_count;
+	private IRouterGrategyCfgManager routerGrategyCfgManager ;
+	/**
+	 * 查询[灰度策略配置（下单）]
+	 * @return
+	 */
+	@Override
+	public String execute(){
+		HashMap param = new HashMap();
+		this.setPageSize(20);
+		this.webpage = this.routerGrategyCfgManager.qryRouterGrategyCfg(param, this.getPage(),this.getPageSize());
+		return SUCCESS;
+	}
+	
+	/**
+	 * 设置灰度策略：
+	 * @return
+	 */
+	public String operPolicy(){
+		boolean result = false;
+		//设置run_status=null
+		//运行run_status=run
+		//挂起run_status=hang
+		HashMap param = new HashMap();
+		param.put("run_status", run_status);
+		param.put("cfg_id", cfg_id);
+		param.put("env_url", env_url);
+		param.put("env_type", env_type);
+		param.put("env_code", env_code);
+		param.put("policyid", policyid);
+		param.put("gray_moment", gray_moment);
+		try {
+			String result_str = this.routerGrategyCfgManager.operPolicy(param);
+			this.json = "{result:1,message:'操作成功"+result_str+"'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:0,message:'操作失败:"+e.getMessage()+"'}";
+			
+		}
+
+		return WWAction.JSON_MESSAGE;
+	}
+
+	/**
+	 * 一键初始化策略
+	 * @return
+	 */
+	public String initPolicy() {
+		try {
+			String result_str = this.routerGrategyCfgManager.initPolicy();
+			this.json = "{result:1,message:'操作成功，"+result_str+"'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:0,message:'操作失败:"+e.getMessage()+"'}";
+			
+		}
+
+		return WWAction.JSON_MESSAGE;
+	}
+	/**
+	 * 一键初始化运行时策略到tenginx
+	 * @return
+	 */
+	public String initRunPolicy() {
+		try {
+			String result_str = this.routerGrategyCfgManager.initRunPolicy();
+			this.json = "{result:1,message:'操作成功，"+result_str+"'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:0,message:'操作失败:"+e.getMessage()+"'}";
+			
+		}
+
+		return WWAction.JSON_MESSAGE;
+	}
+	/**
+	 * 设置解耦开关
+	 * @return
+	 */
+	public String separateSet() {
+		try {
+			    this.routerGrategyCfgManager.separateSet(separate_status);
+				this.json = "{result:1,message:'操作成功'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:0,message:'操作失败:"+e.getMessage()+"'}";
+		}
+
+		return WWAction.JSON_MESSAGE;
+	}
+	public String qrySeparateOnOff() {
+		try {
+			String result = this.routerGrategyCfgManager.qrySeparateOnOff();
+			this.json = "{result:1,message:'"+result+"'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:0,message:'查询解耦开关失败'}";
+		}
+
+		return WWAction.JSON_MESSAGE;
+	}
+	/**
+	 * 设置解耦限流数量和解耦已分流数
+	 * @return
+	 */
+	public String setLimitCount() {
+		try {
+			this.routerGrategyCfgManager.setLimitCount(limit_count,execed_count);
+			this.json = "{result:1,message:'操作成功'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:0,message:'失败"+e.getMessage()+"'}";
+		}
+
+		return WWAction.JSON_MESSAGE;
+	}
+	/**
+	 * 查询解耦限流数量和已分流数
+	 * @return
+	 */
+	public String getLimitCount() {
+		try {
+			String rStr="";
+			rStr="限流数量  "+this.routerGrategyCfgManager.getLimitCount();
+			rStr=rStr+"    已分流数  "+this.routerGrategyCfgManager.getExecedCount();
+			this.json = "{result:1,message:'"+rStr+"'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:0,message:'失败"+e.getMessage()+"'}";
+		}
+
+		return WWAction.JSON_MESSAGE;
+	}
+	
+	public IRouterGrategyCfgManager getRouterGrategyCfgManager() {
+		return routerGrategyCfgManager;
+	}
+
+	public void setRouterGrategyCfgManager(IRouterGrategyCfgManager routerGrategyCfgManager) {
+		this.routerGrategyCfgManager = routerGrategyCfgManager;
+	}
+
+	public String getCfg_id() {
+		return cfg_id;
+	}
+
+	public void setCfg_id(String cfg_id) {
+		this.cfg_id = cfg_id;
+	}
+
+	public String getEnv_url() {
+		return env_url;
+	}
+
+	public void setEnv_url(String env_url) {
+		this.env_url = env_url;
+	}
+
+	public String getRun_status() {
+		return run_status;
+	}
+
+	public void setRun_status(String run_status) {
+		this.run_status = run_status;
+	}
+
+	public String getEnv_type() {
+		return env_type;
+	}
+
+	public void setEnv_type(String env_type) {
+		this.env_type = env_type;
+	}
+
+	public String getEnv_code() {
+		return env_code;
+	}
+
+	public void setEnv_code(String env_code) {
+		this.env_code = env_code;
+	}
+
+	public String getPolicyid() {
+		return policyid;
+	}
+
+	public void setPolicyid(String policyid) {
+		this.policyid = policyid;
+	}
+
+	public String getGray_moment() {
+		return gray_moment;
+	}
+
+	public void setGray_moment(String gray_moment) {
+		this.gray_moment = gray_moment;
+	}
+
+	public String getSeparate_status() {
+		return separate_status;
+	}
+
+	public void setSeparate_status(String separate_status) {
+		this.separate_status = separate_status;
+	}
+
+	public String getLimit_count() {
+		return limit_count;
+	}
+
+	public void setLimit_count(String limit_count) {
+		this.limit_count = limit_count;
+	}
+
+	public String getExeced_count() {
+		return execed_count;
+	}
+
+	public void setExeced_count(String execed_count) {
+		this.execed_count = execed_count;
+	}
+	
+}

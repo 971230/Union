@@ -1,0 +1,743 @@
+package com.ztesoft.net.server;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.busi.req.AttrInstBusiRequest;
+import zte.net.ecsord.params.busi.req.AttrTmResourceInfoBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderDeliveryBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemProdBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemProdExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderPayBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.iservice.IEcsOrdServices;
+import zte.net.iservice.IGoodsService;
+import zte.net.iservice.ILogsServices;
+import zte.params.goods.req.ProductsListReq;
+import zte.params.goods.resp.ProductsListResp;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.cache.CacheList;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.attr.hander.AttrSwitchParams;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicSQLInfoCacheProxy;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.AttrDef;
+import com.ztesoft.net.model.AttrTable;
+import com.ztesoft.net.server.jsonserver.wcfpojo.MallUtils;
+import consts.ConstsCore;
+
+public class ModelStandardOrderUtil {
+	private static Logger logger = Logger.getLogger(ModelStandardOrderUtil.class);
+	    private static IDaoSupport baseDaoSupport ;
+	    private static ILogsServices logsServices;
+	    public static int space = Const.CACHE_SPACE;
+		private static INetCache cache = com.ztesoft.net.cache.common.CacheFactory.getCacheByType("");
+		
+	    public static void init(){
+	    	baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+	    	logsServices = SpringContextHolder.getBean("logsServices");
+	    }
+        public static Map fillOrderInfo(Map innerOrdMap,Map modelConvertMap,String order_id){
+        	Map returnMap = new HashMap();
+        	//1.初始化服务
+        	init();
+        	//2.构造会员信息并生成会员 
+        	Member member = setMemberInfo(innerOrdMap,modelConvertMap);
+        	//3.填充订单表，扩展表等数据
+        	initInfo(order_id,innerOrdMap,modelConvertMap,member);
+        	long start = System.currentTimeMillis();
+        	//4.根据表名走属性处理器处理
+        	List attrInstList = insertAttrTable(innerOrdMap,modelConvertMap,order_id);
+        	logger.info("模板里面调用属性处理器耗时========"+(System.currentTimeMillis()-start));
+        	//5.属性横表es_order_extvtl 没有busiRequest对象,特殊处理插入
+        	insertOrdExtvtl(modelConvertMap, order_id);
+        	//6.去掉一些没有busiRequest需要自己入库的key,防止走后面的模板入库
+        	modelConvertMap.remove("es_order_extvtl");//自己入库
+        	modelConvertMap.remove("es_order_items_prod");
+        	modelConvertMap.remove("es_order_items_prod_ext");
+            //7.返回数据
+        	returnMap.put("allObjMap", modelConvertMap);
+        	returnMap.put("attrInstList", attrInstList);
+        	return returnMap;
+        }
+        public static void insertOrdExtvtl(Map modelConvertMap,String order_id){
+        	List list  = (List) modelConvertMap.get("es_order_extvtl");
+        	if(list!=null&&list.size()>0){
+        		Map map = (Map) list.get(0);
+        		map.put("order_id", order_id);
+        		map.remove("phoneInfo");
+        		map.remove("terminalInfo");
+        		baseDaoSupport.insert("es_order_extvtl", map);
+        	}
+        }
+        public static void initInfo(String order_id,Map innerOrdMap,Map modelConvertMap,Member member){
+        	setOrderInfo(innerOrdMap,modelConvertMap,member);
+        	setOrderExtInfo( innerOrdMap, modelConvertMap);
+            setOrderItemInfo( innerOrdMap, modelConvertMap);
+            setOrderItemExt( innerOrdMap, modelConvertMap);
+            setPaymentLogInfo( innerOrdMap, modelConvertMap, member);
+            setOrderExtvtlInfo( innerOrdMap, modelConvertMap);
+        }
+
+        public static  Object getConvertMap(Map tableMap,String table_name,boolean is_list){
+        	  if(tableMap.get(table_name)==null){
+        		  return null;
+        	  }
+        	  if(is_list){
+        		  List list = (List) tableMap.get(table_name);
+        		  return list;
+        	  }else{
+        		  return ((List)tableMap.get(table_name)).get(0);
+        	  }
+        }
+        
+        private static Member setMemberInfo(Map innerOrdMap,Map modelConvertMap){
+        	Member member = null;
+        	String member_id = "HS"+(String)innerOrdMap.get("companyId");
+        	member = getMemberInfo(member_id);
+        	if(member==null){
+        		member = new Member();
+        	member.setMember_id(member_id);
+        	member.setUname("HS"+ (String)innerOrdMap.get("companyId"));
+        	member.setName((String)innerOrdMap.get("companyName"));
+        	member.setProvince((String)innerOrdMap.get("province"));
+        	member.setCity((String)innerOrdMap.get("province"));
+        	member.setRegion((String)innerOrdMap.get("county"));
+        	member.setSource_from(ManagerUtils.getSourceFrom());
+        	member.setTel((String)innerOrdMap.get("consigneePhone"));
+        	member.setPlat_type( (String)innerOrdMap.get("plat_type"));
+        	member.setLv_id(Const.MEMBER_LV_COMMON);
+            member.setLv_name("普通会员");
+        	member.setBuyer_uid(member_id);
+            member.setParentid("0");
+            baseDaoSupport.insert("es_member", member);
+        	}
+        	return member;
+        }
+        public static Member getMemberInfo(String member_id){
+        	String sql = "select * from es_member where member_id = ? ";
+        	List list =  baseDaoSupport.queryForList(sql,Member.class, member_id);
+        	Member member = null;
+        	if(list!=null&&list.size()>0){
+        		member = (Member) list.get(0);
+        	}
+        	return member;
+        }
+        public static void setOrderInfo(Map innerOrdMap,Map modelConvertMap,Member member){
+        	List orderItemsInfo =  (List)getConvertMap(modelConvertMap,"es_order_items",true);
+        	Map deliveryInfo = (Map) getConvertMap(modelConvertMap,"es_delivery",false);
+        	Map orderInfo =  (Map) getConvertMap(modelConvertMap,"es_order",false);
+        	if(orderInfo==null){
+        	   orderInfo = new HashMap();	
+        	}
+        	orderInfo.put("create_time", DBTUtil.current());
+        	orderInfo.put("sn", createSn());
+        	orderInfo.put("status",OrderStatus.ORDER_NOT_PAY+"");
+        	orderInfo.put("disabled","0");
+        	orderInfo.put("pay_status", OrderStatus.PAY_NO+"");
+        	orderInfo.put("ship_status",OrderStatus.SHIP_NO+"");
+        	orderInfo.put("service_code", Consts.SERVICE_CODE_CO_GUIJI_NEW);
+            orderInfo.put("create_type", "1");
+            orderInfo.put("source_from", ManagerUtils.getSourceFrom());
+            orderInfo.put("member_id", member.getMember_id());
+        	if(StringUtils.isEmpty((String)orderInfo.get("shipping_area"))){
+        		orderInfo.put("shipping_area", member.getProvince() + "-" + member.getCity() + "-" + member .getRegion());
+            }
+        	if(StringUtils.isEmpty((String)orderInfo.get("goods_id"))){
+        		orderInfo.put("goods_id", ((Map)orderItemsInfo.get(0)).get("goods_id"));
+        	}
+        	if(StringUtils.isEmpty((String)orderInfo.get("ship_name"))){
+        		orderInfo.put("ship_name", deliveryInfo.get("ship_name"));
+            }
+        	if(StringUtils.isEmpty((String)orderInfo.get("shipping_area"))){
+        		orderInfo.put("shipping_area", member.getProvince() + "-" + member.getCity() + "-" + member .getRegion());
+            }
+        	if(StringUtils.isEmpty((String)orderInfo.get("ship_addr"))){
+        		orderInfo.put("ship_addr", deliveryInfo.get("ship_addr"));
+            }
+        	if(StringUtils.isEmpty((String)orderInfo.get("ship_mobile"))){
+        		orderInfo.put("ship_mobile", deliveryInfo.get("ship_mobile"));
+            }
+        	if(StringUtils.isEmpty((String)orderInfo.get("ship_tel"))){
+        		orderInfo.put("ship_tel", deliveryInfo.get("ship_tel"));
+            }
+        	
+        	List orderInfoList = new ArrayList();
+        	orderInfoList.add(orderInfo);
+        	modelConvertMap.put("es_order", orderInfoList);
+            
+        }
+        public static void setOrderItemInfo(Map innerOrdMap,Map modelConvertMap){
+        	List orderItemList = (List) getConvertMap(modelConvertMap,"es_order_items",true);
+        	
+        	if(orderItemList!=null){
+        		for(int i=0;i<orderItemList.size();i++){
+        			Map map = (Map) orderItemList.get(i);
+        			if(map!=null){
+        				String item_id = (String) map.get("item_id");
+        				if(StringUtils.isEmpty(item_id)){
+        					item_id  = baseDaoSupport.getSequences("S_ES_ORDER_ITEM");
+        					map.put("item_id", item_id);
+        				}
+        				String  ship_num= (String) map.get("ship_num");
+        				if(!StringUtils.isEmpty(ship_num)){
+        					map.put("ship_num", Integer.parseInt(ship_num.substring(0,ship_num.indexOf("."))));
+        				}
+        				orderItemList.set(i, map);
+        			}
+        		}
+        	}else{
+        		Map orderItemMap = new HashMap();
+        		orderItemList.add(orderItemMap);
+        	}
+        	modelConvertMap.put("es_order_items", orderItemList);
+        }
+        public static void setOrderExtInfo(Map innerOrdMap,Map modelConvertMap){
+        	Map orderExtInfo =  (Map) getConvertMap(modelConvertMap,"es_order_ext",false);
+        	List orderExtInfoList = new ArrayList();
+        	if(orderExtInfo==null){
+        		 orderExtInfo = new HashMap();
+        	}else{
+        		if(!StringUtils.isEmpty((String)orderExtInfo.get("tid_time"))){
+        			orderExtInfo.put("tid_time", MallUtils.strFormatDate(MallUtils.strToDate((String)orderExtInfo.get("tid_time"))));
+        		}
+        	}
+            if(StringUtils.isEmpty((String)orderExtInfo.get("refund_deal_type"))){
+            	orderExtInfo.put("refund_deal_type", "01");//默认正常处理
+            }
+            if(StringUtils.isEmpty((String)orderExtInfo.get("visible_status"))){
+            	orderExtInfo.put("visible_status", "0");//默认可见
+            }
+            if(StringUtils.isEmpty((String)orderExtInfo.get("abnormal_type"))){
+            	orderExtInfo.put("abnormal_type", "0");//默认正常订单类型
+            }
+            
+        	
+       	    orderExtInfoList.add(orderExtInfo);
+        	modelConvertMap.put("es_order_ext",orderExtInfoList);
+        	
+        }
+        public static void setOrderItemExt(Map innerOrdMap,Map modelConvertMap){
+        	List orderItemExtInfoList = (List) getConvertMap(modelConvertMap,"es_order_items_ext",true);
+        	List<Map> orderItemList =  (List) getConvertMap(modelConvertMap,"es_order_items",true);
+        	if(orderItemList!=null&&orderItemList.size()>0){
+        		if(orderItemExtInfoList==null){
+        			orderItemExtInfoList = new ArrayList();
+        		}
+        		for(int i=0;i<orderItemList.size();i++){
+        			Map orderItem = orderItemList.get(i);
+        			Map orderItemExt = new HashMap();
+        			String item_id = (String)orderItem.get("item_id");
+        			orderItemExt.put("item_id", item_id);
+        			if(orderItemExtInfoList.size()>i){
+        				orderItemExt.putAll((Map) orderItemExtInfoList.get(i));
+        				orderItemExtInfoList.set(i, orderItemExt);
+        			}else{
+        				orderItemExtInfoList.add(orderItemExt);
+        			}
+        		}
+        	}
+        	modelConvertMap.put("es_order_items_ext",orderItemExtInfoList);
+        	
+        }
+        
+        public static void setPaymentLogInfo(Map innerOrdMap,Map modelConvertMap,Member member){
+        	List paymentInfoList = (List) getConvertMap(modelConvertMap,"es_payment_logs",true);
+        	
+        	Map initPaymentInfo = new HashMap();
+        	initPaymentInfo.put("member_id", member.getMember_id());
+        	initPaymentInfo.put("type", "1");
+        	initPaymentInfo.put("create_time",DBTUtil.current());
+        	initPaymentInfo.put("pay_type", "0");
+        	
+        	Map paymentInfo = null;
+        	
+        	if(paymentInfoList==null){
+        		 paymentInfoList = new ArrayList(); 
+        		 paymentInfoList.add(initPaymentInfo);
+        	}else{
+        		for(int i=0;i<paymentInfoList.size();i++){
+        			paymentInfo = (Map) paymentInfoList.get(i);
+        			try {
+						BeanUtils.copyProperties(paymentInfo, initPaymentInfo);
+						paymentInfoList.set(i, paymentInfo);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+        		}
+        	}
+        	modelConvertMap.put("es_payment_logs", paymentInfoList);
+        }
+        public static void setOrderExtvtlInfo(Map innerOrdMap,Map modelConvertMap){
+        	Map orderExtInfo =  (Map) getConvertMap(modelConvertMap,"es_order_extvtl",false);
+        	if(orderExtInfo==null){
+        		 orderExtInfo = new HashMap();
+        		 List orderExtInfoList = new ArrayList();
+        		 orderExtInfoList.add(orderExtInfo);
+        		 modelConvertMap.put("es_order_extvtl",orderExtInfoList);
+        	} 
+        }
+        
+        private static String createSn(){
+    		Date now = new Date();
+    		String sn = com.ztesoft.net.framework.util.DateUtil.toString(now, "yyyyMMddhhmmss");
+    		return sn;
+    	}
+        public static List getAttrListByTable(String table_name,String sub_spec_type){
+        	String cache_key = "TableDef_"+table_name;
+        	if(!StringUtils.isEmpty(sub_spec_type)){cache_key+="_"+sub_spec_type;}
+        	List list = (List<AttrDef>)cache.get(space, cache_key);
+			if(list!=null)return list;
+			//and def.handler_id is not null and def.handler_id!='commonAttrHander'
+        	String sql = "select def.*,h.handler_class,t.field_name table_field_name  from es_attr_def def left join es_attr_handler h on(h.handler_id=def.handler_id and h.source_from=def.source_from) "
+        			     +" left join es_attr_table t on(def.field_attr_id=t.attr_def_id and t.source_from=def.source_from) "
+                         + " where def.attr_spec_id ='-999'  and LOWER(t.table_name) = LOWER(?) "
+        			      + " and def.source_from =?  ";
+        	if(!StringUtil.isEmpty(sub_spec_type))sql += " and (def.sub_attr_spec_type='"+sub_spec_type+"' or def.sub_attr_spec_type='"+Const.COMM_SUB_SPACE_ID+"')";
+        	        sql+="order by def.sort asc " ;
+        	list = baseDaoSupport.queryForList(sql, AttrDef.class, table_name,ManagerUtils.getSourceFrom());
+        	CacheList<AttrTable> clist = new CacheList<AttrTable>();
+			clist.addAll(list);
+			cache.set(space, cache_key,clist);
+			return list;
+        }
+    	private static void setConvertMap(Map modelConvertMap,Object obj,String table_name,boolean is_list){
+    		 if(is_list){
+    			 modelConvertMap.put(table_name, obj); 
+    		 }else{
+    			 List list =  new ArrayList();
+    			 list.add(obj);
+    			 modelConvertMap.put(table_name, list);
+    		 }
+    	}
+        public static List insertAttrTable(Map innerOrdMap,Map modelConvertMap,String order_id){
+        	List<AttrInstBusiRequest> allAttrInstList = new ArrayList();
+        	
+          try{
+        	  //扩展表
+        	Map orderExtvtl =  (Map) getConvertMap(modelConvertMap,"es_order_extvtl",false);
+        	Map attrMap = getAttrMap(modelConvertMap);
+        	
+        	OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+        	if(modelConvertMap.get("es_order")!=null){
+        		String table_name = "es_order";
+        		Map orderInfo = (Map) getConvertMap(modelConvertMap, "es_order", false);
+        		List attrInstList = new ArrayList();
+        		orderInfo = handleAttr(attrInstList,modelConvertMap,innerOrdMap,orderInfo,table_name,attrMap,order_id,null,null,null);
+        		OrderBusiRequest  order = new OrderBusiRequest();
+        		order.setOrder_id(order_id);
+        		com.ztesoft.common.util.BeanUtils.copyProperties(order, orderInfo);
+        		orderTree.setOrderBusiRequest(order);
+        		logsServices.cacheOrderTree(orderTree);
+        		logsServices.cacheAttrInstToRedis(attrInstList);
+        		allAttrInstList.addAll(attrInstList);
+        		setConvertMap(modelConvertMap, orderInfo, table_name, false);
+        	}
+        	if(modelConvertMap.get("es_order_items")!=null){
+        		String table_name = "es_order_items";
+        		List orderItemList = (List) getConvertMap(modelConvertMap, "es_order_items", true);
+        		List<OrderItemBusiRequest> orderItemsBusiList = new ArrayList();
+        		if(orderItemList!=null&&orderItemList.size()>0){
+        			for(int i=0;i<orderItemList.size();i++){
+        				Map orderItem = (Map) orderItemList.get(i);
+        				OrderItemBusiRequest  orderItemBusi = new OrderItemBusiRequest();
+        				orderItemBusi.setOrder_id(order_id);
+        				com.ztesoft.common.util.BeanUtils.copyProperties(orderItemBusi, orderItem);
+        				orderItemsBusiList.add(orderItemBusi);
+        			}
+        			orderTree.setOrderItemBusiRequests(orderItemsBusiList);
+        		}
+        	}
+        	logsServices.cacheOrderTree(orderTree);
+        	if(modelConvertMap.get("es_order_ext")!=null){
+        		String table_name = "es_order_ext";
+        		Map orderExtInfo = (Map) getConvertMap(modelConvertMap, table_name, false);
+        		List attrInstList = new ArrayList();
+        		orderExtInfo = handleAttr(attrInstList,modelConvertMap,innerOrdMap,orderExtInfo,table_name,attrMap,order_id,null,null,null);
+        		OrderExtBusiRequest  orderExt = new OrderExtBusiRequest();
+        		orderExt.setOrder_id(order_id);
+        		com.ztesoft.common.util.BeanUtils.copyProperties(orderExt, orderExtInfo);
+        		orderTree.setOrderExtBusiRequest(orderExt);
+        		logsServices.cacheOrderTree(orderTree);
+        		logsServices.cacheAttrInstToRedis(attrInstList);
+        		allAttrInstList.addAll(attrInstList);
+        		setConvertMap(modelConvertMap, orderExtInfo, table_name, false);
+        	}
+        	
+        	//商品扩展表数据填充
+        	List<AttrInstBusiRequest> goodsItemInstList = insertOrderItemExt(attrMap, innerOrdMap, modelConvertMap, order_id);
+        	allAttrInstList.addAll(goodsItemInstList);
+        	//货品表和货品扩展表数据插入和缓存
+        	List<AttrInstBusiRequest> prodItemExtInstList = insertProdAndExtInfo(attrMap,innerOrdMap, modelConvertMap, order_id);
+        	allAttrInstList.addAll(prodItemExtInstList);
+            if(modelConvertMap.get("es_delivery")!=null){
+            	Map deliveryMap = (Map) getConvertMap(modelConvertMap, "es_delivery", false);
+            	OrderDeliveryBusiRequest delivery = new OrderDeliveryBusiRequest();
+            	delivery.setOrder_id(order_id);
+            	List attrInstList = new ArrayList();
+            	deliveryMap = handleAttr(attrInstList, modelConvertMap, innerOrdMap, deliveryMap, "es_delivery", attrMap, order_id, null, null,null);
+            	com.ztesoft.common.util.BeanUtils.copyProperties(delivery, deliveryMap);
+                OrderTreeBusiRequest orderTreeDelivery =CommonDataFactory.getInstance().getOrderTree(order_id);
+                List<OrderDeliveryBusiRequest> orderDeliveryBusiRequests = new ArrayList();
+                String delivery_id = (String) deliveryMap.get("delivery_id");
+                if(StringUtils.isEmpty(delivery_id)){
+                	delivery_id = baseDaoSupport.getSequences("S_ES_DELIVERY");
+                }
+                delivery.setDelivery_id(delivery_id);
+                orderDeliveryBusiRequests.add(delivery);
+                orderTreeDelivery.setOrderDeliveryBusiRequests(orderDeliveryBusiRequests);
+                logsServices.cacheOrderTree(orderTreeDelivery);
+                logsServices.cacheAttrInstToRedis(attrInstList);
+                setConvertMap(modelConvertMap, deliveryMap, "es_delivery", false);
+            }
+            if(modelConvertMap.get("es_payment_logs")!=null){
+            	List paymentInfoList = (List) getConvertMap(modelConvertMap,"es_payment_logs",true);
+            	if(paymentInfoList!=null&&paymentInfoList.size()>0){
+            		Map paymentInfo = (Map) paymentInfoList.get(0);
+            		String payment_id = (String) paymentInfo.get("payment_id");
+            		if(StringUtils.isEmpty(payment_id)){
+            			Map orderInfo =  (Map) getConvertMap(modelConvertMap,"es_order",false);
+            			String order_payment_id = (String) orderInfo.get("payment_id");
+            			if(!StringUtils.isEmpty(order_payment_id)){
+            				payment_id = order_payment_id;
+            			}else{
+            				payment_id = baseDaoSupport.getSequences("S_ES_PAYMENT_LOGS");
+            			}
+            		}
+            		List attrInstList = new ArrayList();
+            		OrderPayBusiRequest payment = new OrderPayBusiRequest();
+            		payment.setPayment_id(payment_id);
+            		payment.setOrder_id(order_id);
+            		paymentInfo = handleAttr(attrInstList, modelConvertMap, innerOrdMap, paymentInfo, "es_payment_logs", attrMap, order_id, null, null,null);
+            		com.ztesoft.common.util.BeanUtils.copyProperties(payment, paymentInfo);
+                    OrderTreeBusiRequest orderTreePay=CommonDataFactory.getInstance().getOrderTree(order_id);
+                    List<OrderPayBusiRequest> orderPayBusiRequests = new ArrayList();
+                    orderPayBusiRequests.add(payment);
+                    orderTreePay.setOrderPayBusiRequests(orderPayBusiRequests);
+                    logsServices.cacheOrderTree(orderTreePay);
+                    logsServices.cacheAttrInstToRedis(attrInstList);
+                    setConvertMap(modelConvertMap, paymentInfo, "es_payment_logs", false);
+            	}
+            }
+          //复制旧单的es_attr_Terminal_ext表数据到新单里面
+    		List<AttrTmResourceInfoBusiRequest> resourceInfoBusiRequests = orderTree.getTmResourceInfoBusiRequests();
+    		if(null != resourceInfoBusiRequests && resourceInfoBusiRequests.size() > 0){
+    			JSONObject jsonObj = JSONObject.fromObject(resourceInfoBusiRequests.get(0));
+    			orderExtvtl.put("terminalInfo", jsonObj.toString());
+    		}
+            if(modelConvertMap.get("es_order_extvtl")!=null){
+                List attrInstList = new ArrayList();
+                OrderTreeBusiRequest orderTreeExtvtl = CommonDataFactory.getInstance().getOrderTree(order_id);
+                String pro_goods_id = orderTreeExtvtl.getOrderItemBusiRequests().get(0).getOrderItemProdBusiRequests().get(0).getProd_spec_goods_id();
+                orderExtvtl = handleAttr(attrInstList, modelConvertMap, innerOrdMap, orderExtvtl, "es_order_extvtl", attrMap, order_id, null, null,pro_goods_id);
+                logsServices.cacheAttrInstToRedis(attrInstList);
+                setConvertMap(modelConvertMap, orderExtvtl, "es_order_extvtl", false);
+                allAttrInstList.addAll(attrInstList);
+            }
+         }catch(Exception e){
+        	 e.printStackTrace();
+         }
+    	   return allAttrInstList;
+        }
+        
+        public static Map handleAttr(List attrInstList,Map modelConvertMap,Map innerOrdMap,Map tableMap,String table_name,Map attrMap,String order_id,String goods_id,String sub_spec_type,String pro_goods_id){
+        	
+        	String inst_id = "";
+        	String order_from  = "HSZD";
+        	attrMap.put("order_from", order_from);
+        	Map orderInfo  =  (Map) getConvertMap(modelConvertMap,"es_order",false);
+        	if(orderInfo!=null&&StringUtils.isEmpty(goods_id)){
+        		goods_id = (String) orderInfo.get("goods_id");
+        	}
+        	List<AttrDef> list = getAttrListByTable(table_name,sub_spec_type);
+        	for(int i=0;i<list.size();i++){
+        		String  i_value = "";
+        		String  value_desc = "";
+        		String  value = "";
+        		AttrDef def = list.get(i);
+        		if(!StringUtils.isEmpty(def.getHandler_class())&&def.getHandler_class()!=null&&!"commonAttrHander".equals(def.getHandler_class())){
+	                    
+	        		String field_name = def.getField_name();
+	        		Object obj = tableMap.get(field_name);
+					value = obj==null?null:(String)obj;
+	        		AttrSwitchParams params = new AttrSwitchParams();
+	        		//特殊的字段走属性处理器需要拼装值
+	        		value = setSpecialValue(innerOrdMap,tableMap,table_name,field_name,value,order_from);
+	    			params.setHander_class(def.getHandler_class());
+	    			params.setOrder_id(order_id);
+	    			params.setGoods_id(goods_id);
+	    			params.setInst_id(inst_id);
+	    			params.setOrder_from(order_from);
+	    			params.setOrderAttrValues(attrMap);//把表的所有字段放到一个map的一层里面去
+	    			params.setPro_goods_id(pro_goods_id);
+	    			params.setValue(value);
+	    			params.setAttrDef(def);
+	    			
+	    		   //IAttrHandler handler = SpringContextHolder.getBean(def.getHandler_class());
+	    		   try{
+	    			   // ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+	    			    IEcsOrdServices ecsOrdServices = SpringContextHolder.getBean("ecsOrdServices");
+//	    			    AttrInstLoadResp resp = client.execute(params, AttrInstLoadResp.class);
+	    			    long start = System.currentTimeMillis();
+	    			    AttrInstLoadResp resp = ecsOrdServices.handler(params);
+	    			    long end = System.currentTimeMillis();
+	    			    logger.info("单个调用属性处理器时间========="+def.getHandler_class()+"======="+(end-start));
+						if(resp!=null){
+		    				tableMap.put(def.getTable_field_name(), resp.getField_value());
+		    				i_value = resp.getField_value();
+		    				value_desc = resp.getField_value_desc();
+		    			}
+	    		   }catch(Exception e){
+	    			   e.printStackTrace();
+	    		   }
+        		}else{
+        			if(tableMap!=null&&tableMap.containsKey(def.getField_name())){
+        				 value = (String) tableMap.get(def.getField_name());
+        				 i_value = value;
+        				 value_desc = def.getDefault_value_desc();
+        			}
+        		}
+        		value_desc = getValueDesc(def, value_desc,i_value);
+				attrInstList.add(packageAttrInst(def, i_value, value, order_id, order_id,value_desc));
+        	}
+        	return tableMap;
+        }
+        public static String setSpecialValue(Map innerOrdMap,Map tableMap,String table_name,String field_name,String value,String order_from){
+        	if("es_order_extvtl".equals(table_name)&&"virtual_pro_num".equals(field_name)&&"HSZD".equals(order_from)){
+        		if(innerOrdMap.get("Items")!=null){
+        			List list = (List)((Map) innerOrdMap.get("Items")).get("Item");
+        			JSONArray array = new JSONArray();
+        		    for(int i=0;i<list.size();i++){
+        		    	Map map = (Map) list.get(i);
+        		    	if(map!=null){
+        		    		JSONObject object = new JSONObject();
+        		    		String  goodsNum =(String)map.get("MENGE");
+//        		    		double  goods_price = map.get("price");//华盛报文未传价格
+    						int virtualGoodsNum = Integer.parseInt(goodsNum.substring(0,goodsNum.indexOf(".")));
+        		    		object.put("virtualGoodsId", map.get("MATNR"));//华盛商品编码
+    						object.put("virtualGoodsNum", virtualGoodsNum);//华盛商品数量
+//    						object.put("virtualGoodsPrice", goods_price);//华盛商品数量
+    						
+    						array.add(object);
+        		    	}
+        		    }
+        		    value = array.toString();
+        		}
+        	}
+        	return value;
+        }
+        //把以表名为key的值对象的所有字段都塞到同层的map下面去
+        public static Map getAttrMap(Map modelConvertMap){
+        	Map  attrMap = new HashMap();
+        	Iterator it = modelConvertMap.keySet().iterator();
+    		while (it.hasNext()) {
+    			String table_name = (String) it.next();
+    			List tableList = (List) modelConvertMap.get(table_name);
+    			if(tableList!=null&&tableList.size()>0){
+    				Map tableMap  = (Map) tableList.get(0);//取第一条记录塞入同级map
+    				try {
+						BeanUtils.copyProperties(attrMap, tableMap);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+    			}
+    		}
+        	return attrMap;
+        }
+        static AtomicInteger icInt = new AtomicInteger();
+        private static AttrInstBusiRequest packageAttrInst(AttrDef attrDef,String i_value,String o_value,String order_id,String inst_id,String value_desc){
+    		int curValue =icInt.incrementAndGet();
+    		AttrInstBusiRequest attrInst = new AttrInstBusiRequest();
+    		attrInst.setAttr_inst_id(attrDef.getField_attr_id());
+    		attrInst.setOrder_id(order_id);
+    		attrInst.setInst_id(inst_id);
+    		attrInst.setAttr_spec_id(attrDef.getAttr_spec_id());
+    		attrInst.setField_attr_id(attrDef.getField_attr_id());
+    		attrInst.setField_name(attrDef.getField_name());
+    		attrInst.setFiled_desc(attrDef.getField_desc());
+    		attrInst.setField_value(i_value);
+    		attrInst.setSec_field_value(o_value);
+    		attrInst.setField_value_desc(value_desc);
+    		attrInst.setCreate_date(DBTUtil.current());
+    		//add by wui首次规格数据填充
+    		attrInst.setSpec_is_null(attrDef.getIs_null());
+    		attrInst.setSpec_is_edit(attrDef.getIs_edit());
+    		return attrInst;
+    	}
+        public static String getValueDesc(AttrDef ad,String value_desc,String i_value){
+	        if(StringUtil.isEmpty(value_desc)){
+				String attr_code = ad.getAttr_code();
+				if(!StringUtil.isEmpty(i_value) && !StringUtil.isEmpty(attr_code)){
+					List<Map> list = getConsts(attr_code);
+					if(list!=null && list.size()>0){
+						for(Map am:list){
+							String a_value = (String) am.get("value");
+							if(i_value.equals(a_value)){
+								value_desc = (String) am.get("value_desc");
+								break ;
+							}
+						}
+					}
+				}
+		    }
+	        return value_desc;
+        }
+        public static List<Map> getConsts(String key){
+    		DcPublicSQLInfoCacheProxy dcPublicSqlCache = new DcPublicSQLInfoCacheProxy();
+            List<Map> list = dcPublicSqlCache.getDropdownData(key);
+            return list;
+    	}
+        private static String getAttrKey(AttrInstBusiRequest attrInstBusiRequest){
+    		String attr_key = attrInstBusiRequest.getOrder_id()+"_"+attrInstBusiRequest.getField_name().toLowerCase();
+    		return attr_key;
+    	}
+        private static List insertOrderItemExt(Map attrMap,Map innerOrdMap,Map modelConvertMap,String order_id) throws Exception{
+        	OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+        	List<OrderItemBusiRequest> orderItems = orderTree.getOrderItemBusiRequests();
+        	List<AttrInstBusiRequest> attrInstList = new ArrayList();
+        	for(int i=0;i<orderItems.size();i++){
+        		OrderItemBusiRequest orderItem = orderItems.get(i);
+        		String item_id = orderItem.getItem_id();
+        		String goods_id = orderItem.getGoods_id();
+    			OrderItemExtBusiRequest req = new OrderItemExtBusiRequest();
+    			
+    			Map itemExt = new HashMap();
+    			itemExt = handleAttr(attrInstList, modelConvertMap, innerOrdMap, itemExt, "es_order_items_ext", attrMap, order_id, goods_id, null,null);
+    			com.ztesoft.common.util.BeanUtils.copyProperties(req, itemExt);
+	    		req.setOrder_id(order_id);
+    			req.setItem_id(item_id);
+    			req.setDb_action(ConstsCore.DB_ACTION_INSERT);
+    			req.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+    			req.store(); 
+    			orderTree.getOrderItemBusiRequests().get(i).setOrderItemExtBusiRequest(req);
+    			orderItem.setOrderItemExtBusiRequest(req);
+    			orderItems.set(i, orderItem);
+        	 }
+        	orderTree.setOrderItemBusiRequests(orderItems);
+        	logsServices.cacheOrderTree(orderTree);
+        	logsServices.cacheAttrInstToRedis(attrInstList);
+        	return attrInstList;
+        }
+        /**
+    	 * 货品表、货品扩展表统一数据写入
+    	 * @param attrInstlist
+    	 * @param req
+    	 * @param order
+    	 * @param oim
+    	 * @throws Exception
+    	 */
+    	private static void insertOrderItemExtAndProdTable(List attrInstList, Map modelConvertMap, Map innerOrdMap,List<OrderItemProdBusiRequest> orderItemProdBusiList,String order_id,String goods_id,String item_id) throws Exception {
+    		    List<Goods> products = null;
+    			ProductsListReq plreq = new ProductsListReq();
+    			plreq.setGoods_id(goods_id);
+    			IGoodsService goodServices = SpringContextHolder.getBean("goodServices");
+    			ProductsListResp plresp = goodServices.listProducts(plreq);
+    			if(plresp!=null)products = plresp.getProducts();//new ArrayList<Goods>();
+    			//插入商品货品表
+    			if(products!=null && products.size()>0){
+    				int k = 0;
+    				for(Goods g:products){
+    					String item_pro_inst_id = baseDaoSupport.getSequences("S_ES_ORDER_ITEMS_PROD");
+    					OrderItemProdBusiRequest pro = new OrderItemProdBusiRequest();
+    					pro.setOrder_id(order_id);
+    					pro.setCreate_time("sysdate");
+    					pro.setItem_id(item_id);
+    					pro.setItem_prod_inst_id(item_pro_inst_id);
+    					pro.setItem_spec_goods_id(goods_id);
+    					pro.setOrder_id(order_id);
+    					pro.setProd_spec_goods_id(g.getProd_goods_id());
+    					pro.setProd_spec_type_code(g.getType_code());
+    					pro.setStatus("0");
+    					pro.setName(g.getName());
+    					pro.setDb_action(ConstsCore.DB_ACTION_INSERT);
+    					pro.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+    					pro.store();
+    					
+    					
+    					//货品扩展表
+    					OrderItemProdExtBusiRequest itemProdExt = new OrderItemProdExtBusiRequest();
+    					String attr_sub_space_type = pro.getProd_spec_type_code();
+    		    		String pro_goods_id = pro.getProd_spec_goods_id();
+    		    		StringBuffer subProdBuffer = new StringBuffer();
+    		    		Map itemProdExtMap  = new HashMap();
+    		    		Map handlerMap = new HashMap();
+    		    		if(subProdBuffer.indexOf(goods_id+"_"+attr_sub_space_type)==-1){
+    		    			subProdBuffer.append(goods_id+"_"+attr_sub_space_type);
+    		    			Map attrMap = getAttrMap(modelConvertMap);
+    		    			handlerMap = handleAttr(attrInstList, modelConvertMap, innerOrdMap, handlerMap, "es_order_items_prod_ext", attrMap, order_id, goods_id, attr_sub_space_type,pro_goods_id);
+    		                itemProdExtMap.put(goods_id+"_"+attr_sub_space_type, handlerMap);
+    		    		}else{
+    		    			handlerMap = (Map) itemProdExtMap.get(goods_id+"_"+attr_sub_space_type);
+    		    		}
+    		    		com.ztesoft.common.util.BeanUtils.copyProperties(itemProdExt, handlerMap);
+    		    		itemProdExt.setItem_prod_inst_id(item_pro_inst_id);
+    					itemProdExt.setOrder_id(order_id);
+    					itemProdExt.setItem_id(item_id);
+    					itemProdExt.setDb_action(ConstsCore.DB_ACTION_INSERT);
+    					itemProdExt.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+    					itemProdExt.store();
+    					pro.setOrderItemProdExtBusiRequest(itemProdExt);
+    					
+    					orderItemProdBusiList.add(pro);
+    			}
+    		}
+    	}
+    	
+       private static List insertProdAndExtInfo(Map attrMap,Map innerOrdMap,Map modelConvertMap,String order_id){
+    	   List<AttrInstBusiRequest>  attrInstList = new ArrayList();
+    	   try {
+       	   String order_from  = "HSZD";
+    	   Map itemListMap = new HashMap(); 
+    	   List<String> hanlerList = new ArrayList<String>(); 
+    	   Map handlerMap = new HashMap();
+    	   OrderTreeBusiRequest orderTree= CommonDataFactory.getInstance().getOrderTree(order_id);
+    	   List<OrderItemBusiRequest> orderItems = orderTree.getOrderItemBusiRequests();
+    	 
+    	   for(int i=0;i<orderItems.size();i++){
+    		   OrderItemBusiRequest orderItem = orderItems.get(i);
+    		   String goods_id = orderItem.getGoods_id();
+    		   String item_id = orderItem.getItem_id();
+    		   List<OrderItemProdBusiRequest> orderItemProdBusiList  = new ArrayList();
+    		  
+				insertOrderItemExtAndProdTable(attrInstList,modelConvertMap,innerOrdMap,orderItemProdBusiList, order_id, goods_id, item_id);
+			
+    		   orderItem.setOrderItemProdBusiRequests(orderItemProdBusiList);
+    		   orderTree.getOrderItemBusiRequests().set(i, orderItem);
+    	   }
+    	   logsServices.cacheOrderTree(orderTree);
+    	   logsServices.cacheAttrInstToRedis(attrInstList);
+    	 
+    	 }catch (Exception e) {
+				e.printStackTrace();
+		 }
+    	   return attrInstList;
+       }
+       
+}

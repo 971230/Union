@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       default-autowire="byName" default-lazy-init="true">
+	
+	<bean id="esearchManager" class="com.ztesoft.net.search.service.imp.EsearchManager" ></bean>
+	
+	<bean id="esearchQuerySupport" class="com.ztesoft.net.search.service.imp.EsearchQuerySupport"></bean>
+	
+	<bean id="esearchImpl" class="com.ztesoft.net.search.esearch.ESearch"></bean>
+	
+	<bean id="esearchAction" class="com.ztesoft.net.search.action.EsearchAction"></bean>
+	
+</beans>

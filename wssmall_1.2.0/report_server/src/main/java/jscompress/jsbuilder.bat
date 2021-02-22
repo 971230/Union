@@ -1,0 +1,1 @@
+D:\sun\jdk5\bin\java -classpath F:/projects/report/WebRoot/WEB-INF/classes jscompress.JsBuilder

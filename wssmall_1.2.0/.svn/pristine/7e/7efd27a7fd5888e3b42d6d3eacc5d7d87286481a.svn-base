@@ -1,0 +1,161 @@
+package com.ztesoft.ibss.common.util;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.cms.page.file.FtpUpLoadImpl;
+import com.ztesoft.cms.page.file.SftpUpLoadImpl;
+import com.ztesoft.cms.page.file.UpLoadInf;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+public class CommonUpLoadInf extends UpLoadInf{
+	@SuppressWarnings("unchecked")
+	public Map upLoad(Object object) throws Exception {
+		Map fileMap =(Map)object;
+		try{
+		
+		if (ftpConfig == null || ftpConfig.size() == 0) {// 无配置相关ftp服务器参数
+			return fileMap;
+		}
+		for (Iterator iter = ftpConfig.iterator(); iter.hasNext();) {
+			HashMap config = (HashMap) iter.next();
+			config.putAll(fileMap);
+			String server = (String) config.get("server");
+			String port = "";
+			if (server.indexOf(":") > 0) {
+				port = server.split("\\:")[1];
+			}
+			
+			if(port!=null){
+				if(port.equals("21")){
+					 FtpUpLoadImpl upLoadInf = new FtpUpLoadImpl();
+					 //fileMap = upLoadInf.uploadNew(fileMap,config,(String)config.get("path"));
+					 
+					 
+					 String curr_ip =StringUtil.getLocalIpAddress();
+					 String p_server = (String)config.get("server");
+					 String p_serv_ip = p_server.split(":")[0];
+					 if(!curr_ip.equals(p_serv_ip))
+					 {
+						 fileMap = upLoadInf.uploadNew(fileMap,config,(String)config.get("web_path"));
+					 }
+					 
+				}else if(port.equals("22")){
+					 SftpUpLoadImpl upLoadInf = new SftpUpLoadImpl();
+					 
+					 String curr_ip =StringUtil.getLocalIpAddress();
+					 String p_server = (String)config.get("server");
+					 String p_serv_ip = p_server.split(":")[0];
+					
+					 //ICacheUtil util = (ICacheUtil)SpringContextHolder.getBean("cacheUtil");
+//					 String ip_s = util.getConfigInfo("FTP_IMAGE_IP");
+//					 if(StringUtil.isEmpty(ip_s))
+//						 ip_s = "134.175.22.202";
+					 
+//					 if(p_serv_ip.equals(ip_s)) //202机器统一作为图片上传目录
+//					 {
+//						 fileMap = upLoadInf.uploadNew(fileMap,config,(String)config.get("path"));
+//					 }
+					
+					 if(!curr_ip.equals(p_serv_ip))
+					 {
+						 fileMap = upLoadInf.uploadNew(fileMap,config,(String)config.get("web_path"));
+					 }
+					 
+				}else{ //add by wui 适用江西版本
+					 SftpUpLoadImpl upLoadInf = new SftpUpLoadImpl();
+					 fileMap = upLoadInf.uploadNew(fileMap,config,(String)config.get("path"));
+					 
+					 String curr_ip =StringUtil.getLocalIpAddress();
+					 String p_server = (String)config.get("server");
+					 String p_serv_ip = p_server.split(":")[0];
+					 if(!curr_ip.equals(p_serv_ip))
+					 {
+						 fileMap = upLoadInf.uploadNew(fileMap,config,(String)config.get("web_path"));
+					 }
+				}
+			}
+		}
+		}catch(Exception e){
+			e.printStackTrace();
+			throw new Exception(e);
+		}
+		return fileMap;
+	}
+	
+	
+	@SuppressWarnings("unchecked")
+	public void delete(String filePath) throws Exception {
+		for (Iterator iter = ftpConfig.iterator(); iter.hasNext();) {
+			HashMap config = (HashMap) iter.next();
+			String server = (String) config.get("server");
+			String port = "";
+			if (server.indexOf(":") > 0) {
+				port = server.split("\\:")[1];
+			}
+			
+			if(port!=null){
+				if(port.equals("21")){
+					 FtpUpLoadImpl upLoadInf = new FtpUpLoadImpl();
+					 upLoadInf.delete(filePath,config);
+				}else if(port.equals("22")){
+					 SftpUpLoadImpl upLoadInf = new SftpUpLoadImpl();
+					 
+					 ICacheUtil util = (ICacheUtil)SpringContextHolder.getBean("cacheUtil");
+					 String ip_s = util.getConfigInfo("FTP_IMAGE_IP");
+					 
+					 
+					 String p_server = (String)config.get("server");
+					 String p_serv_ip = p_server.split(":")[0];
+//					 if(StringUtil.isEmpty(ip_s))
+//						 ip_s = "134.175.22.202";
+//					 
+//					 if(p_serv_ip.equals(ip_s)) //202机器统一作为图片上传目录
+					 //{
+						 upLoadInf.delete(filePath,config);
+					 //}
+					 
+					 
+				}else{ //add by wui 适用江西版本
+					 SftpUpLoadImpl upLoadInf = new SftpUpLoadImpl();
+					 upLoadInf.delete(filePath);
+				}
+			}
+		}
+	}
+	
+	
+	/*public Map uploadIndexFile(Object object) throws Exception {
+
+		Map fileMap =(Map)object;
+		if (ftpConfig == null || ftpConfig.size() == 0) {// 无配置相关ftp服务器参数
+			return fileMap;
+		}
+		for (Iterator iter = ftpConfig.iterator(); iter.hasNext();) {
+			HashMap config = (HashMap) iter.next();
+			config.putAll(fileMap);
+			String server = (String) config.get("server");
+			String port = "";
+			if (server.indexOf(":") > 0) {
+				port = server.split("\\:")[1];
+			}
+
+			if(StringUtils.isNotEmpty(port)){
+				if(port.equals("21")){
+					 FtpUpLoadImpl upLoadInf = new FtpUpLoadImpl();
+					 fileMap = upLoadInf.uploadIndexFileNew(fileMap,config);
+				}else if(port.equals("22")){
+					 SftpUpLoadImpl upLoadInf = new SftpUpLoadImpl();
+					 fileMap = upLoadInf.uploadIndexFileNew(fileMap,config);
+				}
+			}else{
+				 SftpUpLoadImpl upLoadInf = new SftpUpLoadImpl();
+				 fileMap = upLoadInf.uploadIndexFileNew(fileMap,config);
+			}
+		}
+		return fileMap;
+	}*/
+}

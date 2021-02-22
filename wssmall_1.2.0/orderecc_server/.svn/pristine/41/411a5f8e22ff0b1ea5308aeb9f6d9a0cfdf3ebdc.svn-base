@@ -1,0 +1,20 @@
+@charset "utf-8";
+/* CSS Document */
+body{ background:#fafafa;}
+.login_top{ background:url(../images/login_top.jpg) center top no-repeat;height:120px;}
+.login_wrap{ background:url(../images/login_wrap.jpg) center top no-repeat; height:400px;}
+.login_box{ position:relative; width:1000px; margin:0 auto; height:294px;}
+.login_table{ position:absolute; right:35px; top:10px; width:386px; height:300px; margin:0 auto; padding:82px 10px 0; background:url(../images/login_box.png) no-repeat;}
+.login_table table{}
+.login_table table th{ width:60px; text-align:right; padding-right:10px; padding-top:8px; padding-bottom:8px; vertical-align:middle; color:#444; font-size:14px;}
+.login_table table td{ padding-top:8px; padding-bottom:8px;}
+.login_table table td img{ vertical-align:middle;}
+.login_ipt{ background:#fff; height:30px; line-height:30px; border:1px solid #cbcbcb; vertical-align:middle;}
+.login_ipt:focus{ border:1px solid #fb7c2b; text-indent:5px;}
+.loginbtn{ background:url(../images/loginbtn.png) no-repeat; width:300px; height:42px; display:inline-block; vertical-align:middle; text-indent:-999px; overflow:hidden;}
+.loginbtn:hover{ background:url(../images/loginbtn_h.png) no-repeat;}
+a.txt{ color:#356686; text-decoration:underline; margin-left:5px;}
+.login_sel{ height:24px; line-height:24px; border:1px solid #c5bdbd; background:#fff; width:229px; position:relative; padding-right:26px; }
+.login_sel .sel_arrow{ position:absolute; right:1px; top:1px; background:url(../images/sel_arrow.gif) center center no-repeat; width:24px; height:22px;}
+.login_sel input{ background:none; border:none; height:22px; line-height:22px; width:100%;}
+.btns{ text-align:center; padding-top:15px; padding-bottom:15px;}

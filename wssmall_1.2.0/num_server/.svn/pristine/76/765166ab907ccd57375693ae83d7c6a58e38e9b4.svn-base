@@ -1,0 +1,162 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.exception.NameRepetirException;
+import com.ztesoft.net.mall.core.model.NumeroRegla;
+import com.ztesoft.net.mall.core.service.INumeroReglaManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.core.utils.StringUtilidad;
+import com.ztesoft.net.sqls.SF;
+
+/**
+ * Saas式靓号规则业务管理
+ * 
+ * @author cc
+ * 
+ */
+public class NumeroReglaManager extends BaseSupport<NumeroRegla> implements
+		INumeroReglaManager {
+
+	private static final String TABLE = "ES_NO_RULE";
+	private static final String ID = "RULE_ID";
+	
+	public Page getFormList(int pageNo, int pageSize, Map<String, String> params) {
+		
+		StringBuilder temp = new StringBuilder(
+				SF.numeroSql("REGLA_LIST"));
+		String sql = wrapsql(temp, params);
+		return baseDaoSupport.queryForPage(sql, pageNo, pageSize);
+	}
+	
+	public List getFormList(Map<String, String> params) {
+		StringBuilder temp = new StringBuilder(
+				SF.numeroSql("REGLA_LIST"));
+		String sql = wrapsql(temp, params);
+		return baseDaoSupport.queryForList(sql, NumeroRegla.class);
+	}
+	
+	
+
+	public void saveOrUpdate(NumeroRegla regla) throws Exception {
+
+		if (StringUtils.isBlank(regla.getRule_id())){
+			save(regla);
+		}else{
+			update(regla);
+		}
+	}
+
+	public void del(String ids, Map<String, String> params) {
+		String condition = "";
+		if (ids.split(",").length > 1) {
+			condition = creatrSql(ID, "in", ids);
+		} else {
+			condition = creatrSql(ID, "=", ids);
+		}
+		String sql = SF.numeroSql("REGLA_DEL") + condition;
+		baseDaoSupport.execute(sql);
+	}
+
+	public NumeroRegla get(String id) {
+		String sql = SF.numeroSql("REGLA_GET");
+		return baseDaoSupport.queryForObject(sql, NumeroRegla.class, id);
+	}
+
+	private void save(NumeroRegla regla) throws Exception {
+		checkSave(regla);
+		setValue(regla);
+		baseDaoSupport.insert(TABLE, regla);
+	}
+
+	private void update(NumeroRegla regla) throws NameRepetirException {
+		setValueUpdate(regla);
+		baseDaoSupport.update(TABLE, regla, "rule_id="+regla.getRule_id());
+	}
+
+
+	private String wrapsql(StringBuilder temp, Map<String, String> params) {
+		String nombre = params.get("nombre");
+		String tipo = params.get("tipo");
+		
+		StringUtilidad.appendString(temp, nombre, " and rule_name like '%"
+				+ nombre + "%'");
+		StringUtilidad.appendString(temp, tipo, " and no_classify ='"+ tipo+"' ");
+		
+		temp.append(" order by rule_id desc");
+		return temp.toString();
+	}
+
+	private void setValue(NumeroRegla regla) {
+		String source = ManagerUtils.getSourceFrom();
+		regla.setSource_from(source);
+	}
+
+	private String creatrSql(String filed, String operator, String value) {
+		String condition = "";
+
+		value = value.trim();
+		if (value.endsWith(","))
+			value = value.substring(0, value.length() - 1);
+
+		if ("in".equalsIgnoreCase(operator)
+				|| "exists".equalsIgnoreCase(operator)
+				|| "not exists".equalsIgnoreCase(operator)
+				|| "not in".equalsIgnoreCase(operator)) {
+			condition = " and "+filed + " " + operator + "(" + value + ")";
+		} else
+			condition = " and "+filed + " " + operator + " " + value;
+		return condition;
+	}
+
+	private void setValueUpdate(NumeroRegla regla) {		
+		String source = ManagerUtils.getSourceFrom();
+		regla.setSource_from(source);
+	}
+
+	private void checkSave(NumeroRegla regla) throws NameRepetirException {
+		String sql = SF.numeroSql("REGLA_CHECK_SAVE");
+		checkCount(sql, regla.getRule_name(), "靓号名称重复,请重新输入");
+	}
+
+	private void checkCount(String sql, String value, String notar)
+			throws NameRepetirException {
+		int count = baseDaoSupport.queryForInt(sql, value);
+		if (count > 0)
+			throw new NameRepetirException(notar);
+	}
+
+	private void checkUpdate(NumeroRegla regla) throws NameRepetirException {
+		
+		
+		String sql = SF.numeroSql("REGLA_CHECK_UPDATE");
+		checkUpdateCount(regla, "靓号名称重复,请重新输入", sql, regla.getRule_name());
+	}
+
+	private void checkUpdateCount(NumeroRegla regla, String notar, String sql,
+			String args) throws NameRepetirException {
+		NumeroRegla r = baseDaoSupport.queryForObject(sql,
+				regla.getClass(), args);
+
+		if (r != null) {
+			if (!(r.getRule_id().equals(regla.getRule_id())))
+				throw new NameRepetirException(notar);
+		}
+	}
+	
+	public List getEstatos() {
+		String sql = SF.numeroSql("REGLA_ESTATOS");
+		return baseDaoSupport.queryForList(sql);
+	}
+
+	public List getTipos() {
+		String sql = SF.numeroSql("REGLA_TIPOS");
+		return baseDaoSupport.queryForList(sql);
+	}
+
+}

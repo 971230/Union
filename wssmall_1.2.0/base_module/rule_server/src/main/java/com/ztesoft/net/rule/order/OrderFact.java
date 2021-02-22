@@ -1,0 +1,159 @@
+package com.ztesoft.net.rule.order;
+
+import java.util.Map;
+
+import com.ztesoft.net.annotation.DroolsFactField;
+import com.ztesoft.rule.core.module.fact.DefFact;
+import com.ztesoft.rule.core.module.fact.RuleResult;
+import com.ztesoft.rule.core.module.fact.RuleResults;
+
+//@DroolsFact(name="订单结算",code="orderFact")
+public class OrderFact extends DefFact {
+
+	@DroolsFactField(name="结算佣金")
+	private Double amount;
+	@DroolsFactField(name="商品ID")
+	private String goods_id;
+	@DroolsFactField(name="商品金额")
+	private Double goods_money;
+	@DroolsFactField(name="商品数量")
+	private Integer goods_num;
+	@DroolsFactField(name="订单ID")
+	private String order_id;
+	@DroolsFactField(name="商品类型")
+	private String goods_type;
+	@DroolsFactField(name="商家用户ID")
+	private String staff_no;
+	@DroolsFactField(name="本地网")
+	private String lan_code;
+	@DroolsFactField(name="商品名称")
+	private String goods_name;
+	@DroolsFactField(name="业务ID")
+	private String service_id;
+	@DroolsFactField(name="业务类型")
+	private String service_code;
+	@DroolsFactField(name="推广员ID")
+	private String spread_id;
+	@DroolsFactField(name="推广员等级")
+	private Integer grade;
+	
+	@Override
+	public void processFinalResult(Map data, RuleResults ruleResults) {
+		//double amount = 0d;
+		//for(RuleResult rs:ruleResults.getResults()){
+		//	amount += Double.parseDouble(String.valueOf(rs.getResult()));
+		//}
+		//data.put("amount", amount) ;
+	}
+
+	@Override
+	public void handleOneRuleResule(Map data, RuleResult ruleResult) {
+		//data.put("amount", ruleResult.getResult()) ;
+		//data.put("rule_id", ruleResult.getRule_id());
+		//data.put("rule_code", ruleResult.getRuleCode());
+	}
+	public String getGoods_id() {
+		return goods_id;
+	}
+
+	public void setGoods_id(String goods_id) {
+		this.goods_id = goods_id;
+	}
+
+	public String getOrder_id() {
+		return order_id;
+	}
+
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+
+	public String getGoods_type() {
+		return goods_type;
+	}
+
+	public void setGoods_type(String goods_type) {
+		this.goods_type = goods_type;
+	}
+
+	public String getStaff_no() {
+		return staff_no;
+	}
+
+	public void setStaff_no(String staff_no) {
+		this.staff_no = staff_no;
+	}
+
+	public String getLan_code() {
+		return lan_code;
+	}
+
+	public void setLan_code(String lan_code) {
+		this.lan_code = lan_code;
+	}
+
+	public Double getGoods_money() {
+		return goods_money;
+	}
+
+	public void setGoods_money(Double goods_money) {
+		this.goods_money = goods_money;
+	}
+
+	public Integer getGoods_num() {
+		return goods_num;
+	}
+
+	public void setGoods_num(Integer goods_num) {
+		this.goods_num = goods_num;
+	}
+
+	public Double getAmount() {
+		return amount;
+	}
+
+	public void setAmount(Double amount) {
+		this.amount = amount;
+	}
+
+	public String getGoods_name() {
+		return goods_name;
+	}
+
+	public void setGoods_name(String goods_name) {
+		this.goods_name = goods_name;
+	}
+
+	public String getService_code() {
+		return service_code;
+	}
+
+	public void setService_code(String service_code) {
+		this.service_code = service_code;
+	}
+
+	public String getSpread_id() {
+		return spread_id;
+	}
+
+	public void setSpread_id(String spread_id) {
+		this.spread_id = spread_id;
+	}
+
+	public Integer getGrade() {
+		return grade;
+	}
+
+	public void setGrade(Integer grade) {
+		this.grade = grade;
+	}
+
+	public String getService_id() {
+		return service_id;
+	}
+
+	public void setService_id(String service_id) {
+		this.service_id = service_id;
+	}
+
+}

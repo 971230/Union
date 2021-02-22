@@ -1,0 +1,879 @@
+package com.ztesoft.rule.manager.action;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+
+import zte.params.process.req.UosFlowListReq;
+
+import com.alibaba.fastjson.JSONArray;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.net.auto.rule.vo.Assembly;
+import com.ztesoft.net.auto.rule.vo.RuleRel;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.RuleConfig;
+import com.ztesoft.net.mall.core.model.RuleObj;
+import com.ztesoft.net.mall.core.model.RuleObjAttrRel;
+import com.ztesoft.net.mall.core.model.RuleObjPlan;
+import com.ztesoft.net.mall.core.service.IDictManager;
+import com.ztesoft.net.mall.core.service.IWorkFlowManager;
+import com.ztesoft.net.mall.core.service.impl.cache.DictManagerCacheProxy;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.rule.manager.service.IRuleManagerService;
+import commons.CommonTools;
+
+/**
+ * 
+ * 规则管理Action
+ * 
+ * @author ZX
+ * 
+ */
+public class RuleManagerAction extends WWAction {
+
+	private static final long serialVersionUID = 1L;
+	private Page webpagelist;
+	private String id; // 节点ID
+	private String pid; // 父节点ID
+	private String plan_id; // 方案ID
+	private String flag;// add-增加, edit-修改, view-查看
+	private String searchname; // 搜索名称
+	private DirectoryVo directoryVo; // 目录对象
+	private RuleObjPlan ruleObjPlan; // 方案对象
+	private RuleConfig ruleConfig; // 规则对象
+	private List<RuleConfig> ruleConfigList; // 规则对象集合
+	private List<Map> pidList;
+	private Assembly assemblyList = new Assembly(); // 组件对象集合
+	private IRuleManagerService iRuleManagerService;
+	private List<DirectoryVo> directoryVoList;
+	
+	private List<RuleObj> ruleObjList;	//规则条件对象列表
+	private String rule_id;				//规则id
+	private String stype;				//静态数据Key值
+	private ICacheUtil cacheUtil;		//缓存数据
+	private String ruleAttrStr;			//规则属性关系列表
+	private String ruleObjAttrRelList; 	//规则对象属性列表(json串格式)
+	private String cond_type;			//规则条件类型
+
+	private AdminUser adminUser;
+	private String obj_name;
+	private String ass_id;
+	private String rulexiugai; // 规则修改
+	private Integer selectSize; // 下拉框长度
+	private String is_first_load; // 是否第一次加载（first--第一次加载，no_first--不是第一次加载）
+	private EditChildrenRuleVo editChildrenRuleVo; // 编辑子规则
+	
+	private List<RuleObjPlan> ruleObjPlanList; // 方案列表 （ZX add 2014-12-10）
+	private List<DirectoryVo> ruleObjDirList; // 目录列表（ZX add 2015-01-13）
+	private String dir_id; // 目录ID
+	private String searchCond; //规则查询条件(页面传过来的JSON串，例：{"attr_id":"01_02"})
+	private String is_include; //不包含(0-不包含)
+	private Page searchPage; // 规则搜索结果Page
+	private String queryRuleName; // 查询规则名称
+	private String plan_cond; // 保存方案条件，JSON格式
+	private List<PlanCondVo> planCondList; // 展示方案条件
+	private String source; // 是保存方案条件还是搜索规则
+	private String cond_plan_id;// 方案设置条件时的方案ID
+	
+	/**
+	 * 规则管理
+	 */
+	public String ruleManager() {
+		ruleObjPlanList = iRuleManagerService.getRuleObjPlanList();
+		ruleObjDirList = iRuleManagerService.getRuleObjDirList();
+		return "rule_manager";
+	}
+	
+	/**
+	 * 获取根节点
+	 * @return
+	 */
+	public String qryRootDirectory () {
+		directoryVoList = iRuleManagerService.qryDirectory(id, pid);
+		json = JSONArray.toJSONString(directoryVoList);		
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 新增，修改，查看目录
+	 * 
+	 * @return
+	 */
+	public String addEditViewDirectory() {
+		if (StringUtils.isNotBlank(flag)) {
+			if (flag.equals("edit") || flag.equals("view")) 
+				directoryVo = iRuleManagerService.qryDirectory(id);				
+		}
+		return "add_edit_view_directory";
+	}
+
+	/**
+	 * 保存新增，修改目录
+	 * 
+	 * @return
+	 */
+	public String saveDirectory() {
+		try {
+			if (StringUtils.isNotBlank(flag)) {
+				if (flag.equals("save")) {
+					String create_date = DateUtil.getTime2();
+					directoryVo.setCreate_time(create_date);
+					iRuleManagerService.saveDirectory(directoryVo);
+					json = "{'result':0,'message':'添加成功！'}";
+				}
+				else if (flag.equals("edit")) {
+					directoryVo.setId(directoryVo.getId());
+					iRuleManagerService.editDirectory(directoryVo);
+					json = "{'result':0,'message':'修改成功！'}";
+				}
+			}
+		} catch (Exception e) {
+			json = "{'result':1,'message':'操作失败！'}";
+			e.printStackTrace();
+		}
+		return JSON_MESSAGE;
+	}
+
+	/**
+	 * 查询方案对象
+	 * @return
+	 */
+	public String qryScheme () {
+		
+		if (StringUtils.isNotBlank(flag)) {
+			if (flag.equals("edit") || flag.equals("view")) 
+				ruleObjPlan = iRuleManagerService.qrySchemeObj(id);
+		}
+		
+		return "add_edit_view_scheme";
+	}
+	
+	/**
+	 * 保存，修改，查看方案
+	 * @return
+	 */
+	public String addEditViewScheme() {
+		try {
+			if (StringUtils.isNotBlank(flag)) {
+				if (ruleObjPlan != null) {
+					ruleObjPlan.setEff_date(DateUtil.getTime1());
+					ruleObjPlan.setExp_date("2099-12-31");
+				}
+				if (flag.equals("view"))
+					ruleObjPlan = iRuleManagerService.qrySchemeObj(id);
+				if (flag.equals("edit"))
+					iRuleManagerService.editSchemeObj(ruleObjPlan);
+				if (flag.equals("save"))
+					iRuleManagerService.saveSchemeObj(ruleObjPlan);
+				json = "{'result':0,'message':'操作成功！'}";
+			}
+		} catch (Exception e) {
+			json = "{'result':1,'message':'操作失败！'}";
+			e.printStackTrace();
+		}
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 删除方案
+	 * @return
+	 */
+	public String delScheme() {		
+		try {
+			RuleObjPlan plan = new RuleObjPlan();
+			plan.setPlan_id(id);
+			iRuleManagerService.delScheme(plan);
+			json = "{'result':0,'message':'操作成功！'}";
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+			json = "{'result':1,'message':'操作失败！'}";
+		}
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询方案节点
+	 * 
+	 * @return
+	 */
+	public String qrySchemeNode() {		
+		List<SchemeNodeVo> schemeNodeVoList = iRuleManagerService.qrySchemeNode(pid);
+		json = JSONArray.toJSONString(schemeNodeVoList);		
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询规则节点
+	 * @return
+	 */
+	public String qryRuleNode() {		
+		List<RuleNodeVo> ruleNodeVoList = iRuleManagerService.qryRuleNode(id, pid);
+		json = JSONArray.toJSONString(ruleNodeVoList);
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 搜索规则
+	 * @return
+	 */
+	public String qryRuleNodeByNames() {
+		List<RuleNodeVo> ruleNodeVoList = iRuleManagerService.qryRuleNodeByNames(searchname);
+		json = JSONArray.toJSONString(ruleNodeVoList);
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询子规则节点
+	 * @return
+	 */
+	public String qryRuleChildNode() {
+		List<RuleNodeVo> ruleChildNodeVoList = iRuleManagerService.qryRuleNode(id, pid);
+		json = JSONArray.toJSONString(ruleChildNodeVoList);		
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询目录ID和名字
+	 * @return
+	 */
+	public String qryPidList() {		
+		pidList = iRuleManagerService.qryPidList(id);
+		json = JSONArray.toJSONString(pidList);
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询规则对象
+	 * @return
+	 */
+	public String qryRule() {
+		if (StringUtils.isNotBlank(flag)) {
+			if (flag.equals("edit") || flag.equals("view")) {
+				List<RuleConfig> ruleConfigLs = iRuleManagerService.qryRuleObj(id, "", "");
+				if (CollectionUtils.isNotEmpty(ruleConfigLs)) {
+					ruleConfig = ruleConfigLs.get(0);
+				}
+			}
+		}
+		return "add_edit_view_rule";
+	}
+	
+	/**
+	 * 新增修改查看规则
+	 * @return
+	 */
+	public String addEditViewRule() {
+		try {
+			if (ruleConfig != null) {				
+				ruleConfig.setEff_date(DateUtil.getTime1());
+				ruleConfig.setExp_date("2099-12-31");				
+				if(flag.equals("save")) {
+					iRuleManagerService.saveRuleConfig(ruleConfig);
+				}
+				if(flag.equals("edit")) {
+					iRuleManagerService.editRuleConfig(ruleConfig);
+				}
+				json = "{'result':0,'message':'操作成功！'}";
+			}
+		} catch (Exception e) {
+			json = "{'result':1,'message':'操作失败！'}";
+			e.printStackTrace();
+		}
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询组件对象集合
+	 * @return
+	 */
+	public String qryAssemblyLs() {
+		if (StringUtils.isNotBlank(obj_name))
+			assemblyList.setAss_name(obj_name);
+		webpagelist = iRuleManagerService.qryAssemblyLs(this.getPage(), this
+				.getPageSize(), assemblyList, adminUser);		
+		return "choose_assembly";
+	}
+	
+	/**
+	 * 查询组件对象
+	 * @return
+	 */
+	public String qryAssembly() {
+		assemblyList = iRuleManagerService.qryAssembly(ass_id);
+		json = JSONArray.toJSONString(assemblyList);
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 获取规则对象及属性
+	 * @return
+	 */
+	public String getFactList(){
+		try{
+			//获取所有规则对象及属性
+			this.ruleObjList = iRuleManagerService.getRuleObjList();
+			//获取选中的规则对象属性
+			List<RuleObjAttrRel> Attrlist = iRuleManagerService.getSelectedAttr(this.rule_id, this.cond_type);
+			if(null != Attrlist){
+				this.ruleObjAttrRelList = CommonTools.beanToJsonNCls(Attrlist);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return "fact_list";
+	}
+	
+	/**
+	 * 获取规则对象及属性
+	 * @return
+	 */
+	public String getSearchFactList() {
+		try{
+			//获取所有规则对象及属性
+			ruleObjList = iRuleManagerService.getRuleObjListByPlanId(plan_id, dir_id);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return "search_fact_list";
+	}
+	
+	/**
+	 * 获取静态数据
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public String getDcPublic(){
+		IDictManager dictManager = SpringContextHolder.getBean("dictManager");
+		DictManagerCacheProxy dc=new DictManagerCacheProxy(dictManager);
+		List<Map<String,String>> staticDatas=dc.loadData(stype);
+		if(null != staticDatas && !staticDatas.isEmpty()){
+			this.json = CommonTools.beanToJsonNCls(staticDatas);
+		}else {
+			this.json = "";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	/**
+	 * 保存规则和属性关系
+	 * @return
+	 */
+	public String saveRuleAttr(){
+		try{
+			iRuleManagerService.saveRuleAttr(ruleAttrStr, cond_type,rule_id);
+			this.json = "{'result':0,'message':'操作成功！'}";
+		}catch(Exception e){
+			this.json = "{'result':1,'message':'操作失败！'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询规则对象集合
+	 * @return
+	 */
+	public String qryChildrenRule () {
+		
+		ruleConfigList = iRuleManagerService.qryRuleObj("", plan_id, id);
+		
+		if (CollectionUtils.isNotEmpty(ruleConfigList)) {
+			for (RuleConfig ruleConfig : ruleConfigList) {
+				RuleRel ruleRel = ruleConfig.getRuleRel();
+				if (ruleRel != null) {
+					if (ruleRel.getPriority() == null 
+							|| ruleRel.getPriority().toString().equals("") 
+							|| ruleRel.getPriority() == 0) {
+						is_first_load = "first";
+					} else {
+						is_first_load = "no_first";
+					}
+				}
+			}
+		}		
+		if (CollectionUtils.isNotEmpty(ruleConfigList))
+			setSelectSize(ruleConfigList.size());
+		
+		return "relevance_children_rule";
+	}
+	public String qryChilrenRuleList () {
+		
+		ruleConfigList = iRuleManagerService.qryRuleObj("", plan_id, id);
+		
+		if (CollectionUtils.isNotEmpty(ruleConfigList))
+			setSelectSize(ruleConfigList.size());
+		
+		json = JSONArray.toJSONString(ruleConfigList);
+		
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 编辑子规则
+	 * @return
+	 */
+	public String editChildrenRule() {
+		try {
+			iRuleManagerService.editChildrenRule(editChildrenRuleVo);
+			json = "{'result':0,'message':'操作成功！'}";
+		} catch (Exception e) {
+			json = "{'result':1,'message':'操作失败！'}";
+			e.printStackTrace();
+		}
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 刷新业务组件
+	 * @return
+	 */
+	public String refreshAssembly() {
+		try {
+			Integer size = iRuleManagerService.refreshAssembly();
+			json = "{'result':0,'message':'操作成功！','size':"+size+"}";
+		} catch (Exception e) {
+			json = "{'result':1,'message':'操作失败！'}";
+			e.printStackTrace();
+		}
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 删除规则
+	 * @return
+	 */
+	public String delRule() {
+		try {
+			iRuleManagerService.delRule(id, plan_id);
+			json = "{'result':0,'message':'删除成功！'}";
+		} catch (Exception e) {
+			// TODO: handle exception
+			json = "{'result':1,'message':'删除失败！'}";
+		}
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询规则
+	 * @return
+	 */
+	public String searchRuleConfig() {
+		searchPage = iRuleManagerService.searchRuleConfig(searchCond, is_include, plan_id, dir_id, this.getPage(), this.getPageSize(), queryRuleName);
+		return "search_result";
+	}
+	/**
+	 * 展示方案条件
+	 * @return
+	 */
+	public String showPlanCond() {
+		// 根据方案ID获取FACT对象集（此刻dir_id为空即可）
+		ruleObjList = iRuleManagerService.getRuleObjListByPlanId(cond_plan_id, dir_id);
+		planCondList = new ArrayList<PlanCondVo>();
+		// 根据方案ID获取此方案配置的方案条件
+		RuleObjPlan obj_plan = iRuleManagerService.qrySchemeObj(cond_plan_id);
+		if (StringUtils.isNotBlank(obj_plan.getCol2())) {
+			net.sf.json.JSONArray arrays = net.sf.json.JSONArray.fromObject(obj_plan.getCol2());
+			for (int i =0; i <arrays.size(); i++) {
+				net.sf.json.JSONObject jsonObject = arrays.getJSONObject(i);
+				PlanCondVo vo = (PlanCondVo) net.sf.json.JSONObject.toBean(jsonObject, PlanCondVo.class);
+//				List<AttrValue> values = null;
+//				net.sf.json.JSONArray arrs = (net.sf.json.JSONArray) jsonObject.get("values");
+//				if (arrs != null && arrs.size() > 0) {
+//					values = new ArrayList<AttrValue>();
+//					for (Object obj : arrs) {
+//						AttrValue attrValue = (AttrValue) net.sf.json.JSONObject.toBean((JSONObject) obj, AttrValue.class);
+//						values.add(attrValue);
+//					}
+//				}
+//				vo.setValues(values);
+				planCondList.add(vo);
+			}
+		}
+		return "plan_cond";
+	}
+	/**
+	 * 保存方案条件
+	 * @return
+	 */
+	public String savePlanCond() {
+		try {
+			boolean b = iRuleManagerService.savePlanCond(cond_plan_id, plan_cond);
+			if (b) {
+				json = "{'result':0,'message':'保存成功！'}";
+			} else {
+				json = "{'result':1,'message':'保存失败！'}";
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+			json = "{'result':1,'message':'保存失败！'}";
+		}
+		return JSON_MESSAGE;
+	}
+	
+	@Resource
+	private IWorkFlowManager workFlowManager;
+	private String flow_name;
+	private String fact_obj_id;
+	private String fact_attr_id;
+	private String fact_attr_name;
+	/**
+	 * 查询工作流列表
+	 * @return
+	 */
+	public String getFactWorkFlowPage(){
+		UosFlowListReq req = new UosFlowListReq();
+		req.setPageIndex(this.getPage());
+		req.setPageSize(this.getPageSize());
+		req.setProcessName(flow_name);
+		this.webpage = workFlowManager.getWorkFlowPage(req);
+		return "fact_work_flow_list";
+	}
+	
+	public String getFact_obj_id() {
+		return fact_obj_id;
+	}
+
+	public void setFact_obj_id(String fact_obj_id) {
+		this.fact_obj_id = fact_obj_id;
+	}
+
+	public String getFact_attr_id() {
+		return fact_attr_id;
+	}
+
+	public void setFact_attr_id(String fact_attr_id) {
+		this.fact_attr_id = fact_attr_id;
+	}
+
+	public String getFact_attr_name() {
+		return fact_attr_name;
+	}
+
+	public void setFact_attr_name(String fact_attr_name) {
+		this.fact_attr_name = fact_attr_name;
+	}
+
+	public String getFlow_name() {
+		return flow_name;
+	}
+
+	public void setFlow_name(String flow_name) {
+		this.flow_name = flow_name;
+	}
+
+	public String getObj_name() {
+		return obj_name;
+	}
+
+	public void setObj_name(String obj_name) {
+		this.obj_name = obj_name;
+	}
+
+	public Assembly getAssemblyList() {
+		return assemblyList;
+	}
+
+	public String getFlag() {
+		return this.flag;
+	}
+	
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+	
+	public String getPlan_id() {
+		return plan_id;
+	}
+
+	public void setPlan_id(String plan_id) {
+		this.plan_id = plan_id;
+	}
+
+	public void setiRuleManagerService(IRuleManagerService iRuleManagerService) {
+		this.iRuleManagerService = iRuleManagerService;
+	}
+
+	public DirectoryVo getDirectoryVo() {
+		return directoryVo;
+	}
+	
+	public void setDirectoryVo(DirectoryVo directoryVo) {
+		this.directoryVo = directoryVo;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getPid() {
+		return pid;
+	}
+
+	public void setPid(String pid) {
+		this.pid = pid;
+	}
+
+	public IRuleManagerService getiRuleManagerService() {
+		return iRuleManagerService;
+	}
+
+	public List<DirectoryVo> getDirectoryVoList() {
+		return directoryVoList;
+	}
+
+	public RuleObjPlan getRuleObjPlan() {
+		return ruleObjPlan;
+	}
+
+	public void setRuleObjPlan(RuleObjPlan ruleObjPlan) {
+		this.ruleObjPlan = ruleObjPlan;
+	}
+
+	public void setDirectoryVoList(List<DirectoryVo> directoryVoList) {
+		this.directoryVoList = directoryVoList;
+	}
+
+	public RuleConfig getRuleConfig() {
+		return ruleConfig;
+	}
+
+	public void setRuleConfig(RuleConfig ruleConfig) {
+		this.ruleConfig = ruleConfig;
+	}
+
+	public List<Map> getPidList() {
+		return pidList;
+	}
+
+	public void setPidList(List<Map> pidList) {
+		this.pidList = pidList;
+	}
+	public AdminUser getAdminUser() {
+		return adminUser;
+	}
+
+	public void setAdminUser(AdminUser adminUser) {
+		this.adminUser = adminUser;
+	}
+
+	public void setAssemblyList(Assembly assemblyList) {
+		this.assemblyList = assemblyList;
+	}
+
+	public List<RuleObj> getRuleObjList() {
+		return ruleObjList;
+	}
+
+	public void setRuleObjList(List<RuleObj> ruleObjList) {
+		this.ruleObjList = ruleObjList;
+	}
+
+	public String getRule_id() {
+		return rule_id;
+	}
+
+	public void setRule_id(String rule_id) {
+		this.rule_id = rule_id;
+	}
+
+	public String getStype() {
+		return stype;
+	}
+
+	public void setStype(String stype) {
+		this.stype = stype;
+	}
+
+	public ICacheUtil getCacheUtil() {
+		return cacheUtil;
+	}
+
+	public void setCacheUtil(ICacheUtil cacheUtil) {
+		this.cacheUtil = cacheUtil;
+	}
+
+	public String getRuleAttrStr() {
+		return ruleAttrStr;
+	}
+
+	public void setRuleAttrStr(String ruleAttrStr) {
+		this.ruleAttrStr = ruleAttrStr;
+	}
+
+	public String getRuleObjAttrRelList() {
+		return ruleObjAttrRelList;
+	}
+
+	public void setRuleObjAttrRelList(String ruleObjAttrRelList) {
+		this.ruleObjAttrRelList = ruleObjAttrRelList;
+	}
+
+	public String getAss_id() {
+		return ass_id;
+	}
+
+	public void setAss_id(String ass_id) {
+		this.ass_id = ass_id;
+	}
+
+
+	public String getRulexiugai() {
+		return rulexiugai;
+	}
+
+
+	public void setRulexiugai(String rulexiugai) {
+		this.rulexiugai = rulexiugai;
+	}
+
+	public List<RuleConfig> getRuleConfigList() {
+		return ruleConfigList;
+	}
+
+	public void setRuleConfigList(List<RuleConfig> ruleConfigList) {
+		this.ruleConfigList = ruleConfigList;
+	}
+
+	public String getCond_type() {
+		return cond_type;
+	}
+
+	public void setCond_type(String cond_type) {
+		this.cond_type = cond_type;
+	}
+
+	public Integer getSelectSize() {
+		return selectSize;
+	}
+
+	public void setSelectSize(Integer selectSize) {
+		this.selectSize = selectSize;
+	}
+
+	public EditChildrenRuleVo getEditChildrenRuleVo() {
+		return editChildrenRuleVo;
+	}
+
+	public void setEditChildrenRuleVo(EditChildrenRuleVo editChildrenRuleVo) {
+		this.editChildrenRuleVo = editChildrenRuleVo;
+	}
+
+	public String getSearchname() {
+		return searchname;
+	}
+
+	public void setSearchname(String searchname) {
+		this.searchname = searchname;
+	}
+	public Page getWebpagelist() {
+		return webpagelist;
+	}
+	public void setWebpagelist(Page webpagelist) {
+		this.webpagelist = webpagelist;
+	}
+	public String getIs_first_load() {
+		return is_first_load;
+	}
+	public void setIs_first_load(String is_first_load) {
+		this.is_first_load = is_first_load;
+	}
+	public List<RuleObjPlan> getRuleObjPlanList() {
+		return ruleObjPlanList;
+	}
+	public void setRuleObjPlanList(List<RuleObjPlan> ruleObjPlanList) {
+		this.ruleObjPlanList = ruleObjPlanList;
+	}
+	public String getSearchCond() {
+		return searchCond;
+	}
+	public void setSearchCond(String searchCond) {
+		this.searchCond = searchCond;
+	}
+
+	public Page getSearchPage() {
+		return searchPage;
+	}
+
+	public void setSearchPage(Page searchPage) {
+		this.searchPage = searchPage;
+	}
+	public String getIs_include() {
+		return is_include;
+	}
+
+	public void setIs_include(String is_include) {
+		this.is_include = is_include;
+	}
+
+	public String getQueryRuleName() {
+		return queryRuleName;
+	}
+
+	public void setQueryRuleName(String queryRuleName) {
+		this.queryRuleName = queryRuleName;
+	}
+
+	public List<DirectoryVo> getRuleObjDirList() {
+		return ruleObjDirList;
+	}
+
+	public void setRuleObjDirList(List<DirectoryVo> ruleObjDirList) {
+		this.ruleObjDirList = ruleObjDirList;
+	}
+
+	public String getDir_id() {
+		return dir_id;
+	}
+
+	public void setDir_id(String dir_id) {
+		this.dir_id = dir_id;
+	}
+
+	public String getPlan_cond() {
+		return plan_cond;
+	}
+
+	public void setPlan_cond(String plan_cond) {
+		this.plan_cond = plan_cond;
+	}
+
+	public List<PlanCondVo> getPlanCondList() {
+		return planCondList;
+	}
+
+	public void setPlanCondList(List<PlanCondVo> planCondList) {
+		this.planCondList = planCondList;
+	}
+
+	public String getSource() {
+		return source;
+	}
+
+	public void setSource(String source) {
+		this.source = source;
+	}
+	
+	public String getCond_plan_id() {
+		return cond_plan_id;
+	}
+
+	public void setCond_plan_id(String cond_plan_id) {
+		this.cond_plan_id = cond_plan_id;
+	}
+	
+}

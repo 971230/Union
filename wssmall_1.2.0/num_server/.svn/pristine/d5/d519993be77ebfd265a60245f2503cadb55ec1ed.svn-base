@@ -1,0 +1,177 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.exception.NameRepetirException;
+import com.ztesoft.net.mall.core.model.NumeroGrupo;
+import com.ztesoft.net.mall.core.service.INumeroGrupoManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.core.utils.StringUtilidad;
+import com.ztesoft.net.sqls.SF;
+import com.ztesoft.net.framework.database.Page;
+
+/**
+ * Saas式号码分组业务管理
+ * 
+ * @author cc
+ * 
+ */
+public class NumeroGrupoManager extends BaseSupport<NumeroGrupo> implements
+		INumeroGrupoManager {
+
+	private static final String TABLE = "ES_NO_GROUP";
+	private static final String ID = "GROUP_ID";
+
+	
+	public void saveOrUpdate(NumeroGrupo ng) throws Exception {
+
+		if (StringUtils.isBlank(ng.getGroup_id())) {
+			save(ng);
+		} else {
+			update(ng);
+		}
+	}
+
+	
+	public void del(String ids, Map<String, String> params) {
+		String condition = "";
+		if (ids.split(",").length > 1) {
+			condition = creatrSql(ID, "in", ids);
+		} else {
+			condition = creatrSql(ID, "=", ids);
+		}
+		String sql = SF.numeroSql("NUMEROS_GRUPOS_DEL") +condition; 
+		baseDaoSupport.execute(sql);
+	}
+
+	
+	public NumeroGrupo get(String id) {
+		String sql = SF.numeroSql("NUMEROS_GRUPOS_GET");
+		return baseDaoSupport.queryForObject(sql, NumeroGrupo.class, id);
+	}
+
+	private void save(NumeroGrupo ng) throws Exception {
+		checkSave(ng);
+		setValue(ng);
+		baseDaoSupport.insert(TABLE, ng);
+	}
+
+	private void update(NumeroGrupo ng) throws NameRepetirException {
+		setValueUpdate(ng);
+		checkUpdate(ng);
+		baseDaoSupport.update(TABLE, ng, "GROUP_ID=" + ng.getGroup_id());
+	}
+
+	
+	public Page getFormList(int pageNo, int pageSize, Map<String, String> params) {
+
+		StringBuilder temp = new StringBuilder(
+				SF.numeroSql("NUMEROS_GRUPOS_LIST"));
+		String sql = wrapsql(temp, params);
+		return baseDaoSupport.queryForPage(sql, pageNo, pageSize);
+	}
+	
+	public List getFormList(Map<String, String> params) {
+		StringBuilder temp = new StringBuilder(
+				SF.numeroSql("GRUPOS_LIST"));
+		return baseDaoSupport.queryForList(temp.toString());
+	}
+
+	private String wrapsql(StringBuilder temp, Map<String, String> params) {
+		String nombre = params.get("nombre");
+
+		StringUtilidad.appendString(temp, nombre, "and group_name like '%" + nombre + "%'");
+		
+		String codigo = params.get("codigo");
+
+		StringUtilidad.appendString(temp, codigo, "and group_code like '%" + codigo + "%'");
+		temp.append(" order by group_id desc");
+		return temp.toString();
+	}
+
+	private void setValue(NumeroGrupo ng) {
+		Integer tn = ManagerUtils.getAdminUser().getFounder();
+		ng.setOper_id(tn);
+
+		String source = ManagerUtils.getSourceFrom();
+		ng.setSource_from(source);
+
+		ng.setStatus_date(DBTUtil.getDBCurrentTime());
+
+		if (StringUtils.isBlank(ng.getGroup_desc())) {
+			ng.setGroup_desc(ng.getGroup_name());
+		}
+
+		ng.setCreated_date(DBTUtil.getDBCurrentTime());
+	}
+
+	private void setValueUpdate(NumeroGrupo ng) {
+		Integer tn = ManagerUtils.getAdminUser().getFounder();
+		ng.setOper_id(tn);
+
+		String source = ManagerUtils.getSourceFrom();
+		ng.setSource_from(source);
+
+		ng.setStatus_date(DBTUtil.getDBCurrentTime());
+
+		if (StringUtils.isBlank(ng.getGroup_desc())) {
+			ng.setGroup_desc(ng.getGroup_name());
+		}
+	}
+
+	private String creatrSql(String filed, String operator, String value) {
+		String condition = "";
+
+		value = value.trim();
+		if (value.endsWith(","))
+			value = value.substring(0, value.length() - 1);
+
+		if ("in".equalsIgnoreCase(operator)
+				|| "exists".equalsIgnoreCase(operator)
+				|| "not exists".equalsIgnoreCase(operator)
+				|| "not in".equalsIgnoreCase(operator)) {
+			condition = " and " + filed + " " + operator + "(" + value + ")";
+		} else
+			condition = " and " + filed + " " + operator + " " + value;
+		return condition;
+	}
+
+	private void checkSave(NumeroGrupo ng) throws NameRepetirException {
+		String sql = SF.numeroSql("NUMEROS_CHECK_SAVE");
+		checkCount(sql, ng.getGroup_code(), "分组编码重复,请重新输入");
+	}
+
+	private void checkCount(String sql, String value, String notar)
+			throws NameRepetirException {
+		int count = baseDaoSupport.queryForInt(sql, value);
+		if (count > 0)
+			throw new NameRepetirException(notar);
+	}
+
+	private void checkUpdate(NumeroGrupo ng) throws NameRepetirException {
+
+		String sql = SF.numeroSql("NUMEROS_CHECK_UPDATE");
+		checkUpdateCount(ng, "编码重复,请重新输入", sql, ng.getGroup_code());
+	}
+
+	private void checkUpdateCount(NumeroGrupo ng, String notar, String sql,
+			String args) throws NameRepetirException {
+		NumeroGrupo numeroGrupo = baseDaoSupport.queryForObject(sql,
+				ng.getClass(), args);
+
+		if (numeroGrupo != null) {
+			if (!(numeroGrupo.getGroup_id().equals(ng.getGroup_id())))
+				throw new NameRepetirException(notar);
+		}
+	}
+
+	
+	public List getEstatos() {
+		String sql = SF.numeroSql("NUMEROS_GRUPO_ESTATOS");
+		return baseDaoSupport.queryForList(sql);
+	}
+}

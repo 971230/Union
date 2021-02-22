@@ -1,0 +1,220 @@
+<%@ page contentType="text/html;charset=UTF-8"%>
+<%@page import="com.ztesoft.net.eop.resource.model.AdminUser"%>
+<%@page import="com.ztesoft.net.mall.core.utils.ManagerUtils"%>
+<%@page import="com.ztesoft.net.framework.context.spring.SpringContextHolder"%>
+<%@page import="zte.net.ecsord.common.CommonDataFactory"%>
+<%@page import="com.ztesoft.net.mall.core.utils.ICacheUtil"%>
+<%@page import="zte.net.ecsord.params.busi.req.OrderTreeBusiRequest"%>
+<%@page import="org.apache.commons.lang3.StringUtils"%>
+<%@ include file="/commons/taglibs.jsp"%>
+<%@ taglib uri="/WEB-INF/grid.tld" prefix="grid"%>
+
+<link href="${context}/css/global.css" rel="stylesheet" type="text/css" />
+<link href="${context}/css/input.css" rel="stylesheet" type="text/css" />
+<link href="${context}/css/grid.css" rel="stylesheet" type="text/css" />
+<link href="${context}/css/validate.css" rel="stylesheet" type="text/css" />
+<link href="${context}/css/dialog.css" rel="stylesheet" type="text/css" />
+<link href="${context}/css/reset_n.css" rel="stylesheet" type="text/css" />
+<link href="${context}/css/style_n.css" rel="stylesheet" type="text/css" />
+<link href="${context}/css/form.css" rel="stylesheet" type="text/css" />
+<link href="<%=request.getContextPath()%>/mgWeb/css/alert.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="<%=request.getContextPath()%>/publics/js/common/common.js"></script>
+<script type="text/javascript" src="<%=request.getContextPath()%>/publics/js/admin/ztp-min.js"></script>
+<script type="text/javascript" src="<%=request.getContextPath()%>/public/common/control/js/Base.js" ></script>
+<script type="text/javascript" src="<%=request.getContextPath()%>/public/common/control/js/splitScreen.js" ></script>
+<script type="text/javascript" src="<%=request.getContextPath()%>/publics/js/admin/api.js"></script>
+<script type="text/javascript" src="<%=request.getContextPath()%>/editor/ckeditor/ckeditor.js"></script>
+<script type="text/javascript" src="<%=request.getContextPath()%>/editor/ckeditor/adapters/jquery.js"></script>
+<script type="text/javascript" src="<%=request.getContextPath()%>/ecs_ord/js/autoord.js"></script>
+<script type="text/javascript" src="<%=request.getContextPath()%>/public/common/control/js/artZoom.min.js"></script>
+
+<%
+String path= request.getContextPath();
+String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path+"/";
+
+AdminUser adminUser=ManagerUtils.getAdminUser();
+
+String theme_source_from = "";
+
+if(null != adminUser){
+	theme_source_from =  adminUser.getTheme_source_from();
+}
+
+String order_id = request.getParameter("order_id");
+ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+String order_from = orderTree.getOrderExtBusiRequest().getOrder_from();
+String goods_cat = orderTree.getOrderItemBusiRequests().get(0).getOrderItemExtBusiRequest().getGoods_cat_id();
+String save_terminal_cat_id = cacheUtil.getConfigInfo("save_terminal_cat_id");
+%>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>线上线下客户联系</title>
+</head>
+
+<body style="background: white;">	
+	<!-- 流程图 -->
+	<div id="auto_flows_div">
+		<jsp:include page="../custom_flow.jsp?order_id=${order_id }"/>
+	</div>
+	
+	<!-- 客户联系结果 -->
+	<div class="grid_n_div" style="margin-top: 30px;">
+		<h2><a href="javascript:void(0);" class="closeArrow expand_btn" target_div="div_contact_result"></a>客户联系</h2>
+		
+		<div id="div_contact_result" class="grid_n_cont">
+			<div class="grid_n_cont_sub">
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+                  	<tbody>
+	                   	<tr>
+	                   	<%if ("10093".equals(order_from) && StringUtils.equals(save_terminal_cat_id, goods_cat) ) {%>
+	                   		<th>订单受理方式：</th>
+							<td class="grid_form_td">
+								<select id="is_next" class="ipt_new grid_form_select" not_null="true" >
+	                        		<option value='1'>继续受理</option>
+	                            </select>
+							</td>
+	                   <% 	}else{%>
+							<th>订单受理方式：</th>
+							<td class="grid_form_td">
+								<select id="order_deal_method" class="ipt_new grid_form_select" not_null="true" disabled="disabled">
+	                        		<option value='1'>线上</option>
+									<option value='2'>线下</option>
+	                            </select>
+							</td>
+						<%} %>
+	                        <th></th>
+                      		<td class="grid_form_td">
+								<input id="" class="ipt_new grid_form_input"  disabled="disabled"/>
+                      		</td>
+                      		
+                      		<th></th>
+                      		<td class="grid_form_td"><input id="" class="ipt_new grid_form_input"  disabled="disabled"/></td>
+                      		
+                      		<th></th>
+                      		<td class="grid_form_td"><input id="" class="ipt_new grid_form_input"  disabled="disabled"/></td>
+	                   	</tr>
+                    </tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	
+	<!-- 订单信息 -->
+	<div id="order_info_div">
+		<jsp:include page="../detail/order_detail.jsp?order_id=${order_id }"/>
+	</div>
+	
+	<!-- 按钮 -->
+	<div id="btnlists">
+		<div class="comBtns" style="position: fixed;bottom: 0px;width: 100%;">
+			<a id="submit_btn" orderbtns="btn" class="dobtn" style="margin-right:5px;cursor: pointer;" onclick="OrderSubmit();">提交</a>
+			<a id="send_sms_btn" orderbtns="btn" class="dobtn" style="margin-right:5px;cursor: pointer;" onclick="SendSms();">发送短信</a>
+			<a id="phone_call_btn" orderbtns="btn" class="dobtn" style="margin-right:5px;cursor: pointer;" onclick="PhoneCallSms();">发起电话外呼</a>
+			<a id="cancel_btn" orderbtns="btn" class="dobtn" style="margin-right:5px;cursor: pointer;" onclick="OrderInfoTool.cancelOrder();">结单</a>
+		</div>
+	</div>
+	
+	<div id="sendingSMSForm"></div>
+	<div id="initiationCall"></div>
+</body>
+
+
+<script type="text/javascript">
+var theme_source_from = '<%=theme_source_from%>';
+var app_path="<%=path%>";
+var basePath="<%=basePath%>";
+var mainpage=false;
+var order_id = "${order_id}";
+var order_from = "<%=order_from%>";
+var goods_cat = "<%=goods_cat%>";
+var save_terminal_cat_id = "<%=save_terminal_cat_id%>";
+$(function(){
+	OrderInfoTool.option_stypes = "source_from,active_flag,sign_status,DIC_ORDER_KINGCARD_STATE,certificate_type,"
+		+"CustomerType,DIC_PAY_STATUS,pay_way,pay_type";
+	
+	OrderInfoTool.field_names = "out_tid,zb_inf_id,order_city_code,district_code,tid_time,"
+		+"order_from,phone_num,mainNumber,order_state,if_Send_Photos,refund_status,"
+		+"kingcard_status,service_remarks,is_realname,phone_owner_name,certi_type,"
+		+"cert_card_num,cert_address,cert_card_nation,certi_sex,birthday,"
+		+"cert_issuer,cert_failure_time,cert_eff_time,phone_num,cust_id,"
+		+"CustomerType,group_code,cert_num2,messages_send_lasttime,messages_send_count,"
+		+"cert_pic_flag,GoodsID,GoodsName,goods_type,goods_cat_id,sell_price,"
+		+"develop_code_new,develop_name_new,develop_point_code_new,development_point_name,"
+		+"out_operator,out_operator_name,out_office,out_office_name,order_origfee,"
+		+"pay_time,order_realfee,pay_status,paytype,pay_method,pay_sequ,pay_back_sequ,"
+		+"logi_no,post_fee,n_shipping_amount,shipping_company,receiver_mobile,shipping_time,"
+		+"ship_name,province,city_code,area_code,ship_addr,order_deal_method,contact_addr,"
+		+"carry_person_mobile,reference_phone,receiver_mobile,contact_results_frist,contact_results_second";
+	if (order_from=="10093" && save_terminal_cat_id==goods_cat ) {
+		OrderInfoTool.change_fields = "district_code,phone_owner_name,cert_card_num,ship_name,"
+			+"receiver_mobile,ship_addr,service_remarks,city_code,area_code,cert_address,"
+			+"reference_phone,contact_results_frist,contact_results_second";
+		}else{
+			OrderInfoTool.change_fields = "district_code,phone_owner_name,cert_card_num,ship_name,"
+				+"receiver_mobile,ship_addr,service_remarks,city_code,area_code,cert_address,"
+				+"reference_phone,contact_results_frist,contact_results_second,order_deal_method";
+	}
+	
+	OrderInfoTool.orderTree = WorkFlowTool.getOrderTree(order_id);
+	
+	
+	var ret = WorkFlowTool.getOrderAttrValues(order_id,
+			OrderInfoTool.field_names,OrderInfoTool.option_stypes);
+	
+	OrderInfoTool.attrs = ret["attrs"];
+	OrderInfoTool.options = ret["options"];
+	
+	OrderInfoTool.loadOrderData();
+	
+	OrderInfoTool.initChangeFields();
+	
+	Eop.Dialog.init({
+		id: "sendingSMSForm",
+		modal: true,
+		title: "发送短信",
+		width: '800px'
+	});
+	
+	Eop.Dialog.init({
+		id: "initiationCall",
+		modal: true,
+		title: "电话外呼",
+		width: '1000px'
+	});
+});
+
+function SendSms(){
+	Eop.Dialog.open("sendingSMSForm");
+	
+	if(order_id == null || order_id == "") {
+		alert("异常：order_id为空");
+		return;
+	}
+	
+	var url = ctx + "/shop/admin/orderIntentAction!sendingSMSForm.do?ajax=yes&order_id=" + order_id;
+	
+	$("#sendingSMSForm").load(url, {}, function() {});
+}
+
+function PhoneCallSms(){
+	if(order_id == null || order_id == "") {
+		alert("异常：order_id为空");
+		return;
+	}
+	
+	Eop.Dialog.open("initiationCall");
+	url = ctx + "shop/admin/ordCall!toinitiationCall.do?ajax=yes&order_id=" + order_id +"&call_order_type=order";
+	$("#initiationCall").load(url, {}, function() {});
+}
+
+function OrderSubmit(){
+	$("#contact_results_frist").val("");
+	$("#contact_results_second").val("");
+	
+	OrderInfoTool.customerContactSubmit();
+}
+</script>
+

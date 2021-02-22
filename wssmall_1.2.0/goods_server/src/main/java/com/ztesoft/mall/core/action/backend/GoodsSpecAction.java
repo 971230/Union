@@ -1,0 +1,104 @@
+package com.ztesoft.mall.core.action.backend;
+
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.service.ISpecManager;
+import com.ztesoft.net.mall.core.service.ISpecValueManager;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 商品规格操作action
+ * 
+ * @author kingapex 2010-3-8下午04:22:31
+ */
+public class GoodsSpecAction extends WWAction {
+	private ISpecManager specManager;
+	private ISpecValueManager specValueManager;
+	private List specList;
+	private String spec_id;
+	private String value_id;
+	private Map spec;
+	private List valueList;
+
+	@Override
+	public String execute() {
+		specList = specManager.list();
+		return "select";
+	}
+
+	public String getValues() {
+		this.spec = this.specManager.get(spec_id);
+		this.valueList = this.specValueManager.list(spec_id);
+		return "values";
+	}
+
+	public String addOne() {
+		spec = this.specValueManager.get(value_id);
+		return "add_one";
+	}
+
+	public String addAll() {
+
+		return "add_all";
+	}
+
+	public ISpecManager getSpecManager() {
+		return specManager;
+	}
+
+	public void setSpecManager(ISpecManager specManager) {
+		this.specManager = specManager;
+	}
+
+	public List getSpecList() {
+		return specList;
+	}
+
+	public void setSpecList(List specList) {
+		this.specList = specList;
+	}
+
+	public ISpecValueManager getSpecValueManager() {
+		return specValueManager;
+	}
+
+	public void setSpecValueManager(ISpecValueManager specValueManager) {
+		this.specValueManager = specValueManager;
+	}
+
+	public Map getSpec() {
+		return spec;
+	}
+
+	public void setSpec(Map spec) {
+		this.spec = spec;
+	}
+
+	public List getValueList() {
+		return valueList;
+	}
+
+	public void setValueList(List valueList) {
+		this.valueList = valueList;
+	}
+
+	public String getSpec_id() {
+		return spec_id;
+	}
+
+	public void setSpec_id(String specId) {
+		spec_id = specId;
+	}
+
+	public String getValue_id() {
+		return value_id;
+	}
+
+	public void setValue_id(String valueId) {
+		value_id = valueId;
+	}
+	
+ 
+ 
+}

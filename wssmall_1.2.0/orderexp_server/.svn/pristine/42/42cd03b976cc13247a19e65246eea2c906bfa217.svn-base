@@ -1,0 +1,234 @@
+package com.ztesoft.net.service;
+
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+
+import params.req.QueryExpCatalogReq;
+import params.resp.QueryExpCatalogResp;
+
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.model.EsearchCatalog;
+import com.ztesoft.net.model.EsearchExpInstSolution;
+import com.ztesoft.net.param.inner.EsearchCatalogInner;
+import com.ztesoft.net.param.inner.EsearchCatalogSolutionInner;
+import com.ztesoft.net.param.inner.EsearchExpInstSolutionInner;
+import com.ztesoft.net.param.inner.ExtractKeyInner;
+import com.ztesoft.net.param.inner.KeyRuleInner;
+import com.ztesoft.net.param.inner.SpecDefineQueryInner;
+import com.ztesoft.net.param.inner.SpecvalueInner;
+import com.ztesoft.net.param.inner.SpecvaluesCheckProcessedInner;
+import com.ztesoft.net.param.inner.SpecvaluesQueryInner;
+import com.ztesoft.net.param.outer.EsearchCatalogOuter;
+import com.ztesoft.net.param.outer.EsearchCatalogSolutionOuter;
+import com.ztesoft.net.param.outer.EsearchExpInstSolutionOuter;
+import com.ztesoft.net.param.outer.ExtractKeyOuter;
+import com.ztesoft.net.param.outer.KeyRuleOuter;
+import com.ztesoft.net.param.outer.SpecDefineQueryOuter;
+import com.ztesoft.net.param.outer.SpecvaluesCheckProcessedOuter;
+import com.ztesoft.net.param.outer.SpecvaluesQueryOuter;
+
+public interface IExpConfigManager {
+	
+	/**
+	 * 归类 添加
+	 * @param eci
+	 * @return
+	 */
+	public EsearchCatalogOuter addEsearchCatalog (EsearchCatalogInner eci);
+
+	/**
+	 * 归类 修改
+	 * @param eci
+	 * @return
+	 */
+	public void updateEsearchCatalog(EsearchCatalogInner eci);
+	
+	/**
+	 * 归类 删除
+	 * @param eci
+	 * @return
+	 */
+	public void deleteEsearchCatalog(EsearchCatalogInner eci);
+	
+	/**
+	 * 归类 查询列表（根据归类id查询、查询某个归类下子归类、根据归类名称模糊查询）
+	 * @param eci
+	 * @return
+	 */
+	public List<EsearchCatalog> queryEsearchCatalog(EsearchCatalogInner eci);
+	
+	/**
+	 * 归类查询列表（根据归类id查询、查询某个归类下子归类、根据归类名称模糊查询）开放服务调用
+	 * @param req
+	 * @return
+	 */
+	public QueryExpCatalogResp queryEsearchCatalog(QueryExpCatalogReq req);
+	
+	/**
+	 * 归类 查询归类树
+	 * @param parent_catalog_id 父级归类ID
+	 * @return
+	 */
+	public List<Map<String, String>> queryEsearchCatalogTree(String parent_catalog_id);
+	
+	/**
+	 * 归类 查询归类树(支持条件查询)
+	 * @param params
+	 * @return
+	 */
+	public List<Map<String, String>> queryEsearchCatalogTree(Map<String,String> params);
+	
+	/**
+	 * 归类 获取归类信息
+	 * @param catalog_id 归类ID
+	 * @return
+	 */
+	public EsearchCatalog getEsearchCatalog(String catalog_id);
+
+	/**
+	 * 归类 查询列表（根据归类id查询、查询某个归类下子归类、根据归类名称模糊查询）- 分页
+	 * @param eci
+	 * @return
+	 */
+	public Page queryEsearchCatalogPage(EsearchCatalogInner eci, int pageNo, int pageSize);
+	
+	
+	public List<EsearchCatalog> getCatalogSelectOption();
+	/**
+	 * 根据关键字查询归类
+	 * @return
+	 */
+	public EsearchCatalogOuter queryEsearchCatalogBySpecv(EsearchCatalogInner inner);
+	
+	/**
+	 * 添加解决方案
+	 * @param inner
+	 * @return
+	 */
+	public void addEsearchCatalogSolution(EsearchCatalogSolutionInner inner);
+	
+	/**
+	 * 更新解决方案
+	 * @param inner
+	 * @return
+	 */
+	public void updateEsearchCatalogSolution(EsearchCatalogSolutionInner inner);
+	
+	/**
+	 * 删除解决方案
+	 * @param inner
+	 * @return
+	 */
+	public void deleteEsearchCatalogSolution(EsearchCatalogSolutionInner inner);
+	
+	/**
+	 * 方案管理 查询（根据方案id查询、查询所有方案）
+	 * @param eeili
+	 * @return
+	 */
+	public EsearchExpInstSolutionOuter queryEsearchExpInstSolution(EsearchExpInstSolutionInner inner);
+	
+	/**
+	 * id查询方案管理 
+	 * @param eeili
+	 * @return
+	 */
+	public EsearchExpInstSolutionOuter queryEsearchExpInstSolutionById(EsearchExpInstSolutionInner inner);
+	
+	
+	/**
+	 * 分页查询解决方案
+	 * @param inner
+	 * @param pageNo
+	 * @param pageSize
+	 * @return
+	 */
+	public Page queryEsearchExpInstSolutionPage(EsearchExpInstSolutionInner inner, int pageNo, int pageSize);
+	/**
+	 * 根据归类查询方案
+	 * @return
+	 */
+	public EsearchExpInstSolutionOuter queryEesByCatalog(EsearchExpInstSolutionInner inner);
+		
+	/**
+	 * 抽取关键字
+	 * @param inner
+	 * @return
+	 */
+	public  ExtractKeyOuter extractKeyword(ExtractKeyInner inner);
+	
+	/**
+	 * 抽取关键字(业务异常)
+	 * @param inner
+	 * @return
+	 */
+	public  ExtractKeyOuter extractBusKeyword(ExtractKeyInner inner);
+	
+	/**
+	 * 获取关键字规则列表分页
+	 * @param inner
+	 * @return
+	 */
+	public KeyRuleOuter queryKeyRulePage(KeyRuleInner inner);
+	
+	/**
+	 * 根据关键字规则id删除规则
+	 * @param inner
+	 * @return
+	 */
+	public KeyRuleOuter deleteKeyRuleByKeyId(KeyRuleInner inner);
+	
+	/**
+	 * 添加关键字规则
+	 * @param inner
+	 * @return
+	 */
+	public KeyRuleOuter addKeyRule(KeyRuleInner inner);
+	
+	/**
+	 * 根据key_id查找关键字规则
+	 * @param inner
+	 * @return
+	 */
+	public KeyRuleOuter findKeyRuleByKeyId(KeyRuleInner inner);
+	
+	/**
+	 * 根据key_id更新关键字规则
+	 * @param inner
+	 * @return
+	 */
+	public KeyRuleOuter updateKeyRuleByKeyId(KeyRuleInner inner);
+
+	/**
+	 * 给关键字添加归类
+	 * @param inner
+	 */
+	public void addEsearchCatalogRelc(SpecvalueInner inner);
+	
+	/**
+	 * 根据关键字id和归类id更新关键字归类
+	 * @param inner
+	 */
+	public void updateEsearchCatalogRelc(SpecvalueInner inner);
+	
+	/**
+	 * 根据接口编码抽取关键字
+	 * @param inner
+	 * @throws Exception 
+	 */
+	public void extractAllKeyword() throws Exception;
+		
+	/**
+	 * 上传文档
+	 * @param file params
+	 */
+	public String[] uploadFile(File file,Map<String,String> params) throws Exception;
+	
+	/**
+	 * 中文字正则匹配检索
+	 * @param param
+	 * @return
+	 */
+	public String getWordByChineserRegular(String param);
+}

@@ -1,0 +1,109 @@
+package com.ztesoft.net.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import model.EsearchSpec;
+
+import com.powerise.ibss.framework.FrameException;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.ibss.common.util.StringUtils;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+import com.ztesoft.net.mall.core.service.IExpConfigInfoManager;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+import com.ztesoft.net.param.inner.SpecDefineQueryInner;
+import com.ztesoft.net.param.outer.SpecDefineQueryOuter;
+import com.ztesoft.net.service.IEsearchSpecDefineManager;
+import com.ztesoft.net.sqls.SF;
+
+public class EsearchSpecDefineManager extends BaseSupport implements IEsearchSpecDefineManager{
+
+	public SpecDefineQueryOuter querySpecDefineList(SpecDefineQueryInner inner){
+		SpecDefineQueryOuter outer = new SpecDefineQueryOuter();
+		IDcPublicInfoManager dcPublicInfoManager = (IDcPublicInfoManager)SpringContextHolder.getBean("dcPublicInfoManager");
+		DcPublicInfoCacheProxy dcPublicInfoCacheProxy = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		List<EsearchSpec> specDefineList = dcPublicInfoManager.getSpecDefine(inner.getSearch_code(), inner.getSearch_id());
+		outer.setSpecDefineList(specDefineList);
+		return outer;
+	}
+
+	@Override
+	public SpecDefineQueryOuter querySpecDefineListNoCache(
+			SpecDefineQueryInner inner) {
+		SpecDefineQueryOuter outer = new SpecDefineQueryOuter();
+		IExpConfigInfoManager expConfigInfoManager = (IExpConfigInfoManager)SpringContextHolder.getBean("expConfigInfoManager");
+		List<EsearchSpec> specDefineList = expConfigInfoManager.getSpecDefineList();
+		outer.setSpecDefineList(specDefineList);
+		return outer;
+	}
+	
+	public Page getSpecDefinePage(SpecDefineQueryInner inner, int pageNo, int pageSize){
+	   String sql = "select * from es_esearch_spec where 1=1";
+	   List<Object> params = new ArrayList<Object>();
+	   if(inner != null) {
+		   if(StringUtils.isNotEmpty(inner.getSearch_code())) {
+			   sql += " and search_code like '%"+inner.getSearch_code()+"%'";
+		   } 
+		   if(StringUtils.isNotEmpty(inner.getSearch_id())){
+			   sql += " and search_id like '%"+inner.getSearch_id()+"%'";
+		   }
+		   if(StringUtils.isNotEmpty(inner.getSearch_name())){
+			   sql += " and search_name like '%"+inner.getSearch_name()+"%'";
+		   }
+	   }
+	   return this.baseDaoSupport.queryForPage(sql, pageNo, pageSize, EsearchSpec.class, params.toArray());
+   	}
+
+	@Override
+	public void addSpecDefine(SpecDefineQueryInner inner) {
+		EsearchSpec esearchSpec = new EsearchSpec();
+		esearchSpec.setSearch_id(inner.getSearch_id());
+		esearchSpec.setSearch_code(inner.getSearch_code());
+		esearchSpec.setSearch_name(inner.getSearch_name());
+		esearchSpec.setHander_class(inner.getHander_class());
+		esearchSpec.setSearch_field(inner.getSearch_field());
+		esearchSpec.setFlag(inner.getFlag());
+		try {
+			esearchSpec.setCreate_time(DateUtil.getTime2());
+		} catch (FrameException e) {
+			e.printStackTrace();
+		}
+		
+		this.baseDaoSupport.insert("ES_ESEARCH_SPEC", esearchSpec);
+	}
+
+	@Override
+	public EsearchSpec findEsearchSpec(SpecDefineQueryInner inner) {
+		String sql = SF.orderExpSql("FindEsearchSpec");
+		EsearchSpec result = (EsearchSpec) this.baseDaoSupport.queryForObject(sql, EsearchSpec.class, inner.getSearch_code(), inner.getSearch_id());
+		return result;
+	}
+
+	@Override
+	public void updateEsearchSpec(SpecDefineQueryInner inner) {
+		//需要更新的内容
+		Map<String, String> field = new HashMap<String, String>();
+		if(StringUtils.isNotEmpty(inner.getSearch_name())){
+			field.put("search_name", inner.getSearch_name());
+		}
+		if(inner.getHander_class() != null){
+			field.put("hander_class", inner.getHander_class());
+		}
+		if(StringUtils.isNotEmpty(inner.getFlag())){
+			field.put("flag", inner.getFlag());
+		}
+		if(StringUtils.isNotEmpty(inner.getSearch_field())){
+			field.put("search_field", inner.getSearch_field());
+		}
+		//更新条件
+		Map<String,String> where = new HashMap<String, String>();
+		where.put("search_code", inner.getSearch_code());
+		where.put("search_id", inner.getSearch_id());
+		this.baseDaoSupport.update("ES_ESEARCH_SPEC", field, where);
+	}
+}

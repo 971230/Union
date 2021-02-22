@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<package name="struts-auto-rule" extends="struts-default" namespace="/">
+		<action name="rule" class="autoRuleExeAction">
+		</action>	
+	</package>
+	
+	<package name="struts-drule" extends="shop_default" namespace="/shop/admin">
+		<action name="rule" class="ruleConfigAction">
+			<result name="rule_config_list">/shop/admin/drule/rule_config_list.jsp</result>
+			<result name="rule_audit_list">/shop/admin/drule/rule_audit_list.jsp</result>
+			<result name="rule_config_add">/shop/admin/drule/rule_config_add.jsp</result>
+			<result name="rule_obj_list">/shop/admin/drule/rule_obj_list.jsp</result>
+			<result name="rule_cond_page">/shop/admin/rule/rule_cond.jsp</result>
+		</action>
+		
+		<action name="ruleObject" class="ruleObjectAction">
+			<result name="rule_obj">/shop/admin/drule/rule_obj.jsp</result>
+			<result name="date_page">/shop/admin/drule/rule_date.jsp</result>	
+			<result name="const_page">/shop/admin/drule/const_page.jsp</result>
+			<result name="text_page">/shop/admin/drule/text_page.jsp</result>
+			<result name="salesNum_page">/shop/admin/drule/sales_num.jsp</result>
+			<result name="goods_page">/shop/admin/drule/goods.jsp</result>
+			<result name="partner_page">/shop/admin/drule/partner.jsp</result>
+			<result name="salesAmount_page">/shop/admin/drule/sales_amount.jsp</result>
+			<result name="query_obj_attr">/shop/admin/drule/obj_attr.jsp</result>
+		</action>
+		<action name="schemeAction" class="schemeAction">
+			<result name="schemeList">/shop/admin/scheme/plan_rule_list.jsp</result>
+			<result name="addRule">/shop/admin/scheme/add_plan_rule.jsp</result>
+			<result name="ruleList">/shop/admin/scheme/ruleList.jsp</result>
+			<result name="updateSchemeRule">/shop/admin/scheme/edit_plan_rule.jsp</result>
+			<result name="MidDataList">/shop/admin/scheme/mid_data_config.jsp</result>
+			<result name="addMid">/shop/admin/scheme/edit_data_config.jsp</result>
+			<result name="addMidPro">/shop/admin/scheme/addMidPro.jsp</result>
+			<result name="updateMid">/shop/admin/scheme/edit_data_config.jsp</result>
+			<result name="plan_entity_list">/shop/admin/scheme/plan_entity_list.jsp</result>
+			<result name="edit_plan_entity">/shop/admin/scheme/edit_plan_entity.jsp</result>
+			<result name="admin_user_list">/shop/admin/scheme/admin_user_list.jsp</result>
+		</action>
+		
+		<action name="sysRule" class="sysRuleAction">
+			<result name="sys_rule_list">/shop/admin/sysRule/sys_rule_list.jsp</result>
+			<result name="sys_rule_add">/shop/admin/sysRule/sys_rule_add.jsp</result>
+			<result name="server_offer_list">/shop/admin/sysRule/server_offer_list.jsp</result>
+			<result name="server_offer_add">/shop/admin/sysRule/server_offer_add.jsp</result>
+			<result name="link_rule_dialog">/shop/admin/sysRule/link_rule_dialog.jsp</result>
+		</action>
+		
+		<action name="ruleManager" class="ruleManagerAction">
+			<result name="fact_list">/shop/admin/rule/fact_list.jsp</result>
+			<result name="rule_manager">/shop/admin/rule/rule_manager.jsp</result>
+			<result name="add_edit_view_directory">/shop/admin/rule/add_edit_view_directory.jsp</result>
+			<result name="add_edit_view_scheme">/shop/admin/rule/add_edit_view_scheme.jsp</result>
+			<result name="add_edit_view_rule">/shop/admin/rule/add_edit_view_rule.jsp</result>
+			<result name="choose_assembly">/shop/admin/rule/choose_assembly.jsp</result>
+			<result name="relevance_children_rule">/shop/admin/rule/relevance_children_rule.jsp</result>
+			<result name="search_fact_list">/shop/admin/rule/search_fact_list.jsp</result>
+			<result name="search_result">/shop/admin/rule/search_result.jsp</result>
+			<result name="fact_work_flow_list">/shop/admin/rule/search_work_flow_list.jsp</result>
+			<result name="plan_cond">/shop/admin/rule/plan_cond.jsp</result>
+		</action>
+		
+		<action name="workFlowAction" class="workFlowAction">
+			<result name="work_flow_list">/shop/admin/rule/work_flow_list.jsp</result>
+		</action>	
+		
+		<action name="orderRefreshCacheAction" class="orderRefreshCacheAction">
+			
+		</action>
+		<action name="dictMatchLogsAction" class="dictMatchLogsAction">
+			<result name="qryDataPraserInst">/shop/admin/dictlogs/qryDataPraserInst.jsp</result>
+			<result name="dealContent">/shop/admin/dictlogs/dealContent.jsp</result>
+			<result name="detailContent">/shop/admin/dictlogs/detailContent.jsp</result>
+		</action>
+		
+	</package>
+</struts>

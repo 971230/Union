@@ -1,0 +1,77 @@
+package com.ztesoft.net.outter.inf.taobao;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.drools.core.util.StringUtils;
+
+import com.taobao.api.DefaultTaobaoClient;
+import com.taobao.api.TaobaoClient;
+import com.taobao.api.domain.PurchaseOrder;
+import com.taobao.api.request.FenxiaoOrdersGetRequest;
+import com.taobao.api.response.FenxiaoOrdersGetResponse;
+import com.ztesoft.net.model.Outer;
+
+public class TaobaoFenXiaoService extends AbsTaobaoFenXiaoService{
+
+	@Override
+	public List<Outer> executeInfService(String start_time, String end_time,
+			Map params, String order_from) throws Exception {
+		String url = String.valueOf(params.get("url"));
+		String appkey = String.valueOf(params.get("appkey"));
+		String secret = String.valueOf(params.get("secret"));
+		String sessionKey = String.valueOf(params.get("sessionKey"));
+		long pageNo = 1;
+		long pageSize = 50;
+		List<Outer> orderList = new ArrayList<Outer>();
+		long totalPage = 1;
+		while(totalPage>=pageNo){
+			TaobaoClient client=new DefaultTaobaoClient(url, appkey, secret);
+			FenxiaoOrdersGetRequest req=new FenxiaoOrdersGetRequest();
+			req.setTimeType("update_time_type");//可选值：trade_time_type(采购单按照成交时间范围查询),update_time_type(采购单按照更新时间范围查询)
+			req.setPageNo(pageNo);
+			req.setPageSize(pageSize);
+			if(StringUtils.isEmpty(start_time))
+				start_time = DF.format(new Date(System.currentTimeMillis()-30*60*1000));//"2014-04-02 21:12:00";
+			req.setStartCreated(DF.parse(start_time));
+			req.setEndCreated(DF.parse(end_time));
+			FenxiaoOrdersGetResponse response = client.execute(req , sessionKey);
+			if(!response.isSuccess())throw new RuntimeException("同步失败");
+			List<PurchaseOrder> orders = response.getPurchaseOrders();
+			if(orders==null || orders.size()==0) break ;//没有结果
+			totalPage = ((response.getTotalResults()-1)/pageSize)+1;
+			pageNo ++;
+			for(PurchaseOrder p:orders){
+				/**
+				 * 采购单交易状态。可选值：
+				WAIT_BUYER_PAY(等待付款)
+				WAIT_SELLER_SEND_GOODS(已付款，待发货）
+				WAIT_BUYER_CONFIRM_GOODS(已付款，已发货)
+				TRADE_FINISHED(交易成功)
+				TRADE_CLOSED(交易关闭)
+				WAIT_BUYER_CONFIRM_GOODS_ACOUNTED(已付款（已分账），已发货。只对代销分账支持)
+				PAY_ACOUNTED_GOODS_CONFIRM （已分账发货成功）
+				PAY_WAIT_ACOUNT_GOODS_CONFIRM（已付款，确认收货）
+				 */
+				String status = p.getStatus();
+				if("WAIT_SELLER_SEND_GOODS".equals(status) || "WAIT_BUYER_CONFIRM_GOODS".equals(status) || "TRADE_FINISHED".equals(status) 
+						|| "WAIT_BUYER_CONFIRM_GOODS_ACOUNTED".equals(status) || "PAY_ACOUNTED_GOODS_CONFIRM".equals(status) || "PAY_WAIT_ACOUNT_GOODS_CONFIRM".equals(status)){
+					Outer o = packageOuter(p,order_from,end_time,null,null);
+					if(o!=null) orderList.add(o);
+				}
+			}
+		}
+		
+		return orderList;
+	}
+
+	//@Override
+	@Override
+	public void callback(List<Outer> list) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+}

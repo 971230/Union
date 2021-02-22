@@ -1,0 +1,116 @@
+<div id="spec_div"  tabid="tab_6" >
+
+<script type="text/javascript" src="js/product.js"></script>
+<style>
+.select-spec-value {
+	background: none repeat scroll 0 0 #FFFFFF;
+	border: 2px solid #FFFFFF;
+	display: block;
+}
+
+div.spec_selected {
+	width: 50px
+}
+
+.select-spec-unselect span,.select-spec-unselect img {
+	background: none repeat scroll 0 0 #FFFFFF;
+	border: 1px dotted #3366CC;
+	color: #333333;
+	cursor: pointer;
+	display: block;
+	padding: 1px;
+	font-size: 14px;
+	text-align: center;
+	line-height: 150%;
+}
+
+.spec_selected span,.spec_selected img {
+	background: none repeat scroll 0 0 #FFFFCC;
+	border-style: solid;
+}
+
+table.finderInform {
+border:1px solid #EFEFEF;
+margin:0;
+width:100%;
+}
+.division td .finderInform {
+width:auto;
+}
+.finderInform thead th {
+
+border-color:#FFFFFF #DBE2E7 #CCCCCC #FFFFFF;
+border-style:solid;
+border-width:1px;
+font-size:12px;
+font-weight:700;
+padding:1px 3px;
+text-align:center;
+white-space:nowrap;
+width:auto;
+}
+.finderInform td {
+text-align:center;
+}
+.finderInform tbody td, .finderInform tbody th {
+border-color:#FFFFFF #DBE2E7 #DDDDDD #FFFFFF;
+border-left:1px solid #FFFFFF;
+border-right:1px solid #DBE2E7;
+border-style:solid;
+border-width:1px;
+}
+.finderInform tbody td {
+white-space:normal;
+}
+.finderInform.tabledata th, .finderInform.tabledata td {
+text-align:left;
+}
+</style>
+<input type="hidden" name="haveSpec" id="haveSpec" value="${goods.have_spec!0}" />
+
+
+
+<div class="grid" id="productbody2" style="width:65%;">
+
+<table cellspacing="0" cellpadding="0" border="0">
+	<thead id="productNodeTitle">
+		<tr>
+			<th style="width: 120px;">SKU</th>
+			<th style="width: auto;">货品名称</th>
+			<th style="width: auto;">操作</th>
+		</tr>
+	</thead>
+	<tbody id="productNode">
+		
+		<script>
+			$("#commonPriceTd").hide();
+			$("#storeTr").hide();
+		</script>
+		<#if productList??>
+			<#list productList as product>
+			<#assign productids=''>
+			<tr style="height:20px;">
+				<td>
+					<input type="hidden" name="product_ids" value="${product.product_id}" />
+					<input type="hidden" name="goods_ids" value="${product.goods_id}" />
+					<input type="hidden" name="rel_types" value="PRO_REL_GOODS" />
+					<input type="hidden" name="rel_codes" value="" />
+					${product.sku!''}
+	 			</td>
+	 			<td>
+	 				${product.name}
+	 			</td>
+				
+				<td><a href="javascript:;"><img  class="delete" src="${ctx}/shop/admin/images/transparent.gif" > </a></td>
+			</tr>
+			</#list>
+		</#if>
+
+	</tbody>
+</table>
+<input type="hidden" name="spec_imgs" id="spec_imgs" /></div>
+<div id="specdlg">
+<div id="spec_dialog"></div>
+</div>
+<div id="memberpricedlg"></div>
+</div>

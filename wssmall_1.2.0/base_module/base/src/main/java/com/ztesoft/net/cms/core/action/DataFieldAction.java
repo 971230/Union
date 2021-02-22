@@ -1,0 +1,158 @@
+package com.ztesoft.net.cms.core.action;
+
+import com.ztesoft.net.cms.core.model.DataField;
+import com.ztesoft.net.cms.core.plugin.ArticlePluginBundle;
+import com.ztesoft.net.cms.core.service.IDataFieldManager;
+import com.ztesoft.net.framework.action.WWAction;
+
+import java.util.List;
+
+/**
+ * 模型字段管理
+ * @author kingapex
+ * 2010-7-2下午05:17:48
+ */
+public class DataFieldAction extends WWAction {
+
+	private IDataFieldManager dataFieldManager;
+	private ArticlePluginBundle articlePluginBundle;
+	private DataField dataField;
+	private List fieldPluginList;
+	private String fieldid;
+	private Integer modelid;
+	private boolean isEdit;
+	private String[] ids;
+	private Integer[] sorts;
+	public String add(){
+		this.isEdit = false;
+		fieldPluginList = this.articlePluginBundle.getPlugins();
+		return "input";
+	}
+	
+	public String edit(){
+		this.isEdit = true;
+		this.dataField = this.dataFieldManager.get(fieldid);
+		fieldPluginList = this.articlePluginBundle.getPlugins();		
+		return "input";
+	}
+	
+	public String saveAdd(){
+		try{
+			fieldid  = this.dataFieldManager.add(dataField);
+			this.json ="{result:1,fieldid:"+fieldid+",message:'字段添加成功'}";
+		}catch(RuntimeException e){
+			this.logger.info(e.getMessage(), e);
+			this.json="{result:0,message:'字段添加出错'}";
+			
+		}
+		return WWAction.JSON_MESSAGE;
+	}
+	
+	public String saveEdit(){
+		try{
+			 this.dataFieldManager.edit(dataField);
+			this.json ="{result:1,message:'字段修改成功'}";
+		}catch(RuntimeException e){
+			this.logger.info(e.getMessage(), e);
+			this.json="{result:0,message:'字段修改出错'}";
+			
+		}
+		return WWAction.JSON_MESSAGE;		
+	}
+	
+	public String delete(){
+		try{
+			 this.dataFieldManager.delete(fieldid);
+			this.json ="{result:1,message:'字段删除成功'}";
+		}catch(RuntimeException e){
+			this.logger.info(e.getMessage(), e);
+			this.json="{result:0,message:'字段删除出错'}";
+			
+		}
+		return WWAction.JSON_MESSAGE;
+	}
+
+	public String saveSort(){
+		try{
+			 this.dataFieldManager.saveSort(ids, sorts);
+			this.json ="{result:1,message:'排序更新成功'}";
+		}catch(RuntimeException e){
+			this.logger.info(e.getMessage(), e);
+			this.json="{result:0,message:'"+e.getMessage()+"'}";
+			
+		}		
+		return WWAction.JSON_MESSAGE;
+	}
+	public IDataFieldManager getDataFieldManager() {
+		return dataFieldManager;
+	}
+
+	public void setDataFieldManager(IDataFieldManager dataFieldManager) {
+		this.dataFieldManager = dataFieldManager;
+	}
+
+	public DataField getDataField() {
+		return dataField;
+	}
+
+	public void setDataField(DataField dataField) {
+		this.dataField = dataField;
+	}
+
+	public String getFieldid() {
+		return fieldid;
+	}
+
+	public void setFieldid(String fieldid) {
+		this.fieldid = fieldid;
+	}
+
+	public Integer getModelid() {
+		return modelid;
+	}
+
+	public void setModelid(Integer modelid) {
+		this.modelid = modelid;
+	}
+
+	public ArticlePluginBundle getArticlePluginBundle() {
+		return articlePluginBundle;
+	}
+
+	public void setArticlePluginBundle(ArticlePluginBundle articlePluginBundle) {
+		this.articlePluginBundle = articlePluginBundle;
+	}
+
+	public List getFieldPluginList() {
+		return fieldPluginList;
+	}
+
+	public void setFieldPluginList(List fieldPluginList) {
+		this.fieldPluginList = fieldPluginList;
+	}
+	
+	public void setIsEdit(boolean isEdit){
+		this.isEdit = isEdit;
+	}
+	
+	public boolean getIsEdit(){
+		return this.isEdit;
+	}
+
+	public String[] getIds() {
+		return ids;
+	}
+
+	public void setIds(String[] ids) {
+		this.ids = ids;
+	}
+
+	public Integer[] getSorts() {
+		return sorts;
+	}
+
+	public void setSorts(Integer[] sorts) {
+		this.sorts = sorts;
+	}
+	
+}

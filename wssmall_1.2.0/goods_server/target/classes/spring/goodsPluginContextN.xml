@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       default-autowire="byName" default-lazy-init="true">
+    <!-- 默认商品货号生成插件 -->
+	<bean id="defaultGoodsSnCreatePluginN"
+		class="com.ztesoft.net.mall.plugin.standard.sn.DefaultGoodsSnCreatePluginN"
+		lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+       
+    <!-- 商品标签插件 -->
+	<bean id="goodsTagPluginN" class="com.ztesoft.net.mall.plugin.standard.tag.GoodsTagPluginN"
+		lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+    
+    <!-- 商品标准价格插件 -->
+	<bean id="standardGoodsPricePluginN" class="com.ztesoft.net.mall.plugin.standard.price.StandardGoodsPricePluginN"
+		lazy-init="false"> 
+		<property name="bundleList"> 
+			<list> 
+				<ref bean="goodsPluginBundleN" /> 
+			</list> 
+		</property>
+	</bean>
+    
+    <!-- 商品规格插件 -->
+    <bean id="goodsSpecPluginN" class="com.ztesoft.net.mall.plugin.standard.spec.GoodsSpecPluginN"
+		lazy-init="false"> 
+		<property name="bundleList"> 
+			<list> 
+				<ref bean="goodsPluginBundleN" /> 
+			</list> 
+		</property>
+	</bean>
+    
+    <!-- 商品配件插件-->
+	<bean id="goodsAdjunctPluginN" class="com.ztesoft.net.mall.plugin.standard.adjunct.GoodsAdjunctPluginN"
+		lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+    
+    <!-- 商品类型插件 -->
+	<bean id="goodsTypeAdminPluginN"
+		class="com.ztesoft.net.mall.plugin.standard.type.GoodsTypeAdminPluginN"
+		lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 商品属性插件  -->
+	<bean id="goodsPropsPluginN"
+		class="com.ztesoft.net.mall.plugin.standard.type.GoodsPropsPluginN"
+		lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 商品参数插件  -->
+	<bean id="goodsParamsPluginN"
+		class="com.ztesoft.net.mall.plugin.standard.type.GoodsParamsPluginN"
+		lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+    
+    <!-- 相关商品插件--> 
+	<bean id="goodsComplexPluginN" class="com.ztesoft.net.mall.plugin.standard.complex.GoodsComplexPluginN"
+		lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+    
+    <bean id="relatedArticlesGoodsPluginN" class="com.ztesoft.net.mall.plugin.standard.relarticle.RelatedArticlesGoodsPluginN" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+	
+    <!-- 商品标准货品插件 -->
+	<bean id="gneralProductPluginN" class="com.ztesoft.net.mall.plugin.standard.product.GeneralProductPluginN"
+		lazy-init="false"> 
+		<property name="bundleList"> 
+			<list> 
+				<ref bean="goodsPluginBundleN" /> 
+			</list> 
+		</property>
+	</bean>
+    
+    <!-- 会员积分设置插件 -->
+	<bean id="pointSettingPluginN" class="com.ztesoft.net.mall.plugin.standard.point.PointSettingPluginN"
+		lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 商品数据日志记录插件 -->
+	<bean id="goodsDatalogPluginN"  class="com.ztesoft.net.mall.plugin.standard.datalog.GoodsDatalogPluginN" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>	
+	</bean>	
+    
+    <!-- 商品平台信息插件 -->
+	<bean id="goodsPlatformInfoPluginN"  class="com.ztesoft.net.mall.plugin.standard.platform.GoodsPlatformInfoPluginN" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>	
+	</bean>	
+    
+    <!-- 商品平台信息插件 -->
+	<bean id="goodsAreaPluginN"  class="com.ztesoft.net.mall.plugin.standard.area.GoodsAreaPluginN" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>	
+	</bean>	
+	
+    <!-- 商品关联关系插件  -->
+	<bean id="goodsRelationPluginN"  class="com.ztesoft.net.mall.plugin.standard.product.GoodsRelationPluginN" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="goodsPluginBundleN" />
+			</list>
+		</property>	
+	</bean>	
+</beans>

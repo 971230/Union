@@ -1,0 +1,5 @@
+<select  class="ipttxt"  name="cat_id"  id="cat_id">
+	<#assign children=catList />
+	<#assign level=1 />
+	<#include 'select_children.html' />  
+</select>

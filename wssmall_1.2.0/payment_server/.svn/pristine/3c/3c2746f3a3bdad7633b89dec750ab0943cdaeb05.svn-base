@@ -1,0 +1,60 @@
+package com.ztesoft.net.mall.cmp;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.CheckAcctConfig;
+import com.ztesoft.net.mall.core.model.TransDetailVo;
+import com.ztesoft.net.mall.core.model.TransMainVo;
+
+import org.apache.log4j.Logger;
+import params.checkacctconfig.req.CheckAcctConfigReq;
+import params.checkacctconfig.resp.CheckAcctConfigResp;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DataToDataBase extends BaseSupport implements ICMPBill{
+
+    public Logger imlog = Logger.getLogger(DataToDataBase.class);
+
+    @SuppressWarnings("unchecked")
+    public void perform(CheckAcctConfigReq req,CheckAcctConfigResp resp){
+
+        CheckAcctConfig config =req.getCheckAcctConfig();
+        TransMainVo mainVo = resp.getTransMainVo();
+
+
+        try {
+            String sqltotal = "insert into ES_CHECKACCT "
+                    + "(ACCOUNTS_ID, SEQ, SYSTEM_ID, FILE_NAME, RECORD_SUM, MONEY_SUM)"
+                    +" values (?, 0, ?, ?, ?, ?)" ;
+
+            // 对仗总表
+            this.baseDaoSupport.execute(sqltotal,config.getAccounts_id(),config.getSystem_id(),config.getA_file_name(),mainVo.getTransNum(),mainVo.getTransMoney());
+
+            String sqlinfo =" insert into ES_CHECKACCT_INFO "
+                    +"(ACCOUNTS_ID, SEQ, SYSTEM_ID, WSS_TRANSACTION_ID, BRANK_TRANSACTION_ID, PAY_AMOUNT, ASK_ORD_NO, PAY_TYPE, ACCOUNTS_DATE) "
+                    +" values (?, 0, ?, ?, ?, ?, ?, ?, "+DBTUtil.current()+")" ;
+
+            List<Object[]> sqlParam = new ArrayList<Object[]>();
+            List<TransDetailVo> details = resp.getDetails();
+            for (int i=0 ; i < details.size() ;  i++){
+                TransDetailVo detailVo = details.get(i);
+                sqlParam.add(new Object[]{resp.getTransMainVo().getTransDate(),config.getSystem_id(),detailVo.getTransId(),detailVo.getRequestId(),
+                        detailVo.getAmount(),detailVo.getOrderId(),detailVo.getPayType()});
+            }
+            if(sqlParam.size()>0){
+                this.baseDaoSupport.batchExecute(sqlinfo, sqlParam);
+            }
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            resp.getCompBillResult().err_type = Consts.COMP_BILL_ERROR_00D;
+            resp.getCompBillResult().err_message = "生成对账数据失败";
+            e.printStackTrace();
+            throw new RuntimeException("生成对账数据失败:"+e.getMessage());
+        }
+        imlog.info("插入数据库成功");
+    }
+}

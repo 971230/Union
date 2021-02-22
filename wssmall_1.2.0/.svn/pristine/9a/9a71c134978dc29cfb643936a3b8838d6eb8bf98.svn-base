@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+	default-autowire="byName" default-lazy-init="false">
+	
+	<!--  产品安装 -->
+	<bean id="eopInstallAction" class="com.ztesoft.net.app.base.core.action.EopInstallAction" scope="prototype"></bean>
+	
+	<!--  用户基本信息维护 -->
+	<bean id="baseInfoAction" class="com.ztesoft.net.app.base.core.action.BaseInfoAction" scope="prototype"></bean>
+	
+	<!--  用户详细信息维护 -->
+	<bean id="userDetailAction" class="com.ztesoft.net.app.base.core.action.UserDetailAction" scope="prototype"></bean>
+	
+	<!--  站点管理 -->
+	<bean id="userSiteAction" class="com.ztesoft.net.app.base.core.action.UserSiteAction" scope="prototype"></bean>
+	
+	<!--  前台站点主题-->
+	<bean id="siteThemeAction" class="com.ztesoft.net.app.base.core.action.SiteThemeAction" scope="prototype"></bean>
+	
+	<!--  后台站点主题-->
+	<bean id="siteAdminThemeAction" class="com.ztesoft.net.app.base.core.action.SiteAdminThemeAction" scope="prototype"></bean>
+	
+	<!--  流量-->
+	<bean id="accessAction" class="com.ztesoft.net.app.base.core.action.AccessAction" scope="prototype"></bean>
+	
+	<!--  base首页项-->
+	<bean id="baseIndexItemAction" class="com.ztesoft.net.app.base.core.action.BaseIndexItemAction" scope="prototype" />
+	
+	<!--  帮助-->
+	<bean id="helpAction" class="com.ztesoft.net.app.base.core.action.HelpAction" scope="prototype" />
+	
+ 	
+	<!-- 生成sitemap-->
+ 	<bean id="createSitemapAction" class="com.ztesoft.net.app.base.core.action.CreateSitemapAction" scope="prototype" />
+ 	
+	<!--  边框-->
+	<bean id="borderAction" class="com.ztesoft.net.app.base.core.action.BorderAction" scope="prototype" />
+	
+	<!--  上传-->
+	<bean id="uploadAction" class="com.ztesoft.net.app.base.core.action.UploadAction" scope="prototype" />
+	
+	<!--  ckeditor上传-->
+	<bean id="ckEditorUploadAction" class="com.ztesoft.net.app.base.core.action.CkEditorUploadAction" scope="prototype" />
+	
+	<!--  theme uri-->
+ 	<bean id="themeUriAction" class="com.ztesoft.net.app.base.core.action.ThemeUriAction" scope="prototype" />
+ 	
+	<!--  模板文件管理-->
+ 	<bean id="themeFileAction" class="com.ztesoft.net.app.base.core.action.ThemeFileAction" scope="prototype" />
+ 	
+	<!-- 多站点管理-->
+ 	<bean id="multiSiteAction" class="com.ztesoft.net.app.base.core.action.MultiSiteAction" scope="prototype" />
+ 	
+ 	<!--  后台首页-->
+	<bean id="indexAction" class="com.ztesoft.net.app.base.core.action.IndexAction" scope="prototype" />
+ 	
+	<!--  版本升级-->
+ 	<bean id="updateAction" class="com.ztesoft.net.app.base.core.action.UpdateAction" scope="prototype" />	
+ 	
+ 	<!-- 系统设置 -->
+	<bean id="settingAction" class="com.ztesoft.net.app.base.core.action.SettingAction" scope="prototype"/>
+			
+ 	<!-- 挂件缓存设置 -->
+	<bean id="widgetCacheAction" class="com.ztesoft.net.app.base.core.action.WidgetCacheAction" scope="prototype"/>
+	
+	<!-- 挂件缓存设置 -->
+	<bean id="pageInfoAction" class="com.ztesoft.net.app.base.core.action.PageInfoAction" scope="prototype"/>
+	
+	<!--  后台应用中心-->
+	<!-- 
+	<bean id="appAction" class="com.ztesoft.net.app.base.core.action.IndexAction" scope="prototype" />	
+     -->
+     <bean id="lucenceAction" class="com.ztesoft.lucence.LucenceAction" scope="prototype"/>
+     <bean id="routerGrategyCfgAction" class="com.ztesoft.gray.action.backend.RouterGrategyCfgAction" scope="prototype"/>
+     
+</beans>

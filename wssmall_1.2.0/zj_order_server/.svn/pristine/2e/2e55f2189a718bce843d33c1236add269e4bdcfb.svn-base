@@ -1,0 +1,146 @@
+package com.ztesoft.net.model;
+
+import java.io.Serializable;
+
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+
+/**
+ * @Description cbss/bss 营业款稽核报表   es_order_audit_business
+ * @author zhangJun
+ * @date 2016年10月1日
+ */
+public class AuditBusinessVO implements Serializable {
+
+	private static final long serialVersionUID = 1L;
+	private String order_id;
+	private String audit_bss_id;
+	private String data_from;
+	private String area;
+	private String serial_number;
+	private String phone_number;
+	private String business_type;
+	private  Float busi_money;
+	private String operation_time;
+	private String operator;
+	private String source_from;
+	private String batch_number;
+	private String create_date;
+	private String create_user;
+	
+
+	public String getAudit_bss_id() {
+		return audit_bss_id;
+	}
+
+	public void setAudit_bss_id(String audit_bss_id) {
+		this.audit_bss_id = audit_bss_id;
+	}
+
+	public String getData_from() {
+		return data_from;
+	}
+
+	public void setData_from(String data_from) {
+		this.data_from = data_from;
+	}
+
+	public String getArea() {
+		return area;
+	}
+
+	public void setArea(String area) {
+		this.area = area;
+	}
+
+	public String getSerial_number() {
+		return serial_number;
+	}
+
+	public void setSerial_number(String serial_number) {
+		this.serial_number = serial_number;
+	}
+
+	public String getPhone_number() {
+		return phone_number;
+	}
+
+	public void setPhone_number(String phone_number) {
+		this.phone_number = phone_number;
+	}
+
+	public String getBusiness_type() {
+		return business_type;
+	}
+
+	public void setBusiness_type(String business_type) {
+		this.business_type = business_type;
+	}
+
+	
+
+	public Float getBusi_money() {
+		return busi_money;
+	}
+
+	public void setBusi_money(Float busi_money) {
+		this.busi_money = busi_money;
+	}
+
+	public String getOperation_time() {
+		return operation_time;
+	}
+
+	public void setOperation_time(String operation_time) {
+		this.operation_time = operation_time;
+	}
+
+	public String getOperator() {
+		return operator;
+	}
+
+	public void setOperator(String operator) {
+		this.operator = operator;
+	}
+
+	public String getSource_from() {
+		return source_from;
+	}
+
+	public void setSource_from(String source_from) {
+		this.source_from = source_from;
+	}
+
+	public String getBatch_number() {
+		return batch_number;
+	}
+
+	public void setBatch_number(String batch_number) {
+		this.batch_number = batch_number;
+	}
+
+	public String getCreate_date() {
+		return create_date;
+	}
+
+	public void setCreate_date(String create_date) {
+		this.create_date = create_date;
+	}
+
+	public String getCreate_user() {
+		return create_user;
+	}
+
+	public void setCreate_user(String create_user) {
+		this.create_user = create_user;
+	}
+
+	public String getOrder_id() {
+		return order_id;
+	}
+
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+
+	
+}

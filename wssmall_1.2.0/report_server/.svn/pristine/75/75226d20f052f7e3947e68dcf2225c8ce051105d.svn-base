@@ -1,0 +1,60 @@
+ul {
+	list-style-type: none;
+	margin-left: 2px;
+}
+
+li {
+	float: left;
+	list-style-type: none;
+	border: 1px outset #CCCCCC;
+	float: left;
+	margin-left: 2px;
+	margin-right: 5px;
+	padding: 4px;
+	padding-left: 20px;
+	padding-right: 20px;
+	font-size: 14pt;
+	cursor: pointer;
+}
+
+.field {
+	
+}
+
+.field td {
+	font-size: 12pt;
+	font-weight: bold;
+	padding-right: 20px;
+}
+
+.field input {
+	width: 400px;
+}
+
+.rowsplit td {
+	padding-top: 20px;
+}
+
+table.listtab {
+	border: 1px solid #608c8c;
+}
+
+table.listtab td {
+	border: 1px solid #608c8c;
+	padding: 3px;
+	font-size: 11pt;
+}
+
+.header {
+	background-color: #b8cece
+}
+
+a {
+	font-size: 11pt;
+}
+
+body{
+	margin:0px;
+	padding:0px;
+	border:2px solid red;
+}

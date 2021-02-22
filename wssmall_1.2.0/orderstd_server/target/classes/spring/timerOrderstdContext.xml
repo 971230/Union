@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+ 
+    <!-- ********** 分销商合约过期begin ********** -->
+    <!-- 
+    <bean id="partnerExpJob"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        
+        <property name="targetObject">
+            <ref bean="partnerExpScheduler"/>
+        </property>
+        
+        <property name="targetMethod">
+            <value>partnerExpAndFreeze</value>
+        </property>
+    </bean>
+     -->
+    <!-- 定义触发时间 -->
+    <!--
+    <bean id="partnerExpJobTime"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="partnerExpJob"/>
+        </property>
+       
+        <property name="cronExpression">
+            <value>0 0 1 * * ?</value>
+        </property>
+    </bean>
+    -->
+    <!-- ********** 分销商合约过期end ********** -->
+
+    <!-- ********** 预存金充值对账begin ********** -->
+    <!-- 
+    <bean id="compBillJob"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+      
+        <property name="targetObject">
+            <ref bean="checkAcctManager"/>
+        </property>
+       
+        <property name="targetMethod">
+            <value>checkAcct</value>
+        </property>
+    </bean>
+     -->
+    <!-- 定义触发时间 -->
+    <!-- 
+    <bean id="compBillJobTime"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="compBillJob"/>
+        </property>
+        
+        <property name="cronExpression">
+            <value>0 0 4 * * ?</value>
+        </property>
+    </bean>
+     -->
+    <!-- ********** 预存金充值对账end ********** -->
+    
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="triggers">
+            <list>
+            </list>
+        </property>
+    </bean>
+</beans>

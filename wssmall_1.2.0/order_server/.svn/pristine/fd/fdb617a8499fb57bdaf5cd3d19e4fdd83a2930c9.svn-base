@@ -1,0 +1,76 @@
+package com.ztesoft.net.rule;
+
+import java.util.List;
+
+import params.member.req.RegisterReq;
+import params.member.resp.RegisterResp;
+import params.order.req.ActionRuleReq;
+import params.order.req.OrderSyReq;
+import params.order.resp.OrderOuterResp;
+import params.order.resp.OrderSyResp;
+import rule.RuleInvoker;
+import rule.params.userstaff.req.OrdUserRuleReq;
+import zte.params.order.resp.OrderAddResp;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.model.Cart;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderItem;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.model.OrderRel;
+
+/**
+ * 订单同步服务,基础类执行
+ * 
+ * @作者 wu.i
+ * @创建日期 2013-9-24
+ * @版本 V 1.0
+ */
+public class SyOrderRule extends AbsSyOrderRule {
+
+	/**
+	 * 预受理单同步到正式单
+	 */
+	@Override
+	public OrderSyResp perform(OrderSyReq syReq) throws ApiBusiException {
+
+		OrderSyResp syResp = new OrderSyResp();
+		// 插入会员
+		RegisterReq req = assembleMember(syReq);
+		RegisterResp resp = memberCenterServ.register(req);
+		OrderAddResp createOrderResp = new OrderAddResp();
+		
+		//循环外系统订单加入购物车,生成多个明细
+		
+		//插入购物车之前先删除购物车数据，避免购物车数据重复
+		cartManager.clean(syReq.getUserSessionId(), false);
+		
+		for (OrderOuterResp orderOuterResp :syReq.getOrderOuterResps()) {
+			OrderOuter orderOuter = orderOuterResp.getOrderOuter();
+			orderOuter.setMember_id(resp.getMember().getMember_id());
+			Cart cart = assembleCart(orderOuterResp.getOrderOuter(), resp.getMember());
+			//设置现场变量信息
+			syResp.getOrderOuters().add(orderOuter);
+			cartManager.add(cart);
+		}
+		
+		//外系统订单同步到订单表
+		OrderOuter outer = syReq.getOrderOuterResps().get(0).getOrderOuter();
+		outer.setParamsl(syReq.getParamsl());
+		createOrderResp = orderServ.createOrder(outer);
+
+		for (Order order :createOrderResp.getOrderList()) {
+			// 保存订单关系,关系信息
+//			if(!EcsOrderConsts.SHIPPING_TYPE_XJ.equals((String)outer.getParamsl().get(0).get("sending_type"))){
+				OrderRel orderRel = assembleOrderRel(syReq.getOrderOuterResps().get(0).getOrderOuter(), order);
+				orderNFlowManager.saveOrderRel(orderRel);
+//			}
+			
+		}
+		syResp.setOrders(createOrderResp.getOrderList());
+		return syResp;
+
+	}
+
+}

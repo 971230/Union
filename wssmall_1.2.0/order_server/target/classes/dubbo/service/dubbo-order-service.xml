@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+		http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-autowire="byName" default-lazy-init="false">
+
+    <!-- 注册服务 -->
+    <dubbo:service interface="services.OrderInf" ref="orderServ"/>
+    <dubbo:service interface="services.AcceptInf" ref="acceptServ"/>
+    <dubbo:service interface="services.DeliveryInf" ref="deliveryServ"/>
+    <dubbo:service interface="services.ICartService" ref="cartServ"/>
+    <dubbo:service interface="services.OrderActionRuleInf" ref="orderActionRuleServ"/>
+    <dubbo:service interface="services.OrderOuterInf" ref="orderOuterServ"/>
+    <dubbo:service interface="services.OrderSyInf" ref="orderSyServ"/>
+    <dubbo:service interface="services.PaymentInf" ref="paymentServ"/>
+    <dubbo:service interface="services.PromotionInf" ref="promotionServ"/>
+	<dubbo:service interface="services.OrderRuleInf" ref="orderRuleServ"/>
+	<dubbo:service interface="zte.net.iservice.IOrderServices" ref="orderServices"/>
+	<dubbo:service interface="zte.net.iservice.IPaymentServices" ref="paymentServices"/>
+    <dubbo:service interface="zte.net.iservice.ICartServices" ref="cartServices"/>
+	<dubbo:service interface="zte.net.iservice.IDlyTypeAddressService" ref="dlyTypeAddressService"/>
+	<dubbo:service interface="zte.net.iservice.IOrderApplyService" ref="orderApplyService"/>
+	<dubbo:service interface="zte.net.iservice.ICoQueueService" ref="coQueueService"/>
+	<dubbo:service interface="com.ztesoft.net.mall.core.service.IOrderManager" ref="orderManager"/>
+</beans>

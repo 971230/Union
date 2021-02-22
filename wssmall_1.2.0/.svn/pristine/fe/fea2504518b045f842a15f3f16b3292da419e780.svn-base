@@ -1,0 +1,671 @@
+package zte.params.goods.req;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.mall.core.model.GoodsBusiness;
+import com.ztesoft.net.mall.core.model.GoodsRules;
+import commons.CommonTools;
+
+import consts.ConstsCore;
+
+import params.ZteError;
+import params.ZteRequest;
+
+public class GoodsEditReq extends ZteRequest {
+	@ZteSoftCommentAnnotationParam(name="商品ID",type="String",isNecessary="Y",desc="goods_id：商品ID。")
+	private String goods_id;
+	@ZteSoftCommentAnnotationParam(name="商品名称",type="String",isNecessary="Y",desc="name：商品名称。")
+	private String name;
+	@ZteSoftCommentAnnotationParam(name="简称",type="String",isNecessary="N",desc="simple_name：简称。")
+	private String simple_name;
+	@ZteSoftCommentAnnotationParam(name="条形码SN",type="String",isNecessary="N",desc="条形码SN。")
+	private String sn;
+	@ZteSoftCommentAnnotationParam(name="市场价",type="String",isNecessary="N",desc="mktprice：市场价")
+	private String mktprice;
+	@ZteSoftCommentAnnotationParam(name="销售价",type="String",isNecessary="Y",desc="price：销售价。")
+	private String price;
+	@ZteSoftCommentAnnotationParam(name="商品库存",type="String",isNecessary="Y",desc="store：商品库存。")
+	private String store;
+	@ZteSoftCommentAnnotationParam(name="上下架",type="String",isNecessary="N",desc="market_enable：1-上架，0-下架。")
+	private String market_enable;
+	@ZteSoftCommentAnnotationParam(name="类型ID",type="String",isNecessary="N",desc="type_id：类型ID。")
+	private String type_id;
+	@ZteSoftCommentAnnotationParam(name="分类ID",type="String",isNecessary="N",desc="cat_id：分类ID。")
+	private String cat_id;
+	@ZteSoftCommentAnnotationParam(name="品牌ID",type="String",isNecessary="N",desc="brand_id：品牌ID。")
+	private String brand_id;
+	@ZteSoftCommentAnnotationParam(name="配置对象类型",type="String",isNecessary="N",desc="type：配置对象类型，goods：商品，product：货品。目前type='product'只针对广东联通，其他省份type='goods'。")
+	private String type;
+	
+	//商品属性
+	@ZteSoftCommentAnnotationParam(name="商品属性",type="String[]",isNecessary="N",desc="propvalues：商品属性。")
+	private String[] propvalues;
+	
+	//商品参数
+	@ZteSoftCommentAnnotationParam(name="参数组名",type="String[]",isNecessary="N",desc="groupnames：参数组名。")
+	private String[] groupnames;
+	@ZteSoftCommentAnnotationParam(name="参数组参数个数",type="String[]",isNecessary="N",desc="paramnums：参数组参数个数。")
+	private String[] paramnums;
+	@ZteSoftCommentAnnotationParam(name="参数名称",type="String[]",isNecessary="N",desc="paramnames：参数名称。")
+	private String[] paramnames;
+	@ZteSoftCommentAnnotationParam(name="参数值",type="String[]",isNecessary="N",desc="paramvalues：参数值。")
+	private String[] paramvalues;
+	@ZteSoftCommentAnnotationParam(name="参数英文名",type="String[]",isNecessary="N",desc="enames：参数英文名。")
+	private String[] enames;
+	@ZteSoftCommentAnnotationParam(name="参数下拉框静态编码",type="String[]",isNecessary="N",desc="attrCodes：参数下拉框静态编码。")
+	private String[] attrCodes;
+	@ZteSoftCommentAnnotationParam(name="参数值类型",type="String[]",isNecessary="N",desc="attrvaltypes：参数值类型：0-文本，1-下拉框。")
+	private String[] attrvaltypes;
+	@ZteSoftCommentAnnotationParam(name="参数类型",type="String[]",isNecessary="N",desc="attrtypes：参数类型：'goodsparam'-商品参数，'relparam'-关系参数。")
+	private String[] attrtypes;
+	
+	//价格公开权限
+	@ZteSoftCommentAnnotationParam(name="价格公开权限·数组",type="String",isNecessary="N",desc="lvidArray：价格公开权限。")
+	private String[] lvidArray;
+	
+	//商品会员价格信息
+	@ZteSoftCommentAnnotationParam(name="会员等级ID·数组",type="String",isNecessary="N",desc="lvid：会员等级ID。")
+	private String[] lvid;
+	@ZteSoftCommentAnnotationParam(name="会员价·数组",type="String",isNecessary="N",desc="lvPrice：会员价。")
+	private String[] lvPrice;
+	@ZteSoftCommentAnnotationParam(name="会员折扣·数组",type="String",isNecessary="N",desc="lvDiscount：会员折扣。")
+	private String[] lv_discount;
+	
+	//商品规格信息
+	@ZteSoftCommentAnnotationParam(name="规格-是否开启规格",type="String",isNecessary="N",desc="haveSpec：是否开启规格，1:开启，0:关闭。")
+	private String haveSpec;
+	@ZteSoftCommentAnnotationParam(name="规格-关联图片",type="String",isNecessary="N",desc="spec_imgs：关联图片。json字符串，格式为：{'规格值ID','图片URL'}，多个图片用英文逗号隔开。")
+	private String spec_imgs;
+	@ZteSoftCommentAnnotationParam(name="规格-货号·数组",type="String",isNecessary="N",desc="sns：规格-货号。")
+	private String[] sns;
+	@ZteSoftCommentAnnotationParam(name="规格-规格ID·数组",type="String",isNecessary="N",desc="specids：规格ID。")
+	private String[] specids;
+	@ZteSoftCommentAnnotationParam(name="规格-规格值ID·数组",type="String",isNecessary="N",desc="specvids：规格值ID。")
+	private String[] specvids;
+	@ZteSoftCommentAnnotationParam(name="规格-货品ID·数组",type="String",isNecessary="N",desc="spec_productids：规格-货品ID。")
+	private String[] spec_productids;
+	@ZteSoftCommentAnnotationParam(name="规格-货品的价格·数组",type="String",isNecessary="N",desc="spec_prices：规格-货品的销售价格。")
+	private String[] spec_prices;
+	@ZteSoftCommentAnnotationParam(name="规格-库存·数组",type="String",isNecessary="N",desc="stores：规格-库存。")
+	private String[] stores;
+	@ZteSoftCommentAnnotationParam(name="规格-重量·数组",type="String",isNecessary="N",desc="weights：规格-重量。")
+	private String[] weights;
+	@ZteSoftCommentAnnotationParam(name="规格-规格值·数组",type="String",isNecessary="N",desc="specValues：规格-规格值，每个数组元素是一个货品的规格值，规格值间用英文逗号隔开。")
+	private String[] specValues;
+	@ZteSoftCommentAnnotationParam(name="规格-会员价格·数组",type="String",isNecessary="N",desc="lvPriceValues：规格-会员价格，每个数组元素是一个货品的会员价格，价格值间用英文逗号隔开。")
+	private String[] lvPriceValues;
+	@ZteSoftCommentAnnotationParam(name="规格-会员等级ID·数组",type="String",isNecessary="N",desc="lvIdValues：规格-会员等级ID，每个数组元素是一个货品的会员等级ID，ID之间用英文逗号隔开。")
+	private String[] lvIdValues; 
+	@ZteSoftCommentAnnotationParam(name="规格-规格图片·数组",type="String",isNecessary="N",desc="imageArray：规格-规格图片，添加图片规格时必填，文字规格穿空串。")
+	private String[] imageArray;
+	
+	//配件
+	@ZteSoftCommentAnnotationParam(name="配件组名·数组",type="String",isNecessary="N",desc="adjunct_name：配件组名。")
+	private String[] adjunct_name;
+	@ZteSoftCommentAnnotationParam(name="最小购买量·数组",type="String",isNecessary="N",desc="min_num：最小购买量。")
+	private String[] min_num;
+	@ZteSoftCommentAnnotationParam(name="最大购买量·数组",type="String",isNecessary="N",desc="max_num：最大购买量。")
+	private String[] max_num;
+	@ZteSoftCommentAnnotationParam(name="配件优惠类型·数组",type="String",isNecessary="N",desc="pricetype：配件优惠类型，discount：折扣优惠，minus：金额优惠。")
+	private String[] pricetype;
+	@ZteSoftCommentAnnotationParam(name="配件优惠·数组",type="String",isNecessary="N",desc="adj_prices：配件优惠，优惠9折就输入0.9，优惠100元就输入100。")
+	private String[] adj_prices;
+	@ZteSoftCommentAnnotationParam(name="配件组配件·数组",type="String",isNecessary="N",desc="adj_productids：配件组配件。数组的每个元素是一个配件组中的配件ID，每个配件组中的配件ID用英文逗号隔开；如配件组1有3个配件，ID分别为1、2、3，这个配件组在数组中的元素值是：“1,2,3”")
+	private String[] adj_productids;	
+	
+	//绑定产品
+	@ZteSoftCommentAnnotationParam(name="绑定产品ID·数组",type="String",isNecessary="N",desc="complex_goods_ids：绑定产品ID。")
+	private String[] complex_goods_ids;
+	@ZteSoftCommentAnnotationParam(name="绑定类型·数组",type="String",isNecessary="N",desc="manual：绑定类型，'left':单向关联，'both':双向关联。")
+	private String[] manual;
+	
+	//商品标签
+	@ZteSoftCommentAnnotationParam(name="商品标签·数组",type="String",isNecessary="N",desc="tag_id：商品标签。")
+	private String[] tag_id;
+	
+	//配置终端商品是，可配置购买方式
+	@ZteSoftCommentAnnotationParam(name="购买方式",type="String[]",isNecessary="N",desc="goods_buyWays：购买方式。")
+	private String[] goods_buyWays;
+	@ZteSoftCommentAnnotationParam(name="合约实例",type="String[]",isNecessary="N",desc="rel_contract_inst：合约实例。")
+	private String[] rel_contract_inst;
+	
+	//配置套餐时，可配置关联的合约
+	@ZteSoftCommentAnnotationParam(name="套餐关联合约ID",type="String[]",isNecessary="N",desc="goodsids：套餐关联合约ID。")
+	private String[] goodsids;
+	
+	//@ZteSoftCommentAnnotationParam(name="工号角色",type="String",isNecessary="Y",desc="founder：工号角色，'0'：电信员工，'1'：超级管理员，'2'：二级分销商，'3'：一级分销商，'4'：供货商，'5'：供货商员工，'7'：移动员工，'8'：移动分销商，'10'：代销商，'-1'：非以上角色。")
+	private String user_id;
+	
+	@ZteSoftCommentAnnotationParam(name="手机版图片URL",type="String",isNecessary="N",desc="mbl_image_file：图片URL，多个图片用英文逗号隔开。")
+	private String mbl_image_file;
+	@ZteSoftCommentAnnotationParam(name="手机版简介",type="String",isNecessary="N",desc="mbl_remark：简介。")
+	private String mbl_remark;
+	@ZteSoftCommentAnnotationParam(name="手机版详情",type="String",isNecessary="N",desc="mbl_intors：详情。")
+	private String mbl_intors;
+	
+	@ZteSoftCommentAnnotationParam(name="PC版图片URL",type="String",isNecessary="N",desc="pc_image_file：图片URL，多个图片用英文逗号隔开。")
+	private String pc_image_file;
+	@ZteSoftCommentAnnotationParam(name="PC版简介",type="String",isNecessary="N",desc="pc_remark：简介。")
+	private String pc_remark;
+	@ZteSoftCommentAnnotationParam(name="PC版详情",type="String",isNecessary="N",desc="pc_intors：详情。")
+	private String pc_intors;
+	
+	@ZteSoftCommentAnnotationParam(name="APP版图片URL",type="String",isNecessary="N",desc="wx_image_file：图片URL，多个图片用英文逗号隔开。")
+	private String wx_image_file;
+	@ZteSoftCommentAnnotationParam(name="APP版简介",type="String",isNecessary="N",desc="wx_remark：简介。")
+	private String wx_remark;
+	@ZteSoftCommentAnnotationParam(name="APP版详情",type="String",isNecessary="N",desc="wx_intors：详情。")
+	private String wx_intors;
+	
+	private GoodsRules goodsRules;
+	
+	private GoodsBusiness goodsBusiness;
+	
+	public String getGoods_id() {
+		return goods_id;
+	}
+
+	public void setGoods_id(String goods_id) {
+		this.goods_id = goods_id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getSimple_name() {
+		return simple_name;
+	}
+
+	public void setSimple_name(String simple_name) {
+		this.simple_name = simple_name;
+	}
+
+	public String getSn() {
+		return sn;
+	}
+
+	public void setSn(String sn) {
+		this.sn = sn;
+	}
+
+	public String getMktprice() {
+		return mktprice;
+	}
+
+	public void setMktprice(String mktprice) {
+		this.mktprice = mktprice;
+	}
+
+	public String getPrice() {
+		return price;
+	}
+
+	public void setPrice(String price) {
+		this.price = price;
+	}
+
+	public String getStore() {
+		return store;
+	}
+
+	public void setStore(String store) {
+		this.store = store;
+	}
+
+	public String getMarket_enable() {
+		return market_enable;
+	}
+
+	public void setMarket_enable(String market_enable) {
+		this.market_enable = market_enable;
+	}
+
+	public String getType_id() {
+		return type_id;
+	}
+
+	public void setType_id(String type_id) {
+		this.type_id = type_id;
+	}
+
+	public String getCat_id() {
+		return cat_id;
+	}
+
+	public void setCat_id(String cat_id) {
+		this.cat_id = cat_id;
+	}
+
+	public String getBrand_id() {
+		return brand_id;
+	}
+
+	public void setBrand_id(String brand_id) {
+		this.brand_id = brand_id;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String[] getPropvalues() {
+		return propvalues;
+	}
+
+	public void setPropvalues(String[] propvalues) {
+		this.propvalues = propvalues;
+	}
+
+	public String[] getGroupnames() {
+		return groupnames;
+	}
+
+	public void setGroupnames(String[] groupnames) {
+		this.groupnames = groupnames;
+	}
+
+	public String[] getParamnums() {
+		return paramnums;
+	}
+
+	public void setParamnums(String[] paramnums) {
+		this.paramnums = paramnums;
+	}
+
+	public String[] getParamnames() {
+		return paramnames;
+	}
+
+	public void setParamnames(String[] paramnames) {
+		this.paramnames = paramnames;
+	}
+
+	public String[] getParamvalues() {
+		return paramvalues;
+	}
+
+	public void setParamvalues(String[] paramvalues) {
+		this.paramvalues = paramvalues;
+	}
+
+	public String[] getEnames() {
+		return enames;
+	}
+
+	public void setEnames(String[] enames) {
+		this.enames = enames;
+	}
+
+	public String[] getAttrCodes() {
+		return attrCodes;
+	}
+
+	public void setAttrCodes(String[] attrCodes) {
+		this.attrCodes = attrCodes;
+	}
+
+	public String[] getAttrvaltypes() {
+		return attrvaltypes;
+	}
+
+	public void setAttrvaltypes(String[] attrvaltypes) {
+		this.attrvaltypes = attrvaltypes;
+	}
+
+	public String[] getAttrtypes() {
+		return attrtypes;
+	}
+
+	public void setAttrtypes(String[] attrtypes) {
+		this.attrtypes = attrtypes;
+	}
+
+	public String[] getLvidArray() {
+		return lvidArray;
+	}
+
+	public void setLvidArray(String[] lvidArray) {
+		this.lvidArray = lvidArray;
+	}
+
+	public String[] getLvid() {
+		return lvid;
+	}
+
+	public void setLvid(String[] lvid) {
+		this.lvid = lvid;
+	}
+
+	public String[] getLvPrice() {
+		return lvPrice;
+	}
+
+	public void setLvPrice(String[] lvPrice) {
+		this.lvPrice = lvPrice;
+	}
+
+	public String[] getLv_discount() {
+		return lv_discount;
+	}
+
+	public void setLv_discount(String[] lv_discount) {
+		this.lv_discount = lv_discount;
+	}
+
+	public String getHaveSpec() {
+		return haveSpec;
+	}
+
+	public void setHaveSpec(String haveSpec) {
+		this.haveSpec = haveSpec;
+	}
+
+	public String getSpec_imgs() {
+		return spec_imgs;
+	}
+
+	public void setSpec_imgs(String spec_imgs) {
+		this.spec_imgs = spec_imgs;
+	}
+
+	public String[] getSns() {
+		return sns;
+	}
+
+	public void setSns(String[] sns) {
+		this.sns = sns;
+	}
+
+	public String[] getSpecids() {
+		return specids;
+	}
+
+	public void setSpecids(String[] specids) {
+		this.specids = specids;
+	}
+
+	public String[] getSpecvids() {
+		return specvids;
+	}
+
+	public void setSpecvids(String[] specvids) {
+		this.specvids = specvids;
+	}
+
+	public String[] getSpec_productids() {
+		return spec_productids;
+	}
+
+	public void setSpec_productids(String[] spec_productids) {
+		this.spec_productids = spec_productids;
+	}
+
+	public String[] getSpec_prices() {
+		return spec_prices;
+	}
+
+	public void setSpec_prices(String[] spec_prices) {
+		this.spec_prices = spec_prices;
+	}
+
+	public String[] getStores() {
+		return stores;
+	}
+
+	public void setStores(String[] stores) {
+		this.stores = stores;
+	}
+
+	public String[] getWeights() {
+		return weights;
+	}
+
+	public void setWeights(String[] weights) {
+		this.weights = weights;
+	}
+
+	public String[] getSpecValues() {
+		return specValues;
+	}
+
+	public void setSpecValues(String[] specValues) {
+		this.specValues = specValues;
+	}
+
+	public String[] getLvPriceValues() {
+		return lvPriceValues;
+	}
+
+	public void setLvPriceValues(String[] lvPriceValues) {
+		this.lvPriceValues = lvPriceValues;
+	}
+
+	public String[] getLvIdValues() {
+		return lvIdValues;
+	}
+
+	public void setLvIdValues(String[] lvIdValues) {
+		this.lvIdValues = lvIdValues;
+	}
+
+	public String[] getImageArray() {
+		return imageArray;
+	}
+
+	public void setImageArray(String[] imageArray) {
+		this.imageArray = imageArray;
+	}
+
+	public String[] getAdjunct_name() {
+		return adjunct_name;
+	}
+
+	public void setAdjunct_name(String[] adjunct_name) {
+		this.adjunct_name = adjunct_name;
+	}
+
+	public String[] getMin_num() {
+		return min_num;
+	}
+
+	public void setMin_num(String[] min_num) {
+		this.min_num = min_num;
+	}
+
+	public String[] getMax_num() {
+		return max_num;
+	}
+
+	public void setMax_num(String[] max_num) {
+		this.max_num = max_num;
+	}
+
+	public String[] getPricetype() {
+		return pricetype;
+	}
+
+	public void setPricetype(String[] pricetype) {
+		this.pricetype = pricetype;
+	}
+
+	public String[] getAdj_prices() {
+		return adj_prices;
+	}
+
+	public void setAdj_prices(String[] adj_prices) {
+		this.adj_prices = adj_prices;
+	}
+
+	public String[] getAdj_productids() {
+		return adj_productids;
+	}
+
+	public void setAdj_productids(String[] adj_productids) {
+		this.adj_productids = adj_productids;
+	}
+
+	public String[] getComplex_goods_ids() {
+		return complex_goods_ids;
+	}
+
+	public void setComplex_goods_ids(String[] complex_goods_ids) {
+		this.complex_goods_ids = complex_goods_ids;
+	}
+
+	public String[] getManual() {
+		return manual;
+	}
+
+	public void setManual(String[] manual) {
+		this.manual = manual;
+	}
+
+	public String[] getTag_id() {
+		return tag_id;
+	}
+
+	public void setTag_id(String[] tag_id) {
+		this.tag_id = tag_id;
+	}
+
+	public String[] getGoods_buyWays() {
+		return goods_buyWays;
+	}
+
+	public void setGoods_buyWays(String[] goods_buyWays) {
+		this.goods_buyWays = goods_buyWays;
+	}
+
+	public String[] getRel_contract_inst() {
+		return rel_contract_inst;
+	}
+
+	public void setRel_contract_inst(String[] rel_contract_inst) {
+		this.rel_contract_inst = rel_contract_inst;
+	}
+
+	public String[] getGoodsids() {
+		return goodsids;
+	}
+
+	public void setGoodsids(String[] goodsids) {
+		this.goodsids = goodsids;
+	}
+
+	public String getUser_id() {
+		return user_id;
+	}
+
+	public void setUser_id(String user_id) {
+		this.user_id = user_id;
+	}
+
+	public String getMbl_image_file() {
+		return mbl_image_file;
+	}
+
+	public void setMbl_image_file(String mbl_image_file) {
+		this.mbl_image_file = mbl_image_file;
+	}
+
+	public String getMbl_remark() {
+		return mbl_remark;
+	}
+
+	public void setMbl_remark(String mbl_remark) {
+		this.mbl_remark = mbl_remark;
+	}
+
+	public String getMbl_intors() {
+		return mbl_intors;
+	}
+
+	public void setMbl_intors(String mbl_intors) {
+		this.mbl_intors = mbl_intors;
+	}
+
+	public String getPc_image_file() {
+		return pc_image_file;
+	}
+
+	public void setPc_image_file(String pc_image_file) {
+		this.pc_image_file = pc_image_file;
+	}
+
+	public String getPc_remark() {
+		return pc_remark;
+	}
+
+	public void setPc_remark(String pc_remark) {
+		this.pc_remark = pc_remark;
+	}
+
+	public String getPc_intors() {
+		return pc_intors;
+	}
+
+	public void setPc_intors(String pc_intors) {
+		this.pc_intors = pc_intors;
+	}
+
+	public String getWx_image_file() {
+		return wx_image_file;
+	}
+
+	public void setWx_image_file(String wx_image_file) {
+		this.wx_image_file = wx_image_file;
+	}
+
+	public String getWx_remark() {
+		return wx_remark;
+	}
+
+	public void setWx_remark(String wx_remark) {
+		this.wx_remark = wx_remark;
+	}
+
+	public String getWx_intors() {
+		return wx_intors;
+	}
+
+	public void setWx_intors(String wx_intors) {
+		this.wx_intors = wx_intors;
+	}
+
+	public GoodsRules getGoodsRules() {
+		return goodsRules;
+	}
+
+	public void setGoodsRules(GoodsRules goodsRules) {
+		this.goodsRules = goodsRules;
+	}
+
+	public GoodsBusiness getGoodsBusiness() {
+		return goodsBusiness;
+	}
+
+	public void setGoodsBusiness(GoodsBusiness goodsBusiness) {
+		this.goodsBusiness = goodsBusiness;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+		if(goods_id == null || "".equals(goods_id)) CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "goods_id：商品ID不允许为空"));
+		if(name == null || "".equals(name)) CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL, "name：商品名称不允许为空"));
+	}
+
+	@Override
+	public String getApiMethodName() {
+		return "com.goodsService.goods.edit";
+	}
+
+}

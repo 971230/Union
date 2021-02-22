@@ -1,0 +1,794 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import services.PromotionInf;
+
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.eop.sdk.context.EopSetting;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.DoubleMapper;
+import com.ztesoft.net.framework.database.ObjectNotFoundException;
+import com.ztesoft.net.framework.util.CurrencyUtil;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.Cart;
+import com.ztesoft.net.mall.core.model.Coupons;
+import com.ztesoft.net.mall.core.model.GoodsLvPrice;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.model.Promotion;
+import com.ztesoft.net.mall.core.model.mapper.CartItemMapper;
+import com.ztesoft.net.mall.core.model.support.CartItem;
+import com.ztesoft.net.mall.core.model.support.DiscountPrice;
+import com.ztesoft.net.mall.core.model.support.OrderPrice;
+import com.ztesoft.net.mall.core.plugin.cart.CartPluginBundle;
+import com.ztesoft.net.mall.core.plugin.promotion.IPromotionPlugin;
+import com.ztesoft.net.mall.core.service.ICartManager;
+import com.ztesoft.net.mall.core.service.IDlyTypeManager;
+import com.ztesoft.net.mall.core.service.promotion.IPromotionMethod;
+import com.ztesoft.net.mall.core.service.promotion.ITimesPointBehavior;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+/**
+ * 购物车业务实现
+ * 
+ * @author kingapex 2010-3-23下午03:30:50
+ * edited by lzf 2011-10-08
+ */
+
+public class CartManager extends BaseSupport implements ICartManager {
+	private IDlyTypeManager dlyTypeManager;
+
+    @Resource
+	private PromotionInf promotionServ;
+
+	private CartPluginBundle cartPluginBundle;
+	private ICartManager cartManager;
+	
+	public ICartManager getCartManager() {
+		return cartManager;
+	}
+
+	public void setCartManager(ICartManager cartManager) {
+		this.cartManager = cartManager;
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void add(Cart cart) {
+		String sql = "select count(0) from cart where  product_id=? and session_id=? and itemtype=? ";
+		int count = this.baseDaoSupport.queryForInt(sql, cart.getProduct_id(),cart.getSession_id(), cart.getItemtype());
+		if (count > 0) {
+			this.baseDaoSupport.execute("update cart set num=num+? where  product_id=? and session_id=? and itemtype=? ",cart.getNum(), cart.getProduct_id(), cart.getSession_id(), cart.getItemtype());
+		} else {
+			
+			//先设置，再插入
+			this.cartPluginBundle.onAdd(cart);
+			this.baseDaoSupport.insert("cart", cart);
+			
+			String cartid = cart.getCart_id();
+			cart.setCart_id(cartid);
+		}
+	}
+
+	public Integer countItemNum(String sessionid) {
+		String sql = SF.orderSql("SERVICE_CART_ITEM_COUNT");
+		return this.baseDaoSupport.queryForInt(sql, sessionid);
+	}
+
+	public List<CartItem> listGoods(Member member,String sessionid,Coupons coupon) {
+		List<CartItem> list = this.daoSupport.queryForList(SF.orderSql("SERVICE_GOODS_SELECT"),
+				new CartItemMapper(), sessionid);
+		cartPluginBundle.filterList(list, sessionid);
+
+		double discount = 1; // 默认是原价,防止无会员级别时出错
+		if (member != null && member.getLv_id() != null) {
+			//===计算优惠价====在加入购入车时已计算过===================
+			//List<GoodsLvPrice> memPriceList = new ArrayList<GoodsLvPrice>();
+			// this.promotionManager.applyGoodsPmt(list, member.getLv_id());
+			//memPriceList = this.memberPriceManager.listPriceByLvid(member
+			//		.getLv_id());
+			//MemberLv lv = this.memberLvManager.get(member.getLv_id());
+			//discount = lv.getDiscount() / 100.00;
+			//this.applyMemPrice(list, memPriceList, discount);
+			//===计算优惠价====在加入购入车时已计算过===================
+			// lzf edit 2011-10-05
+			Set<String> set = new HashSet<String>();
+			for(CartItem c:list){
+				set.add(c.getStaff_no());
+			}
+			String [] stafs = set.toArray(new String[0]);
+			this.promotionServ.applyGoodsPmt(list, member.getLv_id(),coupon,stafs);
+			
+		}
+		return list;
+	}
+
+	/**
+	 * 应用会员价
+	 * 
+	 * @param itemList
+	 * @param memPriceList
+	 * @param discount
+	 */
+	private void applyMemPrice(List<CartItem> itemList,
+			List<GoodsLvPrice> memPriceList, double discount) {
+		for (CartItem item : itemList) {
+			double price = item.getCoupPrice()* discount;
+			for (GoodsLvPrice lvPrice : memPriceList) {
+				if (item.getProduct_id().equals(lvPrice.getProductid())) {
+					price = lvPrice.getPrice();
+				}
+			}
+
+		 
+			item.setCoupPrice(price);
+		}
+	}
+
+	public List listPgk(Member member,String sessionid) {
+		List<CartItem> list = this.daoSupport.queryForList(SF.orderSql("SERVICE_PGK_SELECT"),
+				new CartItemMapper(), sessionid);
+		return list;
+	}
+
+	public List listGift(Member member,String sessionid) {
+
+		List<CartItem> list = this.daoSupport.queryForList(SF.orderSql("SERVICE_GIFT_SELECT"),
+				new CartItemMapper(), sessionid);
+
+		return list;
+	}
+
+	/**
+	 * 读取团购列表
+	 * 
+	 * @param sessionid
+	 * @return
+	 */
+	public List listGroupBuy(String sessionid) {
+		
+		List<CartItem> list = this.daoSupport.queryForList(SF.orderSql("SERVICE_GROUP_BUY_SELECT"),
+				new CartItemMapper(), sessionid);
+		return list;
+	}
+
+	public void clean(String sessionid, boolean countChecked) {
+		String sql = SF.orderSql("SERVICE_CART_DELETE");
+		if(countChecked)
+			sql += " and is_checked=1 or is_checked is null ";
+		this.baseDaoSupport.execute(sql, sessionid);
+	}
+
+	public void clean(String sessionid, String userid, String siteid) {
+
+		if ("2".equals(EopSetting.RUNMODE)) {
+			String sql = "delete from es_cart_" + userid + "_" + siteid
+					+ " where session_id=?";
+			this.daoSupport.execute(sql, sessionid);
+
+		} else {
+			String sql = SF.orderSql("SERVICE_CART_DELETE");
+			this.baseDaoSupport.execute(sql, sessionid);
+		}
+
+		if (this.logger.isDebugEnabled()) {
+			this.logger.debug("clean cart sessionid[" + sessionid + "]");
+		}
+	}
+
+	public void delete(String sessionid, Long cartid) {
+		String sql = SF.orderSql("SERVICE_CART_DELETE_BY_CART");
+		this.baseDaoSupport.execute(sql, sessionid, cartid);
+		this.cartPluginBundle.onDelete(sessionid, cartid);
+	}
+
+	public void updateNum(String sessionid, Long cartid, Integer num) {
+		String sql = SF.orderSql("SERVICE_NUM_UPDATE");
+		this.baseDaoSupport.execute(sql, num, sessionid, cartid);
+	}
+	
+	public void updateCheckedFlag(String sessionid, Long cartid, Integer checkedFlag) {
+		if(cartid==0){
+			String sql = SF.orderSql("SERVICE_CHECKED_UPDATE");
+			this.baseDaoSupport.execute(sql, checkedFlag, sessionid);
+		}else{
+			String sql = SF.orderSql("SERVICE_CHECKED_UPDATE_BY_CART");
+			this.baseDaoSupport.execute(sql, checkedFlag, sessionid, cartid);
+		}
+	}
+
+	public Double countGoodsTotal(Member member,String sessionid, boolean countChecked) {
+		StringBuffer sql = new StringBuffer();
+		sql.append(SF.orderSql("SERVICE_TOTAL_GOODS_COUNT"));
+		if(countChecked)
+			sql.append(" and (c.is_checked=1 or c.is_checked is null) ");
+		Double price = (Double) this.baseDaoSupport.queryForObject(sql
+				.toString(), new DoubleMapper(), sessionid);
+		return price==null?0.0:price;
+	}
+
+	public Double countPgkTotal(String sessionid) {
+		StringBuffer sql = new StringBuffer();
+		sql.append(SF.orderSql("SERVICE_TOTAL_PGK_COUNT"));
+		Double price = (Double) this.baseDaoSupport.queryForObject(sql
+				.toString(), new DoubleMapper(), sessionid);
+
+		return price;
+	}
+
+	public Double countGroupBuyTotal(String sessionid) {
+		StringBuffer sql = new StringBuffer();
+		sql.append(SF.orderSql("SERVICE_GROUP_BUY_TOTAL_COUNT"));
+		Double price = (Double) this.baseDaoSupport.queryForObject(sql
+				.toString(), new DoubleMapper(), sessionid);
+
+		return price;
+
+	}
+
+	
+	public Double countLimitBuyTotal(String sessionid) {
+		StringBuffer sql = new StringBuffer();
+		sql.append(SF.orderSql("SERVICE_LIMIMT_BUY_TOTAL_COUNT"));
+		Double price = (Double) this.baseDaoSupport.queryForObject(sql.toString(), new DoubleMapper(), sessionid);
+		return price;
+
+	}
+	
+	public Double countGoodsDiscountTotal(Member member,String sessionid, boolean countChecked) {
+
+		List<CartItem> itemList = this.listGoods(member,sessionid,null);
+
+		double price = 0; // 计算商品促销规则优惠后的总价
+		for (CartItem item : itemList) {
+			// price+=item.getSubtotal();
+			if(!countChecked || "1".equals(item.getIs_checked())){
+				price = CurrencyUtil.add(price, item.getSubtotal());
+			}
+		}
+
+		return price;
+	}
+	
+	public int countGoodsStaffCount(Member member,String sessionid) {
+		List<CartItem> itemList = this.listGoods(member,sessionid,null);
+		String staff_no="none";
+		int count = 0; // 计算商品促销规则优惠后的总价
+		for (CartItem item : itemList) {
+			// price+=item.getSubtotal();
+			String curStaffNo = item.getStaff_no();
+			if(StringUtils.isEmpty(curStaffNo))
+				staff_no = "0";
+			if("1".equals(item.getIs_checked()) && (!staff_no.equals(curStaffNo))){
+				staff_no = item.getStaff_no();
+				count++;
+			}
+		}
+		
+		return count;
+	}
+
+	public Integer countPoint(String sessionid, boolean countChecked) {
+
+		Member member = UserServiceFactory.getUserService().getCurrentMember();
+		if (member != null) {
+			String memberLvId = member.getLv_id();
+			StringBuffer sql = new StringBuffer();
+			sql
+					.append(SF.orderSql("SERVICE_MEM_POINT_COUNT"));
+			List<Map> list = this.daoSupport.queryForList(sql.toString(),
+					sessionid);
+			Integer result = 0;
+			for (Map map : list) {
+				String goodsid = map.get("goods_id")
+						.toString();
+				List<Promotion> pmtList = promotionServ.list(goodsid,
+						memberLvId,null);
+				for (Promotion pmt : pmtList) {
+
+					// 查找相应插件
+					String pluginBeanId = pmt.getPmts_id();
+					IPromotionPlugin plugin = promotionServ
+							.getPlugin(pluginBeanId);
+
+					if (plugin == null) {
+						logger.info("plugin[" + pluginBeanId + "] not found ");
+						throw new ObjectNotFoundException("plugin["
+								+ pluginBeanId + "] not found ");
+					}
+
+					// 查找相应优惠方式
+					String methodBeanName = plugin.getMethods();
+					if (this.logger.isDebugEnabled()) {
+						this.logger.debug("find promotion method["
+								+ methodBeanName + "]");
+					}
+					IPromotionMethod promotionMethod = SpringContextHolder
+							.getBean(methodBeanName);
+					if (promotionMethod == null) {
+						logger.info("plugin[" + methodBeanName
+								+ "] not found ");
+						throw new ObjectNotFoundException("promotion method["
+								+ methodBeanName + "] not found ");
+					}
+
+					// 翻倍积分方式
+					if (promotionMethod instanceof ITimesPointBehavior) {
+						Integer point = StringUtil.toInt(map.get("point")
+								.toString());
+						ITimesPointBehavior timesPointBehavior = (ITimesPointBehavior) promotionMethod;
+						point = timesPointBehavior.countPoint(pmt, point);
+						if(!countChecked || "1".equals(map.get("is_checked"))
+								||"".equals(map.get("is_checked"))
+								||map.get("is_checked")==null){
+							result += point;
+						}
+					}
+
+				}
+			}
+			return result;
+		} else {
+			StringBuffer sql = new StringBuffer();
+			sql.append(SF.orderSql("SERVICE_POINT_COUNT"));
+			return this.daoSupport.queryForInt(sql.toString(), sessionid);
+		}
+	}
+
+	public Double countGoodsWeight(String sessionid, boolean countChecked) {
+		StringBuffer sql = new StringBuffer(SF.orderSql("SERVICE_GOODS_WEIGHT_COUNT"));
+		if(countChecked)
+			sql.append(" and (c.is_checked=1 or c.is_checked is null) ");
+		Double weight = (Double) this.baseDaoSupport.queryForObject(sql
+				.toString(), new DoubleMapper(), sessionid);
+		return weight;
+	}
+
+	
+	public OrderPrice countPrice(Member member,String sessionid, String shippingid,
+			String regionid, Boolean isProtected, Boolean countChecked,Coupons coupon) {
+		OrderOuter ot = new OrderOuter();
+    	ot.setCoupon(coupon);
+		return countPrice(ot,member,sessionid, shippingid, regionid, isProtected, countChecked, null);
+	}
+	
+
+
+	public CartPluginBundle getCartPluginBundle() {
+		return cartPluginBundle;
+	}
+
+	public void setCartPluginBundle(CartPluginBundle cartPluginBundle) {
+		this.cartPluginBundle = cartPluginBundle;
+	}
+
+	public IDlyTypeManager getDlyTypeManager() {
+		return dlyTypeManager;
+	}
+
+	public void setDlyTypeManager(IDlyTypeManager dlyTypeManager) {
+		this.dlyTypeManager = dlyTypeManager;
+//		logger.info("111111111111");
+	}
+
+	/**
+	 * 计算同一商家在同一session的购物车总价
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-14 
+	 */
+	@Override
+	public OrderPrice countPrice(OrderOuter cp,Member member,String sessionid, String shippingid,
+			String regionid, Boolean isProtected, Boolean countChecked,
+			String staff_no) {
+		OrderPrice orderPrice = new OrderPrice();
+		/**
+		 * ---------------------------------
+		 * 一些计算价格需要的基本信息
+		 * ---------------------------------
+		 */
+		//计算商品重量
+		Double weight  = 0d;
+		//计算可获得积分
+		Integer point  = 0;	
+		if(cp==null || !Const.ORDER_STAND_AUTO_SERVICE_CODE.equals(cp.getService_code())){
+			if(staff_no!=null && !"".equals(staff_no)){
+				weight = countGoodsWeight(sessionid,countChecked,staff_no);
+			}else{
+				weight = countGoodsWeight(sessionid,countChecked);
+			}
+			
+			if(staff_no!=null && !"".equals(staff_no)){
+				point  = countPoint(sessionid,countChecked,staff_no);	
+			}else{
+				point  = countPoint(sessionid,countChecked);	
+			}
+		}
+		
+		//计算商品原始价格
+		List<CartItem> goodsItemList = null;
+		if(staff_no!=null && !"".equals(staff_no)){
+			goodsItemList = cartManager.listGoods(member,sessionid,staff_no,cp==null?null:cp.getCoupon());
+		}else{
+			goodsItemList = cartManager.listGoods(member,sessionid,cp==null?null:cp.getCoupon());
+		}
+		List<CartItem> checkedGoodsItemList = new ArrayList<CartItem>();
+		for(int i=0; goodsItemList!=null && i<goodsItemList.size(); i++){
+			CartItem cartItem = (CartItem)goodsItemList.get(i);
+			if("1".equals(cartItem.getIs_checked())){
+				checkedGoodsItemList.add(cartItem);
+			}
+		}
+		Double  orderCouponPrice = 0d ;
+		for(CartItem c:checkedGoodsItemList){
+			orderCouponPrice += c.getCoupPrice()*c.getNum();
+		}
+		Double originalPrice = orderCouponPrice;
+		
+		if(cp==null || !Const.ORDER_STAND_AUTO_SERVICE_CODE.equals(cp.getService_code())){
+			////////////////////add by wui团购秒杀加回
+			//计算捆绑商品的总价，并加入订单总价中
+			Double pgkTotal = this.cartManager.countPgkTotal(sessionid);
+			//计算团购总价
+			Double groupBuyTotal = this.cartManager.countGroupBuyTotal(sessionid);
+			
+			//计算秒杀总价
+			Double limitTotal = this.cartManager.countLimitBuyTotal(sessionid);
+			
+			originalPrice = CurrencyUtil.add(originalPrice,pgkTotal);
+			originalPrice = CurrencyUtil.add(originalPrice,groupBuyTotal);
+			originalPrice = CurrencyUtil.add(originalPrice,limitTotal);
+			//////////////////////////团购秒杀加回来结束
+		}
+				
+			
+		//优惠后的订单价格,默认为商品原始价格
+		Double coupPrice =originalPrice; 
+		//订单总价格
+		Double  orderTotal = 0d;//如果没有计算配送信息，为0
+		//配送费用
+		Double dlyPrice = 0d; //如果没有计算配送信息，为0
+		//保价费用		
+		Double protectPrice =0d;//如果没有计算配送信息，为0
+		//====加入购物车时已计算过，不需要再计算了吧＝＝＝＝＝
+		//计算会员优惠
+		/*if(member!=null){
+			 coupPrice =countGoodsDiscountTotal(sessionid, countChecked,staff_no); //应用了商品优惠规则后的商品价格
+		}*/
+		//====加入购物车时已计算过，不需要再计算了吧＝＝＝＝＝
+		//int staffCount = countGoodsStaffCount(sessionid);
+		int staffCount = 1;
+		/**
+		 * -------------------------------
+		 * 如果传递了配送信息，计算配送费用
+		 * -------------------------------
+		 * 
+		 */
+		if(true || cp==null || !Const.ORDER_STAND_AUTO_SERVICE_CODE.equals(cp.getService_code())){
+			if(regionid!=null &&shippingid!=null &&isProtected
+					!=null  ){
+				//计算原始配置送费用
+				this.dlyTypeManager.list();
+				
+				Object obj = this.dlyTypeManager.countPrice(shippingid, weight, originalPrice, regionid, isProtected);
+				Double[] priceArray = (Double [])obj;
+				dlyPrice = priceArray[0];//费送费用
+				
+				if(member!=null){ //计算会员优惠
+					//对订单价格和积分执行优惠
+					Set<String> set = new HashSet<String>();
+					for(CartItem c:checkedGoodsItemList){
+						set.add(c.getStaff_no());
+					}
+					String [] stafs = set.toArray(new String[0]);
+					DiscountPrice discountPrice  = this.promotionServ.applyOrderPmt(member,coupPrice, dlyPrice,point, member.getLv_id(),cp==null?null:cp.getCoupon(),stafs);
+					coupPrice=discountPrice.getOrderPrice() ; //优惠会后订单金额
+					dlyPrice = discountPrice.getShipFee(); //优惠后的配送费用
+					point = discountPrice.getPoint(); //优惠后的积分
+				}
+				
+				//计算保价费用
+				if(isProtected){
+					protectPrice = priceArray[1];
+					/**设置保价费用**/
+					orderPrice.setProtectPrice(protectPrice);
+				}
+				
+			}else{
+				if(member!=null){ //计算会员优惠
+					//对订单价格和积分执行优惠
+//					DiscountPrice discountPrice  = this.promotionManager.applyOrderPmt(coupPrice, dlyPrice,point, member.getLv_id()); 
+//					coupPrice=discountPrice.getOrderPrice() ; //优惠会后订单金额
+//					dlyPrice = discountPrice.getShipFee(); //优惠后的配送费用
+//					point = discountPrice.getPoint(); //优惠后的积分
+					
+					//对订单价格和积分执行优惠
+					Set<String> set = new HashSet<String>();
+					for(CartItem c:checkedGoodsItemList){
+						set.add(c.getStaff_no());
+					}
+					String [] stafs = set.toArray(new String[0]);
+					DiscountPrice discountPrice  = this.promotionServ.applyOrderPmt(member,coupPrice, dlyPrice,point, member.getLv_id(),cp==null?null:cp.getCoupon(),stafs);
+					coupPrice=discountPrice.getOrderPrice() ; //优惠会后订单金额
+					dlyPrice = discountPrice.getShipFee(); //优惠后的配送费用
+					point = discountPrice.getPoint(); //优惠后的积分
+					
+				}
+			}
+		}
+		/**
+		 * ---------------------------------
+		 * 设置订单的各种费用项
+		 * ---------------------------------
+		 */
+		//打折金额：原始的商品价格-优惠后的商品金额
+		Double reducePrice = CurrencyUtil.sub(originalPrice , coupPrice);
+		
+		//订单总金额 为将优惠后的商品金额加上优惠后的配送费用
+		if(dlyPrice == null)
+			dlyPrice=0.0;
+		orderTotal = CurrencyUtil.add(coupPrice, dlyPrice); 
+		orderTotal=CurrencyUtil.add(orderTotal, protectPrice); //再加上保价费用
+		
+		orderPrice.setDiscountPrice(reducePrice); //优惠的金额
+		orderPrice.setGoodsPrice(coupPrice); //商品金额，优惠后的
+		orderPrice.setShippingPrice(dlyPrice);
+		orderPrice.setPoint(point); 
+		orderPrice.setOriginalPrice(originalPrice);
+		orderPrice.setOrderPrice(orderTotal);
+		orderPrice.setWeight(weight);
+		orderPrice.setStaffCount(staffCount);
+		orderPrice  = this.cartPluginBundle.coutPrice(orderPrice);
+		return orderPrice;
+	}
+
+	/**
+	 * 计算同一商家在同一session的购物车重量
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-14 
+	 * @return
+	 */
+	public Double countGoodsWeight(String sessionid, boolean countChecked,String staff_no) {
+		StringBuffer sql = new StringBuffer(SF.orderSql("SERVICE_GOODS_WEIGHT_COUNT_2"));
+		if(countChecked)
+			sql.append(" and (c.is_checked=1 or c.is_checked is null) ");
+		Double weight = (Double) this.baseDaoSupport.queryForObject(sql
+				.toString(), new DoubleMapper(),staff_no, sessionid);
+		return weight;
+	}
+
+	/**
+	 * 计算同一商家在同一session的购物车可获得积分
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-14 
+	 * @return
+	 */
+	public Integer countPoint(String sessionid, boolean countChecked,String staff_no) {
+
+		Member member = UserServiceFactory.getUserService().getCurrentMember();
+		if (member != null) {
+			String memberLvId = member.getLv_id();
+			StringBuffer sql = new StringBuffer();
+			sql
+					.append(SF.orderSql("SERVICE_MEM_POINT_COUNT_2"));
+			List<Map> list = this.daoSupport.queryForList(sql.toString(),
+					sessionid,staff_no);
+			Integer result = 0;
+			for (Map map : list) {
+				String goodsid = map.get("goods_id")
+						.toString();
+				List<Promotion> pmtList = promotionServ.list(goodsid,
+						memberLvId,null);
+				for (Promotion pmt : pmtList) {
+
+					// 查找相应插件
+					String pluginBeanId = pmt.getPmts_id();
+					IPromotionPlugin plugin = promotionServ
+							.getPlugin(pluginBeanId);
+
+					if (plugin == null) {
+						logger.info("plugin[" + pluginBeanId + "] not found ");
+						throw new ObjectNotFoundException("plugin["
+								+ pluginBeanId + "] not found ");
+					}
+
+					// 查找相应优惠方式
+					String methodBeanName = plugin.getMethods();
+					if (this.logger.isDebugEnabled()) {
+						this.logger.debug("find promotion method["
+								+ methodBeanName + "]");
+					}
+					IPromotionMethod promotionMethod = SpringContextHolder
+							.getBean(methodBeanName);
+					if (promotionMethod == null) {
+						logger.info("plugin[" + methodBeanName
+								+ "] not found ");
+						throw new ObjectNotFoundException("promotion method["
+								+ methodBeanName + "] not found ");
+					}
+
+					// 翻倍积分方式
+					if (promotionMethod instanceof ITimesPointBehavior) {
+						Integer point = StringUtil.toInt(map.get("point")
+								.toString());
+						ITimesPointBehavior timesPointBehavior = (ITimesPointBehavior) promotionMethod;
+						point = timesPointBehavior.countPoint(pmt, point);
+						if(!countChecked || "1".equals(map.get("is_checked"))
+								||"".equals(map.get("is_checked"))
+								||map.get("is_checked")==null){
+							result += point;
+						}
+					}
+
+				}
+			}
+			return result;
+		} else {
+			StringBuffer sql = new StringBuffer();
+			sql.append(SF.orderSql("SERVICE_POINT_COUNT_2"));
+
+			return this.daoSupport.queryForInt(sql.toString(), sessionid,staff_no);
+		}
+	}
+
+	public Double countGoodsTotal(Member member,String sessionid, boolean countChecked,String staff_no) {
+		StringBuffer sql = new StringBuffer();
+		sql.append(SF.orderSql("SERVICE_GOODS_TOTAL_COUNT"));
+		if(countChecked)
+			sql.append(" and (c.is_checked=1 or c.is_checked is null) ");
+		Double price = (Double) this.baseDaoSupport.queryForObject(sql
+				.toString(), new DoubleMapper(), staff_no,sessionid);
+		return price==null?0.0:price;
+	}
+	
+	public Double countGoodsDiscountTotal(Member member,String sessionid, boolean countChecked,Coupons coupon,String staff_no) {
+
+		List<CartItem> itemList = this.listGoods(member,sessionid,staff_no,coupon);
+
+		double price = 0; // 计算商品促销规则优惠后的总价
+		for (CartItem item : itemList) {
+			// price+=item.getSubtotal();
+			if(!countChecked || "1".equals(item.getIs_checked())){
+				price = CurrencyUtil.add(price, item.getSubtotal());
+			}
+		}
+
+		return price;
+	}
+	
+	public List<CartItem> listGoods(Member member,String sessionid,String staff_no,Coupons coupon) {
+		StringBuffer sql = new StringBuffer();
+		
+		//add by wui团购、秒杀商品不参加优惠
+		sql
+				.append(SF.orderSql("SERVICE_GOODS_LIST_SELECT"));
+		List<CartItem> list = this.daoSupport.queryForList(sql.toString(),
+				new CartItemMapper(), sessionid,staff_no);
+		cartPluginBundle.filterList(list, sessionid);
+
+		List<GoodsLvPrice> memPriceList = new ArrayList<GoodsLvPrice>();
+		double discount = 1; // 默认是原价,防止无会员级别时出错
+		if (member != null && member.getLv_id() != null) {
+			// this.promotionManager.applyGoodsPmt(list, member.getLv_id());
+//			memPriceList = this.memberPriceManager.listPriceByLvid(member
+//					.getLv_id());
+//			MemberLv lv = this.memberLvManager.get(member.getLv_id());
+//			discount = lv.getDiscount() / 100.00;
+//			this.applyMemPrice(list, memPriceList, discount);
+			// lzf edit 2011-10-05
+			/*Set<String> set = new HashSet<String>();
+			for(CartItem c:list){
+				set.add(c.getStaff_no());
+			}
+			String [] stafs = (String[]) set.toArray();*/
+			this.promotionServ.applyGoodsPmt(list, member.getLv_id(),coupon,staff_no);
+		}
+		return list;
+	}
+
+	/**
+	 * 读取同一供货商物车中捆绑促销的货物列 表
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-15 
+	 * @param sessionid
+	 * @param staff_no
+	 * @return
+	 */
+	@Override
+	public List listPgk(Member member,String sessionid, String staff_no) {
+		StringBuffer sql = new StringBuffer();
+		sql
+				.append(SF.orderSql("SERVICE_PGK_LIST_SELECT"));
+		List<CartItem> list = this.daoSupport.queryForList(sql.toString(),
+				new CartItemMapper(), sessionid,staff_no);
+		return list;
+	}
+
+	/**
+	 * 读取购物车中同一供货商的赠品货物列表
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-15 
+	 * @param sessionid
+	 * @param staff_no
+	 * @return
+	 */
+	@Override
+	public List listGift(Member member,String sessionid, String staff_no) {
+		StringBuffer sql = new StringBuffer();
+		sql
+				.append(SF.orderSql("SERVICE_GIFT_LIST_SELECT"));
+		List<CartItem> list = this.daoSupport.queryForList(sql.toString(),
+				new CartItemMapper(), sessionid,staff_no);
+
+		return list;
+	}
+
+	@Override
+	public List listGroupBuy(Member member,String sessionid, String staff_no) {
+		StringBuffer sql = new StringBuffer();
+		sql
+				.append(SF.orderSql("SERVICE_GROUP_BUY_LIST_SELECT"));
+		List<CartItem> list = this.daoSupport.queryForList(sql.toString(),
+				new CartItemMapper(), sessionid,staff_no);
+		return list;
+	}
+
+	
+	@Override
+	public List listLimitBuy(Member member,String sessionid, String staff_no) {
+		StringBuffer sql = new StringBuffer();
+		sql
+				.append(SF.orderSql("SERVICE_LIMIT_LIST_SELECT"));
+		List<CartItem> list = this.daoSupport.queryForList(sql.toString(),
+				new CartItemMapper(), sessionid,staff_no);
+		return list;
+	}
+
+	
+	@Override
+	public void clean(String sessionid, boolean countChecked, String productids) {
+		String sql = SF.orderSql("SERVICE_CART_DELETE")+" and product_id in("+productids+")";
+		if(countChecked)
+			sql += " and (is_checked=1 or is_checked is null) ";
+		this.baseDaoSupport.execute(sql, sessionid);
+	}
+	
+
+	@Override
+	public void deleteSelect(String sessionid, String cartids) {
+		String sql = SF.orderSql("SERVICE_CART_DELETE")+" and cart_id in("+cartids+")";
+		this.baseDaoSupport.execute(sql, sessionid);
+	}
+
+	@Override
+	public boolean hasMoreStaffNo(String sessionId) {
+		String sql = SF.orderSql("SERVICE_MORE_STAFF_NO_SELECT");
+		int count = this.baseDaoSupport.queryForInt(sql, sessionId);
+		return count>1;
+	}
+
+	public PromotionInf getPromotionServ() {
+		return promotionServ;
+	}
+
+	public void setPromotionServ(PromotionInf promotionServ) {
+		this.promotionServ = promotionServ;
+	}
+
+ 
+	
+	
+
+}

@@ -1,0 +1,68 @@
+package com.ztesoft.net.app.base.core.model;
+
+import java.util.Date;
+
+public class PartnerAddress {
+	
+	 private String addr_id;
+	 private String name;
+	 private String addr;
+	 private String zip;
+	 private String tel;
+	 private String mobile;
+	 private Integer def_addr;
+	 private String partner_id;
+	 
+	public String getAddr_id() {
+		return addr_id;
+	}
+	public void setAddr_id(String addr_id) {
+		this.addr_id = addr_id;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	public String getAddr() {
+		return addr;
+	}
+	public void setAddr(String addr) {
+		this.addr = addr;
+	}
+	public String getZip() {
+		return zip;
+	}
+	public void setZip(String zip) {
+		this.zip = zip;
+	}
+	public String getTel() {
+		return tel;
+	}
+	public void setTel(String tel) {
+		this.tel = tel;
+	}
+	public String getMobile() {
+		return mobile;
+	}
+	public void setMobile(String mobile) {
+		this.mobile = mobile;
+	}
+	public Integer getDef_addr() {
+		return def_addr;
+	}
+	public void setDef_addr(Integer def_addr) {
+		this.def_addr = def_addr;
+	}
+	public String getPartner_id() {
+		return partner_id;
+	}
+	public void setPartner_id(String partner_id) {
+		this.partner_id = partner_id;
+	}
+	 
+	 
+	 
+}

@@ -1,0 +1,296 @@
+/**
+ * 
+ */
+package com.zte.cbss.autoprocess;
+
+import java.io.StringReader;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
+
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.bss.req.SPBuyServiceHandleReq;
+import zte.net.ecsord.params.bss.resp.SPBuyServiceHandleResp;
+
+import com.zte.cbss.autoprocess.model.CustomBill;
+import com.zte.cbss.autoprocess.model.CustomInfo;
+import com.zte.cbss.autoprocess.model.LoginInfo;
+import com.zte.cbss.autoprocess.model.data.SPData;
+import com.zte.cbss.autoprocess.model.data.SPDataSearch;
+import com.zte.cbss.autoprocess.model.data.SPDataSubmit;
+import com.zte.cbss.autoprocess.model.data.SPDataSubmit_1;
+import com.zte.cbss.autoprocess.model.data.SPDataSubmit_2;
+import com.zte.cbss.autoprocess.model.data.SPDataSubmit_3;
+import com.zte.cbss.autoprocess.model.data.SPDataSubmit_4;
+import com.zte.cbss.autoprocess.request.QryTradeBase_2_Resp;
+import com.zte.cbss.autoprocess.request.SPBuy;
+import com.zte.cbss.autoprocess.request.SPBuySearch;
+import com.zte.cbss.autoprocess.request.SPBuySubmit;
+import com.zte.cbss.autoprocess.request.SPBuySubmit_2;
+import com.zte.cbss.autoprocess.request.SPBuySubmit_3;
+import com.zte.cbss.autoprocess.request.SPBuySubmit_4;
+import com.zte.cbss.autoprocess.request.SPBuy_1;
+import com.zte.cbss.autoprocess.request.SetUserIdAndAcctId;
+import com.ztesoft.inf.communication.client.AbsCbssInvoker;
+
+/**
+ * @author ZX
+ * SPBuyServiceHandleCbssInvoker.java
+ * 2015-1-21
+ */
+public class SPBuyServiceHandleCbssInvoker extends AbsCbssInvoker<SPBuyServiceHandleReq, SPBuyServiceHandleResp> {
+	
+	private final static Logger logger = Logger.getLogger(SPBuyServiceHandleCbssInvoker.class);
+
+	private final static String SP_PRODUCT_ID = "8000623900";
+	private final static String SP_ID = "80006239";
+	private final static String SP_SERVICE_ID = "99118000";
+	private final static String PARTY_ID = "91932"; // 不同的用户登录，同一个号码，用户显示一样
+	private final static String NET_TYPE_CODE = "50";
+	private final static String TRADE_TYPE_CODE = "381";
+	private final static String netTypeCode = "0050";
+	private final static String prepayTag = "1";
+	private final static String tradeTypeCode = "0381";
+	private final static String strisneedprint = "1";
+	
+	@Override
+	public SPBuyServiceHandleResp businessProcess(SPBuyServiceHandleReq req,
+			HttpLoginClient client, CustomInfo customInfo) throws Exception {
+		SPBuyServiceHandleResp resp = new SPBuyServiceHandleResp();
+		/**
+		 * 电话号码，订单编号，SP订购生效方式(0-立即生效[当月]，1-下月生效)
+		 */
+		String mobileNo = req.getMobileNo();
+		String order_id = req.getOrderid();
+//		HttpLoginClient client = (HttpLoginClient) req.getHttpLoginclient();
+//		CustomInfo customInfo = client.getParam().getCustomInfo();
+		if (StringUtils.isBlank(mobileNo)) {
+			mobileNo = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.PHONE_NUM);
+		}
+		String take_effect_type = req.getTake_effect_type();
+		if (StringUtils.isBlank(mobileNo)) {
+			logger.debug("==========> 订单编号"+order_id+" 订购SP业务的电话号码空  <==========");
+			return null;
+		}
+		
+		/**
+		 * SP订购，模拟【SP查询/退订/订购】按钮 =》 模拟[SP查询/退订/订购]界面【查询】按钮
+		 */
+		QryTradeBase_2_Resp qryResp = buySearch(client, mobileNo);
+		logger.debug("第一步:-->模拟【SP查询/退订/订购】按钮.成功");
+		
+		/**
+		 * 模拟 【确定】按钮
+		 */
+		okBtn(client, qryResp.getTradeBase(), qryResp.getCond_user_id(), take_effect_type);
+		logger.debug("第二步:-->模拟 【确定】按钮.成功");
+		
+		/**
+		 * 模拟【提交订单】按钮
+		 */
+		logger.info("========= SP订购，模拟【提交】==========");
+		submitBtn(client, customInfo.getCustId(), 
+				client.getParam().getUserId(), client.getParam().getAcctId(), 
+				client.getParam().getTradeId(), mobileNo);
+		logger.info("============= SP订购成功 =============");
+		logger.debug("第三步:-->模拟 【提交】按钮.成功");
+		return resp;
+	}
+	
+	private void submitBtn (HttpLoginClient client, String cust_id, 
+			String user_id, String acct_id, String trade_id, String mobileNo ) {
+		SPDataSubmit_1 dataSubmit_1 = new SPDataSubmit_1();
+		dataSubmit_1.setGlobalPageName("personalserv.dealtradefee.DealTradeFee");
+		SPBuySubmit_1 spBuySubmit_1 = new SPBuySubmit_1(client);
+		spBuySubmit_1.send(dataSubmit_1);
+		
+		SPDataSubmit dataSubmit = new SPDataSubmit();
+		dataSubmit.setCancelTag(false);
+		dataSubmit.setFuncType("0");
+		dataSubmit.setDataType("0");
+		dataSubmit.setTradeMain("[{\"TRADE_ID\": \""+trade_id+"\", \"TRADE_TYPE\": \"SP查询/退订/订购\", \"SERIAL_NUMBER\": \""+mobileNo+"\", \"TRADE_FEE\": \"0.00\", \"CUST_NAME\": \"罗振廷\", \"CUST_ID\": \""+cust_id+"\", \"USER_ID\": \""+user_id+"\", \"ACCT_ID\": \""+acct_id+"\", \"NET_TYPE_CODE\": \""+NET_TYPE_CODE+"\", \"TRADE_TYPE_CODE\": \""+TRADE_TYPE_CODE+"\"}]");
+		dataSubmit.setFees("[]");
+		dataSubmit.setUnChargedfees("[]");
+		dataSubmit.setFeePayMoney("[]");
+		dataSubmit.setFeeCheck("[]");
+		dataSubmit.setFeePos("[]");
+		dataSubmit.setBase("{\"prepayTag\": \""+prepayTag+"\", \"tradeTypeCode\": \""+tradeTypeCode+"\", \"strisneedprint\": \""+strisneedprint+"\", \"serialNumber\": \""+mobileNo+"\", \"tradeReceiptInfo\": \"[{RECEIPT_INFO5:'',RECEIPT_INFO2:'',RECEIPT_INFO1:'',RECEIPT_INFO4:'',RECEIPT_INFO3:''}]\", \"netTypeCode\": \""+netTypeCode+"\"}");
+		dataSubmit.setCASH("0.00");
+		dataSubmit.setSEND_TYPE("0");
+		dataSubmit.setTRADE_ID(trade_id);
+		dataSubmit.setTRADE_ID_MORE_STR(trade_id);
+		dataSubmit.setSERIAL_NUMBER_STR(mobileNo+",");
+		dataSubmit.setTRADE_TYPE_CODE_STR(TRADE_TYPE_CODE+",");
+		dataSubmit.setNET_TYPE_CODE_STR(NET_TYPE_CODE+",");
+		dataSubmit.setDEBUTY_CODE("");
+		dataSubmit.setIS_NEED_WRITE_CARD(false);
+		dataSubmit.setWRAP_TRADE_TYPE("tradeType");
+		dataSubmit.setCUR_TRADE_IDS("");
+		dataSubmit.setCUR_TRADE_TYPE_CODES("");
+		dataSubmit.setCUR_NET_TYPE_CODES("");
+		dataSubmit.setCUR_SERIAL_NUMBERS("");
+		dataSubmit.setIsAfterFee("");
+		dataSubmit.setGlobalPageName("personalserv.dealtradefee.DealTradeFee");
+		SPBuySubmit buySubmit = new SPBuySubmit(client);
+		buySubmit.send(dataSubmit);
+		
+		SPDataSubmit_2 dataSubmit_2 = new SPDataSubmit_2();
+		dataSubmit_2.setBase("{\"prepayTag\": \""+prepayTag+"\", \"tradeTypeCode\": \""+tradeTypeCode+"\", \"strisneedprint\": \""+strisneedprint+"\", \"serialNumber\": \""+mobileNo+"\", \"tradeReceiptInfo\": \"[{RECEIPT_INFO5:'',RECEIPT_INFO2:'',RECEIPT_INFO1:'',RECEIPT_INFO4:'',RECEIPT_INFO3:''}]\", \"netTypeCode\": \""+netTypeCode+"\"}");
+		dataSubmit_2.setTRADE_ID(trade_id);
+		dataSubmit_2.setGlobalPageName("personalserv.dealtradefee.DealTradeFee");
+		SPBuySubmit_2 buySubmit_2 = new SPBuySubmit_2(client);
+		buySubmit_2.send(dataSubmit_2);
+		
+		SPDataSubmit_3 dataSubmit_3 = new SPDataSubmit_3();
+		dataSubmit_3.setBase("{\"prepayTag\": \""+prepayTag+"\", \"tradeTypeCode\": \""+tradeTypeCode+"\", \"strisneedprint\": \""+strisneedprint+"\", \"serialNumber\": \""+mobileNo+"\", \"tradeReceiptInfo\": \"[{RECEIPT_INFO5:'',RECEIPT_INFO2:'',RECEIPT_INFO1:'',RECEIPT_INFO4:'',RECEIPT_INFO3:''}]\", \"netTypeCode\": \""+netTypeCode+"\"}");
+		dataSubmit_3.setTRADE_ID(trade_id);
+		dataSubmit_3.setNetCode(NET_TYPE_CODE);
+		dataSubmit_3.setGlobalPageName("personalserv.dealtradefee.DealTradeFee");
+		SPBuySubmit_3 buySubmit_3 = new SPBuySubmit_3(client);
+		buySubmit_3.send(dataSubmit_3);
+		
+		SPDataSubmit_4 dataSubmit_4 = new SPDataSubmit_4();
+		dataSubmit_4.setTradeId(trade_id);
+		dataSubmit_4.setTradeTypeCode(tradeTypeCode);
+		dataSubmit_4.setTRADE_ID_MORE_STR(trade_id);
+		dataSubmit_4.setSERIAL_NUMBER_STR(mobileNo+",");
+		dataSubmit_4.setTRADE_TYPE_CODE_STR(TRADE_TYPE_CODE+",");
+		dataSubmit_4.setNET_TYPE_CODE_STR(NET_TYPE_CODE+",");
+		dataSubmit_4.setStrNetType(netTypeCode);
+		dataSubmit_4.setGlobalPageName("personalserv.dealtradefee.DealTradeFee");
+		SPBuySubmit_4 buySubmit_4 = new SPBuySubmit_4(client);
+		buySubmit_4.send(dataSubmit_4);
+	}
+	
+	/**
+	 * 【确定】按钮
+	 * @param client
+	 * @param tradeBase
+	 * @param cond_user_id
+	 */
+	private void okBtn(HttpLoginClient client, String tradeBase, 
+			String cond_user_id, String take_effect_type) throws Exception {
+		/**
+		 * SP订购，模拟【确定】按钮
+		 */
+		SPData spdata = new SPData();
+		spdata.setBase(tradeBase);
+		String FIRST_BUY_TIME = client.getParam().getOrder_create_time();
+		String START_DATE = client.getParam().getOrder_create_time();
+		if (take_effect_type.equals("1")) { // 下月生效（下月1号零点生效）
+			START_DATE = com.ztesoft.ibss.common.util.DateUtil.nextMonthFirstDate(START_DATE, com.ztesoft.ibss.common.util.DateUtil.DATE_FORMAT_2);
+		}
+		spdata.setExt("{\"Common\": {\"ACTOR_NAME\": \"\", \"ACTOR_PHONE\": \"\", \"ACTOR_CERTTYPEID\": \"\", \"ACTOR_CERTNUM\": \"\", \"REMARK\": \"\"}, \"TF_B_TRADE_SP\": {\"ITEM\": [{\"MODIFY_TAG\": \"0\", \"SP_PRODUCT_ID\": \""+SP_PRODUCT_ID+"\", \"SP_ID\": \""+SP_ID+"\", \"PARTY_ID\": \""+PARTY_ID+"\", \"FIRST_BUY_TIME\": \""+FIRST_BUY_TIME+"\", \"SP_SERVICE_ID\": \""+SP_SERVICE_ID+"\", \"PAY_SERIAL_NUMBER\": \"\", \"START_DATE\": \""+START_DATE+"\", \"END_DATE\": \"2050-12-31 23:59:59\", \"PAY_USER_ID\": \""+cond_user_id+"\", \"PRODUCT_ID\": \"-1\", \"PACKAGE_ID\": \"-1\", \"ITEM_ID\": \"-1\"}]}, \"TRADE_OTHER_INFO\": {\"ITEM\": {\"CHECK_TYPE\": \"8\", \"BLACK_CUST\": \"0\"}}}");
+		spdata.setGlobalPageName("personalserv.platformtrade.SpTrade");
+		SPBuy buy = new SPBuy(client);
+		String ok_respXml = buy.send(spdata);
+		
+		/**
+		 * 解析【SP订购界面】【确定】按钮返回报文
+		 * 获取trade_id
+		 * 设置电话号码对应的UserID，AcctID到全局参数对象中
+		 */
+		SAXReader readerDom = new SAXReader();
+		Document doc = readerDom.read(new StringReader(ok_respXml));
+		Element root = (Element) doc.getRootElement();
+		String trade_id = root.element("TradeSubmitOk").attributeValue("tradeId");
+		set_userid_acctid(client, trade_id);
+	}
+	
+	private QryTradeBase_2_Resp buySearch(HttpLoginClient client, String mobileNo) throws Exception {
+		
+		QryTradeBase_2_Resp qryResp = toBaseAndUser(client, mobileNo);
+		SPBuySearch buySearch = new SPBuySearch(client);
+		SPDataSearch spDataSearch = new SPDataSearch();
+		spDataSearch.setGlobalPageName("personalserv.platformtrade.SpTrade");
+		spDataSearch.setNetTypeCode(NET_TYPE_CODE);
+		spDataSearch.setRightCode("csSpTrade");
+		spDataSearch.setSerialNumber(mobileNo);
+		spDataSearch.setTouchId("");
+		buySearch.send(spDataSearch);
+		logger.debug("====> SP订购，模拟【SP查询/退订/订购】按钮 =》 模拟[SP查询/退订/订购]界面【查询】按钮 <====");
+		return qryResp;
+	}
+	
+	/**
+	 * 设置电话号码对应的UserID，AcctID到全局参数对象中
+	 * @param client
+	 * @param trade_id
+	 * @throws Exception
+	 */
+	private void set_userid_acctid(HttpLoginClient client, String trade_id) throws Exception {
+		SetUserIdAndAcctId userId_acctId = new SetUserIdAndAcctId();
+		userId_acctId.setDepartId(client.getParam().getDepartId());
+		userId_acctId.setEparchyCode(client.getParam().getEparchyCode());
+		userId_acctId.setFee("");
+		userId_acctId.setListener("init");
+		userId_acctId.setStaffId(client.getParam().getStaffId());
+		userId_acctId.setSubSysCode("custserv");
+		userId_acctId.setEparchyCode(client.getParam().getEparchyCode());
+		userId_acctId.setServiceUrl("page/personalserv.dealtradefee.DealTradeFee");
+		client.getParam().setTradeId(trade_id);
+		userId_acctId.nextStep3ToStep4_05(client.getBrowser(), client.getParam());
+	}
+	
+	private QryTradeBase_2_Resp toBaseAndUser(HttpLoginClient client, String mobileNo) throws Exception {
+		/**
+		 * 进入SP退订/订购界面时获取_tradeBase信息
+		 */
+		SPBuy_1 spbuy_1 = new SPBuy_1();
+		String base_1 = spbuy_1.qryTradeBase_1(client.getBrowser(), client.getParam());
+		
+		/**
+		 * SP退订/订购界面，查询时获取_tradeBase信息和cond_user_id信息
+		 */
+		QryTradeBase_2_Resp resp = new QryTradeBase_2_Resp();
+		spbuy_1.qryTradeBase_2(client.getBrowser(), client.getParam(), base_1, mobileNo, resp);
+		
+		return resp;
+	}
+	
+	
+	public static void main(String[] args) throws Exception {
+		LoginInfo info = new LoginInfo();
+		info.setCbssAccount("HLWFS679");
+		info.setCbssPassword("S+rlLC+zwg2ygN6r1LmN+aCB14U=");
+		info.setProvinceCode("51");
+		HttpLoginClient client = HttpLoginClientPool.add(info);
+		if (client != null) {
+			CustomBill bill = new CustomBill();
+			bill.setPsptId("432503197610259117");
+			bill.setCustomName("罗振廷");
+			bill.setContact("宛一夏");
+			bill.setContactPhone("18565380400");
+			// bill.setPsptEndDate("2018-05-08");
+			bill.setIdTypeCode("1");
+			bill.setPhone("18681185694");
+			bill.setPostAddress("广东省广州市天河区中山大道"); // 通信地址必须大于八个字符
+			// 设置要办理业务号码 18566412058 18689302832 18578324321 18566413906
+//			bill.setSerialNumber("18578324321");//5 a
+			bill.setSerialNumber("18566413906");//10 b
+			/** 创建客户信息或直接查询得到客户信息,对应首页里面的操作 */
+			CustomInfo cust = CreateCustomHandler.emulate(bill, client);
+			client.getParam().setCustomInfo(cust);
+			if (cust == null) {
+				logger.info("证件验证失败，证件编号:" + bill.getPsptId() + "，客户名称:" + bill.getCustomName());
+				return;
+			}
+			SPBuyServiceHandleCbssInvoker spCbssInvoker = new SPBuyServiceHandleCbssInvoker();
+			SPBuyServiceHandleReq zteRequest = new SPBuyServiceHandleReq();
+			zteRequest.setMobileNo("18566413906");
+			zteRequest.setTake_effect_type("0");
+			CustomInfo customInfo = new CustomInfo();
+			client.getParam().setOrder_create_time("2015-02-26 16:13:59");
+			spCbssInvoker.businessProcess(zteRequest, client, customInfo);
+		} else {
+			logger.warn("登录失败，请检查用户名和密码是否正确.");
+			throw new Exception("登录失败!");
+		}
+	}
+	
+	
+}

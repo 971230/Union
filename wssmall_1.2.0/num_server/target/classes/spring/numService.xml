@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+    
+	<!-- 号码业务  -->
+	<bean id="numeroManager" class="com.ztesoft.net.mall.core.service.impl.NumeroManager"  parent="baseSupport"  />
+	
+	<!-- 号码分组业务  -->
+	<bean id="ngManager" class="com.ztesoft.net.mall.core.service.impl.NumeroGrupoManager"  parent="baseSupport"  />
+	
+	<!-- 地域管理业务  -->
+	<bean id="cManager" class="com.ztesoft.net.mall.core.service.impl.CiudadManager"  parent="baseSupport" />
+	
+	<!-- 靓号规则业务 -->
+	<bean id="reglaManager" class="com.ztesoft.net.mall.core.service.impl.NumeroReglaManager"  parent="baseSupport"  />
+	
+	<!-- 号码备份-->
+	<bean id="nbManager" class="com.ztesoft.net.mall.core.service.impl.NumeroBakManager"  parent="baseSupport" />
+	
+	 
+</beans>

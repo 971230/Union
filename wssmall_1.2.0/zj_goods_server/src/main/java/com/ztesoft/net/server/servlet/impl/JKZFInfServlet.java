@@ -1,0 +1,218 @@
+package com.ztesoft.net.server.servlet.impl;
+
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import net.sf.json.JSONObject;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.jkzf.req.JKZFInfReq;
+import zte.net.ecsord.params.jkzf.resp.JKZFInfResp;
+import com.powerise.ibss.framework.FrameException;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.server.servlet.ICommonServlet;
+
+/**
+ * 接口转发处理类
+ * 
+ * @author zhangJun
+ * 
+ */
+public class JKZFInfServlet implements ICommonServlet {
+
+	private final static Log log = LogFactory.getLog(JKZFInfServlet.class);
+	private static String interfaceName = "【接口转发封装】";
+
+	private String targetReqType;
+
+	public JKZFInfServlet(String targetReqType) {
+		this.targetReqType = targetReqType;
+	}
+
+	@Override
+	public String service(String reqString) throws Exception {
+		log.info("JKZFInfServlet--" + interfaceName + "请求报文内容：" + reqString);
+		JSONObject json = null;
+
+		try {
+			json = JSONObject.fromObject(reqString);
+
+		} catch (Exception e) {
+			log.info(interfaceName + "请求报文不满足JSON格式");
+			throw new Exception(interfaceName + "请求报文不满足JSON格式");
+		}
+
+		String serialNo = null;
+		String reqType = null;
+		String reqId = null;
+		try {
+			serialNo = json.getString("serial_no");// 流水号/序列号
+			reqType = json.getString("reqType");
+			reqId = json.getString("reqId");// 请求ID
+
+			// 将json字符串转成map集合解析出来
+			/** paramsMap 集合中有两个字段,"jk_mark:接口标识符，params_json:参数对象" **/
+			Map<String, String> paramsMap = toMap(json);
+			/** 获取接口配置字典列表 **/
+			List dcList = CommonDataFactory.getInstance().listDcPublicData("JKZF_MARK");
+			
+			if (dcList == null || dcList.size() <=0) {
+				log.info("【请检查es_dc_public_ext表是否有配置接口转发信息！STYPE='JKZF_MARK'】");
+				return null;
+			}
+			
+			// 验证请求类型
+			if (!targetReqType.equals(reqType)) {
+				// 返回订单信息不存在
+				return getResponseInfo(serialNo, EcsOrderConsts.JKZF_VALID_FAIL_CODE, "失败,请求类型[reqType]非法!", "");
+			}
+			
+			if (!CommonDataFactory.getInstance().checkCommonServletReq(reqId, reqType)) {
+				return getResponseInfo(serialNo, EcsOrderConsts.JKZF_VALID_FAIL_CODE, "报文中repId["+reqId+"]验证不通过!", "");
+			}
+
+			JKZFInfReq req = new JKZFInfReq();
+			String inf_params = paramsMap.get("inf_params");
+			JSONObject inf_params_json = JSONObject.fromObject(inf_params);
+			Map<String, String> inf_params_map = toMap(inf_params_json);
+			JSONObject jsonObj = JSONObject.fromObject(inf_params_map.get("busi_params"));
+			Map json_Map = toMap(jsonObj);
+			req.setParamsMap(json_Map);
+			
+			for(int i = 0 ; i < dcList.size() ; i ++) {
+				Map<String, Object> dcMap = (Map<String, Object>) dcList.get(i);
+				if (dcMap.get("PKEY").equals(inf_params_map.get("inf_mark"))) {
+					req.setJk_mark(dcMap.get("PNAME").toString());
+					break;
+				}
+			}
+			
+			ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+			JKZFInfResp resp = client.execute(req, JKZFInfResp.class);
+			String respMsg = "";
+			if (resp.getBack_params() != null && resp.getBack_params().size() > 0) {
+				respMsg = MapToJson(resp.getBack_params());
+			}
+			return getResponseInfo(serialNo, EcsOrderConsts.JKZF_VALID_SUCC_CODE, "成功！", respMsg);
+		} catch (Exception e) {
+			log.info("JKZFInfServlet--" + interfaceName + ":" + e.getMessage());
+			e.printStackTrace();
+			return getResponseInfo(serialNo, EcsOrderConsts.JKZF_VALID_FAIL_CODE, "处理请求异常：" + e.getMessage(), "");
+		}
+	}
+	
+	/**
+	 * 
+	 * @param respCode
+	 *            结果码 0000：成功 0001：失败
+	 * @param respMsg
+	 * @return
+	 * @throws IOException
+	 * @throws JsonGenerationException
+	 * @throws JsonMappingException
+	 */
+	private String getResponseInfo(String activeNo, String resp_code, 
+			String resp_msg, String respMsg) throws IOException, JsonGenerationException,
+			JsonMappingException {
+		String jsonString = "";
+		Map<String, Object> respMap = new HashMap<String, Object>();
+		String time = "";
+		try {
+			time = DateUtil.getTime5();
+		} catch (FrameException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		respMap.put("serial_no", activeNo);
+		respMap.put("time", time);
+		respMap.put("resp_code", resp_code);
+		respMap.put("resp_msg", resp_msg);
+		respMap.put("inf_back_params", respMsg);
+		ObjectMapper mapper = new ObjectMapper();
+		jsonString = mapper.writeValueAsString(respMap);
+
+		log.info("JKZFInfServlet--" + interfaceName + "响应报文内容：" + jsonString);
+		return jsonString;
+	}
+	
+	/**
+	 * 将json对象转换成Map
+	 * 
+	 * @param jsonObject
+	 *            json对象
+	 * @return Map对象
+	 */
+	@SuppressWarnings("unchecked")
+	private Map toMap(JSONObject jsonObject) {
+		Map result = new HashMap();
+		Iterator<String> iterator = jsonObject.keys();
+		String key = null;
+		String value = null;
+		while (iterator.hasNext()) {
+			key = iterator.next();
+			value = jsonObject.getString(key);
+			result.put(key, value);
+		}
+		return result;
+	}
+	
+	/**
+	 * 将javaBean转换成Map
+	 * 
+	 * @param javaBean
+	 *            javaBean
+	 * @return Map对象
+	 */
+	public static Map<String, String> toMap(Object javaBean) {
+		Map<String, String> result = new HashMap<String, String>();
+		Method[] methods = javaBean.getClass().getDeclaredMethods();
+
+		for (Method method : methods) {
+			try {
+				if (method.getName().startsWith("get")) {
+					String field = method.getName();
+					field = field.substring(field.indexOf("get") + 3);
+					field = field.toLowerCase().charAt(0) + field.substring(1);
+
+					Object value = method.invoke(javaBean, (Object[]) null);
+					result.put(field, null == value ? "" : value.toString());
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		return result;
+	}
+	
+	/**
+	 * 将map转化为json字符串
+	 * 
+	 * @param map
+	 * @param keyName
+	 * @param valueName
+	 * @return
+	 */
+	private static String MapToJson(Map<? extends Object, ? extends Object> map) {
+		JSONObject obj = null;
+		if (map != null && map.size() > 0) {
+			obj = JSONObject.fromObject(map);
+			if (obj != null)
+				return obj.toString(); 
+		}
+		return "";
+	}
+	
+}

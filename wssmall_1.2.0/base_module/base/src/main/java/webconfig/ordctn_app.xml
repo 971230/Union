@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+ 	
+ 	<!-- 基础配置 -->
+ 	<import resource="classpath*:spring/*.xml"/>
+ 	
+ 	<import resource="classpath*:spring/mqsend/*.xml"/>
+ 	
+	<!----> <import resource="classpath*:/dubbo/rop/RopApplicationContext.xml"/> 
+	<!--<import resource="classpath*:/dubbo/rop/dubbo-rop-service.xml"/>  -->
+	<!-- --> <import resource="classpath*:/dubbo/rop/dubbo-rop-spring.xml"/> 
+	
+	<import resource="classpath*:dubbo/spring/dubbo-logs-spring.xml"/>
+    <import resource="classpath*:dubbo/spring/dubbo-task-spring.xml"/>
+	
+	<!-- 注册服务 -->
+	<import resource="classpath*:dubbo/spring/dubbo-orderctn-spring.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-orderctn-service.xml"/>
+
+	<!-- 消费 -->
+	<import resource="classpath*:dubbo/reference/dubbo-orderstd-reference.xml"/> 
+	<import resource="classpath*:dubbo/reference/dubbo-orderexp-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-esearch-reference.xml"/>  
+	
+	<!-- <import resource="classpath*:dubbo/spring/dubbo-inf-spring.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-inf-service.xml"/> -->
+	<import resource="classpath*:dubbo/reference/dubbo-inf-reference.xml"/>
+	
+	<!-- <import resource="classpath*:dubbo/spring/dubbo-sys-spring.xml"/> -->
+    <!-- <import resource="classpath*:dubbo/service/dubbo-sys-service.xml"/> -->
+    <!-- <import resource="classpath*:dubbo/reference/dubbo-client-reference.xml"/> -->
+	<!-- <import resource="classpath*:dubbo/reference/dubbo-orderctn-reference.xml"/> -->
+	
+	
+</beans>

@@ -1,0 +1,59 @@
+<style>
+table.finderInform {
+    border: 1px solid #efefef;
+    margin: 0;
+    width: 100%;
+}
+.dialog .finderInform thead th {
+    background: none repeat scroll 0 0 #eeeeee;
+}
+.finderInform thead th {
+    background: url("../images/functionareabg.gif") repeat scroll 0 0 transparent;
+    border-color: #ffffff #dbe2e7 #cccccc #ffffff;
+    border-style: solid;
+    border-width: 1px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 1px 3px;
+    text-align: center;
+    white-space: nowrap;
+    width: auto;
+}
+.finderInform td {
+    text-align: center;
+}
+.finderInform tbody td, .finderInform tbody th {
+    border-color: #ffffff #dbe2e7 #dddddd #ffffff;
+    border-style: solid;
+    border-width: 1px;
+}
+.finderInform tbody td {
+    white-space: normal;
+}
+.finderInform.tabledata th, .finderInform.tabledata td {
+    text-align: left;
+}
+</style>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" class="finderInform" id="levelPriceEditor">
+	<thead>
+	<tr>
+		<th>会员等级</th>
+		<th>价格</th>
+	</tr>
+	</thead>
+	<tbody>
+	<#list lvList as lv>
+	<tr>
+		<td>${lv.name}<input type="hidden" class="lvid"
+			value="${lv.lv_id}" />
+		</td>
+		<td><input type="text" class="ipt_new" autocomplete="off"
+			lvid="${lv.lv_id}" style="width:100px" value="${lv.lvPrice}">
+		</td>
+	</tr>
+	</#list>
+	</tbody>
+</table>
+<div class="pop_btn_box">
+    <a href="#" class="blueBtns" id="mbPriceBtn"><span>确定</span></a>
+</div>

@@ -1,0 +1,99 @@
+package com.ztesoft.net.cache.redis.jedis;
+
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+
+import java.util.concurrent.FutureTask;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+public class JRedisClientFactory {
+	private final ConcurrentHashMap<Object, FutureTask<Jedis>> clients = new ConcurrentHashMap<Object, FutureTask<Jedis>>();
+	private static final JRedisClientFactory factory = new JRedisClientFactory();
+	private static final Log LOGGER = LogFactory.getLog(JRedisClientFactory.class);
+	public JRedisClientFactory() {
+	}
+
+	public static JRedisClientFactory getSingleInstance() {
+		return factory;
+	}
+
+	/**
+	 * 
+	 */
+	public void close() {
+		for (FutureTask<Jedis> task : clients.values()) {
+			if (task.isDone() || !task.cancel(true)) {
+				Jedis client = null;
+				try {					
+					client = task.get();
+				} catch (InterruptedException e) {
+					LOGGER.warn(e);
+				} catch (ExecutionException e) {
+					LOGGER.warn(e);
+				} catch (CancellationException e) {
+				}
+				client.disconnect();
+			}
+		}
+		clients.clear();
+	}
+
+	/**
+	 * 
+	 * @param key
+	 * @param shardInfo
+	 * @return
+	 * @throws Exception
+	 */
+	public Jedis get(final Object key, final JedisShardInfo shardInfo)throws Exception {
+		FutureTask<Jedis> existTask = null;
+		existTask = clients.get(key);
+		if (existTask == null) {
+			FutureTask<Jedis> task = new FutureTask<Jedis>(
+					new Callable<Jedis>() {
+						@Override
+						public Jedis call() throws Exception {
+							return createClient(shardInfo);
+						}
+					});
+			existTask = clients.putIfAbsent(key, task);
+			if (existTask == null) {
+				existTask = task;
+				task.run();
+			}
+		}
+
+		try {
+			return existTask.get();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		} catch (CancellationException e) {
+			// cancel exception may be lost connection fd, but we never called
+			// task.cancel();
+			clients.remove(key);
+			throw e;
+		} catch (ExecutionException e) {
+			// create socket failed, so need not close
+			clients.remove(key);
+			throw new Exception("create socket exception, target address is "
+					+ shardInfo.getHost() + ":" + shardInfo.getPort(), e);
+		}
+	}
+
+	protected void removeClient(String key) {
+		clients.remove(key);
+	}
+
+	private synchronized Jedis createClient(JedisShardInfo shardInfo)
+			throws Exception {
+		Jedis jedis = new Jedis(shardInfo);
+		if (!jedis.isConnected()) {
+			jedis.connect();
+		}
+	
+		return jedis;
+	}
+}

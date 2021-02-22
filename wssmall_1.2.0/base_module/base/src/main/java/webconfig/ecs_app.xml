@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+ <!-- 
+	应用：网厅  代理商 统一平台
+	配置说明(以tomcat为例)：按顺序找到Window -> Preferences -> MyEclipse -> Servers -> Tomcat -> Tomcat 6.x -> JDK
+	在"Optional Java VM arguments:"配置 -DWEBCONFIG=classpath*:webconfig/ecs_app.xml
+ -->
+	<import resource="classpath*:spring/*.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-goods-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-info-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-member-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-order-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-partner-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-payment-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-sms-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-supplier-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-sys-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-task-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-workflow-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-num-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-cms-service.xml"/>
+	
+	<import resource="classpath*:dubbo/spring/dubbo-goods-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-info-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-member-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-order-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-partner-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-payment-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-sms-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-supplier-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-sys-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-task-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-workflow-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-cms-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-num-spring.xml"/>
+	
+	<import resource="classpath*:dubbo/reference/remote-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-client-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-ecs-reference.xml"/>
+</beans>

@@ -1,0 +1,95 @@
+@charset "utf-8";
+/* CSS Document */
+
+.header, .footer, .wrapper{ position:relative; }
+.header, .footer{ z-index:2;}
+.footer{ height:24px;background:url(../images/main/foot_bg.gif) repeat-x; position:relative; text-align:center;color:#666; text-align:center; font-size:12px;font-family:Arial, Helvetica, sans-serif; padding-top:10px;clear:both;}
+.wrapper{ z-index:1; height:100%; overflow:auto;}
+.header{ width:100%;height:75px;margin-top:-75px;background:url(../images/main/header_bg.gif) repeat-x;}
+
+.header_logo{ background:url(../images/main/header_logo.jpg) left top no-repeat; width:320px; height:75px; float:left;}
+.header_center{ width:505px; height:75px; float:left;_width:500px;}
+.header_right{ width:230px; height:75px; float:right; line-height:75px; color:#fff; font-size:12px;_height:50px;_padding-top:25px;}
+.quick_menu{ height:70px; padding-top:5px; color:#fff; font-size:12px;}
+.quick_menu li{ width:68px; height:63px; margin-left:5px; text-align:center; padding-top:5px; float:left; cursor:pointer;}
+.quick_menu li:hover{ background:url(../images/main/quick_menu_hover.gif) left top no-repeat; width:68px; height:63px;}
+.quick_menu li.current{background:url(../images/main/quick_menu_current.gif) left top no-repeat; width:68px; height:63px; cursor:pointer;}
+.quick_menu li.config{background:url(../images/main/config_normal.gif) left top no-repeat; border:none; width:31px; height:31px;cursor:pointer; display:block; margin-top:15px;}
+.quick_menu li.config:hover{background:url(../images/main/config.gif) left top no-repeat;border:none; width:31px; height:31px;}
+.bnt_config{}
+.bnt_config:hover{}
+.quick_menu a{ color:#fff;}
+.quick_menu a:hover{ color:#fff; font-weight:bold;}
+.header_right a{ color:#fff; margin-right:10px;}
+.header_right a:hover{ text-decoration:underline;}
+.header_right a.icon_home{ background:url(../images/main/icon_home.png) left -1px no-repeat; padding-left:20px;}
+.header_right a.icon_reset{ background:url(../images/main/icon_reset.png) left -1px no-repeat; padding-left:20px;}
+.header_right a.icon_close{ background:url(../images/main/icon_close.png) left -1px no-repeat; padding-left:20px;}
+
+/*TAB标签样式*/
+.main_div{height:100%; overflow:hidden; margin-left:157px;}
+
+
+.content_div{ width:100%}
+.content_left{ width:25%; float:left;}
+.content_right{ width:75%; float:right;_width:74.5%}
+.content_left_div{ margin:0px 5px 10px 10px;}
+.content_right_div{ margin:0px 10px 0px 5px;}
+
+
+/*各栏目样式*/
+.notice_div{ width:100%; margin-top:10px; float:left;}
+.notice_title{ background:url(../images/main/title_bg.gif) repeat-x; height:30px;}
+.notice_title_left{ background:url(../images/main/title_left.gif) left top no-repeat;height:30px;}
+.notice_title_left h2{ color:#333; font-size:14px; font-weight:bold; padding-left:15px; line-height:30px; position:relative;}
+.notice_title_left h2 span{ position:absolute; right:5px; height:30px; line-height:30px; font-size:12px; font-weight:lighter;_line-height:15px;*line-height:15px;}
+.notice_title_left h2 span a{ color:#333;}
+.notice_title_left h2 span a:hover{ color:#ff4200; text-decoration:underline;}
+.notice_title_right{ background:url(../images/main/title_right.gif) right top no-repeat; height:30px;}
+.notice_content{ border:1px solid #cfcfcf; border-top:none;height:170px; padding:5px; font-family:Arial, Helvetica, sans-serif; overflow:auto;}
+
+.notice_content a{ color:#333;}
+.notice_content a:hover{ color:#ff4200; text-decoration:underline;}
+.notice_content table{ line-height:22px; font-size:12px; color:#333;}
+
+/*FLASH样式*/
+.flash_div{ background:#f5f5f5; border:1px solid #cfcfcf; margin-top:10px; height:430px;}
+.right_stat_div{ width:33%; float:left;}
+.right_stat_content{padding:0px 0px 10px 5px;}
+
+.leftmenu{ width:150px; float:left; height:100%; background:url(../images/main/left_menu_bg.png) right top repeat-y;}
+.centerline{ width:7px; float:left; cursor:pointer; display:block; background:#c6c6c6; height:100%;}
+.centerline a {
+    background: url("../images/main/slider_traingle.gif") no-repeat scroll 50% 50% transparent;
+    display: block;
+    height: 100%;
+    width: 100%;
+}
+.centerline a:hover {
+    background: url("../images/main/slider_traingle_hover.gif") no-repeat scroll 50% 50% transparent;
+    text-decoration: none;
+}
+
+
+/*左下角菜单样式*/
+.left_menu{}
+.panel{COLOR:#654125;}
+#menu{margin-top: 0px;text-align:left; margin-top:5px;}
+.U1 {overflow:auto; overflow-x:hidden; margin-top:5px; margin-bottom:5px;}
+.L1 a:link, .L1 a:visited{color: #000;font-size:12px;display: block;text-decoration: none;height: 27px;line-height:27px;background: url("../images/main/menu.png") no-repeat scroll 0 0 transparent;}
+.L1 a:link span, .L1 a:visited span{height:28px; vertical-align:middle; padding-left:38px;cursor:pointer;width:100%;}
+.L1 a:hover{color: #333;background: url("../images/main/menu.png") no-repeat;background-position: 0 -27px;line-height:27px;height:27px;}
+/*  一级菜单 active 效果  */
+.L1 a:link.active, .L1 a:hover.active, .L1 a:active.active, .L1 a:visited.active{background: url("../images/main/menu.png") no-repeat;background-position: 0 -54px;color:#fff;}
+.L1 a:link.active span, .L1 a:hover.active span, .L1 a:active.active span, .L1 a:visited.active span{color: #fff;}
+.L1 a:link span, .L1 a:visited span{ padding-bottom:2px;}
+.L21 a:link, .L21 a:visited{color: #333;height: 27px;line-height:27px;font-size:12px;display: block;text-decoration: none;padding-left:25px;border-bottom:none;background: url("../images/main/menu.png") repeat scroll 0 -81px transparent;}
+.L21 a:hover{color: #4391ba;background: url("../images/main/menu.png") repeat scroll 0 -108px transparent;}
+.L21 a:link span, .L21 a:visited span{ padding:0 0 0 16px; background:none;cursor:pointer;width:100%;height:27px;line-height:27px;}
+.L21 a:hover span{ padding:0 0 0 16px; }
+/*  二级菜单 active 效果  */
+.L21 a:link.active, .L21 a:hover.active, .L21 a:active.active, .L21 a:visited.active{background: url("../images/main/menu.png") repeat scroll 0 -108px transparent;border-bottom:none; color:#4391ba;}
+.L21 a:link.active span, .L21 a:hover.active span, .L21 a:active.active span, .L21 a:visited.active span{color: #4391ba;line-height:24px;}
+.setting:link, .setting:visited{text-decoration: underline;display:block;}
+
+.leftmenutop { background: url("../images/main/left_menu_top.png") no-repeat scroll 0 0 transparent; color: #3d87c1; font-size: 14px; height: 41px;   line-height: 41px; text-align: center; font-weight:bold;}

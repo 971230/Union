@@ -1,0 +1,200 @@
+package zte.net.common.rule;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import params.order.req.OrderHandleLogsReq;
+import zte.net.common.annontion.context.action.ZteMethodAnnontion;
+import zte.net.common.annontion.context.action.ZteServiceAnnontion;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.base.req.BusiCompRequest;
+import zte.net.ecsord.params.base.resp.BusiCompResponse;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.taobao.req.GetTaobaoOrderInfoTAOBAORequset;
+import zte.net.ecsord.params.taobao.req.TaobaoIdentityGetRequest;
+import zte.net.ecsord.params.taobao.req.TbTianjiOrderInfoGetReq;
+import zte.net.ecsord.params.taobao.resp.GetTaobaoOrderInfoTAOBAOResponse;
+import zte.net.ecsord.params.taobao.resp.TaobaoIdentityGetResponse;
+import zte.net.ecsord.params.taobao.resp.TbTianjiOrderInfoGetResp;
+
+import com.taobao.api.domain.Order;
+import com.taobao.api.domain.Trade;
+import com.taobao.api.request.AlibabaTianjiSupplierOrderQueryRequest.SupplierTopQueryModel;
+import com.taobao.api.response.AlibabaTianjiSupplierOrderQueryResponse.DistributionOrderInfo;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.service.IOrderFlowManager;
+
+import consts.ConstsCore;
+
+/**
+ * 淘宝业务组件处理类
+ * @author wujiayong
+ *2014.12.15
+ */
+@ZteServiceAnnontion(trace_name = "ZteTaobaoTraceRule", trace_id = "1", version = "1.0", desc = "淘宝业务组件")
+public class ZteTaobaoTraceRule extends ZteTraceBaseRule {
+
+	@Resource
+	private IOrderFlowManager ordFlowManager;
+	
+	@ZteMethodAnnontion(name = "淘宝业务组件入口", group_name = "自动化模式", order = "1", page_show = true, path = "zteTaobaoTraceRule.exec")
+	public BusiCompResponse engineDo(BusiCompRequest busiCompRequest) {
+		BusiCompResponse resp = new BusiCompResponse();
+		resp.setError_code("-1");
+		resp.setError_msg("正常淘宝订单");
+		return resp;
+	}
+	/**
+	 * 获取淘宝订单信息环节入口
+	 */
+	@ZteMethodAnnontion(name = "获取淘宝订单信息环节入口", group_name = "淘宝业务组件", order = "2", page_show = true, path = "zteTaobaoTraceRule.getOrderInfoFromTaobao")
+	public BusiCompResponse getOrderInfoFromTaobao(BusiCompRequest busiCompRequest){
+		BusiCompResponse resp = new BusiCompResponse();
+		ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+		GetTaobaoOrderInfoTAOBAORequset req = new GetTaobaoOrderInfoTAOBAORequset();
+		req.setNotNeedReqStrOrderId(busiCompRequest.getOrder_id());
+		GetTaobaoOrderInfoTAOBAOResponse tbResp=client.execute(req, GetTaobaoOrderInfoTAOBAOResponse.class);
+		if("0000".equals(tbResp.getError_code())){
+			Trade dataTrade = tbResp.getDataTrade();
+			List<Order> orlist = dataTrade.getOrders();
+			OrderExtBusiRequest orderExtBusiRequest = CommonDataFactory.getInstance().getOrderTree(busiCompRequest.getOrder_id()).getOrderExtBusiRequest();
+			String pay_type = orderExtBusiRequest.getPay_type();
+			boolean isRefund = false;
+			for(Order ord : orlist){
+				String refund_status = ord.getRefundStatus();
+				//WAIT_SELLER_AGREE等待买家同意退款申请，WAIT_BUYER_RETURN_GOODS等待买家退货，WAIT_SELLER_CONFIRM_GOODS等待买家确认收货
+				/* 有两种情况认为订单已经退单 */
+				// 1.支付类型为非货到付款并且订单退款状态为已退款
+				if(!EcsOrderConsts.PAY_TYPE_HDFK.equals(pay_type) 
+						&& ("WAIT_SELLER_AGREE".equals(refund_status) || "WAIT_BUYER_RETURN_GOODS".equals(refund_status) || "WAIT_SELLER_CONFIRM_GOODS".equals(refund_status) || "CLOSED".equals(refund_status) || "SUCCESS".equals(refund_status))){
+					isRefund = true;
+				}
+				// 2.支付方式为货到付款，并且订单外部状态为已退单
+				if(EcsOrderConsts.PAY_TYPE_HDFK.equals(pay_type) && ("CLOSED".equals(refund_status) || "SUCCESS".equals(refund_status))){
+					isRefund = true;
+				}
+			}
+			//AdminUser user = ManagerUtils.getAdminUser();			
+			//TRADE_CLOSED(付款以后用户退款成功，交易自动关闭) * TRADE_CLOSED_BY_TAOBAO(付款以前，卖家或买家主动关闭交易)
+			if(isRefund){
+				//returnbakorder
+				OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(busiCompRequest.getOrder_id());
+				OrderHandleLogsReq logReq = new OrderHandleLogsReq();
+				logReq.setComments("淘宝退单");
+				logReq.setHandler_type(Const.ORDER_HANDLER_TYPE_RETURNED);
+				logReq.setType_code(EcsOrderConsts.REFUND_STATUS_08);
+				logReq.setOp_id("1");
+				logReq.setOp_name("系统管理员");
+				boolean flag = ordFlowManager.executeOrderReRule(busiCompRequest.getOrder_id(), logReq);
+				if(flag){
+					resp.setError_code("0");
+					resp.setError_msg("退单成功");
+				}else{
+					resp.setError_code("-1");
+					resp.setError_msg("退单失败");
+				}
+			}else{
+				resp.setError_code("-1");
+				resp.setError_msg("正常淘宝订单");
+			}
+		}else{
+			resp.setError_code("-1");
+			resp.setError_msg("正常淘宝订单");
+		}
+		return resp;
+	}
+	
+	@ZteMethodAnnontion(name = "获取淘宝证件图片信息·证件照对比", group_name = "淘宝业务组件", order = "3", page_show = true, path = "zteTaobaoTraceRule.getIdentityFromTaobao")
+	public BusiCompResponse getIdentityFromTaobao(BusiCompRequest busiCompRequest){
+		BusiCompResponse resp = new BusiCompResponse();
+		ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+		TaobaoIdentityGetRequest req = new TaobaoIdentityGetRequest();
+		req.setNotNeedReqStrOrderId(busiCompRequest.getOrder_id());
+		TaobaoIdentityGetResponse tbResp=client.execute(req, TaobaoIdentityGetResponse.class);
+//		logger.info();
+		if("0000".equals(tbResp.getError_code())){
+//			Map<String, String> urlMap = new HashMap<String, String>();
+//			urlMap.put("frontImageUrl", tbResp.getFrontImageUrl());
+//			urlMap.put("backImageUrl", tbResp.getBackImageUrl());
+//			urlMap.put("holdImageUrl", tbResp.getHoldImageUrl());
+//			
+//			BASE64Encoder encoder = new BASE64Encoder();
+//			ByteArrayOutputStream baos = null;
+//			BufferedInputStream bis = null;  
+//			HttpURLConnection httpUrl = null;  
+//			URL url = null;  
+//			logger.info();
+//			try {
+//				Iterator<String> it = urlMap.keySet().iterator();
+//				logger.info();
+//				while(it.hasNext()){
+//					logger.info();
+//					String key = (String) it.next();
+//					String imageurl = urlMap.get(key);
+//					if(!StringUtils.isEmpty(imageurl)){
+//						url = new URL(imageurl);
+//						httpUrl = (HttpURLConnection) url.openConnection();  
+//						logger.info("获取淘宝证件图片信息·证件照对比:key="+key+"########imageurl="+imageurl);
+//						httpUrl.connect();
+//						logger.info("获取淘宝证件图片信息·证件照对比:httpUrl.connect() 成功");
+//						bis = new BufferedInputStream(httpUrl.getInputStream());
+//						BufferedImage bi = ImageIO.read(bis);
+//						baos = new ByteArrayOutputStream();
+//						ImageIO.write(bi, "jpg", baos);
+//						byte imgdata[]=baos.toByteArray();
+//						urlMap.put(key,encoder.encodeBuffer(imgdata).trim());
+//					}
+//				}
+//				BeanUtils.copyProperties(tbResp, urlMap);
+//				logger.info("获取淘宝证件图片信息·证件照对比:照片翻译成功");
+//			} catch (Exception e) {  
+//				e.printStackTrace();
+//			} finally {
+//				try {  
+//					baos.close();
+//					bis.close();  
+//					httpUrl.disconnect();  
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				} catch (NullPointerException e) {  
+//					e.printStackTrace();
+//				}  
+//			}  
+			resp.setResponse(tbResp);
+			resp.setError_code("0");
+			
+		}
+		else{
+			resp.setError_code("-1");
+		}
+		resp.setError_msg(tbResp.getError_msg());
+		return resp;
+	}
+	
+	@ZteMethodAnnontion(name = "获取淘宝天机订单退单信息", group_name = "淘宝业务组件", order = "4", page_show = true, path = "zteTaobaoTraceRule.getOrderInfoFromTaobaoTianji")
+	public BusiCompResponse getOrderInfoFromTaobaoTianji(BusiCompRequest busiCompRequest){
+		BusiCompResponse result = new BusiCompResponse();
+		String orderId = busiCompRequest.getOrder_id();
+		TbTianjiOrderInfoGetReq req = new TbTianjiOrderInfoGetReq();
+		req.setNotNeedReqStrOrderId(orderId);
+		
+		ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+		TbTianjiOrderInfoGetResp resp = client.execute(req, TbTianjiOrderInfoGetResp.class);
+		if("0000".equals(resp.getError_code())){
+			result.setError_code(ConstsCore.ERROR_SUCC);
+			result.setError_msg("获取淘宝天机订单退单信息成功！");
+			result.setResponse(resp);
+		}
+		else{
+			result.setError_code(ConstsCore.ERROR_FAIL);
+			result.setError_msg("获取淘宝天机订单退单信息失败！");
+		}
+		return result;
+	}
+}

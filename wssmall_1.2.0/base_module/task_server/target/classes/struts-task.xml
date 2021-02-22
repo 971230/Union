@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<package name="task_default" extends="eop_default" namespace="/shop/admin" >
+		<action name="task" class="taskAction">
+			<result name="task1">/shop/admin/task/task.jsp</result>
+			<result name="taskList">/shop/admin/task/task_list.jsp</result>
+			<result name="edit_task">/shop/admin/task/task_add.jsp</result>
+			<result name="update">/shop/admin/task/task_add.jsp</result>
+			<result name="taskSplit">/shop/admin/task/task_split.jsp</result>
+			<result name="show_org">/shop/admin/task/orgtree.jsp</result>
+			<result name="finished_list">/shop/admin/task/taskFinishedInfo.jsp</result>
+			<result name="mobTaskDetail">/shop/admin/task/mobTaskDetail.jsp</result>
+			<result name="qry_task">/shop/admin/task/qryTask.jsp</result>
+			<result name="each_detail">/shop/admin/task/each_detail.jsp</result>
+			<result name="assignTaskList">/shop/admin/task/assign_task_list.jsp</result>
+			<result name="assignment">/shop/admin/task/assign_task.jsp</result>
+			<result name="revoke_list">/shop/admin/task/revoke_list.jsp</result>
+			<result name="cancel_list">/shop/admin/task/cancel_list.jsp</result>
+			<result name="partner_list">/shop/admin/task/partner_list.jsp</result>
+			<result name="p_task">/shop/admin/task/p_task.jsp</result>
+		</action>
+		<!-- 告警管理 -->
+		<action name="alarm" class="alarmAction">
+			<result name="list">alarm/alarm_task_list.jsp</result>
+			<result name="reconciliation_alarm">alarm/reconciliation_alarm.jsp</result>
+			<result name="task_alarm">alarm/task_alarm.jsp</result>
+			<result name="user_phone">alarm/search_phone.jsp</result>
+			<result name="partner_list">alarm/search_partner.jsp</result>
+			<result name="reconciliation_alarm_edit">alarm/reconciliation_alarm_edit.jsp</result>
+			<result name="task_list">alarm/search_task.jsp</result>
+			<result name="task_alarm_edit">alarm/task_alarm_edit.jsp</result>
+			<result name="alarm_template_list">alarm/alarm_template_list.jsp</result>
+			<result name="alarm_template">alarm/alarm_template.jsp</result>
+			<result name="showAlarmLog">alarm/alarm_log_list.jsp</result>
+			<result name="search_applic_scene">alarm/search_applic_scene.jsp</result>
+			<result name="alarm_template_edit">alarm/alarm_template_edit.jsp</result>
+			<result name="showAlarmLogBase">alarm/alarm_log_base.jsp</result>
+		</action>
+		<action name="import" class="importAction">
+			<result name="import_template_config">import/import_template_config.jsp</result>
+			<result name="sub_type_id" type="freemarker">import/sub_type_id.html</result>
+			<result name="import_template_list">import/import_template_list.jsp</result>
+			<result name="import_download_file">import/import_download_file.jsp</result>
+			<result name="import_logs">import/import_download_file.jsp</result>
+			<result name="import_Log_List">import/import_Log_List.jsp</result>
+			<result name="import_already_upload_data">import/import_already_upload_list.jsp</result>
+		</action>
+	</package>
+
+</struts>

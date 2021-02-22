@@ -1,0 +1,618 @@
+package services;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import params.adminuser.req.AdminAddReq;
+import params.adminuser.req.AdminBossUpdateReq;
+import params.adminuser.req.AdminCurrUserReq;
+import params.adminuser.req.AdminStatusUpdateReq;
+import params.adminuser.req.AdminUserAddReq;
+import params.adminuser.req.AdminUserByObjPageReq;
+import params.adminuser.req.AdminUserCleanReq;
+import params.adminuser.req.AdminUserCountByIdReq;
+import params.adminuser.req.AdminUserCountReq;
+import params.adminuser.req.AdminUserDelReq;
+import params.adminuser.req.AdminUserDisableReq;
+import params.adminuser.req.AdminUserFillReq;
+import params.adminuser.req.AdminUserGetReq;
+import params.adminuser.req.AdminUserIdReq;
+import params.adminuser.req.AdminUserListReq;
+import params.adminuser.req.AdminUserLoginReq;
+import params.adminuser.req.AdminUserPageReq;
+import params.adminuser.req.AdminUserReq;
+import params.adminuser.req.AdminUserUpdateReq;
+import params.adminuser.req.OrgInfoReq;
+import params.adminuser.req.StaffInfoReq;
+import params.adminuser.req.SupplierAddReq;
+import params.adminuser.req.UserFounderReq;
+import params.adminuser.req.UserPasswordUpdateReq;
+import params.adminuser.req.UserRoleReq;
+import params.adminuser.req.UserTypeListReq;
+import params.adminuser.req.UserWdLoginReq;
+import params.adminuser.resp.AdminAddResp;
+import params.adminuser.resp.AdminEditUserResp;
+import params.adminuser.resp.AdminStatusUpdateResp;
+import params.adminuser.resp.AdminUserCleanResp;
+import params.adminuser.resp.AdminUserCountResp;
+import params.adminuser.resp.AdminUserDelResp;
+import params.adminuser.resp.AdminUserDisableResp;
+import params.adminuser.resp.AdminUserEditResp;
+import params.adminuser.resp.AdminUserIdResp;
+import params.adminuser.resp.AdminUserLoginResp;
+import params.adminuser.resp.AdminUserPageResp;
+import params.adminuser.resp.AdminUserResp;
+import params.adminuser.resp.OrgInfoResp;
+import params.adminuser.resp.StaffInfoResp;
+import params.adminuser.resp.UserFounderResp;
+import params.adminuser.resp.UserPasswordUpdateResp;
+import params.adminuser.resp.UserRoleResp;
+import params.adminuser.resp.UserTypeListResp;
+import params.adminuser.resp.UserWdLoginResp;
+import params.org.req.OrgReq;
+import params.org.resp.OrgResp;
+import params.req.PartnerLogOffReq;
+import params.req.PartnerSSOReq;
+import params.resp.PartnerLogOffResp;
+import zte.net.ecsord.params.nd.vo.User;
+
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.app.base.core.model.SupplierStaff;
+import com.ztesoft.net.app.base.core.service.auth.IAdminUserManager;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.database.SqlBuilderInterface;
+import com.ztesoft.net.mall.core.util.ISysUtils;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import consts.ConstsCore;
+
+/**
+ * 订单接口
+ * 
+ * @作者 wui
+ * @创建日期 2013-9-24
+ * @版本 V 1.0
+ */
+public class AdminUserServ extends ServiceBase implements AdminUserInf {
+
+	private IAdminUserManager adminUserManager;
+	private ISysUtils sysUtils;
+
+	/**
+	 * 查询管理员用户
+	 * 
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-5
+	 * @param userName
+	 * @return
+	 */
+	public Page queryAdminUser(String userName, int pageNo, int pageSize) {
+		return adminUserManager.queryAdminUser(userName, pageNo, pageSize);
+	}
+
+	public AdminUserPageResp qryAdminUser(AdminUserPageReq adminUserPageReq) {
+		String username = adminUserPageReq.getUsername();
+		int pageNo = Integer.valueOf(adminUserPageReq.getPageNo());
+		int pageSize = Integer.valueOf(adminUserPageReq.getPageZise());
+		Page page = this.adminUserManager.queryAdminUser(username, pageNo,
+				pageSize);
+
+		AdminUserPageResp adminUserPageResp = new AdminUserPageResp();
+		adminUserPageResp.setWebPage(page);
+
+		addReturn(adminUserPageReq, adminUserPageResp);
+		return adminUserPageResp;
+	}
+
+	/**
+	 * 根据员工id获取员工信息
+	 * 
+	 * @param adminUserReq
+	 * @return
+	 */
+	public AdminUserResp getAdminUserById(AdminUserReq adminUserReq) {
+		AdminUser adminUser = sysUtils.getAdminUserById(adminUserReq
+				.getUser_id());
+		AdminUserResp adminUserResp = new AdminUserResp();
+		adminUserResp.setAdminUser(adminUser);
+		addReturn(adminUserReq, adminUserResp);
+		return adminUserResp;
+
+	}
+
+	public AdminUserResp getAdminUserByUserName(AdminUserReq adminUserReq) {
+
+		AdminUser adminUser = adminUserManager
+				.getAdminUserByUserName(adminUserReq.getUser_name());
+		AdminUserResp adminUserResp = new AdminUserResp();
+		adminUserResp.setAdminUser(adminUser);
+		addReturn(adminUserReq, adminUserResp);
+		return adminUserResp;
+	}
+
+	public AdminUserResp getAdminuserByRole(AdminUserReq adminUserReq) {
+
+		AdminUser adminUser = adminUserManager
+				.getAdminUserByRefCode(adminUserReq.getRefCode());
+		AdminUserResp adminUserResp = new AdminUserResp();
+		adminUserResp.setAdminUser(adminUser);
+		addReturn(adminUserReq, adminUserResp);
+		return adminUserResp;
+	}
+
+	public AdminUserPageResp queryUser(
+			AdminUserByObjPageReq adminUserByObjPageReq) {
+
+		Page page = adminUserManager.queryUser(
+				adminUserByObjPageReq.getQueryUser(),
+				adminUserByObjPageReq.getLoginUser(),
+				adminUserByObjPageReq.getOperations(),
+				Integer.valueOf(adminUserByObjPageReq.getPageNo()),
+				Integer.valueOf(adminUserByObjPageReq.getPageSize()));
+
+		AdminUserPageResp adminUserPageResp = new AdminUserPageResp();
+		adminUserPageResp.setWebPage(page);
+		addReturn(adminUserByObjPageReq, adminUserPageResp);
+
+		return adminUserPageResp;
+	}
+
+	/**
+	 * 员工登录,走MD5
+	 * 
+	 * @param adminUserLoginReq
+	 * @return
+	 */
+	public AdminUserLoginResp loginBySys(AdminUserLoginReq adminUserLoginReq) {
+		AdminUserLoginResp adminUserLoginResp = new AdminUserLoginResp();
+		String result = adminUserManager.loginBySys(
+				adminUserLoginReq.getUsername(),
+				adminUserLoginReq.getPassword());
+		addReturn(adminUserLoginReq, adminUserLoginResp);
+		adminUserLoginResp.setResult(result);
+		return adminUserLoginResp;
+	}
+	
+	/**
+	 * 员工登录跳过MD5
+	 * 
+	 * @param adminUserLoginReq
+	 * @return
+	 */
+	public AdminUserLoginResp login(AdminUserLoginReq adminUserLoginReq) {
+		AdminUserLoginResp adminUserLoginResp = new AdminUserLoginResp();
+		String result = adminUserManager.login(adminUserLoginReq.getUsername(),
+				adminUserLoginReq.getPassword());
+		addReturn(adminUserLoginReq, adminUserLoginResp);
+		adminUserLoginResp.setResult(result);
+		return adminUserLoginResp;
+	}
+
+	@Override
+	public AdminUserResp createAdminUser(AdminUserReq bp) {
+		AdminUserResp adminUserResp = new AdminUserResp();
+		AdminUser adminUser = bp.getAdminUser();
+		adminUserManager.add(adminUser);
+		addReturn(bp, adminUserResp);
+		return adminUserResp;
+	}
+
+	// 获取用户组织信息
+	@SuppressWarnings("unchecked")
+	public OrgResp getAgentOrgInfo(OrgReq orgReq) {
+		OrgResp orgResp = new OrgResp();
+		Map orgInfo = adminUserManager.getAgentSystemUser(orgReq
+				.getStaff_code());
+		orgResp.setOrgInfo(orgInfo);
+		addReturn(orgReq, orgResp);
+		return orgResp;
+	}
+
+	public AdminUserEditResp updatePassword(
+			AdminUserUpdateReq adminUserUpdateReq) {
+
+		int i = adminUserManager.updatePassword(
+				adminUserUpdateReq.getOldPassword(),
+				adminUserUpdateReq.getNewpassword(),
+				adminUserUpdateReq.getUserid());
+		AdminUserEditResp adminUserEditResp = new AdminUserEditResp();
+		adminUserEditResp.setCount(i);
+
+		addReturn(adminUserUpdateReq, adminUserEditResp);
+
+		return adminUserEditResp;
+	}
+
+	public UserRoleResp getRolesToUser(UserRoleReq userRoleReq) {
+
+		String roles = adminUserManager.getRolesToUser(userRoleReq.getStype(),
+				userRoleReq.getPkey());
+
+		UserRoleResp userRoleResp = new UserRoleResp();
+		userRoleResp.setRoles(roles);
+		addReturn(userRoleReq, userRoleResp);
+		return userRoleResp;
+	}
+
+	public AdminUserIdResp getAdminUserSequences(AdminUserIdReq adminUserIdReq) {
+
+		String adminUserId = adminUserManager.getAdminUserSequences();
+		AdminUserIdResp adminUserIdResp = new AdminUserIdResp();
+		adminUserIdResp.setAdminUserId(adminUserId);
+		addReturn(adminUserIdReq, adminUserIdResp);
+
+		return adminUserIdResp;
+	}
+
+	public AdminUserIdResp addSupplier(SupplierAddReq supplierAddReq) {
+
+		String adminUserId = adminUserManager.addSupplier(
+				supplierAddReq.getAdminUserId(),
+				supplierAddReq.getSupplier_id(),
+				supplierAddReq.getAccount_number(),
+				supplierAddReq.getPassword(), supplierAddReq.getPhone(),
+				supplierAddReq.getCompany_name(),
+				supplierAddReq.getSupplier_type());
+
+		AdminUserIdResp adminUserIdResp = new AdminUserIdResp();
+		adminUserIdResp.setAdminUserId(adminUserId);
+		addReturn(supplierAddReq, adminUserIdResp);
+
+		return adminUserIdResp;
+	}
+
+	public AdminUserCountResp getUserCountByUserName(
+			AdminUserCountReq adminUserCountReq) {
+
+		int count = adminUserManager.getUserCountByUserName(adminUserCountReq
+				.getUsername());
+
+		AdminUserCountResp adminUserCountResp = new AdminUserCountResp();
+		adminUserCountResp.setCount(count);
+		addReturn(adminUserCountReq, adminUserCountResp);
+
+		return adminUserCountResp;
+	}
+
+	public UserFounderResp founderMap(UserFounderReq userFounderReq) {
+
+		Map<String, String> map = adminUserManager.founderMap();
+		UserFounderResp userFounderResp = new UserFounderResp();
+		userFounderResp.setMap(map);
+		addReturn(userFounderReq, userFounderResp);
+
+		return userFounderResp;
+	}
+
+	public AdminUserResp getCurrentUser(AdminCurrUserReq adminCurrUserReq) {
+		AdminUser adminUser = adminUserManager.getCurrentUser();
+		AdminUserResp adminUserResp = new AdminUserResp();
+		adminUserResp.setAdminUser(adminUser);
+		return adminUserResp;
+	}
+
+	public AdminUserIdResp bindingstaff(SupplierStaff supplierStaff) {
+
+		String adminUserId = adminUserManager.bindingstaff(supplierStaff);
+
+		AdminUserIdResp adminUserIdResp = new AdminUserIdResp();
+		adminUserIdResp.setAdminUserId(adminUserId);
+		addReturn(supplierStaff, adminUserIdResp);
+		return adminUserIdResp;
+	}
+
+	public AdminUserDelResp deleteAdminUsesr(AdminUserDelReq adminUserDelReq) throws Exception {
+		adminUserManager.deleteAdminUsesr(adminUserDelReq.getUser_id());
+
+		AdminUserDelResp adminUserDelResp = new AdminUserDelResp();
+		addReturn(adminUserDelReq, adminUserDelResp);
+		return adminUserDelResp;
+	}
+
+	public AdminUserCountResp getUserCount(AdminUserCountReq adminUserCountReq) {
+
+		int count = adminUserManager.getUserCount(adminUserCountReq
+				.getRelCode());
+
+		AdminUserCountResp adminUserCountResp = new AdminUserCountResp();
+		adminUserCountResp.setCount(count);
+		addReturn(adminUserCountReq, adminUserCountResp);
+
+		return adminUserCountResp;
+	}
+
+	public AdminUserResp fillAdminUser(AdminUserFillReq adminUserFillReq) {
+		AdminUser adminUser = adminUserManager.fillAdminUser(adminUserFillReq
+				.getAdminUser());
+		AdminUserResp adminUserResp = new AdminUserResp();
+		adminUserResp.setAdminUser(adminUser);
+		addReturn(adminUserFillReq, adminUserResp);
+		return adminUserResp;
+	}
+
+	public AdminUserCountResp getUserCountByRelcode(
+			AdminUserCountReq adminUserCountReq) {
+
+		int count = adminUserManager
+				.getUserCountByRelcode(adminUserCountReq.getRelCode(),
+						adminUserCountReq.getUsername());
+		AdminUserCountResp adminUserCountResp = new AdminUserCountResp();
+		adminUserCountResp.setCount(count);
+		addReturn(adminUserCountReq, adminUserCountResp);
+
+		return adminUserCountResp;
+	}
+
+	public AdminEditUserResp edit(AdminUserReq adminUserReq) {
+		adminUserManager.edit(adminUserReq.getAdminUser());
+
+		AdminEditUserResp adminEditUserResp = new AdminEditUserResp();
+		addReturn(adminUserReq, adminEditUserResp);
+		return adminEditUserResp;
+	}
+
+	public StaffInfoResp getStaffList(StaffInfoReq staffInfoReq) {
+
+		Page page = adminUserManager.getStaffList(staffInfoReq.getParty_id(),
+				staffInfoReq.getStaff_id(), staffInfoReq.getStaff_name(),
+				Integer.valueOf(staffInfoReq.getPage()),
+				Integer.valueOf(staffInfoReq.getPageSize()));
+		StaffInfoResp staffInfoResp = new StaffInfoResp();
+		staffInfoResp.setWebPage(page);
+		addReturn(staffInfoReq, staffInfoResp);
+
+		return staffInfoResp;
+	}
+
+	public OrgInfoResp orgUserList(OrgInfoReq orgInfoReq) {
+
+		Page page = adminUserManager.orgUserList(orgInfoReq.getOrg_id(),
+				orgInfoReq.getState(), orgInfoReq.getRealname(),
+				orgInfoReq.getUsername(),
+				Integer.valueOf(orgInfoReq.getPageNo()),
+				Integer.valueOf(orgInfoReq.getPageSize()));
+		OrgInfoResp orgInfoResp = new OrgInfoResp();
+		orgInfoResp.setWebPage(page);
+		addReturn(orgInfoReq, orgInfoResp);
+
+		return orgInfoResp;
+	}
+
+	public AdminUserResp getUser(AdminUserGetReq adminUserGetReq) {
+
+		AdminUser adminUser = adminUserManager.getUser(adminUserGetReq
+				.getUser_id());
+		;
+
+		AdminUserResp adminUserResp = new AdminUserResp();
+		adminUserResp.setAdminUser(adminUser);
+		addReturn(adminUserGetReq, adminUserResp);
+		return adminUserResp;
+	}
+
+	public AdminUserPageResp list(AdminUserListReq adminUserListReq) {
+
+		Page page = adminUserManager.list(adminUserListReq);
+
+		AdminUserPageResp adminUserPageResp = new AdminUserPageResp();
+		adminUserPageResp.setWebPage(page);
+		addReturn(adminUserListReq, adminUserPageResp);
+
+		return adminUserPageResp;
+	}
+
+	public AdminUserCleanResp cleanFailCount(AdminUserCleanReq adminUserCleanReq) {
+		adminUserManager.cleanFailCount(adminUserCleanReq.getUser_id());
+
+		AdminUserCleanResp adminUserCleanResp = new AdminUserCleanResp();
+		addReturn(adminUserCleanReq, adminUserCleanResp);
+		return adminUserCleanResp;
+	}
+
+	public AdminAddResp add(AdminAddReq adminAddReq) {
+		adminUserManager.add(adminAddReq.getAdminUser());
+
+		AdminAddResp adminAddResp = new AdminAddResp();
+		addReturn(adminAddReq, adminAddResp);
+		return adminAddResp;
+	}
+
+	public AdminUserCountResp getCountById(
+			AdminUserCountByIdReq adminUserCountByIdReq) {
+
+		int count = adminUserManager.getCountByUsername(adminUserCountByIdReq
+				.getUser_id());
+		AdminUserCountResp adminUserCountResp = new AdminUserCountResp();
+		adminUserCountResp.setCount(count);
+		addReturn(adminUserCountByIdReq, adminUserCountResp);
+
+		return adminUserCountResp;
+	}
+
+	public AdminUserEditResp updateBossPwd(AdminBossUpdateReq adminBossUpdateReq) {
+
+		Map<String, Object> map = adminUserManager
+				.updateBossPwd(adminBossUpdateReq.getBossPwdMap());
+		AdminUserEditResp adminUserEditResp = new AdminUserEditResp();
+		adminUserEditResp.setOutMap(map);
+		addReturn(adminBossUpdateReq, adminUserEditResp);
+		return adminUserEditResp;
+	}
+	
+	public AdminUserEditResp updateBossPwdZj(AdminBossUpdateReq adminBossUpdateReq) {
+
+		Map<String, Object> map = adminUserManager
+				.updateBossPwdZj(adminBossUpdateReq.getBossPwdMap());
+		AdminUserEditResp adminUserEditResp = new AdminUserEditResp();
+		adminUserEditResp.setOutMap(map);
+		addReturn(adminBossUpdateReq, adminUserEditResp);
+		return adminUserEditResp;
+	}
+
+	public AdminUserDisableResp disableAdminUser(
+			AdminUserDisableReq adminUserDisableReq) {
+		adminUserManager.disableAdminUser(adminUserDisableReq.getUser_id());
+
+		AdminUserDisableResp adminUserDisableResp = new AdminUserDisableResp();
+		addReturn(adminUserDisableReq, adminUserDisableResp);
+		return adminUserDisableResp;
+	}
+
+	public AdminUserIdResp addUser(AdminUserAddReq adminUserAddReq) {
+
+		String adminUserId = adminUserManager.add(adminUserAddReq.getUserid(),
+				adminUserAddReq.getSiteid(), adminUserAddReq.getAdminUser());
+		AdminUserIdResp adminUserAddResp = new AdminUserIdResp();
+		adminUserAddResp.setAdminUserId(adminUserId);
+		addReturn(adminUserAddReq, adminUserAddResp);
+
+		return adminUserAddResp;
+	}
+
+	public AdminStatusUpdateResp updateLoginStatus(
+			AdminStatusUpdateReq adminStatusUpdateReq) {
+
+		adminUserManager.updateLoginStatus(adminStatusUpdateReq.getUserid(),
+				adminStatusUpdateReq.getUserSessionId(),
+				adminStatusUpdateReq.getStatus());
+
+		AdminStatusUpdateResp adminStatusUpdateResp = new AdminStatusUpdateResp();
+		addReturn(adminStatusUpdateReq, adminStatusUpdateResp);
+		return adminStatusUpdateResp;
+	}
+
+	public IAdminUserManager getAdminUserManager() {
+		return adminUserManager;
+	}
+
+	public void setAdminUserManager(IAdminUserManager adminUserManager) {
+		this.adminUserManager = adminUserManager;
+	}
+
+	public ISysUtils getSysUtils() {
+		return sysUtils;
+	}
+
+	public void setSysUtils(ISysUtils sysUtils) {
+		this.sysUtils = sysUtils;
+	}
+
+	@Override
+	public AdminUserLoginResp loginBySysOrRandCode(String sms_valid_code,
+			AdminUserLoginReq adminUserLoginReq) {
+
+		AdminUserLoginResp adminUserLoginResp = new AdminUserLoginResp();
+		String result = adminUserManager.loginBySysOrRandCode(sms_valid_code,
+				adminUserLoginReq.getUsername(),
+				adminUserLoginReq.getPassword());
+		addReturn(adminUserLoginReq, adminUserLoginResp);
+		adminUserLoginResp.setResult(result);
+		return adminUserLoginResp;
+
+	}
+
+	@Override
+	public UserTypeListResp qryUserTypeList(UserTypeListReq userTypeListReq) {
+		// TODO Auto-generated method stub
+		UserTypeListResp userTypeListResp = new UserTypeListResp();
+		List list = new ArrayList();
+		list = this.adminUserManager.getUserTypeListByFounder();
+		userTypeListResp.setList(list);
+		addReturn(userTypeListReq, userTypeListResp);
+		return userTypeListResp;
+	}
+
+	@Override
+	public UserWdLoginResp userWdLogin(UserWdLoginReq userWdLoginReq) {
+		UserWdLoginResp userWdLoginResp = new UserWdLoginResp();
+		try {
+			this.adminUserManager.loginBySys(userWdLoginReq.getUsername(),
+					StringUtil.md5(userWdLoginReq.getPassword()));
+			AdminUser user = new AdminUser();
+			user = ManagerUtils.getAdminUser();
+			ThreadContextHolder.getCacheSessionContext(
+					userWdLoginReq.getUserSessionId()).setAttribute(
+					"admin_user_key", user);
+			userWdLoginResp.setAdminUser(user);
+			userWdLoginResp.setError_code(ConstsCore.ERROR_SUCC);
+		} catch (Exception e) {
+			e.printStackTrace();
+			userWdLoginResp.setError_code(ConstsCore.ERROR_FAIL);
+			userWdLoginResp.setError_msg("操作失败：" + e.getMessage());
+		}
+		userWdLoginResp.setUserSessionId(userWdLoginReq.getUserSessionId());
+		addReturn(userWdLoginReq, userWdLoginResp);
+		return userWdLoginResp;
+	}
+
+	/**
+	 * 根据用户名称登录。
+	 * 
+	 * @param req
+	 * @return
+	 */
+	public UserWdLoginResp userWdLoginSSO(PartnerSSOReq req) {
+		String username = req.getUser_id();
+		String sql = "select * from adminuser where username=? and state='1' and source_from is not null"; // 查询有效的
+		List<AdminUser> userList = this.baseDaoSupport.queryForList(sql,
+				AdminUser.class, username);
+		if (userList == null || userList.size() == 0) {
+			String msg = "用户名或密码错误！";
+			sql = "select * from adminuser where username=? and state='0' and source_from is not null"; // 查询注销的
+			userList = this.baseDaoSupport.queryForList(sql,AdminUser.class, username);
+			if (userList != null && userList.size() > 0) {
+				msg = "此用户名已被注销！";
+			}
+			throw new RuntimeException(msg);
+		}
+
+		AdminUser adminuser = userList.get(0);
+		UserWdLoginResp userWdLoginResp = new UserWdLoginResp();
+		try {
+			this.adminUserManager.loginBySys(req.getUser_id(),
+					adminuser.getPassword());
+			AdminUser user = new AdminUser();
+			user = ManagerUtils.getAdminUser();
+			ThreadContextHolder.getCacheSessionContext(req.getUserSessionId())
+					.setAttribute("admin_user_key", user);
+			userWdLoginResp.setAdminUser(user);
+			userWdLoginResp.setError_code(ConstsCore.ERROR_SUCC);
+		} catch (Exception e) {
+			e.printStackTrace();
+			userWdLoginResp.setError_code(ConstsCore.ERROR_FAIL);
+			userWdLoginResp.setError_msg("操作失败：" + e.getMessage());
+		}
+		userWdLoginResp.setUserSessionId(req.getUserSessionId());
+		addReturn(req, userWdLoginResp);
+		return userWdLoginResp;
+	}
+
+	public UserPasswordUpdateResp updateUserPassword(UserPasswordUpdateReq req) {
+		UserPasswordUpdateResp resp = this.adminUserManager
+				.updateUserPassword(req);
+		addReturn(req, resp);
+		return resp;
+	}
+
+	@Override
+	public PartnerLogOffResp partnerLogoff(PartnerLogOffReq req) {
+		PartnerLogOffResp resp = this.adminUserManager.partnerLogoff(req);
+		addReturn(req, resp);
+		return resp;
+	}
+
+	@Override
+	public Page qryUserPageByPojo(int pageNo, int pageSize, User pojo)
+			throws Exception {
+		return this.adminUserManager.qryUserPageByPojo(pageNo, pageSize, pojo);
+	}
+
+	@Override
+	public Page qryUserPageByPojo(int pageNo, int pageSize, User pojo,
+			List<SqlBuilderInterface> sqlBuild) throws Exception {
+		return this.adminUserManager.qryUserPageByPojo(pageNo, pageSize, pojo,sqlBuild);
+	}
+}

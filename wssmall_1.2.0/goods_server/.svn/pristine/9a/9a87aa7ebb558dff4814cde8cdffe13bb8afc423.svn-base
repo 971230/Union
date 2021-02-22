@@ -1,0 +1,140 @@
+package com.ztesoft.remote.service.impl;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import params.ZteRequest;
+import services.ServiceBase;
+import zte.params.order.req.OrderAddReq;
+import zte.params.order.resp.OrderAddResp;
+
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotation;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.eop.sdk.user.IUserService;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.remote.basic.inf.IChargeBasicService;
+import com.ztesoft.remote.basic.params.req.CardTrafficRequest;
+import com.ztesoft.remote.basic.params.req.ChargeFeeRequest;
+import com.ztesoft.remote.basic.params.req.ChargeFlowRequest;
+import com.ztesoft.remote.basic.params.req.ChargeWalletRequest;
+import com.ztesoft.remote.basic.params.req.LbsRechargeReq;
+import com.ztesoft.remote.basic.params.req.QuickChargeFeeRequest;
+import com.ztesoft.remote.basic.params.req.RechargeCardRequest;
+import com.ztesoft.remote.basic.params.resp.CardTrafficReponse;
+import com.ztesoft.remote.basic.params.resp.ChargeFeeResponse;
+import com.ztesoft.remote.basic.params.resp.ChargeFlowResponse;
+import com.ztesoft.remote.basic.params.resp.ChargeWalletResponse;
+import com.ztesoft.remote.basic.params.resp.LbsRechargeResp;
+import com.ztesoft.remote.basic.params.resp.QuickChargeFeeResponse;
+import com.ztesoft.remote.basic.params.resp.RechargeCardResponse;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+import commons.CommonTools;
+
+@ServiceMethodBean(version="1.0")
+public class ChargeBasicService extends ServiceBase implements IChargeBasicService {
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "metod", desc = "充值卡", summary = "充值卡")
+	public RechargeCardResponse cardRecharge(RechargeCardRequest request) {
+		// TODO Auto-generated method stub
+		return (RechargeCardResponse)this.getOrderResp(request).getZteResponse();
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "metod", desc = "流量卡", summary = "流量卡")
+	public CardTrafficReponse cardTraffic(CardTrafficRequest request) {
+		// TODO Auto-generated method stub
+		return (CardTrafficReponse)this.getOrderResp(request).getZteResponse();
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "metod", desc = "充话费、充钱包", summary = "充钱包")
+	public ChargeFeeResponse chargeFee(ChargeFeeRequest request) {
+		
+		return (ChargeFeeResponse)this.getOrderResp(request).getZteResponse();
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "metod", desc = "充流量", summary = "充流量")
+	public ChargeFlowResponse chargeFlow(ChargeFlowRequest request) {
+		// TODO Auto-generated method stub
+		return (ChargeFlowResponse)this.getOrderResp(request).getZteResponse();
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "metod", desc = "充钱包", summary = "充钱包")
+	public ChargeWalletResponse chargeWallet(ChargeWalletRequest request) {
+		// TODO Auto-generated method stub
+		return (ChargeWalletResponse)this.getOrderResp(request).getZteResponse();
+	}
+	
+	@Override
+	@ZteSoftCommentAnnotation(type = "metod", desc = "LBS充值接口", summary = "LBS充值接口")
+	public LbsRechargeResp lbsRecharge(LbsRechargeReq request) {
+		// TODO Auto-generated method stub
+		return (LbsRechargeResp)this.getOrderResp(request).getZteResponse();
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "metod", desc = "缴费充值快捷", summary = "缴费充值快捷")
+	public QuickChargeFeeResponse quickChargeFee(QuickChargeFeeRequest request) {
+		// TODO Auto-generated method stub
+		return (QuickChargeFeeResponse)this.getOrderResp(request).getZteResponse();
+	}
+	
+	/**
+	 * 调用订单规则
+	 * @param request
+	 * @return
+	 */
+	private OrderAddResp getOrderResp(ZteRequest request){
+		
+		OrderAddReq orderAddReq = new OrderAddReq();
+		OrderAddResp resp = new OrderAddResp();
+		List<Map> paramsl =new ArrayList<Map>();
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		try{
+			
+			Class reqClass = request.getClass();
+			Method reqProduct = reqClass.getMethod("getProduct_id");
+			String product_id = (String)reqProduct.invoke(request);
+			
+			String userSessionId = request.getUserSessionId();
+			Member member = (Member)ThreadContextHolder.getCacheSessionContext(userSessionId).getAttribute(IUserService.CURRENT_MEMBER_KEY);
+			map.put("product_id", product_id); //所定义的充值商品
+			map.put("app_code", request.getAppKey());
+			if(null != member)
+				map.put("member_id", member.getMember_id());
+			
+			try{
+				if(null != reqClass.getDeclaredMethod("getChargeMoney")){
+					map.put("p_order_amount", reqClass.getDeclaredMethod("getChargeMoney").invoke(request));
+				}
+			}catch(Exception e){}
+			
+			paramsl.add(map);
+			
+			Method reqCode = reqClass.getMethod("getService_code");
+			String service_code = (String)reqCode.invoke(request);
+			orderAddReq.setService_code(service_code);			//所定义的编码 es_service_offer表
+			
+			orderAddReq.setParamsl(paramsl);
+			orderAddReq.setZteRequest(request);
+			ZteClient zteClient = ClientFactory.getZteDubboClient(request.getSourceFrom() == null ? ManagerUtils.getSourceFrom() : request.getSourceFrom());
+			resp = zteClient.execute(orderAddReq, OrderAddResp.class);
+			
+		}catch(Exception e){
+			
+			e.printStackTrace();
+		}
+		return resp;
+	}
+}

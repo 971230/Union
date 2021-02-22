@@ -1,0 +1,40 @@
+package params.resp;
+
+import java.util.List;
+import params.ZteResponse;
+import zte.net.ecsord.params.sf.vo.Route;
+
+public class OperationRecordResp extends ZteResponse{
+	
+	private List<Route> operationRecordList;//operationTime：操作时间,operationType：操作类型，operationInfo：操作信息,operator：操作人
+
+	private String sign_status;//物流状态
+	
+	private String logi_no;//快递单号
+	
+	public List<Route> getOperationRecordList() {
+		return operationRecordList;
+	}
+
+	public void setOperationRecordList(List<Route> operationRecordList) {
+		this.operationRecordList = operationRecordList;
+	}
+
+	public String getLogi_no() {
+		return logi_no;
+	}
+
+	public void setLogi_no(String logi_no) {
+		this.logi_no = logi_no;
+	}
+
+	public String getSign_status() {
+		return sign_status;
+	}
+
+	public void setSign_status(String sign_status) {
+		this.sign_status = sign_status;
+	}
+
+	
+}

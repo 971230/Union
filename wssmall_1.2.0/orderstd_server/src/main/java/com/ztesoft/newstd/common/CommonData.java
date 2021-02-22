@@ -1,0 +1,502 @@
+package com.ztesoft.newstd.common;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.collections.MapUtils;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.MemberBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderDeliveryItemBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderExtvlBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.utils.SpecUtils;
+
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.mall.core.model.Goods;
+
+public class CommonData {
+	// 订单树
+	private OrderTreeBusiRequest orderTreeBusiRequest = new OrderTreeBusiRequest();
+	// 会员表
+	private MemberBusiRequest memberBusiRequest = new MemberBusiRequest();
+	// //订单主表
+	// private OrderBusiRequest orderBusiRequest = new OrderBusiRequest();
+	// //订单扩展表
+	// private OrderExtBusiRequest orderExtBusiRequest = new
+	// OrderExtBusiRequest();
+	// //支付信息
+	// private OrderPayBusiRequest orderPayBusiRequest =null;
+	// //订单物流信息
+	// private OrderDeliveryBusiRequest orderDeliveryBusiRequest = new
+	// OrderDeliveryBusiRequest();
+	//
+	// //订单项
+	// private List<OrderItemBusiRequest> orderItemBusiRequests = new
+	// ArrayList<OrderItemBusiRequest>();
+	// //订单项扩展表
+	// private List<OrderItemExtBusiRequest> orderItemExtBusiRequests = new
+	// ArrayList<OrderItemExtBusiRequest>();
+	// //订单项货品信息
+	// private List<OrderItemProdBusiRequest> orderItemProdBusiRequests = new
+	// ArrayList<OrderItemProdBusiRequest>();
+	// //订单项货品扩展信息
+	// private List<OrderItemProdExtBusiRequest> orderItemProdExtBusiRequests =
+	// new ArrayList<OrderItemProdExtBusiRequest>();
+	// 订单项物流信息
+	private List<OrderDeliveryItemBusiRequest> orderDeliveryItemBusiRequests = new ArrayList<OrderDeliveryItemBusiRequest>();
+	//
+	// /**------------------------------属性处理器相关表-----------------------------------**/
+	// 订单属性纵表打横表
+	private OrderExtvlBusiRequest orderExtvlBusiRequest = new OrderExtvlBusiRequest();
+	// //赠品表
+	// private List<AttrGiftInfoBusiRequest> attrGiftInfoBusiRequests = new
+	// ArrayList<AttrGiftInfoBusiRequest>();
+	// //赠品属性表
+	// private List<AttrGiftParamBusiRequest> attrGiftParamBusiRequests = new
+	// ArrayList<AttrGiftParamBusiRequest>();
+	// //Sp产品信息
+	// private OrderSpProductBusiRequest orderSpProductBusiRequest = null;
+	// //附加产品
+	// private OrderSubProductBusiRequest orderSubProductBusiRequest = null;
+	// //附加产品可选包
+	// private AttrPackageSubProdBusiRequest attrPackageSubProdBusiRequest =
+	// null;
+	// //折扣信息表
+	// private AttrDiscountInfoBusiRequest attrDiscountInfoBusiRequest = null;
+	// //费用明细信息
+	// private List<AttrFeeInfoBusiRequest> attrFeeInfoBusiRequests = new
+	// ArrayList<AttrFeeInfoBusiRequest>();
+	// //总部可选包，新商城可选包信息
+	// private List<AttrPackageBusiRequest> attrPackageBusiRequests = new
+	// ArrayList<AttrPackageBusiRequest>();
+	// //终端资源信息
+	// private AttrTmResourceInfoBusiRequest attrTmResourceInfoBusiRequest =
+	// null;
+	// //华盛订单信息表
+	// private List<HuashengOrderBusiRequest> huashengOrderBusiRequests = new
+	// ArrayList<HuashengOrderBusiRequest>();
+	// //华盛订单
+	// private List<HuashengOrderItemBusiRequest> huashengOrderItemBusiRequests
+	// = new ArrayList<HuashengOrderItemBusiRequest>();
+	// //订单商品单受理单打印表
+	// private OrderItemsAptPrintsBusiRequest orderItemsAptPrintsBusiRequest=
+	// null;
+	// //订单号码表
+	// private OrderPhoneInfoBusiRequest orderPhoneInfoBusiRequest = null;
+	// //集客业务专属信息节点表
+	// private OrderSubOtherInfoBusiRequest orderSubOtherInfoBusiRequest = null;
+	// //温大子产品表
+	// private List<OrderSubProdInfoBusiRequest> orderSubProdInfoBusiRequests =
+	// new ArrayList<OrderSubProdInfoBusiRequest>();
+	// //宽带信息表
+	// private OrderAdslBusiRequest orderAdslBusiRequest = null;
+
+	// 是否总部订单
+	String isTbOrder = "";// 是否淘宝订单
+	String isZbOrder = "";// 是否总部订单
+	Map goodsSpec = null;// 商品规格
+	List<Goods> products = new ArrayList<Goods>();// 产品
+	Map terMinalSpec = null;// 10000 手机
+	Map contactSpec = null;// 10001 合约
+	Map offerSpec = null;// 10002 套餐
+	Map adjunctSpec = null;// 10006 配件
+	Map liPinSpec = null;// 10007 礼品
+
+	String sourceFrom = "";
+
+	// 订单树入库
+//	@Transactional(propagation = Propagation.REQUIRED)
+//	public void insertNoCache() {
+//		Long time1 = System.currentTimeMillis();
+//		IBusiManager busiManager = SpringContextHolder.getBean("busiManager");
+//		if (busiManager != null) {
+//			busiManager.insertZteRequestInst(orderTreeBusiRequest);
+//			for (OrderDeliveryItemBusiRequest orderDeliveryItemBusiRequest : orderDeliveryItemBusiRequests) {
+//				busiManager.insertZteRequestInst(orderDeliveryItemBusiRequest);
+//			}
+//			if (orderExtvlBusiRequest != null)
+//				busiManager.insertZteRequestInst(orderExtvlBusiRequest);
+//		}
+//		Long time2 = System.currentTimeMillis();
+//		logger.info(Thread.currentThread().getId() + "=======================订单对象入库耗时:" + (time2 - time1)
+//				+ "====开始时间" + time1 + "结束时间" + time2);
+//	}
+
+	public static CommonData getData() {
+		CommonData currentCommonData = CommonContext.getData();
+		// 没有commondata，新建一个
+		if (currentCommonData == null) {
+			CommonData commonData = new CommonData();
+			CommonContext.setData(commonData);
+			return commonData;
+		}
+		return currentCommonData;
+	}
+
+	public void removeData() {
+		CommonContext.removeData();
+	}
+
+	// public List<OrderItemProdBusiRequest> getOrderItemProdBusiRequests() {
+	// return orderItemProdBusiRequests;
+	// }
+	//
+	// public void setOrderItemProdBusiRequests(List<OrderItemProdBusiRequest>
+	// orderItemProdBusiRequests) {
+	// this.orderItemProdBusiRequests = orderItemProdBusiRequests;
+	// }
+	//
+	// public List<OrderItemProdExtBusiRequest>
+	// getOrderItemProdExtBusiRequests() {
+	// return orderItemProdExtBusiRequests;
+	// }
+	//
+	// public void
+	// setOrderItemProdExtBusiRequests(List<OrderItemProdExtBusiRequest>
+	// orderItemProdExtBusiRequests) {
+	// this.orderItemProdExtBusiRequests = orderItemProdExtBusiRequests;
+	// }
+	//
+	// public List<OrderItemBusiRequest> getOrderItemBusiRequests() {
+	// return orderItemBusiRequests;
+	// }
+	//
+	//
+	// public void setOrderItemBusiRequests(List<OrderItemBusiRequest>
+	// orderItemBusiRequests) {
+	// this.orderItemBusiRequests = orderItemBusiRequests;
+	// }
+	//
+	//
+	// public OrderExtBusiRequest getOrderExtBusiRequest() {
+	// return orderExtBusiRequest;
+	// }
+	//
+	//
+	// public void setOrderExtBusiRequest(OrderExtBusiRequest
+	// orderExtBusiRequest) {
+	// this.orderExtBusiRequest = orderExtBusiRequest;
+	// }
+
+	public OrderTreeBusiRequest getOrderTreeBusiRequest() {
+		return orderTreeBusiRequest;
+	}
+
+	public void setOrderTreeBusiRequest(OrderTreeBusiRequest orderTreeBusiRequest) {
+		this.orderTreeBusiRequest = orderTreeBusiRequest;
+	}
+
+	// public OrderBusiRequest getOrderBusiRequest() {
+	// return orderBusiRequest;
+	// }
+	//
+	// public void setOrderBusiRequest(OrderBusiRequest orderBusiRequest) {
+	// this.orderBusiRequest = orderBusiRequest;
+	// }
+	//
+	// public OrderPayBusiRequest getOrderPayBusiRequest() {
+	// return orderPayBusiRequest;
+	// }
+	//
+	// public void setOrderPayBusiRequest(OrderPayBusiRequest
+	// orderPayBusiRequest) {
+	// this.orderPayBusiRequest = orderPayBusiRequest;
+	// }
+	//
+	// public OrderDeliveryBusiRequest getOrderDeliveryBusiRequest() {
+	// return orderDeliveryBusiRequest;
+	// }
+	//
+	// public void setOrderDeliveryBusiRequest(OrderDeliveryBusiRequest
+	// orderDeliveryBusiRequest) {
+	// this.orderDeliveryBusiRequest = orderDeliveryBusiRequest;
+	// }
+	//
+	// public List<OrderItemExtBusiRequest> getOrderItemExtBusiRequests() {
+	// return orderItemExtBusiRequests;
+	// }
+	//
+	// public void setOrderItemExtBusiRequests(List<OrderItemExtBusiRequest>
+	// orderItemExtBusiRequests) {
+	// this.orderItemExtBusiRequests = orderItemExtBusiRequests;
+	// }
+	//
+	public List<OrderDeliveryItemBusiRequest> getOrderDeliveryItemBusiRequests() {
+		return orderDeliveryItemBusiRequests;
+	}
+
+	public void setOrderDeliveryItemBusiRequests(List<OrderDeliveryItemBusiRequest> orderDeliveryItemBusiRequests) {
+		this.orderDeliveryItemBusiRequests = orderDeliveryItemBusiRequests;
+	}
+
+	//
+	public OrderExtvlBusiRequest getOrderExtvlBusiRequest() {
+		return orderExtvlBusiRequest;
+	}
+
+	public void setOrderExtvlBusiRequest(OrderExtvlBusiRequest orderExtvlBusiRequest) {
+		this.orderExtvlBusiRequest = orderExtvlBusiRequest;
+	}
+
+	//
+	// public List<AttrGiftInfoBusiRequest> getAttrGiftInfoBusiRequests() {
+	// return attrGiftInfoBusiRequests;
+	// }
+	//
+	// public void setAttrGiftInfoBusiRequests(List<AttrGiftInfoBusiRequest>
+	// attrGiftInfoBusiRequests) {
+	// this.attrGiftInfoBusiRequests = attrGiftInfoBusiRequests;
+	// }
+	//
+	// public AttrDiscountInfoBusiRequest getAttrDiscountInfoBusiRequest() {
+	// return attrDiscountInfoBusiRequest;
+	// }
+	//
+	// public void setAttrDiscountInfoBusiRequest(AttrDiscountInfoBusiRequest
+	// attrDiscountInfoBusiRequest) {
+	// this.attrDiscountInfoBusiRequest = attrDiscountInfoBusiRequest;
+	// }
+	//
+	//
+	// public List<AttrPackageBusiRequest> getAttrPackageBusiRequests() {
+	// return attrPackageBusiRequests;
+	// }
+	//
+	// public void setAttrPackageBusiRequests(List<AttrPackageBusiRequest>
+	// attrPackageBusiRequests) {
+	// this.attrPackageBusiRequests = attrPackageBusiRequests;
+	// }
+	//
+	// public AttrTmResourceInfoBusiRequest getAttrTmResourceInfoBusiRequest() {
+	// return attrTmResourceInfoBusiRequest;
+	// }
+	//
+	// public void
+	// setAttrTmResourceInfoBusiRequest(AttrTmResourceInfoBusiRequest
+	// attrTmResourceInfoBusiRequest) {
+	// this.attrTmResourceInfoBusiRequest = attrTmResourceInfoBusiRequest;
+	// }
+	//
+	//
+	// public List<HuashengOrderBusiRequest> getHuashengOrderBusiRequests() {
+	// return huashengOrderBusiRequests;
+	// }
+	//
+	// public void setHuashengOrderBusiRequests(List<HuashengOrderBusiRequest>
+	// huashengOrderBusiRequests) {
+	// this.huashengOrderBusiRequests = huashengOrderBusiRequests;
+	// }
+	//
+	// public List<HuashengOrderItemBusiRequest>
+	// getHuashengOrderItemBusiRequests() {
+	// return huashengOrderItemBusiRequests;
+	// }
+	//
+	// public void
+	// setHuashengOrderItemBusiRequests(List<HuashengOrderItemBusiRequest>
+	// huashengOrderItemBusiRequests) {
+	// this.huashengOrderItemBusiRequests = huashengOrderItemBusiRequests;
+	// }
+	//
+	// public OrderItemsAptPrintsBusiRequest getOrderItemsAptPrintsBusiRequest()
+	// {
+	// return orderItemsAptPrintsBusiRequest;
+	// }
+	//
+	// public void
+	// setOrderItemsAptPrintsBusiRequest(OrderItemsAptPrintsBusiRequest
+	// orderItemsAptPrintsBusiRequest) {
+	// this.orderItemsAptPrintsBusiRequest = orderItemsAptPrintsBusiRequest;
+	// }
+	//
+	// public OrderPhoneInfoBusiRequest getOrderPhoneInfoBusiRequest() {
+	// return orderPhoneInfoBusiRequest;
+	// }
+	//
+	// public void setOrderPhoneInfoBusiRequest(OrderPhoneInfoBusiRequest
+	// orderPhoneInfoBusiRequest) {
+	// this.orderPhoneInfoBusiRequest = orderPhoneInfoBusiRequest;
+	// }
+	//
+	// public OrderSubOtherInfoBusiRequest getOrderSubOtherInfoBusiRequest() {
+	// return orderSubOtherInfoBusiRequest;
+	// }
+	//
+	// public void setOrderSubOtherInfoBusiRequest(OrderSubOtherInfoBusiRequest
+	// orderSubOtherInfoBusiRequest) {
+	// this.orderSubOtherInfoBusiRequest = orderSubOtherInfoBusiRequest;
+	// }
+	//
+	//
+	// public List<OrderSubProdInfoBusiRequest>
+	// getOrderSubProdInfoBusiRequests() {
+	// return orderSubProdInfoBusiRequests;
+	// }
+	//
+	// public void
+	// setOrderSubProdInfoBusiRequests(List<OrderSubProdInfoBusiRequest>
+	// orderSubProdInfoBusiRequests) {
+	// this.orderSubProdInfoBusiRequests = orderSubProdInfoBusiRequests;
+	// }
+	//
+	// public OrderAdslBusiRequest getOrderAdslBusiRequest() {
+	// return orderAdslBusiRequest;
+	// }
+	//
+	// public void setOrderAdslBusiRequest(OrderAdslBusiRequest
+	// orderAdslBusiRequest) {
+	// this.orderAdslBusiRequest = orderAdslBusiRequest;
+	// }
+	//
+	// public List<AttrFeeInfoBusiRequest> getAttrFeeInfoBusiRequests() {
+	// return attrFeeInfoBusiRequests;
+	// }
+	//
+	// public void setAttrFeeInfoBusiRequests(List<AttrFeeInfoBusiRequest>
+	// attrFeeInfoBusiRequests) {
+	// this.attrFeeInfoBusiRequests = attrFeeInfoBusiRequests;
+	// }
+	//
+	// public List<AttrGiftParamBusiRequest> getAttrGiftParamBusiRequests() {
+	// return attrGiftParamBusiRequests;
+	// }
+	//
+	// public void setAttrGiftParamBusiRequests(List<AttrGiftParamBusiRequest>
+	// attrGiftParamBusiRequests) {
+	// this.attrGiftParamBusiRequests = attrGiftParamBusiRequests;
+	// }
+	//
+	// public OrderSpProductBusiRequest getOrderSpProductBusiRequest() {
+	// return orderSpProductBusiRequest;
+	// }
+	//
+	// public void setOrderSpProductBusiRequest(OrderSpProductBusiRequest
+	// orderSpProductBusiRequest) {
+	// this.orderSpProductBusiRequest = orderSpProductBusiRequest;
+	// }
+	//
+	// public OrderSubProductBusiRequest getOrderSubProductBusiRequest() {
+	// return orderSubProductBusiRequest;
+	// }
+	//
+	// public void setOrderSubProductBusiRequest(OrderSubProductBusiRequest
+	// orderSubProductBusiRequest) {
+	// this.orderSubProductBusiRequest = orderSubProductBusiRequest;
+	// }
+	//
+	// public AttrPackageSubProdBusiRequest getAttrPackageSubProdBusiRequest() {
+	// return attrPackageSubProdBusiRequest;
+	// }
+	//
+	// public void
+	// setAttrPackageSubProdBusiRequest(AttrPackageSubProdBusiRequest
+	// attrPackageSubProdBusiRequest) {
+	// this.attrPackageSubProdBusiRequest = attrPackageSubProdBusiRequest;
+	// }
+	//
+	public String getIsTbOrder() {
+		if (StringUtils.isEmpty(isTbOrder)) {
+			String order_from = orderTreeBusiRequest.getOrderExtBusiRequest().getOrder_from();
+			isTbOrder = String.valueOf(CommonDataFactory.getInstance().isTbOrder(order_from));
+		}
+		return isTbOrder;
+	}
+
+	public void setIsTbOrder(String isTbOrder) {
+		this.isTbOrder = isTbOrder;
+	}
+
+	public String getIsZbOrder() {
+		if(StringUtils.isEmpty(isZbOrder)) {
+			String play_type = orderTreeBusiRequest.getOrderExtBusiRequest().getPlat_type();
+			isZbOrder = String.valueOf(CommonDataFactory.getInstance().isTbOrder(play_type));
+		}
+		return isZbOrder;
+	}
+
+	public void setIsZbOrder(String isZbOrder) {
+		this.isZbOrder = isZbOrder;
+	}
+
+	public Map getGoodsSpec() {
+		  if(MapUtils.isEmpty(goodsSpec)) {
+	        	goodsSpec =CommonDataFactory.getInstance().getGoodsSpecMap(null, orderTreeBusiRequest.getOrderBusiRequest().getGoods_id());
+	        	CommonData.getData().setGoodsSpec(goodsSpec);
+	        }
+		return goodsSpec;
+	}
+
+	public void setGoodsSpec(Map goodsSpec) {
+		this.goodsSpec = goodsSpec;
+	}
+
+	public List<Goods> getProducts() {
+		if (ListUtil.isEmpty(products)) {
+			products = SpecUtils.getAllOrderProductsByGoodsId(orderTreeBusiRequest.getOrderBusiRequest().getGoods_id());
+		}
+		return products;
+	}
+
+	public void setProducts(List<Goods> products) {
+		this.products = products;
+	}
+
+	public Map getTerMinalSpec() {
+		return terMinalSpec;
+	}
+
+	public void setTerMinalSpec(Map terMinalSpec) {
+		this.terMinalSpec = terMinalSpec;
+	}
+
+	public Map getContactSpec() {
+		return contactSpec;
+	}
+
+	public void setContactSpec(Map contactSpec) {
+		this.contactSpec = contactSpec;
+	}
+
+	public Map getOfferSpec() {
+		return offerSpec;
+	}
+
+	public void setOfferSpec(Map offerSpec) {
+		this.offerSpec = offerSpec;
+	}
+
+	public Map getLiPinSpec() {
+		return liPinSpec;
+	}
+
+	public void setLiPinSpec(Map liPinSpec) {
+		this.liPinSpec = liPinSpec;
+	}
+
+	public String getSourceFrom() {
+		return sourceFrom;
+	}
+
+	public void setSourceFrom(String sourceFrom) {
+		this.sourceFrom = sourceFrom;
+	}
+
+	public Map getAdjunctSpec() {
+		return adjunctSpec;
+	}
+
+	public void setAdjunctSpec(Map adjunctSpec) {
+		this.adjunctSpec = adjunctSpec;
+	}
+
+	public MemberBusiRequest getMemberBusiRequest() {
+		return memberBusiRequest;
+	}
+
+	public void setMemberBusiRequest(MemberBusiRequest memberBusiRequest) {
+		this.memberBusiRequest = memberBusiRequest;
+	}
+
+}

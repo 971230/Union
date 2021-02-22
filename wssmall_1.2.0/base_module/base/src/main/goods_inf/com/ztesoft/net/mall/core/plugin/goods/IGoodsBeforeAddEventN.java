@@ -1,0 +1,26 @@
+package com.ztesoft.net.mall.core.plugin.goods;
+
+import java.util.Map;
+
+import com.ztesoft.net.mall.core.params.GoodsExtData;
+
+/**
+ * 商品添加前事件
+ * 
+ * @author zou.qh
+ * 
+ */
+public interface IGoodsBeforeAddEventN {
+
+	/**
+	 * 在商品数据入库之前激发此事件 <br/>为商品数据入库前提供更改、补充商品数据的机会。
+	 * 
+	 * @param goods
+	 *            商品数据
+	 * @param baseParam BaseParam对象，可通过此对象获取用户的输入数据
+	 * @throws GoodsRuntimeException
+	 *             事件如果抛出此异常，框架会处理此异常，中断商品的添加，并回滚之前的数据操作
+	 */
+	public void onBeforeGoodsAdd(Map goods, GoodsExtData goodsExtData);
+
+}

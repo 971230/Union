@@ -1,0 +1,128 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.SupplierStaff;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.service.ISupplierStaffManager;
+import com.ztesoft.net.mall.core.service.SupplierStatus;
+
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class SupplierStaffManager extends BaseSupport<SupplierStaff> implements
+		ISupplierStaffManager {
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void add(String account_number, String user_name, String sex,
+			String password, String phone, String email, String supplier_id,
+			String qq, String id_card) {
+		SupplierStaff supplierStaff = new SupplierStaff();
+		supplierStaff.setAccount_number(account_number);
+		supplierStaff.setUser_name(user_name);
+		supplierStaff.setPassword(password);
+		supplierStaff.setPhone(phone);
+		supplierStaff.setEmail(email);
+		supplierStaff.setSupplier_id(supplier_id);
+		supplierStaff.setQq(qq);
+		supplierStaff.setSex(sex);
+		supplierStaff.setId_card(id_card);
+		supplierStaff.setRegister_time(DBTUtil.current());
+		supplierStaff.setRecord_state(SupplierStatus.SUPPLIER_STATE_2);
+
+		this.daoSupport.insert("es_supplier_staff", supplierStaff);
+	}
+	
+	
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void update(String account_number, String user_name, String sex,
+			String password, String phone, String email, String staff_id,
+			String qq, String id_card) {
+		SupplierStaff supplierStaff = new SupplierStaff();
+		supplierStaff.setAccount_number(account_number);
+		supplierStaff.setUser_name(user_name);
+		supplierStaff.setPassword(password);
+		supplierStaff.setPhone(phone);
+		supplierStaff.setEmail(email);
+		supplierStaff.setQq(qq);
+		supplierStaff.setSex(sex);
+		supplierStaff.setId_card(id_card);
+		supplierStaff.setRegister_time(DBTUtil.current());
+		supplierStaff.setRecord_state(SupplierStatus.SUPPLIER_STATE_2);
+
+		Map where=new HashMap();
+		where.put("staff_id", staff_id);
+		this.daoSupport.update("es_supplier_staff", supplierStaff,where);
+	}
+	
+	
+	
+
+	@Override
+	public List list(String supplier_id) {
+		String sql = "select * from es_supplier_staff where supplier_id=? order by register_time asc ";
+		return this.baseDaoSupport.queryForList(sql, SupplierStaff.class,
+				supplier_id);
+	}
+
+	// 删除
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public int delete(String staff_id) {
+		if (staff_id == null || staff_id.equals("")) {
+			return 0;
+		} else {
+			String sql = "delete from es_supplier_staff where staff_id in ("
+					+ staff_id + ") ";
+			this.baseDaoSupport.execute(sql);
+			return 1;
+		}
+	}
+
+	@Override
+	public SupplierStaff findSupplierStaffById(String staff_id) {
+		String sql = "select * from es_supplier_staff where staff_id=? ";
+		return this.baseDaoSupport.queryForObject(sql, SupplierStaff.class,
+				staff_id);
+	}
+	
+	//查询账户是否存在
+	@Override
+	public boolean isStaffAccountNumberExits(String accountNumber) {
+		String sql = "select account_number from es_supplier_staff where account_number=? ";
+		List list = this.baseDaoSupport.queryForList(sql, accountNumber);
+		return list.size() > 0 ? true : false;
+	}
+
+	// 绑定员工工号
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void bindingstaff(String staff_id,String adminUserId) {
+
+		Map fields=new HashMap();
+		fields.put("userid", adminUserId);
+		
+		Map where=new HashMap();
+		where.put("staff_id", staff_id);
+		this.daoSupport.update("es_supplier_staff", fields,where);
+	}
+	
+	// 解绑员工工号
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void unbundlingstaff(String staff_id) {
+
+		Map fields=new HashMap();
+		fields.put("userid", "");
+		
+		Map where=new HashMap();
+		where.put("staff_id", staff_id);
+		this.daoSupport.update("es_supplier_staff", fields,where);
+	}
+}

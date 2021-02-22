@@ -1,0 +1,33 @@
+package com.ztesoft.net.mall.core.timer;
+
+import zte.net.iservice.IJobTaskService;
+import zte.params.req.JobTaskCheckedReq;
+import zte.params.resp.JobTaskCheckedResp;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+
+public class CheckTimerServer {
+	/**
+	 * 根据内网ip判断是否是可以执行定时任务的服务器
+	 * 
+	 * @returns
+	 */
+	public static boolean isMatchServer(String className, String method) {
+		IJobTaskService jobTaskService = SpringContextHolder.getBean("jobTaskService");
+		//配置定时任务启动参数，则按规则执行定时任务
+		JobTaskCheckedReq req = new JobTaskCheckedReq();
+		req.setClassName(className);
+		req.setMethod(method);
+		
+		JobTaskCheckedResp resp = jobTaskService.checkedJobTask(req);
+		if (!resp.isCanRun()) {
+			//数据库没配置，则按部署配置参数执行定时任务
+			String timerconfig = System.getProperty("TIMERCONFIG"); //add by wui
+			if(!StringUtil.isEmpty(timerconfig) && "yes".equals(timerconfig))
+				return true;
+			return false;
+		}
+		return true;
+	}
+}

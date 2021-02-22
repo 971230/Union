@@ -1,0 +1,301 @@
+package com.ztesoft.rule.core.util;
+
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.net.annotation.DroolsFact;
+import com.ztesoft.net.annotation.DroolsFactField;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.model.RuleObj;
+import com.ztesoft.net.mall.core.model.RuleObjAttr;
+import com.ztesoft.net.mall.core.service.IRuleConfigManager;
+
+/**
+ * drools fact 扫描 
+ * @作者 MoChunrun
+ * @创建日期 2014-3-4 
+ * @版本 V 1.0
+ */
+public class DroolsFactScanUtil {
+	private static Logger logger = Logger.getLogger(DroolsFactScanUtil.class);
+	/**
+	 * 所有fact对象必须放在com.ztesoft.net.rule下。可以新建package
+	 * fact对象需要写DroolsFact注解 fact对象属性需要写DroolsFactField
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-4
+	 */
+	public static int scanDroolsFact(String pack){
+		IRuleConfigManager manager = SpringContextHolder.getBean("ruleConfigManager");
+		Set<Class> set = getClasses(pack, DroolsFact.class, true);
+		for(Class clazz:set){
+			String clazzName = clazz.getName();
+			RuleObj obj = manager.queryRuleObjByClassName(clazzName);
+			boolean isNewObj = false;
+			//添中obj表
+			if(obj==null){
+				obj = packRuleObj(clazz);
+				manager.insertRuleObj(obj);
+				isNewObj = true;
+			}else{
+				String obj_id = obj.getObj_id();
+				obj = packRuleObj(clazz);
+				obj.setObj_id(obj_id);
+				manager.updateRuleObj(obj);
+				isNewObj = false;
+			}
+			//添加属性
+			List<RuleObjAttr> attrList = packObjAttr(clazz,obj.getObj_id());
+			if(isNewObj){
+				for(RuleObjAttr attr:attrList){
+					manager.insertRuleObjAttr(attr);
+				}
+			}else{
+				//删除已经被删除的属性？？？？？
+				String attrCodes = "";
+				for(RuleObjAttr attr:attrList){
+					attrCodes += "'"+attr.getAttr_code()+"',";
+				}
+				if(attrCodes.length()>1)
+					attrCodes = attrCodes.substring(0,attrCodes.length()-1);
+				manager.deleteOldAttrs(obj.getObj_id(), attrCodes);
+				for(RuleObjAttr attr:attrList){
+					RuleObjAttr oattr = manager.queryRuleObjAttrByObjIdAndAttrCode(attr.getObj_id(), attr.getAttr_code());
+					if(oattr==null){
+						manager.insertRuleObjAttr(attr);
+					}else{
+						attr.setAttr_id(oattr.getAttr_id());
+						manager.updateRuleObjAttr(attr);
+					}
+				}
+			}
+		}
+		return set.size();
+	}
+
+	/**
+	 * 封装对象属性
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-4 
+	 * @param clazz
+	 * @param obj_id
+	 * @return
+	 */
+	public static List<RuleObjAttr> packObjAttr(Class clazz,String obj_id){
+		Field [] fs = clazz.getDeclaredFields();
+		List<RuleObjAttr> list = new ArrayList<RuleObjAttr>();
+		for(Field f:fs){
+			DroolsFactField df = f.getAnnotation(DroolsFactField.class);
+			if(df!=null){
+				RuleObjAttr oa = new RuleObjAttr();
+				oa.setObj_id(obj_id);
+				oa.setAttr_name(df.name());
+				oa.setRemark(df.name());
+				oa.setAttr_code(f.getName());
+				oa.setAttr_type(df.type());
+				oa.setCreate_date("sysdate");
+				oa.setStatus_cd("00A");
+				oa.setStatus_date("sysdate");
+				oa.setEle_type(df.ele_type());
+				oa.setStype_code(df.stype_code());
+				list.add(oa);
+			}
+		}
+		return list;
+	}
+	
+	/**
+	 * 封装fact对象
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-4 
+	 * @param clazz
+	 * @return
+	 */
+	public static RuleObj packRuleObj(Class clazz){
+		DroolsFact fact = (DroolsFact) clazz.getAnnotation(DroolsFact.class);
+		if(fact!=null){
+			RuleObj obj = new RuleObj();
+			obj.setObj_code(fact.code());
+			obj.setObj_name(fact.name());
+			obj.setClazz(clazz.getName());
+			obj.setClass_name(clazz.getSimpleName());
+			obj.setCreate_date("sysdate");
+			obj.setStatus_date("sysdate");
+			obj.setStatus_cd("00A");
+			obj.setObj_type(fact.objType());
+			obj.setRemark(fact.name());
+			return obj;
+		}
+		return null;
+	}
+	
+	/** 
+     * 以文件的形式来获取包下的所有Class 
+     * @作者 MoChunrun
+     * @param packageName 
+     * @param packagePath 
+     * @param recursive 
+     * @param classes 
+     */  
+    public static void findAndAddClassesInPackageByFile(String packageName,  
+            String packagePath, final boolean recursive, Set<Class> classes,Class anntionClass) {  
+        // 获取此包的目录 建立一个File  
+        File dir = new File(packagePath);  
+        // 如果不存在或者 也不是目录就直接返回  
+        if (!dir.exists() || !dir.isDirectory()) {  
+            // log.warn("用户定义包名 " + packageName + " 下没有任何文件");  
+            return;  
+        }  
+        // 如果存在 就获取包下的所有文件 包括目录  
+        File[] dirfiles = dir.listFiles(new FileFilter() {  
+            // 自定义过滤规则 如果可以循环(包含子目录) 或则是以.class结尾的文件(编译好的java类文件)  
+            @Override
+			public boolean accept(File file) {  
+                return (recursive && file.isDirectory()) || (file.getName().endsWith(".class"));  
+            }  
+        });  
+        // 循环所有文件  
+        for (File file : dirfiles) {  
+            // 如果是目录 则继续扫描  
+            if (file.isDirectory()) {  
+                findAndAddClassesInPackageByFile(packageName + "." + file.getName(), file.getAbsolutePath(), recursive, classes,anntionClass);  
+            } else {  
+                // 如果是java类文件 去掉后面的.class 只留下类名  
+                String className = file.getName().substring(0,  
+                        file.getName().length() - 6);  
+                try {  
+                    // 添加到集合中去  
+                    //classes.add(Class.forName(packageName + '.' + className));  
+                     //这里用forName有一些不好，会触发static方法，没有使用classLoader的load干净  
+                	Class clazz = Thread.currentThread().getContextClassLoader().loadClass(packageName + '.' + className);
+                	//获取注解
+                	Annotation fact = clazz.getAnnotation(anntionClass);
+                	if(fact!=null)
+                		classes.add(clazz);    
+                } catch (Error e) {  
+                    e.printStackTrace();  
+                } catch (ClassNotFoundException e) {  
+                    e.printStackTrace();  
+                }  
+            }  
+        }  
+    } 
+    
+    /** 
+     * 从包package中获取所有的Class 
+     * @作者 MoChunrun
+     * @param pack 包路径
+     * @param recursive  是否循环迭代 
+     * @return 
+     */  
+    public static Set<Class> getClasses(String pack,Class anntionClass,boolean recursive) {  
+        // 第一个class类的集合  
+        Set<Class> classes = new LinkedHashSet<Class>();  
+        // 获取包的名字 并进行替换  
+        String packageName = pack;  
+        String packageDirName = packageName.replace('.', '/');  
+        // 定义一个枚举的集合 并进行循环来处理这个目录下的things  
+        Enumeration<URL> dirs;  
+        try {  
+            dirs = Thread.currentThread().getContextClassLoader().getResources(  
+                    packageDirName);  
+            // 循环迭代下去  
+            while (dirs.hasMoreElements()) {
+            	try{
+	                // 获取下一个元素  
+	                URL url = dirs.nextElement();  
+	                // 得到协议的名称  
+	                String protocol = url.getProtocol();  
+	                // 如果是以文件的形式保存在服务器上  
+	                if ("file".equals(protocol)) {  
+	                    System.err.println("file类型的扫描");  
+	                    // 获取包的物理路径  
+	                    String filePath = URLDecoder.decode(url.getFile(), "UTF-8");  
+	                    // 以文件的方式扫描整个包下的文件 并添加到集合中  
+	                    findAndAddClassesInPackageByFile(packageName, filePath,recursive, classes,anntionClass);  
+	                } else if ("jar".equals(protocol)) {  
+	                    // 如果是jar包文件  
+	                    // 定义一个JarFile  
+	                    System.err.println("jar类型的扫描");  
+	                    JarFile jar = ((JarURLConnection) url.openConnection()).getJarFile();  
+                        // 从此jar包 得到一个枚举类  
+                        Enumeration<JarEntry> entries = jar.entries();  
+                        // 同样的进行循环迭代  
+                        while (entries.hasMoreElements()) {  
+                            try{
+                            	// 获取jar里的一个实体 可以是目录 和一些jar包里的其他文件 如META-INF等文件  
+                                JarEntry entry = entries.nextElement();  
+                                String name = entry.getName();  
+                                // 如果是以/开头的  
+                                if (name.charAt(0) == '/') {  
+                                    // 获取后面的字符串  
+                                    name = name.substring(1);  
+                                }  
+                                // 如果前半部分和定义的包名相同  
+                                if (name.startsWith(packageDirName)) {  
+                                    int idx = name.lastIndexOf('/');  
+                                    // 如果以"/"结尾 是一个包  
+                                    if (idx != -1) {  
+                                        // 获取包名 把"/"替换成"."  
+                                        packageName = name.substring(0, idx)  
+                                                .replace('/', '.');  
+                                    }  
+                                    // 如果可以迭代下去 并且是一个包  
+                                    if ((idx != -1) || recursive) {  
+                                        // 如果是一个.class文件 而且不是目录  
+                                        if (name.endsWith(".class") && !entry.isDirectory()) {  
+                                            // 去掉后面的".class" 获取真正的类名  
+                                            String className = name.substring(packageName.length() + 1, name.length() - 6);  
+                                            // 添加到classes  
+                                            //classes.add(Class.forName(packageName + '.'+ className));  
+                                            try{
+                                            	Class clazz = Thread.currentThread().getContextClassLoader().loadClass(packageName + '.' + className);
+                                            	//获取注解
+                                            	Annotation fact = clazz.getAnnotation(anntionClass);
+                                            	if(fact!=null)
+                                            		classes.add(clazz); 
+                                            }catch(Error ex){
+                                            	ex.printStackTrace();
+                                            }
+                                        }
+                                    }  
+                                }
+                            }catch(Exception ex){
+                            	ex.printStackTrace();
+                            	continue ;
+                            }
+                        }  
+	                }  
+            	}catch(Exception ex){
+            		ex.printStackTrace();
+            		continue ;
+            	}
+            }  
+        } catch (IOException e) {  
+            e.printStackTrace();  
+        }  
+        return classes;  
+    }  
+	
+	public static void main(String[] args) {
+		//packRuleObj(OrderFact.class);
+		//packObjAttr(OrderFact.class,"111");
+		Set<Class> cs = getClasses("com",DroolsFact.class,true);
+		logger.info(cs.size());
+	}
+	
+}

@@ -1,0 +1,245 @@
+package com.ztesoft.net.mall.core.service;
+
+import java.util.List;
+
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.mall.core.model.Cart;
+import com.ztesoft.net.mall.core.model.Coupons;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.model.support.CartItem;
+import com.ztesoft.net.mall.core.model.support.OrderPrice;
+
+
+/**
+ * 购物车业务接口
+ * @author kingapex
+ * @see com.ztesoft.net.net.test.shop.cart.CartTest#testAdd
+ *2010-3-23下午03:26:12
+ */
+public interface ICartManager {
+	
+	/**
+	 * 添加一个购物项
+	 * @param cart
+	 * 
+	 */
+	public void add(Cart cart);
+	
+	
+	
+	
+	/**
+	 * 计算购物车中货物总数
+	 * @param sessionid
+	 * @return
+	 */
+	public Integer countItemNum(String sessionid);
+	
+	
+	
+	/**
+	 * 读取某用户的购物车中项列表
+	 * @param sessionid
+	 * @return
+	 */
+	public List listGoods(Member member,String sessionid,Coupons coupon);
+	
+	/**
+	 * 读取用户同一供货商的商品
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-15 
+	 * @param sessionid
+	 * @param staff_no
+	 * @return
+	 */
+	public List<CartItem> listGoods(Member member,String sessionid,String staff_no,Coupons coupon);
+	
+	/**
+	 * 秒杀价格计算
+	 * @param sessionid
+	 * @return
+	 */
+	public Double countLimitBuyTotal(String sessionid);
+	/**
+	 * 读取秒杀购物车
+	 * @param member
+	 * @param sessionid
+	 * @param staff_no
+	 * @return
+	 */
+	public List listLimitBuy(Member member,String sessionid, String staff_no);
+	
+	/**
+	 * 读取购物车中的赠品货物列表
+	 * @param sessionid
+	 * @return
+	 */
+	public List listGift(Member member,String sessionid);
+	
+	/**
+	 * 读取购物车中同一供货商的赠品货物列表
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-15 
+	 * @param sessionid
+	 * @param staff_no
+	 * @return
+	 */
+	public List listGift(Member member,String sessionid,String staff_no);
+	
+	
+	
+	/**
+	 * 读取购物车中捆绑促销的货物列 表
+	 * @param sessionid
+	 * @return
+	 */
+	public List listPgk(Member member,String sessionid);
+	
+	/**
+	 * 读取同一供货商物车中捆绑促销的货物列 表
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-15 
+	 * @param sessionid
+	 * @param staff_no
+	 * @return
+	 */
+	public List listPgk(Member member,String sessionid,String staff_no);
+	
+	/**
+	 * 读取团购列表
+	 * @param sessionid
+	 * @return
+	 */
+	public List listGroupBuy(String sessionid);
+	
+	/**
+	 * 读取同一供货商团购列表
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-15 
+	 * @param sessionid
+	 * @param staff_no
+	 * @return
+	 */
+	public List listGroupBuy(Member member,String sessionid,String staff_no);
+	
+	
+	/**
+	 * 清空某用户的购物车
+	 * @param sessionid
+	 */
+	public void  clean(String sessionid, boolean countChecked);
+	
+	/**
+	 * 清空下了单的购物车
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-15 
+	 * @param sessionid
+	 * @param countChecked
+	 * @param staff_no
+	 */
+	public void  clean(String sessionid, boolean countChecked,String productids);
+	
+	
+	public void clean(String sessionid,String userid,String siteid);
+	
+	/**
+	 * 更新购物数量
+	 * @param sessionid
+	 * @param cartid
+	 */
+	public void updateNum(String sessionid,Long cartid,Integer num);
+	
+	/**
+	 * 更新结算标识
+	 * @param sessionid
+	 * @param cartid
+	 */
+	public void updateCheckedFlag(String sessionid,Long cartid,Integer checkedFlag);
+	
+	
+	/**
+	 * 删除购物车中的一项
+	 * @param cartid
+	 */
+	public void delete(String sessionid,Long cartid);
+	public void deleteSelect(String sessionid,String cartids);
+	
+	/**
+	 * 计算购物商品货物总价(原始的，未处理优惠数据的)
+	 * @param sessionid
+	 * @return
+	 */
+	public Double countGoodsTotal(Member member,String sessionid, boolean countChecked);
+	
+	
+	/**
+	 * 计算捆绑商品总价格
+	 * @param sessionid
+	 * @return
+	 */
+	public Double countPgkTotal(String sessionid);
+	
+	
+	/**
+	 * 计算团购总价
+	 * @param sessionid
+	 * @return
+	 */
+	public Double countGroupBuyTotal(String sessionid);
+	
+	
+	/**
+	 * 计算购物真正结算价格<br>
+	 * 即应用了商品促销规则的价格后 
+	 * @param sessionid
+	 * @return
+	 */
+	public Double  countGoodsDiscountTotal(Member member,String sessionid, boolean countChecked);
+	
+	
+	/**
+	 * 计算购买商品重量，包括商品、捆绑商品、赠品
+	 * @param sessionid
+	 * @return
+	 */
+	public Double countGoodsWeight(String sessionid, boolean countChecked);
+	
+ 
+	/**
+	 * 计算购物车中货物的总积分
+	 * @param sessionid
+	 * @return
+	 */
+	public  Integer countPoint(String sessionid,boolean countChecked);
+	
+	/**
+	 * 计算购物车费用
+	 * @param sessionid
+	 * @param shippingid
+	 * @param regionid
+	 * @param isProtected
+	 * @return 订单价格
+	 */
+	public OrderPrice countPrice(Member member,String sessionid,String shippingid,String regionid,Boolean isProtected, Boolean countChecked,Coupons coupon);
+	//public OrderPrice countPrice(String sessionid,String shippingid,String regionid,Boolean isProtected, Boolean countChecked,Double orderCouponPrice);
+	
+	/**
+	 * 计算同一个供货商的购物车总价
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-14 
+	 * @param sessionid
+	 * @param shippingid
+	 * @param regionid
+	 * @param isProtected
+	 * @param countChecked
+	 * @param staff_no
+	 * @return
+	 */
+	public OrderPrice countPrice(OrderOuter cp,Member member,String sessionid,String shippingid,String regionid,Boolean isProtected, Boolean countChecked,String staff_no);
+	//public OrderPrice countPrice(String sessionid,String shippingid,String regionid,Boolean isProtected, Boolean countChecked,String staff_no,Double orderCouponPrice);
+	
+	public boolean hasMoreStaffNo(String sessionId);
+	
+	
+	
+}

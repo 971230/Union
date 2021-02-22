@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+	 <bean id="alarmAction" class="com.ztesoft.net.mall.core.action.backend.AlarmAction" scope="prototype"/> 
+	 <bean id="taskAction" class="com.ztesoft.net.mall.core.action.backend.TaskAction" scope="prototype"/>
+	 <bean id="importAction" class="com.ztesoft.net.mall.core.action.backend.ImportAction" scope="prototype"></bean>
+</beans>

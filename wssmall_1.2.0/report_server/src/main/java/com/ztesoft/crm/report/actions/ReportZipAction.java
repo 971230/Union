@@ -1,0 +1,26 @@
+/*    */ package com.ztesoft.crm.report.actions;
+/*    */ import com.ztesoft.crm.report.storage.StorageStreamFactory;
+/*    */ import java.io.OutputStream;
+/*    */ 
+/*    */ public class ReportZipAction extends AbstractAction
+/*    */ {
+/*    */   @Override
+protected void execute(OutputStream out, ParameterMap map)
+/*    */     throws Exception
+/*    */   {
+/*    */     try
+/*    */     {
+/* 27 */       StorageStreamFactory.createStream().zip(getContext(), 
+/* 28 */         getUrl().replaceAll("[.]zip", ""), out);
+/*    */     }
+/*    */     catch (Exception e) {
+/* 31 */       e.printStackTrace(System.out);
+/* 32 */       throw e;
+/*    */     }
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.actions.ReportZipAction
+ * JD-Core Version:    0.5.3
+ */

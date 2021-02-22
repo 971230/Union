@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<package name="struts-inventory" extends="shop_default" namespace="/shop/admin">
+		<action name="inventory" class="inventoryAction">
+			<result name="list">/shop/admin/inventory/list.jsp</result>
+			<result name="inventory_goods_edit">/shop/admin/inventory/inventory_goods_edit.jsp</result>
+			<result name="house_goods">/shop/admin/inventory/house_goods.jsp</result>
+			<result name="warehouse">/shop/admin/inventory/warhouselist.jsp</result>
+			<result name="goods_inventorylist">/shop/admin/inventory/goods_inventorylist.jsp</result>
+			<result name="house_inventory_info">/shop/admin/inventory/house_inventory_info.jsp</result>
+			<result name="inventoryconfirm">/shop/admin/inventory/inventoryconfirm.jsp</result>
+		</action>
+		
+		<action name="goodsUserAction" class ="goodsUserAction">
+		    <result name="goodsUser">goodsUser/goodsUser.jsp</result>
+		    <result name="goodsList">goodsUser/goodsList.jsp</result>
+		    <result name="groupList">goodsUser/groupList.jsp</result>
+		    <result name="userList">goodsUser/userList.jsp</result>
+		    <result name="goodsUserList">goodsUser/goodsUserList.jsp</result>
+		    <result name="editGoodsUser">goodsUser/editGoodsUser.jsp</result>
+		    <result name="ruleList">goodsUser/ruleList.jsp</result>
+		</action>
+		
+		<action name="goodsCache" class ="goodsCacheAction">
+			<result name="goodsCache">cache/goods_cache.jsp</result>
+			<result name="refreshGoods"></result>
+		</action>
+		
+		<action name="goodsOrg" class ="goodsOrgAction">
+			<result name="org_list">goods_org.jsp</result>
+			<result name="treeDialog">goods/goods_publish_dialog.jsp</result>
+			<result name="tree">goods/producto_publish_dialog.jsp</result>
+			<result name="goodsPubtree">goods/goods_pub_dialog.jsp</result>
+			<result name="salegoodsPubtree">goods/sale_goods_pub_dialog.jsp</result>
+			<result name="brandModelPubtree">goods/brand_model_pub_dialog.jsp</result>
+			<result name="productPubtree">goods/product_pub_dialog.jsp</result>
+		</action>
+		
+		<!-- 合约机配置 -->
+		<action name="contractConfig" class="contractConfigAction">
+			<result name="terminalList">
+			     /shop/admin/goods/contract_terminal_list.jsp
+			</result>
+			<result name="contractList">
+			     /shop/admin/goods/contract_list.jsp
+			</result>
+			<result name="offerList">
+			     /shop/admin/goods/contract_offer_list.jsp
+			</result>
+			<result name="cat_tree" type="freemarker">
+			     /shop/admin/goods/cat_tree.html
+			</result>
+			<result name="contract_machine_config">
+			     /shop/admin/goods/contract_machine_config.jsp
+			</result>
+		</action>
+		<!-- 红包规则 -->
+		<action name="promotionred" class="promotionRedAction">
+			<result name="red_package_list">activities/red_package_list.jsp</result>
+			<result name="red_package_add">activities/red_package_add.jsp</result>
+			<result name="red_package_view">activities/red_package_view.jsp</result>
+			<result name="red_package_edit">activities/red_package_edit.jsp</result>
+		</action>
+		
+	</package>
+	
+</struts>

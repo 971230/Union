@@ -1,0 +1,126 @@
+package com.ztesoft.remote.inf.impl;
+
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import services.ServiceBase;
+
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.cms.core.service.IDataCatManager;
+import com.ztesoft.net.cms.core.service.IDataManager;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.service.INoticeManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.remote.inf.INoticeService;
+import com.ztesoft.remote.params.notice.req.NoticeDetailReq;
+import com.ztesoft.remote.params.notice.req.NoticePageReq;
+import com.ztesoft.remote.params.notice.req.NoticeReq;
+import com.ztesoft.remote.params.notice.resp.NoticeDetailResp;
+import com.ztesoft.remote.params.notice.resp.NoticePageResp;
+import com.ztesoft.remote.params.notice.resp.NoticeResp;
+
+import commons.CommonTools;
+
+/**
+ * 公告文章分类service
+ * 
+ * @作者 wu.i
+ * @创建日期 2013-9-23
+ * @版本 V 1.0
+ * 
+ */
+@SuppressWarnings("unchecked")
+public class NoticeService extends ServiceBase implements INoticeService {
+
+	@Resource
+	private IDataManager dataManager;
+	
+	@Resource
+	private IDataCatManager dataCatManager;
+	
+	@Resource
+	private INoticeManager noticeManager;
+
+	/**
+	 * 展示咨询公告信息 catid=6
+	 * 
+	 * 展示帮助信息列表 catid=8
+	 */
+	@Override
+	public NoticeResp queryNotice(NoticeReq noticeReq) {
+
+		NoticeResp noticeResp = new NoticeResp();
+		String catid = noticeReq.getCatid();
+		String countStr = noticeReq.getCount();
+		String indesOfStr = noticeReq.getIndexof();
+		String term = noticeReq.getTerm();
+
+		String showchilds = null; // params.get("showchild");//是否显示子站数据 yes/no
+		boolean showchild = showchilds == null ? false : (showchilds.trim()
+				.toUpperCase().equals("YES"));
+
+		String orders = noticeReq.getOrders();
+
+		Integer count = StringUtil.isEmpty(countStr) ? 10 : Integer
+				.valueOf(countStr);
+		Integer indesOf = StringUtil.isEmpty(indesOfStr) ? 1 : Integer
+				.valueOf(indesOfStr);
+		Page webPage = dataManager.listAllN(catid, ManagerUtils.getSourceFrom(), term, orders, showchild, indesOf,
+				count);
+
+		noticeResp.setWebPage(webPage);
+		
+		noticeResp.setError_code("0");
+		noticeResp.setError_msg("成功");
+		this.addReturn(noticeReq, noticeResp);
+		return noticeResp;
+
+	}
+
+	/**
+	 * 
+	 * 获取公告、文章详情信息
+	 */
+	@Override
+	public NoticeDetailResp queryNoticeDetails(NoticeDetailReq noticeReq) {
+		NoticeDetailResp resp = new NoticeDetailResp();
+		/*
+		 * ========================== 读取文章信息 ==========================
+		 */
+		String articleid = noticeReq.getArticleid();
+		String catid = noticeReq.getCatid();
+		boolean isLogin = CommonTools.isLogin();
+		resp.setLogin(isLogin);
+		if (isLogin) {
+			Member member = UserServiceFactory.getUserService()
+					.getCurrentMember();
+			resp.setMember(member);
+		}
+		Map data = dataManager.get(articleid, catid, ManagerUtils.getSourceFrom(), true);
+		resp.setData(data);
+
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		this.addReturn(noticeReq, resp);
+		return resp;
+
+	}
+	
+	
+	@Override
+	public NoticePageResp listNotice(NoticePageReq noticePageReq){
+		
+		Page page = noticeManager.listNotice(noticePageReq.getTitle(),noticePageReq.getPageSize(),
+												noticePageReq.getPageNo());
+		
+		NoticePageResp noticePageResp = new NoticePageResp();
+		noticePageResp.setPage(page);
+		
+		addReturn(noticePageReq, noticePageResp);
+		return noticePageResp;
+	}
+
+}

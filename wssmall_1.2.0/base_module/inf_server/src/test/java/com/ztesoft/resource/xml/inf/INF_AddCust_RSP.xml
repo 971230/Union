@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<ContractRoot> 
+ 	<TcpCont> 
+ 	 	<TransactionID>1000000201201112041000000011</TransactionID> 
+ 	 	<ActionCode>1</ActionCode> 
+ 	 	<RspTime>20120109000009</RspTime> 
+ 	 	<Response> 
+ 	 	 	<RspType>0</RspType> 
+ 	 	 	<RspCode>0000</RspCode> 
+ 	 	</Response> 
+ 	</TcpCont> 
+ 	<SvcCont> 
+ 	 	<resultCode>0</resultCode> 
+ 	 	<resultMsg>新增客户成功</resultMsg> 
+ 	 	<errCode/> 
+ 	 	<result> 
+ 	 	 	<custNumber>1010000000840002</custNumber> 
+ 	 	</result> 
+ 	</SvcCont> 
+</ContractRoot> 

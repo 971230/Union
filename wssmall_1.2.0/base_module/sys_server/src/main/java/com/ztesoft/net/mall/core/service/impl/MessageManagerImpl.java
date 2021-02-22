@@ -1,0 +1,443 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.UserMsg;
+import com.ztesoft.net.app.base.core.service.auth.IAdminUserManager;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Message;
+import com.ztesoft.net.mall.core.model.MessageRel;
+import com.ztesoft.net.mall.core.service.MessageManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import java.util.List;
+
+import params.adminuser.req.MessageDetailReq;
+
+public class MessageManagerImpl extends BaseSupport implements
+        MessageManager {
+    private IAdminUserManager adminUserManager;
+
+    public IAdminUserManager getAdminUserManager() {
+        return adminUserManager;
+    }
+
+    public void setAdminUserManager(IAdminUserManager adminUserManager) {
+        this.adminUserManager = adminUserManager;
+    }
+
+    @Override
+    public void add(Message m) {
+
+//		ManagerUtils mu = new ManagerUtils();
+
+        AdminUser adminUser = ManagerUtils.getAdminUser();
+        String id = this.baseDaoSupport.getSequences("S_ES_USERMSG");
+
+        m.setM_senderid(adminUser.getUserid());
+        m.setM_sendername(adminUser.getRealname());
+        m.setM_sendertype(adminUser.getFounder());
+        m.setM_id(id);
+        m.setM_sendtime(DBTUtil.current());
+        this.baseDaoSupport.insert("es_usermsg", m);
+    }
+
+    @Override
+    public void delete(String[] ids, int num) {
+
+//		ManagerUtils mu = new ManagerUtils();
+        AdminUser adminUser = ManagerUtils.getAdminUser();
+        String curUser_id = adminUser.getUserid();
+        int founder = adminUser.getFounder();
+
+        if (num == Consts.reciverMessage_1) {
+            for (int i = 0; i < ids.length; i++) {
+                this.baseDaoSupport
+                        .execute(
+                                "update es_usermsg set m_reciverState=? where m_id=? and m_reciverid in(select m_reciverid from es_usermsg where m_reciverid =? or m_reciverid=?)",
+                                Consts.READ_STATE_2, ids[i], curUser_id,
+                                founder);
+            }
+        } else if (num == Consts.senderMessage_2) {
+            for (int i = 0; i < ids.length; i++) {
+                this.baseDaoSupport
+                        .execute(
+                                "update es_usermsg set m_senderState=?  where m_id=? and m_senderid=?",
+                                Consts.READ_STATE_1, ids[i], curUser_id);
+            }
+        }
+    }
+
+    @Override
+    public void edit(Message m) {
+        this.baseDaoSupport.update("usermsg", m, "m_id=" + m.getM_id());
+    }
+
+    @Override
+    public Page list(int num, int reciverState, int senderState, String topic,
+                     String starttime, String endtime, String type, int pageNo,
+                     int pageSize) {// num判断 1是收件箱，2是发件箱
+        String userId = ManagerUtils.getUserId();// 得到当前登陆用户的ID
+        StringBuffer sql = new StringBuffer();
+        StringBuffer countSql = new StringBuffer();
+        StringBuffer whereSql = new StringBuffer();
+        String userCreatetime = ManagerUtils.getAdminUser().getCreate_time().split(" ")[0];
+        
+        if (num == Consts.reciverMessage_1) {
+            countSql.append("select count(*) from es_usermsg a, es_usermsg_rel b where   " +
+            		"a.source_from = b.source_from and b.source_from = '" + ManagerUtils.getSourceFrom() 
+            		+ "' and  a.m_id in(select b.m_id from es_usermsg_rel where source_from = '" + ManagerUtils.getSourceFrom() + "' and b.userid=");
+            
+            sql.append("select a.*,b.state relState  from es_usermsg a, es_usermsg_rel b where  " +
+            		" a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + 
+            		"' and a.m_id in(select b.m_id from es_usermsg_rel where source_from = '" + ManagerUtils.getSourceFrom() + "' and b.userid=");
+            whereSql.append(ManagerUtils.getUserId());
+            whereSql.append(")");
+            whereSql.append(" and a.m_sendtime>=" + DBTUtil.to_date(userCreatetime, 1));
+            //whereSql.append(" and a.m_sendtime>= to_date('" + userCreatetime+ "','yyyy-mm-dd') ");
+
+            if (reciverState == Consts.READ_STATE_3) {
+                whereSql.append(" and b.state!=2");
+            } else {
+                whereSql.append(" and b.state=");
+                whereSql.append(reciverState);
+            }
+            whereSql.append(this.whereSql(topic, starttime, endtime, type));
+        }
+
+        if (num == Consts.senderMessage_2) {
+            sql.append("select ea.username username,a.* from es_usermsg A LEFT JOIN ES_ADMINUSER ea " +
+                    "ON a.m_reciverid = EA.USERID and a.source_from = ea.source_from  where a.source_from = '" + ManagerUtils.getSourceFrom() + "' and a.m_senderid=");
+            countSql.append("select count(1) from es_usermsg a,es_adminuser ea where a.source_from = ea.source_from and a.source_from = '" 
+                    		+ ManagerUtils.getSourceFrom() + "' and a.m_senderid=");
+            whereSql.append(userId);
+            //whereSql.append(" and a.m_reciverid = ea.userid(+)");
+            whereSql.append(" and a.m_senderstate=");
+            whereSql.append(senderState);
+            whereSql.append(this.whereSql(topic, starttime, endtime, type));
+        }
+
+        sql.append(whereSql);
+        countSql.append(whereSql);
+
+        return this.daoSupport.queryForCPage(sql.toString(), pageNo, pageSize, MessageRel.class, countSql.toString());
+    }
+    @Override
+    public Page list(int num,String user_id, int reciverState, int senderState, String topic,
+                     String starttime, String endtime, String type, int pageNo,
+                     int pageSize) {// num判断 1是收件箱，2是发件箱
+    	String userId ="";
+    	AdminUser user = ManagerUtils.getAdminUser();
+    	if(user_id!=null&&!"".equals(user_id)){
+    		userId = user_id;
+        }else{
+    	    userId = ManagerUtils.getUserId();// 得到当前登陆用户的ID
+        }
+
+    	
+        StringBuffer sql = new StringBuffer();
+        StringBuffer countSql = new StringBuffer();
+        StringBuffer whereSql = new StringBuffer();
+        String userCreatetime = user.getCreate_time().split(" ")[0];
+
+        if (num == Consts.reciverMessage_1) {
+            countSql.append("select count(*) from es_usermsg a, es_usermsg_rel b where   " +
+            		"a.source_from = b.source_from and b.source_from = '" + ManagerUtils.getSourceFrom() 
+            		+ "' and  a.m_id in(select b.m_id from es_usermsg_rel where source_from = '" + ManagerUtils.getSourceFrom() + "' and b.userid=");
+            
+            sql.append("select a.*,b.state relState  from es_usermsg a, es_usermsg_rel b where  " +
+            		" a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + 
+            		"' and a.m_id in(select b.m_id from es_usermsg_rel where source_from = '" + ManagerUtils.getSourceFrom() + "' and b.userid=");
+            whereSql.append(userId);
+            whereSql.append(")");
+            whereSql.append(" and a.m_sendtime>=" + DBTUtil.to_date(userCreatetime, 1));
+            whereSql.append(" and a.m_sendtime>= to_date('" + userCreatetime+ "','yyyy-mm-dd') ");
+
+            if (reciverState == Consts.READ_STATE_3) {
+                whereSql.append(" and b.state!=2");
+            } else {
+                whereSql.append(" and b.state=");
+                whereSql.append(reciverState);
+            }
+            whereSql.append(this.whereSql(topic, starttime, endtime, type));
+        }
+
+        if (num == Consts.senderMessage_2) {
+            sql.append("select ea.username username,a.* from es_usermsg A LEFT JOIN ES_ADMINUSER ea " +
+                    "ON a.m_reciverid = EA.USERID and a.source_from = ea.source_from  where a.source_from = '" + ManagerUtils.getSourceFrom() + "' and a.m_senderid=");
+            countSql.append("select count(1) from es_usermsg a,es_adminuser ea where a.source_from = ea.source_from and a.source_from = '" 
+                    		+ ManagerUtils.getSourceFrom() + "' and a.m_senderid=");
+            whereSql.append(userId);
+            //whereSql.append(" and a.m_reciverid = ea.userid(+)");
+            whereSql.append(" and a.m_senderstate=");
+            whereSql.append(senderState);
+            whereSql.append(this.whereSql(topic, starttime, endtime, type));
+        }
+
+        sql.append(whereSql);
+        countSql.append(whereSql);
+
+        return this.daoSupport.queryForCPage(sql.toString(), pageNo, pageSize, MessageRel.class, countSql.toString());
+    }
+    @Override
+    public void deleteAll() {
+
+    }
+
+    public String whereSql(String topic, String starttime, String endtime, String type) {
+        StringBuffer sql = new StringBuffer();
+        if (!StringUtil.isEmpty(topic)) {
+            sql.append(" and a.m_topic like '%");
+            sql.append(topic);
+            sql.append("%'");
+        }
+        if (!StringUtil.isEmpty(starttime)) {
+            //sql.append(" and a.m_sendtime >= to_date( '" + starttime + "' " + "||'00:00:00', 'yyyy-mm-dd hh24:mi:ss') ");
+            sql.append(" and a.m_sendtime >="+DBTUtil.to_date(starttime,2));
+        }
+        if (!StringUtil.isEmpty(endtime)) {
+            // sql.append(" and a.m_sendtime <= to_date( '" + endtime + "' " + "||'23:59:59', 'yyyy-mm-dd hh24:mi:ss') ");
+            sql.append(" and a.m_sendtime <="+DBTUtil.to_date(starttime,2));
+        }
+        if (!StringUtil.isEmpty(type) && !"0".equals(type)) {
+            sql.append(" and a.m_type like '%");
+            sql.append(type);
+            sql.append("%'");
+        }
+        sql.append(" order by a.m_sendtime desc");
+        return sql.toString();
+    }
+
+    @Override
+    public int getReciverType(String reciverId) {
+        int founder = 0;
+        if (Consts.CURR_FOUNDER_0.equals(reciverId)
+                || Consts.CURR_FOUNDER_1.equals(reciverId)
+                || Consts.CURR_FOUNDER_4.equals(reciverId)
+                || Consts.CURR_FOUNDER_5.equals(reciverId)) {
+            founder = Integer.parseInt(reciverId);
+        } else {
+            AdminUser adminUser = this.adminUserManager.get(reciverId);
+            founder = adminUser.getFounder();
+        }
+        return founder;
+    }
+
+    @Override
+    public Message getMsgById(String m_Id) {
+
+        Message m = (Message) this.baseDaoSupport.queryForObject(
+                "select * from es_usermsg where  m_id=?", Message.class, m_Id);
+
+        return m;
+    }
+
+	/*
+     * @Override public PaymentLog queryPaymentLogByOrderId(String
+	 * order_id,String pay_type) { PaymentLog payment = (PaymentLog) this.b
+	 * aseDaoSupport.queryForObject(" select * from es_payment_logs where
+	 * order_id = ? and type = ? and status ='1'",PaymentLog.class,
+	 * order_id,pay_type); return payment; }
+	 */
+
+    @Override
+    public void sendMessage(String content, String reciverId) {
+
+        Message m = new Message();
+        ManagerUtils mu = new ManagerUtils();
+        String name;
+        int reciverType;
+        AdminUser adminUser = ManagerUtils.getAdminUser();
+
+        String id = this.baseDaoSupport.getSequences("S_ES_USERMSG");
+        if (Consts.Message_reciver_0.equals(reciverId)) {
+            name = "所有电信员工";
+            reciverType = 0;
+        } else if (Consts.Message_reciver_1.equals(reciverId)) {
+            name = "所有超级管理员";
+            reciverType = 1;
+        }
+        if (Consts.Message_reciver_2.equals(reciverId)) {
+            name = "所有二级分销商";
+            reciverType = 2;
+        }
+        if (Consts.Message_reciver_3.equals(reciverId)) {
+            name = "所有一级分销商";
+            reciverType = 3;
+        } else {
+            name = adminUser.getRealname();
+            AdminUser reciverUser = adminUserManager.get(reciverId);
+            reciverType = reciverUser.getFounder();
+        }
+        m.setM_recivertype(reciverType);
+        m.setM_sendername(name);
+        m.setM_reciverid(reciverId);
+        m.setM_content(content);
+        m.setM_senderid(adminUser.getUserid());
+        m.setM_sendername(adminUser.getRealname());
+        m.setM_sendertype(adminUser.getFounder());
+        m.setM_id(id);
+        m.setM_sendtime(DBTUtil.current());
+        this.baseDaoSupport.insert("es_usermsg", m);
+    }
+
+    @Override
+    public int messageCount() {
+        String userCreatetime = ManagerUtils.getAdminUser().getCreate_time().split(" ")[0];
+        
+        String sql = "select count(*) from es_usermsg a, es_usermsg_rel b where" +
+        		" a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + 
+        		"' and a.m_id in(select b.m_id from es_usermsg_rel where b.userid=? and source_from = '" + ManagerUtils.getSourceFrom() + 
+        		"') and b.state!=? and a.m_sendtime>=" + DBTUtil.to_date(userCreatetime, 1);
+        
+        int messageCount = this.baseDaoSupport.queryForInt(sql, ManagerUtils.getUserId(), Consts.READ_STATE_2);
+        return messageCount;
+    }
+
+    @Override
+    public int noReadCount() {
+        String userCreatetime = ManagerUtils.getAdminUser().getCreate_time().split(" ")[0];
+        String sql = "select count(*) from es_usermsg a, es_usermsg_rel b where" +
+        		" a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + 
+        		"' and a.m_id in(select b.m_id from es_usermsg_rel where b.userid=? and source_from = '" + ManagerUtils.getSourceFrom() + 
+        		"') and b.state=? and a.m_sendtime>= " + DBTUtil.to_date(userCreatetime, 1);
+
+        int messageCount = this.baseDaoSupport.queryForInt(sql, ManagerUtils.getUserId(), Consts.READ_STATE_0);
+        return messageCount;
+    }
+
+    @Override
+    public void updateStateById(String m_id) {
+
+        this.baseDaoSupport.execute(
+                "update es_usermsg set m_reciverState=? where m_id=?",
+                Consts.READ_STATE_4, m_id);
+    }
+
+    @Override
+    public void insertMsgRef(String m_id, String userid, int state) {
+        this.baseDaoSupport.execute("insert into es_usermsg_rel(m_id,userid,state) values(?,?,?)", m_id, userid, state);
+
+    }
+
+    @Override
+    public void updateMsgRef(String m_id, String userid, int state) {
+        String sql = "update  es_usermsg_rel set state =? where m_id=? and userid=?";
+        this.baseDaoSupport.execute(sql, state, m_id, userid);
+    }
+
+    @Override//收件箱
+    public int selecStateByMidandReciverUserId(String userid, String mid) {
+        int state = this.baseDaoSupport.queryForInt("select state from es_usermsg_rel where  m_id=? and userid=?", mid, userid);
+        return state;
+    }
+
+
+    @Override
+	public int selecStateByMidandSendUserId(String userid, String mid) {
+        int state = this.baseDaoSupport.queryForInt("select m_senderState from es_usermsg where m_id=? and m_senderid=?", mid, userid);
+        return state;
+    }
+
+    @Override
+	public Message getMessageById(String reply_mid, String userId) {
+        String sql = "select * from es_usermsg where m_id =" + reply_mid + " and m_senderid=" + userId;
+        Message message = (Message) this.baseDaoSupport.queryForObject(sql, Message.class, null);
+        return message;
+    }
+
+    @Override
+    public List selectAllElectric() {
+        List list = this.baseDaoSupport.queryForList("select * from es_adminuser where founder = ?", Consts.CURR_FOUNDER0);
+        return list;
+    }
+
+    @Override
+	public void addMemberMsg(Message m) {
+
+//		ManagerUtils mu = new ManagerUtils();
+        String id = this.baseDaoSupport.getSequences("S_ES_USERMSG");
+
+        m.setM_id(id);
+        m.setM_sendtime(DBTUtil.current());
+        this.baseDaoSupport.insert("es_usermsg", m);
+    }
+
+    @Override
+	public Page selecctAllMemberMsgById(String memberId, int pageNo, int pageSize) {
+
+        StringBuffer sql = new StringBuffer();
+
+
+        sql.append("select a.*,b.state relState  from es_usermsg a, es_usermsg_rel b where a.source_from ='"+ManagerUtils.getSourceFrom()+"' and a.m_recivertype=10 and  b.state!=2 and a.m_id in(select b.m_id from es_usermsg_rel where b.userid=");
+        sql.append(memberId);
+        sql.append(")  order by a.m_sendtime desc");
+
+
+        return this.daoSupport.queryForPage(sql.toString(), pageNo, pageSize);
+
+    }
+
+    @Override
+	public List findTypeList() {
+        String sql = "select p.pkey value,p.pname value_desc from es_dc_public p where p.stype=8013";
+        return this.baseDaoSupport.queryForList(sql);
+    }
+
+    @Override
+    public void sendMsg(String reciverId, String content) {
+        // TODO Auto-generated method stub
+
+        Message m = new Message();
+        ManagerUtils mu = new ManagerUtils();
+        String name;
+        int reciverType = 0;
+        AdminUser adminUser = adminUserManager.get("1");
+
+        String id = this.baseDaoSupport.getSequences("S_ES_USERMSG");
+
+        name = adminUser.getRealname();
+        AdminUser reciverUser = adminUserManager.get(reciverId);
+        if (reciverUser != null) {
+            reciverType = reciverUser.getFounder();
+        }
+
+
+        m.setM_recivertype(reciverType);
+        m.setM_sendername(name);
+        m.setM_reciverid(reciverId);
+        m.setM_content(content);
+        m.setM_senderid(adminUser.getUserid());
+        m.setM_sendername(adminUser.getRealname());
+        m.setM_sendertype(adminUser.getFounder());
+        m.setM_id(id);
+        m.setM_sendtime(DBTUtil.current());
+        m.setM_type("重要消息");
+        this.baseDaoSupport.insert("es_usermsg", m);
+        this.insertMsgRef(id, reciverId, Consts.READ_STATE_0);
+    }
+
+	@Override
+	public UserMsg getMessageById(MessageDetailReq messageDetailReq) {
+		// TODO Auto-generated method stub
+		String reply_mid = messageDetailReq.getM_id();
+		String userId = messageDetailReq.getUser_id();
+		String sql = "select * from es_usermsg where m_id =" + reply_mid + " and m_senderid=" + userId;
+	    UserMsg userMsg = (UserMsg) this.baseDaoSupport.queryForObject(sql, UserMsg.class, null);
+	    return userMsg;
+	}
+
+	@Override
+	public Page onLineServiceDialogueRecords(String memberId, int pageNo, int pageSize){
+        StringBuffer sql = new StringBuffer();
+        sql.append("select a.*,TO_CHAR(a.m_sendtime,'YYYY-MM-DD HH24:MI:SS') sendtime from es_usermsg a where source_from='"+ManagerUtils.getSourceFrom()+"' and (a.m_senderid='");
+        sql.append(memberId);
+        sql.append("' or a.m_reciverid='");
+        sql.append(memberId);
+        sql.append("' ) and a.m_sendtime>sysdate-1  order by a.m_sendtime asc");
+        return this.daoSupport.queryForPage(sql.toString(), pageNo, pageSize);
+	}
+}

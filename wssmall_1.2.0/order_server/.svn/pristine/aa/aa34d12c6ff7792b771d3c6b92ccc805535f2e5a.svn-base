@@ -1,0 +1,256 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.order.OrderRequst;
+import com.ztesoft.net.mall.core.action.order.OrderResult;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.*;
+import com.ztesoft.net.mall.core.service.*;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import java.util.Map;
+
+
+/**
+ * 合约机受理处理类
+ * @author wui
+ */
+
+public class ContractManager extends   BaseSupport implements IContractManager {
+
+	
+	private IAccNbrManager accNbrManager;
+	private IOrderNFlowManager orderNFlowManager;
+	private IOrderUtils orderUtils;
+	private IOrderManager orderManager;
+	
+	@Override
+	public void cancel(OrderRequst orderRequst, OrderResult orderResult) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public String getWhereCond(String countType,Object... args){
+		StringBuffer sql = new StringBuffer();
+		Contract cont=null;
+		if(args[0]!=null&& args[0] instanceof Card)
+			cont=(Contract)args[0];
+		String createDate="";
+		String statusDate="";
+		String userId="";
+		String lanId="";
+		if(null!=cont){
+			createDate=cont.getCreate_date();
+			statusDate=cont.getStatus_date();
+			userId=cont.getUserid();
+			lanId=cont.getLan_id();
+		}
+		if (createDate != null && !createDate.equals("")) {
+			sql.append("  and status_date>=  "+DBTUtil.to_date(createDate+ " 00:00:00", 2));
+		}
+		if (statusDate != null && !statusDate.equals("")) {
+			sql.append("  and status_date<= "+DBTUtil.to_date(statusDate + " 23:59:59",2));
+		}
+		//1.按分销商统计
+		if(countType.equals("1")){
+			if(!"".equals(userId)&&userId!=null){
+				sql.append(" and c.userid = '"+userId+"' " );
+			}
+		}
+		//2.按本地网统计,前台下拉框可选，否则不可选
+		if(countType.equals("2")){
+			if(!"".equals(lanId)&&lanId!=null){
+				sql.append(" and c.lan_id='"+lanId+"' ");
+			}
+		}
+		
+		//3.按全省统计,判断前台文本框lan_id和userid
+		if(countType.equals("3")){
+			if(!"".equals(userId)&&userId!=null){
+				sql.append(" and c.userid='"+userId+"' " );
+			}
+			if(!"".equals(lanId)&&lanId!=null){
+				sql.append(" and c.lan_id='"+lanId+"' ");
+			}
+		}
+		
+		return sql.toString();
+		
+	}
+	
+	public String whereSql(String startTime, String endTime, String username,String userid,String lan_id,String state){
+		StringBuffer whereSql = new StringBuffer();  
+	    if(!StringUtil.isEmpty(startTime)){
+        	whereSql.append(" and deal_time>= "+DBTUtil.to_date(startTime, 2));
+		}
+	    if(!StringUtil.isEmpty(endTime)){
+	    	whereSql.append(" and deal_time<= "+DBTUtil.to_date(endTime, 2));
+		}
+	    if(!StringUtil.isEmpty(username)){
+	    	whereSql.append(" and username ='"+username+"'");
+	    }
+	    if(!StringUtil.isEmpty(lan_id)){
+	    	whereSql.append(" and  lan_id ='"+lan_id+"'");
+	    }
+	    if(!StringUtil.isEmpty(state)){
+	    	whereSql.append(" and  state ='"+state+"'");
+	    }if(!StringUtil.isEmpty(userid)){
+	    	whereSql.append(" and  userid ='"+userid+"'");
+	    }
+		return whereSql.toString();
+	}
+	
+	//合约机订购
+	public void order(OrderRequst orderRequst, OrderResult orderResult) {
+		//调用接口
+		boolean isSucc = false; //接口返回标志
+		String resultMsg = "";
+		Contract contract = orderRequst.getContract();
+		Map retMap = null;
+		if(null != retMap && !retMap.isEmpty()){
+			String resultCode = retMap.get("result_code").toString();
+			if(resultCode.equals("0000")){
+				isSucc = true;
+			}
+			resultMsg = retMap.get("result_desc").toString();
+		}
+		
+		if(isSucc) //成功
+		{
+			//合约机受理成功后更新号码订单
+			String acc_nbr = contract.getAcc_nbr();
+			AccNbr accNbr = accNbrManager.getAccNbr(acc_nbr);
+			if(accNbr !=null){
+				accNbr.setState(Consts.ACC_NBR_STATE_2);
+				accNbr.setState_date(DBTUtil.current());
+				accNbr.setSec_order_id(orderRequst.getOrderId());
+				accNbrManager.updateAccNbr(accNbr);
+				contract.setState(Consts.ACCEPT_STATE_SUCC);
+				
+				//信息冗余，方便统计使用 
+				contract.setLan_id(accNbr.getArea_code());   /// lan_code 放进了 lan_id
+				contract.setLan_name(accNbr.getArea_name());
+				contract.setStatus_date(DBTUtil.current());
+				
+				//设置一级分销商
+				contract.setFirst_userid(ManagerUtils.getParentAdminUserId());
+				
+				String order_id = orderRequst.getOrderId();
+				if(!StringUtil.isEmpty(order_id)){
+					accNbr.setSec_order_id(order_id);
+					Order order = orderManager.get(order_id);
+					AdminUser adminUser =orderUtils.getAdminUserById(order.getUserid());
+					contract.setUsername(adminUser.getUsername());
+					contract.setUserid(adminUser.getUserid());
+					
+					//外系统已支付金额
+					contract.setSec_fee(order.getPaymoney());
+				}else{
+					contract.setUsername(ManagerUtils.getAdminUser().getUsername());
+					contract.setUsername(ManagerUtils.getAdminUser().getUserid());
+				}
+				
+			}
+			
+			//TODO	设置CRM费用,
+			contract.setCrm_fee(new Double(0));//此处需要完善
+			
+		}else{
+			contract.setState(Consts.ACCEPT_STATE_FAIL);
+			orderResult.setCode(Consts.CODE_FAIL);
+			contract.setStatus_date(DBTUtil.current());
+			orderResult.setMessage(resultMsg);
+		}
+		//更新合约机受理状态
+		this.baseDaoSupport.insert("contract_accept", contract);
+		
+	}
+	
+	//合约机换终端
+	public void change(OrderRequst orderRequst, OrderResult orderResult,OrderChange orderChange) {
+		
+		//调用接口处理，处理失败直接抛出异常
+		try {
+			
+			String new_value  = orderChange.getNew_value();
+			Map retMap = null;
+			String resultCode = retMap.get("result_code").toString();
+			String resultDesc = retMap.get("result_desc").toString();
+			if(!resultCode.equals("0000")){
+				throw new RuntimeException("接口调用失败：" + resultDesc);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("接口调用异常：" + e.getMessage());
+		}
+		
+	}
+	
+//	@Override
+//	public void transfer_contract(OrderRequst orderRequst,OrderResult orderResult) {
+//		//合约机号码调拨处理 
+//		String to_userid = orderResult.getOrder().getUserid();
+//		String from_userid = ManagerUtils.getUserId();
+//		List<AccNbr> list = accNbrManager.getAccNbrList(orderRequst.getAccNbrRequest().getAcc_nbrs());
+//		AccNbr accNbr = null;
+//		if(null != list && !list.isEmpty()){
+//			for(int i = 0; i < list.size(); i++){
+//				accNbr = list.get(i);
+//				accNbr.setFrom_userid(from_userid);
+//				accNbr.setTo_userid(to_userid);
+//				accNbr.setOrder_id(orderRequst.getOrderId());
+//				accNbr.setDeal_time(Consts.SYSDATE);
+//				accNbrManager.updateAccNbr(accNbr);
+//			}
+//		}
+//	}
+//	
+	
+
+	public IAccNbrManager getAccNbrManager() {
+		return accNbrManager;
+	}
+
+
+	public void setAccNbrManager(IAccNbrManager accNbrManager) {
+		this.accNbrManager = accNbrManager;
+	}
+
+
+
+	public IOrderNFlowManager getOrderNFlowManager() {
+		return orderNFlowManager;
+	}
+
+
+
+	public void setOrderNFlowManager(IOrderNFlowManager orderNFlowManager) {
+		this.orderNFlowManager = orderNFlowManager;
+	}
+
+
+
+	public IOrderUtils getOrderUtils() {
+		return orderUtils;
+	}
+
+
+
+	public void setOrderUtils(IOrderUtils orderUtils) {
+		this.orderUtils = orderUtils;
+	}
+
+
+	public IOrderManager getOrderManager() {
+		return orderManager;
+	}
+	
+	public void setOrderManager(IOrderManager orderManager) {
+		this.orderManager = orderManager;
+	}
+	
+	
+}

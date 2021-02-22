@@ -1,0 +1,79 @@
+package zte.net.ecsord.common;
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.net.framework.util.StringUtil;
+/**
+ * 敏感信息脱敏处理功能类
+ * @author ricky
+ *
+ */
+public class SensitiveInfoUtils {
+	public static enum SENSITIVE_FIELD{
+		cert_card_num{
+			@Override
+			public String getFieldValue(String field_value){
+				return SensitiveInfoUtils.idCardNum(field_value);
+				}
+			};
+		public abstract String getFieldValue(String field_value);
+	}
+	/** 
+     * [中文姓名] 只显示第一个汉字，其他隐藏为2个星号<例子：李**> 
+     *  
+     * @param name 
+     * @return 
+     */  
+    public static String chineseName(String fullName) {  
+        if (StringUtils.isBlank(fullName)) {  
+            return "";  
+        }  
+        String name = StringUtils.left(fullName, 1);  
+        return StringUtils.rightPad(name, StringUtils.length(fullName), "*");  
+    }  
+    /** 
+     * [身份证号] 显示最后四位，其他隐藏。共计18位或者15位。<例子：*************5762> 
+     *  
+     * @param id 
+     * @return 
+     */  
+    public static String idCardNum(String id) {  
+        if (StringUtils.isBlank(id)) {  
+            return "";  
+        }  
+        String num = StringUtils.right(id, 4);  
+        return StringUtils.leftPad(num, StringUtils.length(id), "*");  
+    } 
+    /** 
+     * [银行卡号] 前六位，后四位，其他用星号隐藏每位1个星号<例子:6222600**********1234> 
+     *  
+     * @param cardNum 
+     * @return 
+     */  
+    public static String bankCard(String cardNum) {  
+        if (StringUtils.isBlank(cardNum)) {  
+            return "";  
+        }  
+        return StringUtils.left(cardNum, 6).concat(StringUtils.removeStart(StringUtils.leftPad(StringUtils.right(cardNum, 4), StringUtils.length(cardNum), "*"), "******"));  
+    }  
+    public static String desensitization(String filed_name,String field_value){
+    	if(StringUtil.isEmpty(filed_name)||StringUtil.isEmpty(field_value)){
+    		return field_value;
+    	}
+    	SENSITIVE_FIELD[] fieldNames=SENSITIVE_FIELD.values();
+    	String result="";
+    	if(null!=fieldNames){
+    		for(int i=0;i<fieldNames.length;i++){
+    			if(filed_name.equalsIgnoreCase(fieldNames[i].name())){
+    				result = fieldNames[i].getFieldValue(field_value);
+    				break;
+    			}
+    		}
+    	}
+    	return result;
+    }
+    public static void main(String[] args) {
+    	System.out.println(SensitiveInfoUtils.desensitization("cert_card_num", "512452198712143574"));
+    	
+	}
+    
+}

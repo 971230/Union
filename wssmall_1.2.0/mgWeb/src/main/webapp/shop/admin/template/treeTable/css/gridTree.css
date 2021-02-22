@@ -1,0 +1,138 @@
+@CHARSET "UTF-8";
+/*定义列表容器中表格的样式，使用table元素*/
+.tree_tb table{
+border-collapse:collapse;
+	width:100%;
+}
+
+/*定义表格中列头的样式，使用th元素*/
+.tree_tb table th{
+	text-align:left;
+}
+/*定义表格中列头中链接样式，使用th元素*/
+.tree_tb th a{
+	color: #000000;
+	text-decoration: none;
+}
+/*定义表格中单元格的样式，使用td元素*/
+.tree_tb table td{border-bottom:1px dashed #E1E1E1;}
+.tree_tb table tbody a{text-decoration: underline;}
+.tree_tb table tr{
+border-collapse:collapse;
+	border-bottom:1px dotted #e1e1e1;
+	height:30px;
+}
+.tree_tb table th {
+    background: none repeat scroll 0 0 #f9f9fa;
+    border-bottom: 1px solid #cdcdcd;
+    border-top: 1px solid #cdcdcd;
+    color: #434343;
+    font-weight: bold;
+    height: 30px;
+    line-height: 30px;
+    text-align: left;
+}
+
+.tree_table{
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: none;
+	border-left-style: solid;
+	border-top-color: #CCCCCC;
+	border-right-color: #CCCCCC;
+	border-bottom-color: #CCCCCC;
+	border-left-color: #CCCCCC;
+}
+.tree_table td {
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #CCCCCC;
+}
+.EditCell_TextBox {
+	width: 90%;
+	border: 1px solid #0099CC;
+}
+.EditCell_DropDownList {
+	width: 90%;
+}
+
+body,ul,li {
+	margin: 0;
+	padding: 0;
+}
+.menu_style {
+	position: absolute;
+	top: -9999px;
+	left: -9999px;
+	width: 100px;
+	border-radius: 3px;
+	list-style-type: none;
+	border: 1px solid #8f8f8f;
+	padding: 2px;
+	background: #fff;
+}
+
+.menu_style li {
+	position: relative;
+	height: 24px;
+	padding-left: 24px;
+	background: #eaead7;
+	vertical-align: top;
+}
+
+.menu_style li a {
+	display: block;
+	color: #333;
+	background: #fff;
+	padding-left: 5px;
+	text-decoration: none;
+}
+
+.menu_style li.active {
+	background: #999;
+}
+
+.menu_style li.active a {
+	color: #fff;
+	background: #8f8f8f;
+}
+
+.menu_style li em {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 24px;
+	height: 24px;
+	background: url(/jscss/demoimg/201211/ico.png) no-repeat;
+}
+
+.menu_style li em.cur {
+	background-position: 0 0;
+}
+
+.menu_style li em.copy {
+	background-position: 0 -24px;
+}
+
+.menu_style li em.paste {
+	background-position: 0 -48px;
+}
+
+.treetxt {
+    background: none repeat scroll 0 0 #ffffff;
+    border: 1px solid #cecece;
+    color: #666666;
+    padding-left: 3px;
+}
+
+.row_checked{
+	background-color: #DDDDDD;
+}
+
+.row_uncheck{
+	background-color :'#FFFFFF';
+}

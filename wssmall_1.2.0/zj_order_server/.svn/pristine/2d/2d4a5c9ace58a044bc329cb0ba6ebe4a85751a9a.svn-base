@@ -1,0 +1,71 @@
+package com.ztesoft.net.ecsord.params.ecaop.req;
+
+import params.ZteRequest;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.api.internal.utils.ApiUtils;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.ecsord.params.ecaop.vo.OrderQueryInfo;
+import com.ztesoft.net.framework.database.NotDbField;
+
+public class OrderGoodsQueryReq  extends ZteRequest{
+
+	@ZteSoftCommentAnnotationParam(name="序列号",type="String",isNecessary="Y",desc="serial_no:序列号")
+	private String serial_no;
+
+	@ZteSoftCommentAnnotationParam(name="时间",type="String",isNecessary="Y",desc="时间")
+	private String time;
+	
+	@ZteSoftCommentAnnotationParam(name="发起方系统标识",type="String",isNecessary="Y",desc="发起方系统标识")
+	private String source_system;
+	
+	@ZteSoftCommentAnnotationParam(name="接收方系统标识",type="String",isNecessary="Y",desc="接收方系统标识")
+	private String receive_system;
+	
+	@ZteSoftCommentAnnotationParam(name="商品标识号",type="String",isNecessary="Y",desc="seq_no:唯一商品标识")
+	private String seq_no;
+	
+	
+	public String getSerial_no() {
+		return serial_no;
+	}
+	public void setSerial_no(String serial_no) {
+		this.serial_no = serial_no;
+	}
+	public String getTime() {
+		return time;
+	}
+	public void setTime(String time) {
+		this.time = time;
+	}
+	public String getSource_system() {
+		return source_system;
+	}
+	public void setSource_system(String source_system) {
+		this.source_system = source_system;
+	}
+	public String getReceive_system() {
+		return receive_system;
+	}
+	public void setReceive_system(String receive_system) {
+		this.receive_system = receive_system;
+	}
+	public String getSeq_no() {
+		return seq_no;
+	}
+	public void setSeq_no(String seq_no) {
+		this.seq_no = seq_no;
+	}
+	@Override
+	@NotDbField
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+	 
+	}
+	@Override
+	@NotDbField
+	public String getApiMethodName() {
+		return "zte.net.iservice.impl.ZJInfServices.queryOrderGoodsByRequ";
+	}
+
+}

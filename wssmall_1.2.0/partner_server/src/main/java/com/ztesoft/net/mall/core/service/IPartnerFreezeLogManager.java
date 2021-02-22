@@ -1,0 +1,15 @@
+package com.ztesoft.net.mall.core.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.ztesoft.net.app.base.core.model.PartnerFreezeLog;
+import com.ztesoft.net.framework.database.Page;
+
+public interface IPartnerFreezeLogManager {
+	
+	public List<Map> list();
+	public Page qyFreezeLogList(String partnerId, String beginTime,String endTime,String opType, int page,int pageSize);
+	public boolean insertLog(PartnerFreezeLog freezeLog);
+	public List getFreezeLogById(String partnerId);
+}

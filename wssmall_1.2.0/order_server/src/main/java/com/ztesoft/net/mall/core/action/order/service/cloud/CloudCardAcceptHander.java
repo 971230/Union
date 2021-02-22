@@ -1,0 +1,154 @@
+package com.ztesoft.net.mall.core.action.order.service.cloud;
+
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.order.accept.CommonAcceptHander;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.*;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 
+ * @author wui
+ * 云卡受理
+ *
+ */
+public class CloudCardAcceptHander  extends CommonAcceptHander {
+	
+	@Override
+	public void display() {
+		
+		
+	}
+	/**
+	 * 1.将分销平台的号码调拨到二级分销商,写受理成功日志
+	 * 2.调用接口将crm 调拨号码同步到分销平台
+	 * 3.调用crm接口资料返档，成功后更新订单状态
+	 */
+	
+	@Override
+	public void execute() {
+		Order order = getOrder();
+		
+		if(order.getSource_from().equals(OrderStatus.SOURCE_FROM_AGENT_TOW) || order.getSource_from().equals(OrderStatus.SOURCE_FROM_AGENT_ONE)){ //二级申请单处理
+			
+			//电信员工审核处理逻辑
+			if(isNetStaff()){
+				
+				//事物控制，将方法锁定
+				this.baseDaoSupport.execute(SF.orderSql("SERVICE_DC_PUBLIC8013_SELECT"),"0");
+				
+				
+				//判断处理成功数量是不是满足，不满足不允许走流程
+				Integer shipsCount_1 = cloudManager.getCloudCountByOrderId(getOrder().getOrder_id(), Consts.SHIP_STATE_1); //CRM云卡调拨处理中
+				Integer shipsCount_2 = cloudManager.getCloudCountByOrderId(getOrder().getOrder_id(), Consts.SHIP_STATE_2); //CRM云卡调拨成功
+				
+				
+				//申请库存不足，电信继续给分销商调拨号码
+				CloudRequest cloudRequest = getOrderRequst().getCloudRequest();
+				if(cloudRequest !=null)
+				{
+					String begin_nbr = cloudRequest.getBegin_nbr();
+					String end_nbr = cloudRequest.getEnd_nbr();
+					if(!StringUtil.isEmpty(begin_nbr)){
+						
+						//新的号码段调拨处理
+						GoodsApply goodsApply = new GoodsApply();
+						goodsApply.setBegin_nbr(begin_nbr);
+						goodsApply.setEnd_nbr(end_nbr);
+						goodsApply.setGoods_num(order.getGoods_num()-shipsCount_2); //剩余多少个需要从送
+						goodsApply.setGoods_id(order.getGoods_id());
+						goodsApply.setApply_from(Consts.APPLY_TYPE_NET);
+						getOrderRequst().setGoodsApply(goodsApply);
+						
+						//根据卡片保存数据
+						List<ExtAttr> jsonLists = new ArrayList<ExtAttr>();
+						ExtAttr extAttr = new ExtAttr("begin_nbr",goodsApply.getBegin_nbr(),"");
+						jsonLists.add(extAttr);
+							extAttr = new ExtAttr("end_nbr",goodsApply.getEnd_nbr(),"");
+						jsonLists.add(extAttr);
+						
+						OrderItem orderItem= new  OrderItem();
+						orderItem.setOrder_id(getOrder().getOrder_id());
+						OrderItem p_orderItem = orderNFlowManager.getOrderItemByOrderId(getOrder().getOrder_id());
+						orderItem.setItem_id(p_orderItem.getItem_id());
+						orderManager.insertCardItem(order, p_orderItem, jsonLists,Consts.FIELD_MAPPING_0);
+						
+						
+						cloudManager.transfer_cloud_for_collect(getOrderRequst(), getOrderResult());
+					}
+				
+					
+				}
+				
+				
+				//处理成功、跳转到下一个环节
+				if(shipsCount_2.intValue() == getOrder().getGoods_num().intValue())
+				{	
+					//受理成功后，将预占掉，没有使用的号码段释放掉
+					cloudManager.resetUnUsedCloudOrderId(order.getOrder_id());
+					orderNFlowManager.accept(order.getOrder_id());
+					setCanNext(false);
+					return;
+				}
+				
+				//处理中的数量等于申请的数量（CRM未返回）
+				if(shipsCount_1.intValue() == getOrder().getGoods_num().intValue())
+				{
+					throw new RuntimeException("云卡正在调拨中，请耐心等待....");
+					
+				}
+			}else if(isFirstPartner()){
+				
+				Integer shipsCount_11 = cloudManager.getCloudCountByOrderId(getOrder().getOrder_id(), Consts.SHIP_STATE_11); //CRM云卡调拨处理中
+				
+				if(shipsCount_11 == getOrder().getGoods_num().intValue())
+				{
+					throw new RuntimeException("云卡正在调拨中，请耐心等待....");
+				}
+			}
+			
+			
+			cloudManager.transfer_cloud_for_accept(getOrderRequst(),getOrderResult()); //云卡调拨
+			//orderNFlowManager.accept_ing(order.getOrder_id()); //云卡调拨处理中
+			
+			
+			//二级分销商像一级申请云卡,流程直接完成
+			if(ManagerUtils.isFirstPartner()){
+				cloudManager.resetUnUsedCloudOrderId(order.getOrder_id());
+				orderNFlowManager.accept(order.getOrder_id());
+			}
+			
+			setCanNext(false);
+			//失败设置处理失败
+			if(Consts.CODE_FAIL.equals(getOrderResult().getCode())){
+				orderNFlowManager.acceptFail(order.getOrder_id(), getOrderResult().getMessage());
+				setCanNext(false);
+				return;
+			}
+			
+		}else if(order.getSource_from().equals(OrderStatus.SOURCE_FROM_TAOBAO)){ //淘宝订单
+			custReturnedManager.date_returned(getOrderRequst(),getOrderResult(),"order"); //调用资料返档接口
+			if(Consts.CODE_SUCC.equals(getOrderResult().getCode())){
+				orderNFlowManager.accept(getOrder().getOrder_id());
+			}else{
+				orderNFlowManager.acceptFail(getOrder().getOrder_id(), getOrderResult().getMessage());
+			}
+		}
+		
+		
+		setCanNext(false);//云卡需要走物流
+	}
+
+	
+	@Override
+	public void accept() {
+		
+	}
+
+
+}

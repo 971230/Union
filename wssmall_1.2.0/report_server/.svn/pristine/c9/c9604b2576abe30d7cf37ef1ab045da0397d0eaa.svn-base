@@ -1,0 +1,101 @@
+/*     */ package jscompress;
+/*     */ 
+/*     */ import java.io.ByteArrayOutputStream;
+/*     */ 
+/*     */ public class SystemCommandExec
+/*     */ {
+/*     */   private int flag;
+/*     */   private Object message;
+/*     */ 
+/*     */   public void execute(String[] command, SystemCommandMessageParser parser)
+/*     */   {
+/*  29 */     ByteArrayOutputStream error = null;
+/*  30 */     ByteArrayOutputStream output = null;
+/*     */     try {
+/*  32 */       Process p = Runtime.getRuntime().exec(command);
+/*  33 */       if (parser != null) {
+/*  34 */         error = new ByteArrayOutputStream();
+/*  35 */         output = new ByteArrayOutputStream();
+/*  36 */         new Thread(new SystemCommandGobbler(p.getErrorStream(), error)).start();
+/*  37 */         new Thread(new SystemCommandGobbler(p.getInputStream(), output)).start();
+/*     */       }
+/*  39 */       this.flag = p.waitFor();
+/*     */     } catch (Throwable e) {
+/*  41 */       e.printStackTrace(System.out);
+/*  42 */       this.flag = -99;
+/*  43 */       this.message = e.getMessage();
+/*  44 */       return;
+/*     */     }
+/*  46 */     if (parser == null) {
+/*  47 */       return;
+/*     */     }
+/*  49 */     byte[] buff = error.toByteArray();
+/*  50 */     if (buff.length > 0) {
+/*  51 */       this.message = parser.parse(buff);
+/*  52 */       error = null;
+/*  53 */       output = null;
+/*  54 */       buff = (byte[])null;
+/*  55 */       return;
+/*     */     }
+/*  57 */     buff = output.toByteArray();
+/*  58 */     if (buff.length > 0) {
+/*  59 */       this.message = parser.parse(buff);
+/*  60 */       error = null;
+/*  61 */       output = null;
+/*  62 */       buff = (byte[])null;
+/*  63 */       return;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void execute(String command, SystemCommandMessageParser parser) {
+/*  68 */     ByteArrayOutputStream error = null;
+/*  69 */     ByteArrayOutputStream output = null;
+/*     */     try {
+/*  71 */       Process p = Runtime.getRuntime().exec(command);
+/*  72 */       if (parser != null) {
+/*  73 */         error = new ByteArrayOutputStream();
+/*  74 */         output = new ByteArrayOutputStream();
+/*  75 */         new Thread(new SystemCommandGobbler(p.getErrorStream(), error)).start();
+/*  76 */         new Thread(new SystemCommandGobbler(p.getInputStream(), output)).start();
+/*     */       }
+/*  78 */       this.flag = p.waitFor();
+/*     */     } catch (Throwable e) {
+/*  80 */       e.printStackTrace(System.out);
+/*  81 */       this.flag = -99;
+/*  82 */       this.message = e.getMessage();
+/*  83 */       return;
+/*     */     }
+/*  85 */     if (parser == null) {
+/*  86 */       return;
+/*     */     }
+/*  88 */     byte[] buff = error.toByteArray();
+/*  89 */     if (buff.length > 0) {
+/*  90 */       this.message = parser.parse(buff);
+/*  91 */       error = null;
+/*  92 */       output = null;
+/*  93 */       buff = (byte[])null;
+/*  94 */       return;
+/*     */     }
+/*  96 */     buff = output.toByteArray();
+/*  97 */     if (buff.length > 0) {
+/*  98 */       this.message = parser.parse(buff);
+/*  99 */       error = null;
+/* 100 */       output = null;
+/* 101 */       buff = (byte[])null;
+/* 102 */       return;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public int getFlag() {
+/* 107 */     return this.flag;
+/*     */   }
+/*     */ 
+/*     */   public Object getMessage() {
+/* 111 */     return this.message;
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     jscompress.SystemCommandExec
+ * JD-Core Version:    0.5.3
+ */

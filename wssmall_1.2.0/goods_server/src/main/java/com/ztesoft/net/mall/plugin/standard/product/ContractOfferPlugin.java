@@ -1,0 +1,136 @@
+package com.ztesoft.net.mall.plugin.standard.product;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import com.ztesoft.net.eop.processor.core.freemarker.FreeMarkerPaser;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.GoodsParam;
+import com.ztesoft.net.mall.core.model.support.ParamGroup;
+import com.ztesoft.net.mall.core.plugin.goods.AbstractGoodsPlugin;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.net.mall.core.utils.GoodsUtils;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+public class ContractOfferPlugin extends AbstractGoodsPlugin {
+
+	private IGoodsManager goodsManager;
+
+	@Override
+	public String onFillGoodsAddInput(HttpServletRequest request) {
+		if(Consts.ECS_SOURCE_FROM.equals(ManagerUtils.getSourceFrom())){
+			FreeMarkerPaser freeMarkerPaser =FreeMarkerPaser.getInstance();
+			freeMarkerPaser.setPageName("contract_offer");
+			return freeMarkerPaser.proessPageContent();
+		}
+		else{
+			return null;
+		}
+	}
+
+	@Override
+	public void onBeforeGoodsAdd(Map goods, HttpServletRequest request) {
+		logger.info("货品插件桩。。。。。。。");
+	}
+
+	@Override
+	public String onFillGoodsEditInput(Map goods, HttpServletRequest request) {
+		if(Consts.ECS_SOURCE_FROM.equals(ManagerUtils.getSourceFrom())){
+			FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getInstance();
+			String goods_id = (String) goods.get("goods_id");
+			
+			List<Goods> offers = goodsManager.listContractOffers(goods_id);
+			for(int i=0;i<offers.size();i++){
+				Goods offer = offers.get(i);
+				String params = offer.getParams();
+				List<ParamGroup> paramsArray = GoodsUtils.getParamList(params);
+				if(paramsArray.size()>0){
+					ParamGroup paramGroup = paramsArray.get(0);
+					List<GoodsParam> paramList = paramGroup.getParamList();
+					for(GoodsParam goodsParam:paramList){
+						if("month_fee".equals(goodsParam.getEname())){
+							offer.setMonth_fee(goodsParam.getValue());
+							break;
+						}
+					}
+				}
+			}
+			freeMarkerPaser.putData("offerList", offers.size()==0?null:offers);
+			freeMarkerPaser.setPageName("contract_offer");
+			return freeMarkerPaser.proessPageContent();
+		}
+		else{
+			return null;
+		}
+	}
+
+	@Override
+	public void onAfterGoodsAdd(Map goods, HttpServletRequest request)
+			throws RuntimeException {
+
+	}
+
+	@Override
+	public void onAfterGoodsEdit(Map goods, HttpServletRequest request) {
+
+		
+		
+	}
+
+	@Override
+	public void onBeforeGoodsEdit(Map goods, HttpServletRequest request) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getType() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public String getId() {
+		return "contractOffer";
+	}
+
+	@Override
+	public String getName() {
+		return "货品插件";
+	}
+
+	@Override
+	public String getVersion() {
+		return "1.0";
+	}
+
+	@Override
+	public String getAuthor() {
+		return "zqh";
+	}
+
+	@Override
+	public void perform(Object... params) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void addTabs() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+
+	public void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+	
+
+}

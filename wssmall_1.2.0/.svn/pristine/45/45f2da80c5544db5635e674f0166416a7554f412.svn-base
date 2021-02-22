@@ -1,0 +1,182 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
+
+import vo.Rule;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.ServiceObjOffer;
+import com.ztesoft.net.mall.core.model.ServiceOfferRule;
+import com.ztesoft.net.mall.core.service.ISysRuleManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+/**
+ * 商品规则实现
+ * @author hu.yi
+ * @date 2014.02.19
+ */
+public class SysRuleManager extends BaseSupport implements ISysRuleManager {
+
+	
+	public Page listRule(Rule rule,int pageNo,int pageSize){
+		
+		StringBuffer sql = new StringBuffer();
+		StringBuffer cSql = new StringBuffer();
+		StringBuffer where = new StringBuffer();
+		
+		sql.append("SELECT * FROM es_rule WHERE source_from = '"+ManagerUtils.getSourceFrom()+"'");
+		cSql.append("SELECT count(rule_id) FROM es_rule WHERE source_from = '"+ManagerUtils.getSourceFrom()+"'");
+		
+		if(StringUtils.isNotEmpty(rule.getRule_name())){
+			where.append(" AND rule_name LIKE '%"+rule.getRule_name()+"%'");
+		}
+		if(StringUtils.isNotEmpty(rule.getRule_type())){
+			where.append(" AND rule_type = '"+rule.getRule_type()+"'");
+		}
+		if(StringUtils.isNotEmpty(rule.getRule_time_begin())){
+			where.append(" AND rule_time_begin >= "+DBTUtil.to_date(rule.getRule_time_begin(), 1)+"");
+		}
+		if(StringUtils.isNotEmpty(rule.getRule_time_end())){
+			where.append(" AND rule_time_end <= "+DBTUtil.to_date(rule.getRule_time_end(), 1)+"");
+		}
+		
+		where.append(" AND disabled = '0' ORDER BY create_time DESC");
+		
+		return this.baseDaoSupport.queryForCPage(sql.append(where).toString(), pageNo, pageSize, 
+													Rule.class, cSql.append(where).toString());
+	}
+	
+	public Rule qryRule(String rule_id){
+		
+		String sql = "SELECT * FROM es_rule WHERE rule_id = '"+rule_id+"'";
+		
+		return (Rule) this.baseDaoSupport.queryForObject(sql, Rule.class);
+	}
+	
+	
+	public void saveRule(Rule rule){
+		
+		if(StringUtils.isNotEmpty(rule.getRule_id())){
+			rule.setUpdate_time(DBTUtil.current());
+			this.baseDaoSupport.update("es_rule", rule, " rule_id = '"+rule.getRule_id()+"'");
+		}else{
+			rule.setRule_id(this.baseDaoSupport.getSequences("SEQ_ES_RULE"));
+			rule.setCreate_time(DBTUtil.current());
+			rule.setDisabled("0");
+			rule.setSource_from(ManagerUtils.getSourceFrom());
+			this.baseDaoSupport.insert("es_rule", rule);
+		}
+	}
+	
+	
+	public Page listServer(ServiceObjOffer serviceOffer, int pageNo, int pageSize){
+		
+		StringBuffer sql = new StringBuffer();
+		StringBuffer cSql = new StringBuffer();
+		StringBuffer where = new StringBuffer();
+		
+		sql.append("SELECT a.* FROM es_service_offer a WHERE a.source_from = '"+ManagerUtils.getSourceFrom()+"'");
+		cSql.append("SELECT count(a.service_id) FROM es_service_offer a WHERE a.source_from = '"+ManagerUtils.getSourceFrom()+"'");
+		
+		if(StringUtils.isNotEmpty(serviceOffer.getService_offer_name())){
+			where.append(" AND a.service_offer_name LIKE '%"+serviceOffer.getService_offer_name()+"%'");
+		}
+		if(StringUtils.isNotEmpty(serviceOffer.getStart_time())){
+			where.append(" AND a.create_date >= "+DBTUtil.to_date(serviceOffer.getStart_time(), 1)+"");
+		}
+		if(StringUtils.isNotEmpty(serviceOffer.getEnd_time())){
+			where.append(" AND a.create_date <= "+DBTUtil.to_date(serviceOffer.getEnd_time(), 1)+"");
+		}
+		where.append(" AND a.display_flag = '0' ORDER BY a.create_date DESC");
+		
+		
+		return this.baseDaoSupport.queryForCPage(sql.append(where).toString(), pageNo, pageSize, 
+									ServiceObjOffer.class, cSql.append(where).toString());
+	}
+	
+	
+	public ServiceObjOffer qryServer(String service_id){
+		String sql = "SELECT * FROM es_service_offer WHERE service_id = '"+service_id+"'";
+		
+		return (ServiceObjOffer) this.baseDaoSupport.queryForObject(sql, ServiceObjOffer.class);
+	}
+	
+	
+	public void saveServer(ServiceObjOffer serviceObjOffer){
+		
+		if(StringUtils.isNotEmpty(serviceObjOffer.getService_id())){
+			this.baseDaoSupport.update("es_service_offer", serviceObjOffer, " service_id = '"+serviceObjOffer.getService_id()+"'");
+		}else{
+			serviceObjOffer.setService_id(this.baseDaoSupport.getSequences("SEQ_ES_SERVER_OFFER"));
+			serviceObjOffer.setCreate_date(DBTUtil.current());
+			serviceObjOffer.setDisplay_flag("0");
+			serviceObjOffer.setSource_from(ManagerUtils.getSourceFrom());
+			this.baseDaoSupport.insert("es_service_offer", serviceObjOffer);
+		}
+	}
+	
+	
+	public void saveLinkRule(String rule_id,String service_id){
+		
+		String sql = "DELETE FROM es_service_offer_rule WHERE service_id = '"+service_id+"'";
+		this.baseDaoSupport.execute(sql);
+		
+		String[] rule_ids = rule_id.split(",");
+		for (int i = 0; i < rule_ids.length; i++) {
+			ServiceOfferRule serviceOfferRule = new ServiceOfferRule();
+			if(StringUtils.isNotEmpty(rule_ids[i])){
+				serviceOfferRule.setRule_id(rule_ids[i]);
+				serviceOfferRule.setService_id(service_id);
+				serviceOfferRule.setSource_from(ManagerUtils.getSourceFrom());
+			}
+			this.baseDaoSupport.insert("es_service_offer_rule", serviceOfferRule);
+		}
+		
+	}
+	
+	
+	public List<Rule> qryRuleList(String service_id){
+		
+		StringBuffer sql = new StringBuffer();
+		
+		sql.append("SELECT a.* FROM es_rule a,es_service_offer b,es_service_offer_rule c");
+		sql.append(" WHERE a.rule_id = c.rule_id");
+		sql.append(" AND b.service_id = c.service_id");
+		sql.append(" AND b.service_id = '"+service_id+"'");
+		sql.append(" AND a.source_from = '"+ManagerUtils.getSourceFrom()+"'");
+		sql.append(" AND b.source_from = '"+ManagerUtils.getSourceFrom()+"'");
+		sql.append(" AND c.source_from = '"+ManagerUtils.getSourceFrom()+"'");
+		
+		return this.baseDaoSupport.queryForList(sql.toString());
+	}
+	
+	
+	public int qryServerCount(ServiceObjOffer serviceObjOffer){
+		StringBuffer sql = new StringBuffer();
+		sql.append("SELECT count(service_id) FROM es_service_offer");
+		sql.append(" WHERE service_code='"+serviceObjOffer.getService_code()+"'");
+		if(StringUtils.isNotEmpty(serviceObjOffer.getService_id())){
+			sql.append(" AND service_id <> '"+serviceObjOffer.getService_id()+"'");
+		}
+		sql.append(" AND display_flag='0' AND source_from='"+ManagerUtils.getSourceFrom()+"'");
+		
+		return this.baseDaoSupport.queryForInt(sql.toString());
+	}
+	
+	
+	public int qryRuleCount(Rule rule){
+		
+		StringBuffer sql = new StringBuffer();
+		
+		sql.append("SELECT count(rule_id) FROM es_rule ");
+		sql.append(" WHERE rule_code = '"+rule.getRule_code()+"'");
+		sql.append(" AND rule_type = '"+rule.getRule_type()+"'");
+		sql.append(" AND source_from = '"+ManagerUtils.getSourceFrom()+"'");
+		
+		return this.baseDaoSupport.queryForInt(sql.toString());
+	}
+}

@@ -1,0 +1,42 @@
+package com.ztesoft.autoprocess.base.detector.zb;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.autoprocess.base.detector.impl.LoginStatusDetector;
+
+/**
+ * 订单系统登录结果检查类
+ * @author tanghaoyang
+ *
+ */
+public class ZBLoginStatusDetector implements LoginStatusDetector {
+	
+	/**对象单例*/
+	private static final ZBLoginStatusDetector ordersLoginStatusDetector=new ZBLoginStatusDetector();
+	
+	/**
+	 * 获取单例对象
+	 * @return
+	 */
+	public static ZBLoginStatusDetector getInstance(){
+		return ordersLoginStatusDetector;
+	}
+	
+	private ZBLoginStatusDetector(){}
+	
+	/**
+	 * 根据返回报文判断目前是否登录状态
+	 * @param response 登录请求返回的报文
+	 * @return boolean 是否登录状态
+	 */
+	@Override
+	public boolean isOnline(String response){
+		if(StringUtils.isNotBlank(response)){
+			if(response.indexOf("iframe/left.jsp")!=-1){
+				return true;
+			}
+		}
+
+		return false;
+	}
+}

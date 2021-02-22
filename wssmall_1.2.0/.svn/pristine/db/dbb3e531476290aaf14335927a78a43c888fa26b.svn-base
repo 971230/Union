@@ -1,0 +1,523 @@
+package com.ztesoft.net.mall.core.utils;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import zte.net.ecsord.params.busi.req.AttrInstBusiRequest;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.common.util.CrmConstants;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicSQLInfoCacheProxy;
+import com.ztesoft.net.model.AttrDef;
+import com.ztesoft.util.CacheUtils;
+
+import consts.ConstsCore;
+
+/**
+ * 
+ * @author wu.i
+ * 订单属性Redis存储操作类
+ *
+ */
+public class AttrInstRedisTools{
+	static INetCache cache;
+	static{
+		cache = (INetCache) com.ztesoft.net.cache.common.CacheFactory.getCacheByType("");
+	}
+	static Map<String,String> keyStr = new HashMap<String,String>();
+	
+	public static int NAMESPACE = 300;
+	static int time =60*24*60*5;//缺省缓存20天,memcache最大有效期是30天
+	static int attr_flag_time =60*24*60*4;//缺省
+//	static int attr_flag_time =30;//缺省30秒钟
+	int min_time =5*60;
+	static String  ORDER_ATTR_PRIM_KEYS_FIX ="ORDER_ATTR_PRIM_KEYS_FIX";
+	static String  ATTR_INST_KEY_PREFIX ="ATTR_INST_KEY_PREFIX";
+	static String  ORDER_TREE_KEY_PREFIX ="ORDER_TREE_KEY_PREFIX";
+	private static Logger logger = Logger.getLogger(AttrInstRedisTools.class);
+	
+	public static String genHashCode(String hash_key){
+		hash_key =  hash_key.substring(hash_key.length()-2);
+		if("00".endsWith(hash_key))
+			hash_key ="0";
+		return hash_key;
+	}
+	
+	/**
+	 * 获取所有属性列表,适用需要获取属性数据
+	 * @param order_id
+	 * @param query_sql
+	 * @return
+	 */
+	public  static List<AttrInstBusiRequest> getAttrInstBusiRequestFromRedisByOrderId(String order_id,String query_sql){
+		List<AttrInstBusiRequest> attrInstBusiRequests= new ArrayList<AttrInstBusiRequest>();
+		if(StringUtil.isEmpty(query_sql)){//查询sql为空,则表示从缓存中获取
+			String attrflag = getAttrFlag(order_id);
+			//缓存获取为空，则从数据库全量装载数据
+			if(StringUtil.isEmpty(attrflag) || "no".equals(attrflag)){
+				attrInstBusiRequests = orderExtDataToAttrInst(order_id,query_sql,"");
+				setAttrInstBusiRequestsToRedis(attrInstBusiRequests,true);
+			}else{
+				String attrKeys  =(String)cache.get(NAMESPACE, ORDER_ATTR_PRIM_KEYS_FIX+order_id);
+				if(StringUtil.isEmpty(attrKeys)){
+					attrInstBusiRequests = orderExtDataToAttrInst(order_id,query_sql,"");
+					setAttrInstBusiRequestsToRedis(attrInstBusiRequests,true);
+					attrKeys  =(String)cache.get(NAMESPACE, ORDER_ATTR_PRIM_KEYS_FIX+order_id);
+					return attrInstBusiRequests;
+				}
+				if(!StringUtil.isEmpty(attrKeys)){
+					//缓存不为空,则直接获取数据
+					String [] attrKeyArrs = attrKeys.split(",");
+					for (int i = 0; i < attrKeyArrs.length; i++) {
+						String field_name =attrKeyArrs[i];
+						AttrInstBusiRequest attrInstBusiRequest = (AttrInstBusiRequest) cache.get(NAMESPACE,ATTR_INST_KEY_PREFIX+order_id+"_"+field_name.toLowerCase());
+						
+						//获取中存在一个为空的，默许代表订单存放的与真实缓存的不一致，需要再次全量装载一次,再退出
+						if(attrInstBusiRequest ==null)
+						{
+							List<AttrInstBusiRequest> dbattrInstBusiRequests = orderExtDataToAttrInst(order_id,query_sql,"");
+							setAttrInstBusiRequestsToRedis(dbattrInstBusiRequests,true);
+							return dbattrInstBusiRequests;
+						}
+						attrInstBusiRequests.add(attrInstBusiRequest);
+					}
+				}
+			}
+			
+		}else{ //强制从缓存获取，更新
+			attrInstBusiRequests = orderExtDataToAttrInst(order_id,query_sql,"");
+			setAttrInstBusiRequestsToRedis(attrInstBusiRequests,true);
+		}
+		return attrInstBusiRequests;
+	}
+	/**
+	 * 获取单个属性实例数据
+	 * @param order_id
+	 * @param field_name
+	 * @return
+	 */
+	public  static AttrInstBusiRequest getAttrInstBusiRequestByOrderId(String order_id,String field_name){
+		AttrInstBusiRequest attrInstBusiRequest = (AttrInstBusiRequest) cache.get(NAMESPACE,ATTR_INST_KEY_PREFIX+order_id+"_"+field_name.toLowerCase());
+		if(attrInstBusiRequest ==null)
+			attrInstBusiRequest = (AttrInstBusiRequest) cache.get(NAMESPACE,ATTR_INST_KEY_PREFIX+order_id+"_"+field_name.toUpperCase());
+		//获取属性为空,则判断属性是否失效了
+		if(attrInstBusiRequest ==null){
+			String attrflag = getAttrFlag(order_id);
+			//获取属性缓存标志是否失效
+			if(StringUtil.isEmpty(attrflag) || "no".equals(attrflag)){
+				List<AttrInstBusiRequest> attrInstBusiRequests = orderExtDataToAttrInst(order_id,"","");
+				setAttrInstBusiRequestsToRedis(attrInstBusiRequests,true);
+				
+				//为空，则从历史表数据属性实例数据。联通特殊处理
+				if(ListUtil.isEmpty(attrInstBusiRequests))
+				{
+					attrInstBusiRequests = orderExtDataToAttrInst(order_id,"_his","");
+					setAttrInstBusiRequestsToRedis(attrInstBusiRequests,true);
+				}
+				//装在完成后二次获取装在数据
+				attrInstBusiRequest = (AttrInstBusiRequest) cache.get(NAMESPACE,ATTR_INST_KEY_PREFIX+order_id+"_"+field_name.toLowerCase());
+			}else{
+				
+				//保护处理
+				String attrKeys  =(String)cache.get(NAMESPACE, ORDER_ATTR_PRIM_KEYS_FIX+order_id);
+				if(StringUtil.isEmpty(attrKeys)){
+					List<AttrInstBusiRequest> attrInstBusiRequests = orderExtDataToAttrInst(order_id,"","");
+					setAttrInstBusiRequestsToRedis(attrInstBusiRequests,true);
+					
+					//为空，则从历史表数据属性实例数据。联通特殊处理
+					if(ListUtil.isEmpty(attrInstBusiRequests))
+					{
+						attrInstBusiRequests = orderExtDataToAttrInst(order_id,"_his","");
+						setAttrInstBusiRequestsToRedis(attrInstBusiRequests,true);
+					}
+					attrKeys  =(String)cache.get(NAMESPACE, ORDER_ATTR_PRIM_KEYS_FIX+order_id);
+				} else {
+					//add by qin.yingxiong at 2016/11/15 解决属性未配置却代码里面取值的性能问题，如果属性未配置却去取值，会重新全量load数据并写入缓存
+					if(attrKeys.indexOf(field_name) < 0) {//filed_name在订单属性中不存在
+						//如果该属性在配置表中也不存在，则直接返回
+						AttrDef attrDef = CacheUtils.getCacheAttrDef(field_name+EcsOrderConsts.ATTR_SPEC_ID_999);
+						if(attrDef == null) {
+							return attrInstBusiRequest;
+						}
+					}
+					
+					//缓存不为空,则直接获取数据
+					String [] attrKeyArrs = attrKeys.split(",");
+					for (int i = 0; i < attrKeyArrs.length; i++) {
+						String p_field_name =attrKeyArrs[i];
+						AttrInstBusiRequest pattrInstBusiRequest = (AttrInstBusiRequest) cache.get(NAMESPACE,ATTR_INST_KEY_PREFIX+order_id+"_"+p_field_name.toLowerCase());
+						//获取中存在一个为空的，默许代表订单存放的与真实缓存的不一致，需要再次全量装载一次,再退出
+						if(pattrInstBusiRequest ==null)
+						{
+							List<AttrInstBusiRequest> dbattrInstBusiRequests = orderExtDataToAttrInst(order_id,"","");
+							setAttrInstBusiRequestsToRedis(dbattrInstBusiRequests,true);
+							//为空，则从历史表数据属性实例数据。联通特殊处理
+							if(ListUtil.isEmpty(dbattrInstBusiRequests))
+							{
+								dbattrInstBusiRequests = orderExtDataToAttrInst(order_id,"_his","");
+								setAttrInstBusiRequestsToRedis(dbattrInstBusiRequests,true);
+							}
+							break;
+						}
+					}
+				
+				}
+				attrInstBusiRequest = (AttrInstBusiRequest) cache.get(NAMESPACE,ATTR_INST_KEY_PREFIX+order_id+"_"+field_name.toLowerCase());
+				
+			}
+		}
+		return attrInstBusiRequest;
+	}
+
+	private static String getAttrFlag(String order_id) {
+		String attrflag = (String)cache.get(NAMESPACE,ATTR_INST_KEY_PREFIX+order_id);
+		return attrflag;
+	}
+	
+	private static String getAttrKey(AttrInstBusiRequest attrInstBusiRequest){
+		String attr_key = attrInstBusiRequest.getOrder_id()+"_"+attrInstBusiRequest.getField_name().toLowerCase();
+		return attr_key;
+	}
+	
+	/**
+	 * add by wui 一次全量设置属性数据,首次设置/失效再装载
+	 * @param instList
+	 */
+	@SuppressWarnings("rawtypes")
+	public static void setAttrInstBusiRequestsToRedis(List<AttrInstBusiRequest> instList,boolean isAllKeys){
+		try{
+			if(ListUtil.isEmpty(instList))
+				return;
+			StringBuffer keyBuffer = new StringBuffer();
+			String order_id ="";
+			for (AttrInstBusiRequest attrInstBusiRequest:instList) {
+				keyBuffer.append(attrInstBusiRequest.getField_name()).append(",");
+				order_id = attrInstBusiRequest.getOrder_id();
+				cache.set(NAMESPACE,ATTR_INST_KEY_PREFIX+getAttrKey(attrInstBusiRequest), attrInstBusiRequest,time);
+			}
+			cache.set(NAMESPACE,ORDER_ATTR_PRIM_KEYS_FIX+order_id,keyBuffer.toString(),time);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * add by wui 一次全量设置属性数据,首次设置/失效再装载
+	 * @param instList
+	 */
+	@SuppressWarnings("rawtypes")
+	public static void setAttrInstBusiRequestsToRedis(List<AttrInstBusiRequest> instList){
+		try{
+			if(ListUtil.isEmpty(instList))
+				return;
+			StringBuffer keyBuffer = new StringBuffer();
+			String keyStr = (String) cache.get(NAMESPACE,ORDER_ATTR_PRIM_KEYS_FIX+instList.get(0).getOrder_id());
+			if(!StringUtil.isEmpty(keyStr)){
+				keyBuffer = new StringBuffer(keyStr);
+			}
+			String order_id ="";
+			for (AttrInstBusiRequest attrInstBusiRequest:instList) {
+				keyBuffer.append(attrInstBusiRequest.getField_name()).append(",");
+				order_id = attrInstBusiRequest.getOrder_id();
+				cache.set(NAMESPACE,ATTR_INST_KEY_PREFIX+getAttrKey(attrInstBusiRequest), attrInstBusiRequest,time);
+			}
+			cache.set(NAMESPACE,ORDER_ATTR_PRIM_KEYS_FIX+order_id,keyBuffer.toString(),time);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	public static void setAttrFlag(String order_id,String attr_flag_value){
+		cache.set(NAMESPACE,ATTR_INST_KEY_PREFIX+order_id,attr_flag_value,attr_flag_time);
+	}
+	/**
+	 * 单个属性实例值设置
+	 * @param attrInstBusiRequest
+	 */
+	@SuppressWarnings("rawtypes")
+	public static void setAttrInstBusiRequestsToRedis(AttrInstBusiRequest attrInstBusiRequest){
+		String keyStr = (String) cache.get(NAMESPACE,ORDER_ATTR_PRIM_KEYS_FIX+attrInstBusiRequest.getOrder_id());
+		// by wuiadd为空表示内存失效了,重新读取再设置
+//		keyStr ="";
+		if(StringUtil.isEmpty(keyStr)){
+			List<AttrInstBusiRequest> attrInstBusiRequests = orderExtDataToAttrInst(attrInstBusiRequest.getOrder_id(),"","");
+			setAttrInstBusiRequestsToRedis(attrInstBusiRequests,true);
+			keyStr = (String) cache.get(NAMESPACE,ORDER_ATTR_PRIM_KEYS_FIX+attrInstBusiRequest.getOrder_id());
+		}
+		//不存在，则需要写入，否则不需要写入
+		if(!(keyStr.indexOf(attrInstBusiRequest.getField_name())>-1)){
+			keyStr+=attrInstBusiRequest.getField_name()+",";
+			cache.set(NAMESPACE,ORDER_ATTR_PRIM_KEYS_FIX+attrInstBusiRequest.getOrder_id(), keyStr,time);
+		}
+		
+		//不存在则添加.存在则覆盖,所以不需要判断
+		cache.set(NAMESPACE,ATTR_INST_KEY_PREFIX+getAttrKey(attrInstBusiRequest), attrInstBusiRequest,time);
+	}
+	
+
+	@SuppressWarnings("unchecked")
+	public static void  queryOrderInfos(String table_name,String order_id,String sql,String spec_id,Map orderTreeMap){
+		IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+		List<Map> orderEnInfos = baseDaoSupport.queryForList(sql,order_id);
+		orderTreeMap.put(table_name.toLowerCase(), orderEnInfos);
+	}
+	
+	/**
+	 * 配置说明
+	 * @param table_name
+	 * @param fieldName
+	 * @param spec_id
+	 * @param orderTreeMap
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public static Object  getFieldValueByTableNameAndFieldName(String table_name,String order_id,String spec_id,String fieldName,Map orderTreeMap){
+		List<Map> orderInfos= (List<Map>) orderTreeMap.get(table_name.toLowerCase());
+		Object ret_value ="";
+		Object not_null_value ="";
+		if(!ListUtil.isEmpty(orderInfos)){
+			for (Map orderInfo:orderInfos) {
+				Object value =null;
+				String o_spec_id = getAttr_sub_attr_spec_typeid(table_name, orderInfo);
+				if(fieldName.equals(EcsOrderConsts.ATTR_INST_ID_F)){
+					value = getInstId(table_name, order_id,orderInfo);
+				}else if(fieldName.equals(EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_F)){
+					value = getAttr_sub_attr_spec_typeid(table_name,orderInfo);
+				}else{
+					value = orderInfo.get(fieldName.toLowerCase());
+					if(value ==null || "".equals(value))
+						value = orderInfo.get(fieldName.toUpperCase());
+				}
+				if(o_spec_id.equals(spec_id)){
+					ret_value = value;
+				}
+				if(value !=null && !"".equals(value))
+					not_null_value = value;
+			}
+			if(ret_value ==null || "".equals(ret_value))
+				ret_value = not_null_value;
+		}
+		return ret_value;
+	}
+	/**
+	 * 获取实例id
+	 * @param table_name
+	 * @param order_id
+	 * @param orderExt
+	 * @return
+	 */
+	public static String getInstId(String table_name,String order_id,Map orderExt){
+		String inst_id =order_id;
+		if("es_delivery".equals(table_name))
+			inst_id = (String) orderExt.get("delivery_id");
+		if("es_order_items".equals(table_name) || "es_order_items_ext".equals(table_name))
+			inst_id = (String) orderExt.get("item_id");
+		if("es_payment_logs".equals(table_name) )
+			inst_id = (String) orderExt.get("payment_id");
+		if("es_order_items_prod_ext".equals(table_name) ){
+			inst_id = (String)orderExt.get("item_prod_inst_id");
+		}
+		if(StringUtil.isEmpty(inst_id))
+			inst_id = order_id;
+		return inst_id;
+	}
+	
+	public static String getAttr_sub_attr_spec_typeid(String table_name,Map insMap){
+		if("es_order_items_prod_ext".equals(table_name) ){
+			return (String) insMap.get("prod_spec_goods_id");
+		}
+		if("es_order_items_ext".equals(table_name) ){
+			return (String) insMap.get("goods_id");
+		}
+		return EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1;
+	}
+
+	/**
+	 * 1、数据查询、解决根据库表查询所需字段值
+	 * 
+	 * 2、TODO 数据写入处理逻辑
+	 * //OrderTreeBusiRequest/OrderItemBusiRequest/OrderItemProdBusiRequest[0]/prod_spec_type_code
+	 * 
+	 * 
+	 */
+	/**
+	 * 订单确认通过，则根据规则派生出发货、支付、确认单
+	 * 
+	 * @param req
+	 * @return
+	 * @throws BusiException 
+	 */
+	@SuppressWarnings("unchecked")
+	private static List<AttrInstBusiRequest>  orderExtDataToAttrInst(String order_id,String query_sql,String p_field_name){
+		
+		long start = System.currentTimeMillis();
+		
+		String t_prefix = "";
+		if(!StringUtil.isEmpty(query_sql) && query_sql.indexOf("_his")>-1)
+			t_prefix = "_his";
+		@SuppressWarnings("rawtypes")
+		IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+		String attr_defSql ="select distinct a.field_name, a.field_desc, a.field_attr_id,  b.table_name, b.field_name t_field_name from es_attr_def a, es_attr_table b where a.field_attr_id = b.attr_def_id  and b.source_from='"+ManagerUtils.getSourceFrom()+"'";
+		if(!StringUtil.isEmpty(p_field_name)){
+			attr_defSql+="and b.field_name = '"+p_field_name+"'";
+		}
+		@SuppressWarnings("rawtypes")
+		List<Map> attrSpecList = baseDaoSupport.queryForList(attr_defSql);
+		List<AttrInstBusiRequest> attrInstBusiRequests = new ArrayList<AttrInstBusiRequest>();
+		
+		//订单基本信息属性
+		Map orderTreeMap = genAttrInstFromOrderTables(order_id, t_prefix);
+		
+		for (Map attrSpec:attrSpecList) {
+			String field_name =(String) attrSpec.get("field_name");
+			String field_desc =(String) attrSpec.get("field_desc");
+			String field_attr_id =(String) attrSpec.get("field_attr_id");
+			String table_name =(String) attrSpec.get("table_name");
+			String t_field_name =(String) attrSpec.get("t_field_name");
+			AttrDef attrDef = CacheUtils.getCacheAttrDef(field_name+EcsOrderConsts.ATTR_SPEC_ID_999);
+			if(attrDef ==null){
+				logger.info("orderExtDataToAttrInst方法字段名："+field_name+"为空，请处理！");
+				continue;
+			}
+			Object field_value = getFieldValueByTableNameAndFieldName(table_name, order_id,"", t_field_name, orderTreeMap);//orderExt.get(t_field_name);
+			String str_field_value ="";
+			AttrDef ad = new AttrDef();
+			String inst_id = (String) getFieldValueByTableNameAndFieldName(table_name,order_id,"",EcsOrderConsts.ATTR_INST_ID_F, orderTreeMap);
+			String sub_attr_spec_type= (String) getFieldValueByTableNameAndFieldName(table_name,order_id,"",EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_F, orderTreeMap);
+			ad.setField_attr_id(field_attr_id);
+			ad.setAttr_spec_id(EcsOrderConsts.ATTR_SPEC_ID_999);
+			ad.setField_attr_id(field_attr_id);
+			ad.setField_desc(field_desc);
+			ad.setField_name(field_name);
+			if( field_value instanceof Timestamp){
+				if(field_value !=null){
+					DateFormat sdf = new SimpleDateFormat(CrmConstants.DATE_TIME_FORMAT);
+					str_field_value = sdf.format(field_value);
+				}
+			}else if( field_value instanceof Long || field_value instanceof BigDecimal ||  field_value instanceof Integer)
+				str_field_value = field_value+"";
+			else {
+				str_field_value = (String)field_value;
+			}
+			//add by wui描述信息写入
+			String field_value_desc ="";
+			if(!StringUtil.isEmpty(str_field_value) && !StringUtil.isEmpty(attrDef.getAttr_code())){
+				List<Map> list = getConsts(attrDef.getAttr_code());
+				if(list!=null && list.size()>0){
+					for(Map am:list){
+						String a_value = (String) am.get("value");
+						if(str_field_value.equals(a_value)){
+							field_value_desc = (String) am.get("value_desc");
+							break ;
+						}
+					}
+				}
+			}
+			AttrInstBusiRequest attrInstBusiRequest = packageAttrInst(ad, str_field_value, str_field_value, order_id, inst_id,field_value_desc);
+			attrInstBusiRequest.setSpec_is_null(attrDef.getIs_null());
+			attrInstBusiRequest.setSpec_is_edit(attrDef.getIs_edit());
+			attrInstBusiRequest.setNeed_query(ConstsCore.CONSTS_YES);
+			attrInstBusiRequest.setInst_id(inst_id);
+			attrInstBusiRequest.setT_field_name(t_field_name);
+			attrInstBusiRequest.setT_table_name(table_name);
+			attrInstBusiRequest.setSub_attr_spec_type(sub_attr_spec_type);
+			attrInstBusiRequest.setAsy(ConstsCore.CONSTS_NO);
+			attrInstBusiRequests.add(attrInstBusiRequest);
+		}
+		if(StringUtil.isEmpty(p_field_name)) {
+			setAttrFlag(order_id,"yes");
+			
+			// 如果未指定属性,并且在es_order\es_order_ext没有查到数据,则返回空对象
+			List<Map> orderInfos= (List<Map>) orderTreeMap.get("es_order".toLowerCase());
+			List<Map> orderextInfos= (List<Map>) orderTreeMap.get("es_order_ext".toLowerCase());
+			if (StringUtil.isEmpty(t_prefix) && (orderInfos.size()<=0 || orderextInfos.size()<=0)) {
+				attrInstBusiRequests.clear();
+			}
+		}
+		return attrInstBusiRequests;
+	}
+
+
+	public static Map genAttrInstFromOrderTables(String order_id, String t_prefix) {
+		Map orderTreeMap = new HashMap();
+		String a_table="es_order";
+		String b_table="es_order_ext";
+		String d_table="es_order_items";
+		String f_table="es_delivery";
+		String g_table="es_payment_logs";
+		String h_table="es_order_items_ext";
+		String c_table="es_order_extvtl";
+		String i_table="es_order_items_prod_ext";
+		String j_table="es_order_realname_info";
+		String k_table="es_order_zhwq_adsl";
+		String a_table_sql ="select a.* from "+a_table+t_prefix+" a where a.order_id = ? ";
+		String b_table_sql ="select a.* from "+b_table+t_prefix+" a where a.order_id = ? ";
+		String d_table_sql ="select a.* from "+d_table+t_prefix+" a where a.order_id = ?  ";
+		String f_table_sql ="select a.* from "+f_table+t_prefix+" a where a.order_id = ?  and a.delivery_type='0' ";
+		String g_table_sql ="select a.* from "+g_table+t_prefix+" a where a.order_id = ? ";
+		String h_table_sql ="select a.* ,p.goods_id from "+h_table+t_prefix+" a ,es_order_items"+t_prefix+" p where a.order_id = ? and a.item_id = p.item_id and a.source_from ='"+ManagerUtils.getSourceFrom()+"'";
+		String c_table_sql ="select a.* from "+c_table+t_prefix+" a where a.order_id = ? ";
+		String i_table_sql ="select a.*,p.prod_spec_goods_id from "+i_table+t_prefix+" a,es_order_items_prod"+t_prefix+" p where a.order_id = ?  and p.item_prod_inst_id = a.item_prod_inst_id and a.source_from ='"+ManagerUtils.getSourceFrom()+"'";
+		String j_table_sql ="select a.* from "+j_table+t_prefix+" a where a.order_id = ?  ";
+		String k_table_sql ="select a.* from "+k_table+t_prefix+" a where a.order_id = ?  ";
+		
+		queryOrderInfos(a_table,order_id, a_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(b_table,order_id, b_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(f_table,order_id, f_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(g_table,order_id, g_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(h_table,order_id, h_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(c_table,order_id, c_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(d_table,order_id, d_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(i_table,order_id, i_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(j_table,order_id, j_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		queryOrderInfos(k_table,order_id, k_table_sql,EcsOrderConsts.ATTR_SUB_ATTR_SPEC_TYPE_1,orderTreeMap);
+		return orderTreeMap;
+	}
+	
+	public static List<Map> getConsts(String key){
+		DcPublicSQLInfoCacheProxy dcPublicSqlCache = new DcPublicSQLInfoCacheProxy();
+        List<Map> list = dcPublicSqlCache.getDropdownData(key);
+        return list;
+	}
+	
+	
+	/**
+	 * 插入订单属性实例表
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-28 
+	 * @param attrDef
+	 * @param i_value
+	 * @param o_value
+	 * @param order_id
+	 * @param inst_id
+	 */
+	public static AttrInstBusiRequest packageAttrInst(AttrDef attrDef,String i_value,String o_value,String order_id,String inst_id,String value_desc){
+		AttrInstBusiRequest attrInst = new AttrInstBusiRequest();
+		attrInst.setAttr_inst_id(attrDef.getField_attr_id()); //add by wui，纵表转横表特殊处理
+		attrInst.setOrder_id(order_id);
+		attrInst.setInst_id(inst_id);
+		attrInst.setAttr_spec_id(attrDef.getAttr_spec_id());
+		attrInst.setField_attr_id(attrDef.getField_attr_id());
+		attrInst.setField_name(attrDef.getField_name());
+		attrInst.setFiled_desc(attrDef.getField_desc());
+		attrInst.setField_value(i_value);
+		attrInst.setSec_field_value(o_value);
+		attrInst.setField_value_desc(value_desc);
+		attrInst.setCreate_date(DBTUtil.current());
+		return attrInst;
+	}
+}

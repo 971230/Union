@@ -1,0 +1,68 @@
+package zte.net.iservice.impl;
+
+import org.springframework.stereotype.Service;
+
+import zte.net.ecsord.params.spec.req.NumberSpecReq;
+import zte.net.ecsord.params.spec.resp.NumberSpecResp;
+import zte.net.iservice.INumberService;
+import zte.params.number.req.NoCoDeleteReq;
+import zte.params.number.req.NoInfoByNoReq;
+import zte.params.number.req.NumberChangeStatusReq;
+import zte.params.number.req.NumberSynInfoReq;
+import zte.params.number.resp.NoCoDeleteResp;
+import zte.params.number.resp.NoInfoByNoResp;
+import zte.params.number.resp.NumberChangeStatusResp;
+import zte.params.number.resp.NumberSynInfoResp;
+
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+/**
+ * Created with IntelliJ IDEA.
+ * User: deng.yx
+ * Date: 2014-01-22 15:54
+ * To change this template use File | Settings | File Templates.
+ */
+@ServiceMethodBean(version="1.0")
+@Service
+public class ZteNumberOpenService {
+
+//    @Resource
+    private INumberService numberService;
+    
+    private void init() {
+    	if (null == numberService) numberService = ApiContextHolder.getBean("numberService");
+    }
+    
+    @ServiceMethod(method="zte.service.no.queryNoInfoByNo",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+    public NoInfoByNoResp queryNoInfoByNo(NoInfoByNoReq req){
+    	this.init();
+		return numberService.queryNoInfoByNo(req);
+	}
+    
+	@ServiceMethod(method="com.ztesoft.remote.number.queryNumSynInfo",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NumberSynInfoResp queryNumSynInfo(NumberSynInfoReq numberReq){
+		this.init();
+		return numberService.queryNumSynInfo(numberReq);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.number.changeNumStatus",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NumberChangeStatusResp changeNumStatus(NumberChangeStatusReq numberReq){
+		this.init();
+		return numberService.changeNumStatus(numberReq);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.number.NoCoDelete",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NoCoDeleteResp deleteNoCo(NoCoDeleteReq req){
+		this.init();
+		return numberService.deleteNoCo(req);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.number.spec",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NumberSpecResp getNumberSpec(NumberSpecReq req){
+		this.init();
+		return numberService.getNumberSpec(req);
+	}
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="rop_server">
+        <wb-resource deploy-path="/" source-path="/src/main/java"/>
+        <wb-resource deploy-path="/" source-path="/src/main/rop.web"/>
+        <wb-resource deploy-path="/" source-path="/src/main/remote.service.src"/>
+        <wb-resource deploy-path="/" source-path="/src/main/rop.core"/>
+        <wb-resource deploy-path="/" source-path="/src/main/rop.service"/>
+        <wb-resource deploy-path="/" source-path="/src/main/rop.framework"/>
+        <wb-resource deploy-path="/" source-path="/src/main/remote.service"/>
+        <wb-resource deploy-path="/" source-path="/src/main/rop.resources"/>
+        <wb-resource deploy-path="/" source-path="/src/main/rop.params"/>
+    </wb-module>
+</project-modules>

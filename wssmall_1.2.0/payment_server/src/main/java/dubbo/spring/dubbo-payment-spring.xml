@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       default-autowire="byName" default-lazy-init="true">
+	
+	
+    <bean id = "checkAcctServ" class = "services.CheckAcctServ" parent="baseSupport"></bean>
+	<bean id = "onlinePaymentServ" class = "services.OnlinePaymentServ" parent="baseSupport"></bean>
+	<bean id="bankServ" class="services.BankServ" />
+	<bean id = "paymentCfgServ" class = "services.PaymentCfgServ" parent="baseSupport"></bean>
+	<bean id = "paymentListServ" class = "services.PaymentListServ" parent="baseSupport"></bean>
+</beans>

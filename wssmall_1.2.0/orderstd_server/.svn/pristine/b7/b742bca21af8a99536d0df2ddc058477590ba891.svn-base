@@ -1,0 +1,799 @@
+package com.ztesoft.net.server;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
+import params.req.ZJLocalMallOrderStandardReq;
+import params.resp.ZJLocalMallOrderStandardResp;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ord.params.busi.req.OrderQueueBusiRequest;
+import zte.params.goods.req.GoodsGetReq;
+import zte.params.goods.req.StdGoodsGetReq;
+import zte.params.goods.resp.GoodsGetResp;
+import zte.params.goods.resp.StdGoodsGetResp;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.Outer;
+import com.ztesoft.net.model.OuterItem;
+import com.ztesoft.net.outter.inf.model.LocalOrderAttr;
+import com.ztesoft.net.server.jsonserver.wcfpojo.MallUtils;
+import com.ztesoft.net.server.jsonserver.zjpojo.Item;
+import com.ztesoft.net.server.jsonserver.zjpojo.ZJLocalMallOrder;
+
+import consts.ConstsCore;
+
+public class ZJLocalMallOrderUtil {
+	
+	public static final String PROVINCE_CODE_ZJ = "330000";
+	public static final String PROVINCE_NAME_ZJ = "浙江省";
+	public static final String ZJ_LOCAL_MALL_CHANNEL_MARK = "13";
+	public static final String ZJ_RECEIVE_SYSTEM = "10011";
+	//订单来源数据字典映射
+	public static final Map<String,String> ORDERSRC = new HashMap<String, String>(9);
+	//城市编码
+	public static final Map<String,String> AREAID = new HashMap<String, String>(12);
+	//支付类型
+	public static final Map<String,String> PAYTYPE = new HashMap<String, String>(2);
+	//支付状态
+	public static final Map<String, String> PAYSTATUS = new HashMap<String, String>(2);
+	//配送方式
+	public static final Map<String, String> DELIVERYTYPE = new HashMap<String, String>(2);
+	//订单类型
+	public static final Map<String, String> ORDERTYPE = new HashMap<String, String>(19);
+	//卡类型
+	public static final Map<String, String> CARDTYPE = new HashMap<String, String>(3);
+	//活动类型
+	public static final Map<String, String> ACTIVITYTYPE = new HashMap<String, String>(7);
+	//证件类型
+	public static final Map<String, String> CUSTCARDTYPE = new HashMap<String, String>(25);
+	static{
+		//订单来源数据字典映射     key 订单中心编码 value 为订单中心中文名称
+		ORDERSRC.put("10001","淘宝商城/淘宝网厅");//淘宝商城/淘宝网厅
+		ORDERSRC.put("10005","拍拍");//拍拍
+		ORDERSRC.put("10002","联通商城");//联通商城
+		ORDERSRC.put("10035","电子沃店");//电子沃店
+		ORDERSRC.put("10063","微信接口");//微信接口
+		ORDERSRC.put("10064","手机商城");//手机商城
+		ORDERSRC.put("10065","推广联盟");//推广联盟
+		ORDERSRC.put("10066","挑号网");//挑号网
+		ORDERSRC.put("10067","外围接入");//外围接入
+		//城市编码数据字典     key 地市编码 value 地市名称
+		AREAID.put("330100", "杭州市");
+		AREAID.put("330500", "湖州市");
+		AREAID.put("330400", "嘉兴市");
+		AREAID.put("330700", "金华市");
+		AREAID.put("331100", "丽水市");
+		AREAID.put("330200", "宁波市");	
+		AREAID.put("330600", "绍兴市");
+		AREAID.put("331000", "台州市");
+		AREAID.put("330300", "温州市");
+		AREAID.put("330900", "舟山市");
+		AREAID.put("330800", "衢州市");
+		AREAID.put("330000", "浙江");
+		//支付类型 key 订单中心编码  value 订单中心中文名称
+		PAYTYPE.put("ZXZF","在线支付");//在线支付
+		PAYTYPE.put("HDFK","货到付款");//货到付款
+		//支付状态 key 订单中心编码 value 订单中心中文名称
+		PAYSTATUS.put("0","未支付");//未支付
+		PAYSTATUS.put("1","已支付");//已支付
+		//配送方式 key 订单中心编码 value 订单中心中文名称
+		DELIVERYTYPE.put("KD","宽带");//宽带
+		DELIVERYTYPE.put("ZT","自提");//自提
+		//订单类型 key 订单中心编码 value 订单中心中文名称
+		ORDERTYPE.put("Z0","合约购机");//合约购机
+		ORDERTYPE.put("Z1","套餐3G手机卡");//套餐3G手机卡
+		ORDERTYPE.put("Z8","3G无线上网卡");//3G无线上网卡
+		ORDERTYPE.put("Z23","流量充值卡");//流量充值卡
+		ORDERTYPE.put("Z24","话费充值");//话费充值
+		ORDERTYPE.put("Z25","天猫券");//天猫券
+		ORDERTYPE.put("Z19","余额宝购机");//余额宝购机
+		ORDERTYPE.put("Z21","全国预付费上网卡");//全国预付费上网卡
+		ORDERTYPE.put("Z22","省份预付费上网卡");//省份预付费上网卡
+		ORDERTYPE.put("Z26","配件");//配件
+		ORDERTYPE.put("Z5","2G号码");//2G号码
+		ORDERTYPE.put("Z15","3G预付费号码");//3G预付费号码
+		ORDERTYPE.put("Z16","3G后付费号码");//3G后付费号码
+		ORDERTYPE.put("Z11","预付费合约购机");//预付费合约购机
+		ORDERTYPE.put("Z12","后付费合约购机");//后付费合约购机
+		ORDERTYPE.put("Z27","裸机");//裸机
+		ORDERTYPE.put("Z13","非定制机合约购机");//非定制机合约购机
+		ORDERTYPE.put("Z6","4G号码");//4G号码
+		ORDERTYPE.put("Z28","存量用户活动受理订单");//存量用户活动受理订单
+		//卡类型 key 订单中心编码  value 订单中心中文名称
+		CARDTYPE.put("NM","普卡");//普卡
+		CARDTYPE.put("MC","微卡");//微卡
+		CARDTYPE.put("NN","纳诺卡");//纳诺卡
+		//活动类型 key 订单中心编码 value 订单中心中文名称
+		ACTIVITYTYPE.put("690301000","购手机入网送话费");//购手机入网送话费
+		ACTIVITYTYPE.put("690302000","预存话费送手机");//预存话费送手机
+		ACTIVITYTYPE.put("690303000","存费送费");//存费送费
+		ACTIVITYTYPE.put("690310000","存费送短信");//存费送短信
+		ACTIVITYTYPE.put("690306000","存费送流量");//存费送流量
+		ACTIVITYTYPE.put("690310000","存费送语音");//存费送语音
+		//ACTIVITYTYPE.put("999", "");//其他
+		//证件类型 key 订单中心编码 value 订单中心中文名称
+		CUSTCARDTYPE.put("SFZ15","15位身份证");//15位身份证
+		CUSTCARDTYPE.put("SFZ18","18位身份证");//18位身份证
+		CUSTCARDTYPE.put("HZB","护照");//护照
+		CUSTCARDTYPE.put("HKB","户口本");//户口本
+		CUSTCARDTYPE.put("JUZ","军官证");//军官证
+		CUSTCARDTYPE.put("JGZ","警官证");//警官证
+		CUSTCARDTYPE.put("GOT","港澳居民来往内地通行证");//港澳居民来往内地通行证
+		CUSTCARDTYPE.put("TWT","台湾居民来往大陆通行证");//台湾居民来往大陆通行证
+		CUSTCARDTYPE.put("JSZ","驾驶证");//驾驶证
+		CUSTCARDTYPE.put("GZZ","工作证");//工作证
+		CUSTCARDTYPE.put("XSZ","学生证");//学生证
+		CUSTCARDTYPE.put("ZZZ","暂住证");//暂住证
+		CUSTCARDTYPE.put("JSX","单位介绍信");//单位介绍信
+		CUSTCARDTYPE.put("YYZ","营业执照");//营业执照
+		CUSTCARDTYPE.put("QT","其它");//其它
+		CUSTCARDTYPE.put("XWQY","小微企业客户证件");//小微企业客户证件
+		CUSTCARDTYPE.put("JTBH","集团编号");//集团编号
+		CUSTCARDTYPE.put("GSDJ","工商注册登记证");//工商注册登记证
+		CUSTCARDTYPE.put("ZZJG","组织机构代码证");//组织机构代码证
+		CUSTCARDTYPE.put("YKH","预开户编号");//预开户编号
+		CUSTCARDTYPE.put("WJSFZ","武警身份证");//武警身份证
+		CUSTCARDTYPE.put("SYDW","事业单位法人代表证");//事业单位法人代表证
+		CUSTCARDTYPE.put("ZH","照会");//照会
+		CUSTCARDTYPE.put("SHTT","社会团体法人证书");//社会团体法人证书
+		CUSTCARDTYPE.put("DWS","待完善资料");//待完善资料
+	}
+	
+	
+	public static ZJLocalMallOrderStandardResp  orderStandardValidate(ZJLocalMallOrderStandardReq req) throws Exception{
+		ZJLocalMallOrderStandardResp resp = new ZJLocalMallOrderStandardResp();
+		ZJLocalMallOrder zjLocalMallOrder = new ZJLocalMallOrder();//json转map的实体对象
+		Map extMap = new HashMap<String, String>();
+        List<Outer> out_order_List = new ArrayList<Outer>();
+        Outer out_order = new Outer();
+        String returnValue = "";
+        String inJson = getReqContent(req.getBase_co_id(), req.isIs_exception());
+        if(StringUtil.isEmpty(inJson)){
+        	resp.setError_msg("未获取到请求报文");
+        	resp.setError_code(ConstsCore.ERROR_FAIL);
+        	return resp;
+        }
+		//json转化为javaBean
+        zjLocalMallOrder = MallUtils.jsonToZJLocalMallOrder(inJson);
+        //自动扩展表配置数据入库数据封装
+    	if(zjLocalMallOrder.getExt_params()!=null){
+    		extMap = zjLocalMallOrder.getExt_params();
+    	}
+    	// 检查必填项
+	    String checkResult = checkZJLocalMallOrder(zjLocalMallOrder);
+		if(!StringUtil.isEmpty(checkResult)){
+			resp.setError_msg(checkResult);
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+		    return resp;
+		}
+		//设置订单入库值
+		String result_msg = setOrderValue(out_order,zjLocalMallOrder,extMap);
+		if(!StringUtil.isEmpty(result_msg)){
+			resp.setError_msg(result_msg);
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+			return resp;
+		}
+	    out_order_List.add(out_order);
+	    resp.setOut_order_List(out_order_List);
+	    resp.setError_code(ConstsCore.ERROR_SUCC);
+	    return resp;
+	}
+	//获取归集系统请求报文
+	private static  String getReqContent(String co_id,boolean is_exception){
+		String content = "";
+		OrderQueueBusiRequest orderQueue = new OrderQueueBusiRequest();
+		if(is_exception){
+			orderQueue = CommonDataFactory.getInstance().getOrderQueueFor(null, co_id);
+		}else{
+			orderQueue = CommonDataFactory.getInstance().getOrderQueue(null, co_id);
+		}
+		if(orderQueue!=null){
+			content = orderQueue.getContents();
+		}
+		return content;
+	}
+	/**
+	 * 把json参数值存入outer对象中
+	 * @param outer
+	 * @param mallOrder
+	 * @throws Exception 
+	 */
+	private static String setOrderValue(Outer outer , ZJLocalMallOrder zjLocalMallOrder , Map extMap) {
+		Item item = zjLocalMallOrder.getOrderItem().get(0);
+		//序列号  serial_no
+		outer.setPayplatformorderid(MallUtils.getSeqNo());
+		//时间  time
+		outer.setGet_time(MallUtils.strFormatDate(MallUtils.strToDate(zjLocalMallOrder.getDealTime())));
+//		发起方系统标识  source_system
+		outer.setOrder_channel(zjLocalMallOrder.getDataSrc());
+//		订单编号  order_id
+		outer.setOut_tid(MallUtils.getValues(zjLocalMallOrder.getOutOrderId()));
+//		订单类型  order_type
+		outer.setType(MallUtils.getValues(item.getOrderType()));
+		if("4".equals(item.getOrderType())){//预约单设置值
+			outer.setWm_isreservation_from("1");
+		}else{
+			outer.setWm_isreservation_from("0");
+		}
+//		订单状态  status
+		outer.setStatus(MallUtils.getValues("1"));
+//		订单来源系统  source_from_system
+		outer.setPlat_type(MallUtils.getValues(zjLocalMallOrder.getDataSrc()));
+//		订单来源  source_from
+		outer.setOrder_from(zjLocalMallOrder.getOrderSrc());
+//		TODO 归属地市  order_city
+		outer.setOrder_city_code(MallUtils.getValues(""));
+//		发展人编码  development_code
+		outer.setDevelopment_code(MallUtils.getValues(zjLocalMallOrder.getDevelopCode()));
+//		TODO 推荐人名称  reference_name
+		outer.setRecommended_name(MallUtils.getValues(""));
+//		下单时间  create_time
+		if (MallUtils.isNotEmpty(zjLocalMallOrder.getDealTime())) {
+			outer.setTid_time(MallUtils.strFormatDate(MallUtils.strToDate(zjLocalMallOrder.getDealTime(),"yyyy-MM-dd HH:mm:ss")));
+		}
+//		支付时间  pay_time
+		outer.setPay_time(MallUtils.getValues(zjLocalMallOrder.getPayTime()));
+//		支付类型  pay_type
+		outer.setPaytype(MallUtils.getValues(zjLocalMallOrder.getPayType()));
+		
+//		支付状态
+		if ("HDFK".equalsIgnoreCase(zjLocalMallOrder.getPayType())) {
+			outer.setPay_status("0");
+		}else {
+			outer.setPay_status("1");
+		}
+//		TODO 支付方式  payment_type  默认值处理
+		if ("HDFK".equalsIgnoreCase(zjLocalMallOrder.getPayType())) {
+			outer.setPay_method("XJZF");
+		}
+		else if("ZXZF".equalsIgnoreCase(zjLocalMallOrder.getPayType())){
+			outer.setPay_method("QEZF");
+		}
+		else if("XCZF".equalsIgnoreCase(zjLocalMallOrder.getPayType())){
+			outer.setPay_method("XJZF");
+		}
+		else{
+			outer.setPay_method("");
+		}
+//		TODO 支付流水号  payment_serial_no
+		outer.setPayplatformorderid(MallUtils.getValues(""));
+//		TODO 支付机构编码  payment_code
+		outer.setPayproviderid(MallUtils.getValues(""));
+//		TODO 支付机构名称  payment_name
+		outer.setPayprovidername(MallUtils.getValues(""));
+//		TODO 支付渠道编码  payment_channel_code
+		outer.setPaychannelid(MallUtils.getValues(""));
+//		TODO 支付渠道名称  payment_channel_name
+		outer.setPaychannelname(MallUtils.getValues(""));	
+//		TODO 外部支付账号  alipay_id
+		outer.setAlipay_id(MallUtils.getValues(""));
+		
+//		买家名称  name
+		outer.setBuyer_name(MallUtils.getValues(zjLocalMallOrder.getBuyer()));
+//		买家昵称  uname
+		outer.setBuyer_id(MallUtils.getValues(zjLocalMallOrder.getBuyer()));
+//		TODO 发货状态  delivery_status
+		outer.setDelivery_status(MallUtils.getValues(""));
+//		TODO 异常状态  abnormal_status
+		outer.setAbnormal_status(MallUtils.getValues(""));
+//		TODO 外部平台状态  platform_status
+		outer.setPlatform_status(MallUtils.getValues(""));
+//		订单总价  order_amount
+		outer.setOrder_totalfee(MallUtils.getValues(zjLocalMallOrder.getOrderAmount()));
+//		优惠金额  order_disacount
+		outer.setDiscountValue(MallUtils.getValues("0"));
+//		实收金额  pay_money
+		outer.setOrder_realfee(MallUtils.getValues(zjLocalMallOrder.getOrderAmount()));
+//		应收运费  shipping_amount
+		outer.setPost_fee(MallUtils.getValues("0"));
+//		接收是否作废单标识,用来区分能否重复入库
+		outer.setOrder_if_cancel("0");
+//		配送方式  shipping_type
+		outer.setSending_type(zjLocalMallOrder.getDeliveryType());
+//		收货人姓名  ship_name
+		outer.setReceiver_name(MallUtils.getValues(zjLocalMallOrder.getReceiver()));
+//		TODO 地址地市  ship_city
+		outer.setCity_code(MallUtils.getValues(zjLocalMallOrder.getAreaId()));
+//		TODO 地址区县  ship_country
+		outer.setArea_code(MallUtils.getValues(zjLocalMallOrder.getAreaId()));
+//		outer.setDistrict(localGoodServices.getCityname(mallOrder.getShip_country()));
+//		outer.setCity(localGoodServices.getCityname(mallOrder.getShip_city()));  //收件人地市中文
+		outer.setProvinc_code(PROVINCE_CODE_ZJ);  //收件人省份编码
+		outer.setProvince(PROVINCE_NAME_ZJ);  //收件人省份中文
+//		订单归属省份编码  order_provinc_code
+		outer.setOrder_provinc_code(PROVINCE_CODE_ZJ);
+//		订单归属地市编码  order_city_code
+		outer.setOrder_city_code(MallUtils.getValues(zjLocalMallOrder.getAreaId()));
+//		地址  ship_addr
+		outer.setAddress(MallUtils.getValues(zjLocalMallOrder.getReceiveAddr()));
+//		邮件编码  postcode
+		outer.setPost(MallUtils.getValues(zjLocalMallOrder.getReceivePostcode()));
+//		固定电话  ship_tel
+		outer.setPhone(MallUtils.getValues(""));
+//		手机号码  ship_phone
+		outer.setReceiver_mobile(MallUtils.getValues(zjLocalMallOrder.getReceiveTel()));
+//		TODO 百度账号  baidu_account
+//		outer.setBaidu_id(MallUtils.getValues(""));
+//		TODO 百度冻结流水号  baidu_no
+//		outer.setFreeze_tran_no(MallUtils.getValues(""));
+//		TODO 百度冻结款  baidu_money
+//		outer.setFreeze_free(MallUtils.getValues(""));
+//		TODO 买家留言  buyer_message
+		outer.setBuyer_message(MallUtils.getValues(""));
+//		TODO 订单备注  order_comment
+		outer.setService_remarks(item.getPresent());
+		//冻结金额
+		outer.setFreeze_free(item.getFrzMoney());
+		//活动时赠送的金额
+		outer.setGift_money(item.getFreeAmount());
+//		库中无对应字段存储的数据
+//		接收方系统标识  receive_system  Reserve0
+		outer.setReserve0(ZJ_RECEIVE_SYSTEM);
+//		是否2G、3G升4G  is_to4g  Reserve1
+		//outer.setReserve1(MallUtils.getValues(mallOrder.getIs_to4g()));
+//		渠道类型  channel_mark  Reserve2
+		outer.setReserve2(ZJ_LOCAL_MALL_CHANNEL_MARK);
+//		TODO 渠道标识  channel_id  Reserve3
+		outer.setReserve3(MallUtils.getValues(""));
+//		TODO 渠道名称  chanel_name  Reserve4
+		outer.setReserve4(MallUtils.getValues(""));
+		
+//		设置扩展信息
+//		是否已办理完成  is_deal
+		extMap.put("is_deal", "0");
+//		配送时间  shipping_time
+		extMap.put("shipping_time", "NOLIMIT");
+//		电子邮件  ship_email
+		if (MallUtils.isNotEmpty(zjLocalMallOrder.getReceiveMail())) {
+			extMap.put("ship_email", zjLocalMallOrder.getReceiveMail());
+		}
+		//渠道类型
+		if(MallUtils.isNotEmpty(zjLocalMallOrder.getChannel())){
+			extMap.put("channel_type",zjLocalMallOrder.getChannel());
+		}
+		extMap.put("out_office", zjLocalMallOrder.getDevelopCode());
+		extMap.put("out_operator", zjLocalMallOrder.getDevelopCustid());
+		extMap.put("is_change", "0");
+		//是否需要审核证件照
+//		if(MallUtils.isNotEmpty(mallOrder.getIs_examine_card())){
+//			extMap.put("is_examine_card",mallOrder.getIs_examine_card());
+//		}
+		//销售商品名称
+		if(MallUtils.isNotEmpty(item.getGoodsName())){
+			extMap.put("sales_name",item.getGoodsName());
+		}
+		//GoodsName 商品名称
+		extMap.put("GoodsName", item.getGoodsName());
+		outer.setExtMap(extMap);
+		//设置orderItem的值
+		String resultMessage = null;
+		try {
+			resultMessage = setOrderListValue(outer, zjLocalMallOrder, extMap);
+		} catch (Exception e) {
+			e.printStackTrace();
+			resultMessage = e.getLocalizedMessage();
+		}
+		
+		return resultMessage;
+		
+	}
+	
+	/**
+	 * 把orderItem参数值set到OuterItem中
+	 * @param outer
+	 * @param mallOrder
+	 * @throws Exception 
+	 */
+	private static String setOrderListValue(Outer outer , ZJLocalMallOrder zjLocalMallOrder , Map extMap) throws Exception{	
+		List<Item> orderItems = zjLocalMallOrder.getOrderItem();
+		List<OuterItem> itemList  = new ArrayList<OuterItem>();
+		int num = 0;
+		for (Item ordItem : orderItems) {
+			OuterItem item = new OuterItem();
+			//本地表对象,存放货品参数
+			LocalOrderAttr orderAttr = new LocalOrderAttr();
+			//设置orderItem对象的值
+			item.setSell_price(Double.parseDouble(ordItem.getGoodsPrice()));//商品价格   offer_price
+			item.setPro_origfee(Double.parseDouble(ordItem.getGoodsValue()));//实收价格（厘）  offer_coupon_price
+			item.setPro_num(Integer.parseInt(ordItem.getGoodsQuantity()));//商品数量  prod_offer_num
+			//item.setPlan_title(ordItem.getGoodsRemark());//商品备注  offer_comment
+			item.setCert_type(ordItem.getCustCardType());//证件类型  certi_type
+			item.setCert_card_num(MallUtils.getValues(ordItem.getCustCardId()));//证件号码  certi_num
+//			item.setCert_failure_time(ordList.getCerti_valid_date());//证件失效时间
+			item.setCert_address(MallUtils.getValues(ordItem.getCustCardAddr()));//证件地址  certi_address
+			item.setPhone_owner_name(ordItem.getCustName());//客户名称  cust_name
+			item.setFirst_payment(ordItem.getFirstMonth());//首月资费方式  offer_eff_type
+			item.setModel_code(ordItem.getTermialModel());//机型编码  resourcestypeid
+			item.setReliefpres_flag("NO");//减免预存标记
+			//卡类型 
+			item.setWhite_cart_type(ordItem.getCardType());
+			item.setPhone_num(ordItem.getSubsSvcNumber());  //用户号码
+			//item.setPro_type("69010213");//商品小类   //TODO 暂时写死
+			//item.setType_id("20000");//商品大类   //TODO 暂时写死
+			item.setAct_protper(ordItem.getTerm());//合约期限 12月、18月、24月、36月、48月
+			//item.setAtive_type(ordItem.getActivityType());//字典：5购机送费、4存费送机、3存费送费 --合约类型
+			item.setBrand_name(ordItem.getTermialBrand());//品牌
+			item.setColor_name(ordItem.getGoodsColor());//商品颜色
+			item.setPlan_title(ordItem.getMainProdName());//套餐名称
+			item.setPro_name(ordItem.getMainProdName());
+			//item.setIs_iphone_plan("0");//模式不是iPhone套餐
+			//设置商品相关信息 TODO 需要修改
+			StdGoodsGetReq req = new StdGoodsGetReq();
+			req.setGoodsName(Const.getStrValue(extMap, "GoodsName"));
+			ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+			StdGoodsGetResp resp = client.execute(req, StdGoodsGetResp.class);
+			if(StringUtils.isEmpty(resp.getGoodsId())){
+				throw new Exception("根据商品名称未匹配到商品配置");
+			}
+			GoodsGetReq goodsGetReq = new GoodsGetReq();
+			goodsGetReq.setGoods_id(resp.getGoodsId());
+			GoodsGetResp goodsGetResp = client.execute(goodsGetReq, GoodsGetResp.class);
+			if ("0".equals(goodsGetResp.getError_code())) {
+				Map param = goodsGetResp.getData();
+				setPackageGoodsParam(item,param);
+			}
+			else{
+				throw new Exception("根据商品名称未获取到商品信息，请确认商品中心是否配置该商品");
+			}
+			//设置货品参数
+			orderAttr.setSim_type(EcsOrderConsts.SIM_TYPE_BK);//浙江为白卡
+			//新老用户设置
+			if("1".equals(ordItem.getIsNewUser())){//新用户
+				orderAttr.setIs_old("0");
+			}else{
+				orderAttr.setIs_old("1");
+			}
+			outer.setLocalObject(orderAttr);
+			if(num == 0){
+				itemList.add(item);
+				num ++;
+			}
+		}		
+		outer.setItemList(itemList);
+		return "";
+	}
+	
+	/**
+	 * 把产品参数添加在OuterItem对象中
+	 * @param item
+	 * @param param
+	 */
+	private static void setPackageGoodsParam(OuterItem item , Map<String, String> param){
+		
+//		活动预存款 单位元
+		if (MallUtils.isEmpty(param.get("deposit_fee"))) {
+			item.setPhone_deposit("0");
+		} else {
+			item.setPhone_deposit(param.get("deposit_fee"));
+		}
+//		产品ID
+		item.setProduct_id(param.get("product_id"));
+		item.setGoods_id(param.get("goods_id"));
+		
+//		合约期限 12月、18月、24月、36月、48月
+//		if (MallUtils.isEmpty(param.get("package_limit"))) {
+//			item.setAct_protper("0");
+//		} else {
+//			item.setAct_protper(param.get("package_limit"));
+//		}
+		
+//		字典：5购机送费、4存费送机、3存费送费 --合约类型
+		if (MallUtils.isNotEmpty(param.get("ative_type"))) {
+			item.setAtive_type(param.get("ative_type"));
+		}
+		
+//		品牌
+		if (MallUtils.isNotEmpty(param.get("brand_name"))) {
+			item.setBrand_name(param.get("brand_name"));
+		}
+		
+//		品牌编码
+		if (MallUtils.isNotEmpty(param.get("brand_number"))) {
+			item.setBrand_number(param.get("brand_number"));
+		}
+//		颜色编码
+//		if (MallUtils.isNotEmpty(param.get("color_code"))) {
+//			item.setColor_code(param.get("color_code"));
+//		}
+//		if (MallUtils.isNotEmpty(param.get("color_name"))) {
+//			item.setColor_name(param.get("color_name"));
+//		}
+//		是否iphone套餐 字典：0否，1是
+		if (MallUtils.isNotEmpty(param.get("is_iphone_plan"))) {
+			item.setIs_iphone_plan(param.get("is_iphone_plan"));
+		}
+//		是否靓号 字典：0否，1是
+		if (MallUtils.isNotEmpty(param.get("is_liang"))) {
+			item.setIs_liang(param.get("is_liang"));
+		}
+//		是否情侣号码 字典：0否，1是 --默认0
+		if (MallUtils.isNotEmpty(param.get("is_loves_phone"))) {
+			item.setIs_loves_phone(param.get("is_loves_phone"));
+		}
+//		是否库存机 字典：0否，1是 --终端属性
+		if (MallUtils.isNotEmpty(param.get("is_stock_phone"))) {
+			item.setIs_stock_phone(param.get("is_stock_phone"));
+		}
+//		是否赠品 字典：0否，1是
+		if (MallUtils.isNotEmpty(param.get("isgifts"))) {
+			item.setIsgifts(param.get("isgifts"));
+		}
+//		机型编码
+//		if (MallUtils.isNotEmpty(param.get("model_code"))) {
+//			item.setModel_code(param.get("model_code"));
+//		}
+//		机型名称
+		if (MallUtils.isNotEmpty(param.get("model_name"))) {
+			item.setModel_name(param.get("model_name"));
+		}
+//		BSS套餐编码 BSS套餐编码
+		if (MallUtils.isNotEmpty(param.get("out_plan_id_bss"))) {
+			item.setOut_plan_id_bss(param.get("out_plan_id_bss"));
+		}
+//		总部套餐编码 总部套餐编码
+		if (MallUtils.isNotEmpty(param.get("out_plan_id_ess"))) {
+			item.setOut_plan_id_ess(param.get("out_plan_id_ess"));
+		}
+//		套餐名称
+//		if (MallUtils.isNotEmpty(param.get("goods_name"))) {
+//			item.setPlan_title(param.get("goods_name"));
+//			item.setPro_name(param.get("goods_name"));
+//		}
+//		产品类型
+		if (MallUtils.isNotEmpty(param.get("product_type"))) {
+			item.setPro_type(param.get("product_type"));
+		}
+//		产品网别
+		if (MallUtils.isNotEmpty(param.get("product_net"))) {
+			item.setProduct_net(param.get("product_net"));
+		}
+//		型号名称
+		if (MallUtils.isNotEmpty(param.get("specification_name"))) {
+			item.setSpecificatio_nname(param.get("specification_name"));
+		}
+//		型号编码
+		if (MallUtils.isNotEmpty(param.get("specification_code"))) {
+			item.setSpecification_code(param.get("specification_code"));
+		}
+		if (MallUtils.isNotEmpty(param.get("type_id"))) {
+			item.setType_id(param.get("type_id"));
+		}
+		
+	}
+
+	/**
+	 * 商城json参数中必填项校验
+	 * @param mallOrder
+	 * @return
+	 */
+	private static String checkZJLocalMallOrder(ZJLocalMallOrder zjLocalMallOrder) throws Exception{
+		StringBuffer stringBuffer = new StringBuffer();
+		//外部订单号
+		if(StringUtil.isEmpty(zjLocalMallOrder.getOutOrderId())){
+			return "缺少必填字段:outOrderId.";
+		}
+		//订单来源
+		if(StringUtil.isEmpty(zjLocalMallOrder.getOrderSrc())){
+			return "缺少必填字段:orderSrc.";
+		}else{
+			//转换为订单系统编码
+			String orderSrc = ORDERSRC.get(zjLocalMallOrder.getOrderSrc());
+			if(StringUtil.isEmpty(orderSrc)){
+				return "字段:orderSrc,在订单系统没有匹配到值.";
+			}
+		}
+		//数据来源
+		if(StringUtil.isEmpty(zjLocalMallOrder.getDataSrc())){
+			return "缺少必填字段:dataSrc.";
+		}else{
+			//转换为订单系统编码
+			String dataSrc = ORDERSRC.get(zjLocalMallOrder.getDataSrc());
+			if(StringUtil.isEmpty(dataSrc)){
+				return "字段:dataSrc,在订单系统没有匹配到值.";
+			}
+		}
+		//地市
+		if(StringUtil.isEmpty(zjLocalMallOrder.getAreaId())){
+			return "缺少必填字段:areaId.";
+		}else{
+			//校验地市数据是否正确
+			String areaName = AREAID.get(zjLocalMallOrder.getAreaId());
+			if(StringUtil.isEmpty(areaName)){
+				return "字段:areaId,在订单系统没有匹配到值.";
+			}
+		}
+		//下单时间
+		if(StringUtil.isEmpty(zjLocalMallOrder.getDealTime())){
+			return "缺少必填字段:dealTime.";
+		}
+		//支付时间--暂不校验必填，改为非必填
+		/*if(StringUtil.isEmpty(zjLocalMallOrder.getPayTime())){
+			return "缺少必填字段:payTime.";
+		}*/
+		//支付类型
+		if(StringUtil.isEmpty(zjLocalMallOrder.getPayType())){
+			return "缺少必填字段:payType.";
+		}else{
+			String payType = PAYTYPE.get(zjLocalMallOrder.getPayType());
+			if(StringUtil.isEmpty(payType)){
+				return "字段:payType,在订单系统没有匹配到值.";
+			}
+		}
+		//支付状态
+		if(StringUtil.isEmpty(zjLocalMallOrder.getPayStatus())){
+			return "缺少必填字段:payStatus."; 
+		}else{
+			String payStatus = PAYSTATUS.get(zjLocalMallOrder.getPayStatus());
+			if(StringUtil.isEmpty(payStatus)){
+				return "字段:payStatus,在订单系统没有匹配到值.";
+			}
+		}
+		//配送方式
+		if(StringUtil.isEmpty(zjLocalMallOrder.getDeliveryType())){
+			return "缺少必填字段：deliveryType.";
+		}else{
+			//转换为订单系统的配送编码
+			String deliveryType = DELIVERYTYPE.get(zjLocalMallOrder.getDeliveryType());
+			if(StringUtil.isEmpty(deliveryType)){
+				return "字段:deliveryType,在订单系统没有匹配到值.";
+			}
+		}
+		/*//买家姓名
+		if(StringUtil.isEmpty(zjLocalMallOrder.getBuyer())){
+			return "缺少必填字段:buyer."; 
+		}*/
+		//买家电话
+		if(StringUtil.isEmpty(zjLocalMallOrder.getBuyerPhone())){
+			return "缺少必填字段:buyerPhone."; 
+		}
+		//订单实收总价
+		if (MallUtils.isEmpty(zjLocalMallOrder.getOrderAmount())) {
+			return "缺少必填字段:OrderAmount.";
+		}else {
+			try {
+				//单位转换为元
+				Integer t = Integer.parseInt(zjLocalMallOrder.getOrderAmount());
+				zjLocalMallOrder.setOrderAmount(MallUtils.parseMoney(t));
+			} catch (Exception e) {
+				return "OrderAmount值不正确.";
+			}
+		}
+		/*//收货人地址
+		if(StringUtil.isEmpty(zjLocalMallOrder.getReceiveAddr())){
+			return "缺少必填字段:receiveAddr.";
+		}*/
+		//收货人电话
+		if(StringUtil.isEmpty(zjLocalMallOrder.getReceiveTel())){
+			return "缺少必填字段:receiveTel.";
+		}
+		//订单项数量
+		if(StringUtil.isEmpty(zjLocalMallOrder.getGroupTotalNum())){
+			return "缺少必填字段:groupTotalNum.";
+		}
+		//校验orderItem项
+		String resultMessage = checkZJLocalMallOrder(zjLocalMallOrder.getOrderItem());
+		
+		return resultMessage;
+	}
+	
+	/**
+	 * 校验orderItem必填项
+	 * @param orderItems
+	 * @return
+	 */
+	private static String checkZJLocalMallOrder(List<Item> orderItems){
+		//整个orderItem项
+		if(null == orderItems && orderItems.size() == 0){
+			return "缺少必填项:orderItem.";
+		}
+		for(int i=0; i<orderItems.size(); i++){
+			Item orderItem = orderItems.get(0);
+			//订单类型
+			/*if(StringUtil.isEmpty(orderItem.getOrderType())){
+				return "缺少必填项:orderItem["+i+"].orderType";
+			}else{
+				String orderType = ORDERTYPE.get(orderItem.getOrderType());
+				if(StringUtil.isEmpty(orderType)){
+					return "字段:orderItem["+i+"].orderType,在订单系统匹配不到值.";
+				}
+			}*/
+			//商品名称
+			if(StringUtil.isEmpty(orderItem.getGoodsName())){
+				return "缺少必填项:orderItem["+i+"].goodsName";
+			}
+			/*//商品颜色
+			if(StringUtil.isEmpty(orderItem.getGoodsColor())){
+				return "缺少必填项:orderItem["+i+"].goodsColor";
+			}*/
+			//商品单价
+			if(StringUtil.isEmpty(orderItem.getGoodsPrice())){
+				return "缺少必填项:orderItem["+i+"].goodsPrice";
+			}
+			//商品总价格
+			if(StringUtil.isEmpty(orderItem.getGoodsValue())){
+				return "缺少必填项:orderItem["+i+"].goodsValue";
+			}
+			//卡类型
+			/*if(StringUtil.isEmpty(orderItem.getCardType())){
+				return "缺少必填项:orderItem["+i+"].cardType";
+			}else{
+				String cardType = CARDTYPE.get(orderItem.getCardType());
+				if(StringUtil.isEmpty(cardType)){
+					return "字段:orderItem["+i+"].cardType,在订单系统匹配不到值.";
+				}
+			}*/
+			if(!StringUtil.isEmpty(orderItem.getCardType())){
+				String cardType = CARDTYPE.get(orderItem.getCardType());
+				if(StringUtil.isEmpty(cardType)){
+					return "字段:orderItem["+i+"].cardType,在订单系统匹配不到值.";
+				}
+			}
+			
+			
+			//商品数量
+			if(StringUtil.isEmpty(orderItem.getGoodsQuantity())){
+				return "缺少必填项:orderItem["+i+"].goodsQuantity";
+			}
+			//新老用户
+			if(StringUtil.isEmpty(orderItem.getIsNewUser())){
+				return "缺少必填项:orderItem["+i+"].isNewUser";
+			}
+			/*//入网姓名
+			if(StringUtil.isEmpty(orderItem.getCustName())){
+				return "缺少必填项:orderItem["+i+"].custName";
+			}*/
+			//证件类型
+			if(StringUtil.isEmpty(orderItem.getCustCardType())){
+				return "缺少必填项:orderItem["+i+"].custCardType";
+			}else{
+				String custCardType = CUSTCARDTYPE.get(orderItem.getCustCardType());
+				if(StringUtil.isEmpty(custCardType)){
+					return "字段:orderItem["+i+"].custCardType,在订单系统匹配不到值.";
+				}
+			}
+			//证件号码
+			if(StringUtil.isEmpty(orderItem.getCustCardId())){
+				return "缺少必填项:orderItem["+i+"].custCardId";
+			}
+			//客户证件地址
+			/*if(StringUtil.isEmpty(orderItem.getCustCardAddr())){
+				return "缺少必填项:orderItem["+i+"].custCardAddr";
+			}*/
+			
+			/*****校验非必填项，中的值是否正确,及转换为订单系统需要的值*******/
+			//活动类型
+			if(!StringUtil.isEmpty(orderItem.getActivityType())){
+				String activityType = ACTIVITYTYPE.get(orderItem.getActivityType());
+				if(StringUtil.isEmpty(activityType)){
+					return "字段:orderItem["+i+"].activityType,在订单系统匹配不到值.";
+				}
+			}
+			try {
+				//单位转换为元
+				Integer t = Integer.parseInt(orderItem.getFreeAmount());
+				orderItem.setFreeAmount(MallUtils.parseMoney(t));
+			} catch (Exception e) {
+				return "FreeAmount值不正确.";
+			}
+			try {
+				//单位转换为元
+				Integer t = Integer.parseInt(orderItem.getFrzMoney());
+				orderItem.setFrzMoney(MallUtils.parseMoney(t));
+			} catch (Exception e) {
+				return "FrzMoney值不正确.";
+			}
+		}
+		return "";
+	}	
+
+}

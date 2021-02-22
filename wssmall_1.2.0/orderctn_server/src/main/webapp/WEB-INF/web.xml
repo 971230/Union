@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://java.sun.com/xml/ns/j2ee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
+         version="2.4">
+	
+	 <display-name>javamall</display-name>
+    <context-param>
+    	<param-name>weblogid.httpd.inputCharset./*</param-name>
+    	<param-value>UTF-8</param-value>
+    </context-param>
+    
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+	 	<param-value>${WEBCONFIG}</param-value>
+    </context-param>
+    
+    <listener>
+        <listener-class>
+            org.springframework.web.context.ContextLoaderListener
+        </listener-class>
+    </listener>
+    
+    <listener>
+        <listener-class>
+            org.springframework.web.util.IntrospectorCleanupListener
+        </listener-class>
+    </listener>
+    
+    <listener>
+        <listener-class>
+            com.ztesoft.net.eop.sdk.listener.EopSessionListener
+        </listener-class>
+    </listener>
+    
+    <listener>
+        <listener-class>
+            com.ztesoft.net.eop.sdk.listener.EopContextLoaderListener
+        </listener-class>
+    </listener>
+    
+    <filter>
+        <filter-name>encodingFilter</filter-name>
+        <filter-class>
+            org.springframework.web.filter.CharacterEncodingFilter
+        </filter-class>
+        <init-param>
+            <param-name>encoding</param-name>
+            <param-value>UTF-8</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>encodingFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+   
+    <filter>
+        <filter-name>dispatcherFilter</filter-name>
+        <filter-class>
+            com.ztesoft.net.eop.processor.DispatcherFilter
+        </filter-class>
+        <init-param>
+            <param-name>enableURL</param-name>
+            <param-value>/public.*|/statics.*|/dwr.*|/pack.*|/init.*|/services.*|/pay.*|/flow.*|/ott.*|/servlet.*|.*excel.*|/report.*|.*UpLoadFile.jsp|.*test.jsp</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>dispatcherFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+     <filter>
+        <filter-name>Struts2</filter-name>
+        <filter-class>
+            org.apache.struts2.dispatcher.ng.filter.StrutsPrepareAndExecuteFilter
+        </filter-class>
+	    <init-param> 
+        	<param-name>config</param-name>  
+			<param-value>struts-default.xml,struts-plugin.xml,${CONFIG}struts-self.xml,struts.xml</param-value>
+		</init-param>  
+    </filter>
+    
+    <filter-mapping>
+        <filter-name>Struts2</filter-name>
+        <url-pattern>*.do</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>INCLUDE</dispatcher>
+    </filter-mapping> <!---->
+<!-- 
+    <servlet>
+        <servlet-name>ValidCodeServlet</servlet-name>
+        <servlet-class>
+            com.ztesoft.net.eop.sdk.utils.ValidCodeServlet
+        </servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ValidCodeServlet</servlet-name>
+        <url-pattern>/validcode.do</url-pattern>
+    </servlet-mapping> -->
+   
+    
+   
+	 
+	<!----> <servlet>
+        <servlet-name>rop</servlet-name>
+        <servlet-class>
+            com.ztesoft.rop.web.ZRopServlet
+        </servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>rop</servlet-name>
+        <url-pattern>/router</url-pattern>
+    </servlet-mapping> 
+	
+	<servlet>
+	 <servlet-name>CenterMallServlet</servlet-name>
+        <servlet-class>
+            com.ztesoft.net.mall.server.servlet.CenterMallServlet
+        </servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>CenterMallServlet</servlet-name>
+        <url-pattern>/servlet/ZBMallOrderServlet</url-pattern>
+    </servlet-mapping> 
+    
+    <servlet>
+        <servlet-name>MSGMallOrderServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.CodePurchaseMallServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>MSGMallOrderServlet</servlet-name>
+		<url-pattern>/servlet/MSGMallOrderServlet</url-pattern>
+	</servlet-mapping>
+    
+    	<servlet>
+	 <servlet-name>NewMallServlet</servlet-name>
+        <servlet-class>
+            com.ztesoft.net.mall.server.servlet.NewMallServlet
+        </servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NewMallServlet</servlet-name>
+        <url-pattern>/servlet/InformationServerServlet</url-pattern>
+    </servlet-mapping> 
+    
+    <!-- 浙江本地商城收单 -->
+	<servlet>
+        <servlet-name>LocalMallServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.LocalMallServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>LocalMallServlet</servlet-name>
+		<url-pattern>/servlet/LocalMallServlet</url-pattern>
+	</servlet-mapping>
+
+	<!-- 河北单宽带收单 -->
+	<servlet>
+        <servlet-name>HbSingleBroadbandCtnervlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.HbSingleBroadbandCtnServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>HbSingleBroadbandCtnervlet</servlet-name>
+		<url-pattern>/servlet/HbSingleBroadbandCtnervlet</url-pattern>
+	</servlet-mapping>
+	 <!-- 河北融合新装收单 -->
+	<servlet>
+        <servlet-name>NoWoAddMixedServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.NoWoAddMixedServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>NoWoAddMixedServlet</servlet-name>
+		<url-pattern>/servlet/NoWoAddMixedServlet</url-pattern>
+	</servlet-mapping>
+
+	<!-- 河北单网手微宽带收单 -->
+	<servlet>
+        <servlet-name>NetworkHandMicroCtnServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.NetworkHandMicroCtnServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>NetworkHandMicroCtnServlet</servlet-name>
+		<url-pattern>/servlet/NetworkHandMicroCtnServlet</url-pattern>
+	</servlet-mapping>
+
+    <servlet>
+     <servlet-name>HttpServiceHandle</servlet-name>
+        <servlet-class>
+            com.ztesoft.net.mall.server.servlet.HttpServiceHandle
+        </servlet-class>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>HttpServiceHandle</servlet-name>
+        <url-pattern>/servlet/HttpServiceHandle</url-pattern>
+    </servlet-mapping> 
+	<!-- <servlet>
+	 	<servlet-name>supplierAgtDownLoadServlet</servlet-name>
+	  	<servlet-class>com.ztesoft.net.app.base.plugin.fileUpload.servlet.SupplierAgtDownLoadServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>supplierAgtDownLoadServlet</servlet-name>
+		<url-pattern>/servlet/supplierAgtDownLoadServlet</url-pattern>
+	</servlet-mapping> -->
+	
+  <!--   <servlet>
+        <servlet-name>dwr-invoker</servlet-name>
+        <servlet-class>
+            org.directwebremoting.servlet.DwrServlet
+        </servlet-class>
+        <init-param>
+            <param-name>debug</param-name>
+            <param-value>false</param-value>
+        </init-param>
+        <init-param>
+            <param-name>jsonpEnabled</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        <init-param>
+            <param-name>crossDomainSessionSecurity</param-name>
+            <param-value>false</param-value>
+        </init-param>
+         <init-param>
+			   <param-name>allowScriptTagRemoting</param-name>
+			   <param-value>true</param-value>
+  		</init-param>
+    </servlet> -->
+
+	
+	<!-- <servlet>
+		<servlet-name>ApiDocInitServlet</servlet-name>
+		<servlet-class>
+			com.ztesoft.api.annotation.tool.ApiDocInitServlet
+		</servlet-class>
+        <init-param>
+            <param-name>run</param-name>
+            <param-value>false</param-value>
+        </init-param>
+		<load-on-startup>3</load-on-startup>
+	</servlet> -->
+
+
+  <!--   <servlet-mapping>
+        <servlet-name>dwr-invoker</servlet-name>
+        <url-pattern>/dwr/*</url-pattern>
+    </servlet-mapping> -->
+ 
+
+
+    <!--WebService-->
+    <servlet>
+        <servlet-name>AxisServlet</servlet-name>
+        <servlet-class>org.apache.axis.transport.http.AxisServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AxisServlet</servlet-name>
+        <url-pattern>/servlet/AxisServlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AxisServlet</servlet-name>
+        <url-pattern>*.jws</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>AxisServlet</servlet-name>
+        <url-pattern>/services/*</url-pattern>
+    </servlet-mapping>
+
+ <servlet>
+    	<servlet-name>CXFServlet</servlet-name>
+    	<servlet-class>org.apache.cxf.transport.servlet.CXFServlet</servlet-class>
+      	<load-on-startup>1</load-on-startup>
+ 	</servlet>
+ 	<servlet-mapping>
+  		<servlet-name>CXFServlet</servlet-name>
+  		<url-pattern>/webservice/*</url-pattern>
+ 	</servlet-mapping>
+
+    <error-page>
+        <error-code>404</error-code>
+        <location>/error/404.html</location>
+    </error-page>
+    <error-page>
+        <error-code>500</error-code>
+        <location>/error/500.html</location>
+    </error-page>
+    <error-page>
+        <error-code>505</error-code>
+        <location>/index.jsp</location>
+    </error-page>
+
+    <!-- <error-page>
+        <error-code>404</error-code>
+        <location>/error/404.html</location>
+    </error-page>
+    <error-page>
+        <error-code>500</error-code>
+        <location>/error/500.html</location>
+    </error-page>
+    <error-page>
+        <error-code>505</error-code>
+        <location>/index.jsp</location>
+    </error-page> -->
+    
+    <mime-mapping>
+		<extension>xls</extension>
+		<mime-type>application/msexcel</mime-type>
+	</mime-mapping>
+    <mime-mapping>  
+        <extension>xlsx</extension>  
+        <mime-type>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</mime-type>  
+    </mime-mapping>
+    
+	<!-- 报表框架 
+	<servlet>
+  		<servlet-name>reportservlet</servlet-name>
+  		<servlet-class>
+   			com.ztesoft.crm.report.ReportServlet
+  		</servlet-class>
+  		<init-param>
+   			<param-name>config</param-name>
+   			<param-value>/WEB-INF/report_server.xml</param-value>
+  		</init-param>
+  		<load-on-startup>3</load-on-startup>
+ 	</servlet>
+ 	<servlet-mapping>
+  		<servlet-name>reportservlet</servlet-name>
+  		<url-pattern>/report/*</url-pattern>
+ 	</servlet-mapping>
+	-->
+	
+  <!--   <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+        <welcome-file>index.htm</welcome-file>
+        <welcome-file>index.jsp</welcome-file>
+          <welcome-file>default.html</welcome-file>
+        <welcome-file>default.htm</welcome-file>
+        <welcome-file>default.jsp</welcome-file>
+    </welcome-file-list> -->
+
+
+  <!--   <jsp-config>
+        <taglib>
+            <taglib-uri>power_tag</taglib-uri>
+            <taglib-location>/WEB-INF/c.tld</taglib-location>
+        </taglib>
+    </jsp-config>
+	 -->
+   <servlet> 
+		<servlet-name>cacheInfoQueryServlet</servlet-name> 
+		<servlet-class>com.ztesoft.net.mall.servlet.CacheInfoQueryServlet</servlet-class>
+	</servlet>
+	<servlet-mapping> 
+	    <servlet-name>cacheInfoQueryServlet</servlet-name>
+		<url-pattern>/servlet/cacheInfoQueryServlet</url-pattern> 
+	</servlet-mapping>
+	<!---->
+	<servlet> 
+        <servlet-name>testtaobaoServlet</servlet-name> 
+        <servlet-class> com.ztesoft.net.mall.server.servlet.TestServlet</servlet-class>
+    </servlet>
+    <servlet-mapping> 
+        <servlet-name>testtaobaoServlet</servlet-name>
+        <url-pattern>/servlet/testtaobaoServlet</url-pattern> 
+    </servlet-mapping>
+	
+	<servlet>
+        <servlet-name>GroupOrderServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.GroupOrderServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>GroupOrderServlet</servlet-name>
+		<url-pattern>/servlet/GroupOrderServlet</url-pattern>
+	</servlet-mapping>
+	
+	<!-- 温大固网业务收单 -->
+	<servlet>
+        <servlet-name>FixBusiOrderServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.FixBusiOrderServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>FixBusiOrderServlet</servlet-name>
+		<url-pattern>/servlet/FixBusiOrderServlet</url-pattern>
+	</servlet-mapping>
+	
+	<!-- 新固网收单  -->
+	<servlet>
+        <servlet-name>BroadBandCtnServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.BroadBandCtnServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>BroadBandCtnServlet</servlet-name>
+		<url-pattern>/servlet/BroadBandCtnServlet</url-pattern>
+	</servlet-mapping>
+	
+	<!-- 移网产品活动业务收单  -->
+	<servlet>
+        <servlet-name>MobileBusiCtnServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.MobileBusiCtnServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>MobileBusiCtnServlet</servlet-name>
+		<url-pattern>/servlet/MobileBusiCtnServlet</url-pattern>
+	</servlet-mapping>
+	
+	<!-- 意向单收单 -->
+    <servlet>
+	 <servlet-name>IntentOrderCreateServlet</servlet-name>
+        <servlet-class>
+            com.ztesoft.net.mall.server.servlet.IntentOrderCreateServlet
+        </servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>IntentOrderCreateServlet</servlet-name>
+        <url-pattern>/servlet/IntentOrderCreateServlet</url-pattern>
+    </servlet-mapping>
+	
+	<!-- 互联网融合收单  -->
+	<servlet>
+        <servlet-name>InternetGroupOrderCtnServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.InternetGroupOrderCtnServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>InternetGroupOrderCtnServlet</servlet-name>
+		<url-pattern>/servlet/InternetGroupOrderCtnServlet</url-pattern>
+	</servlet-mapping>
+	
+	<!-- 互联网业务收单 -->
+	<servlet>
+        <servlet-name>InternetOrderServlet</servlet-name>
+        <servlet-class>com.ztesoft.net.mall.server.servlet.InternetOrderServlet</servlet-class>
+    </servlet>
+	<servlet-mapping>
+		<servlet-name>InternetOrderServlet</servlet-name>
+		<url-pattern>/servlet/InternetOrderServlet</url-pattern>
+	</servlet-mapping>
+	
+	<!-- 商品预定接口 -->
+    <servlet>
+	 <servlet-name>OrderPreCreateServlet</servlet-name>
+        <servlet-class>
+            com.ztesoft.net.mall.server.servlet.OrderPreCreateServlet
+        </servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>OrderPreCreateServlet</servlet-name>
+        <url-pattern>/servlet/OrderPreCreateServlet</url-pattern>
+    </servlet-mapping>
+    
+	<!-- 订单下发接口 -->
+    <servlet>
+	 <servlet-name>OrderDistributeServlet</servlet-name>
+        <servlet-class>
+            com.ztesoft.net.mall.server.servlet.OrderDistributeServlet
+        </servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>OrderDistributeServlet</servlet-name>
+        <url-pattern>/servlet/OrderDistributeServlet</url-pattern>
+    </servlet-mapping>
+    
+    <!-- 终端更换业务收单接口 -->
+	<servlet>
+		<servlet-name>ObjectReplaceServlet</servlet-name>
+		<servlet-class>com.ztesoft.net.mall.server.servlet.ObjectReplaceServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>ObjectReplaceServlet</servlet-name>
+		<url-pattern>/servlet/ObjectReplaceServlet</url-pattern>
+	</servlet-mapping>
+	
+	<!-- 押金收单 -->
+    <servlet>
+	 	<servlet-name>OrderDepositServlet</servlet-name>
+        <servlet-class>
+            com.ztesoft.net.mall.server.servlet.OrderDepositServlet
+        </servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>OrderDepositServlet</servlet-name>
+        <url-pattern>/servlet/OrderDepositServlet</url-pattern>
+    </servlet-mapping>
+	<!-- 简单订单查询 -->
+	<servlet>
+		<servlet-name>OrderListActivatServlet</servlet-name>
+		<servlet-class>com.ztesoft.net.mall.server.servlet.OrderListActivatServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>OrderListActivatServlet</servlet-name>
+		<url-pattern>/servlet/OrderListActivatServlet</url-pattern>
+	</servlet-mapping>
+	
+</web-app>

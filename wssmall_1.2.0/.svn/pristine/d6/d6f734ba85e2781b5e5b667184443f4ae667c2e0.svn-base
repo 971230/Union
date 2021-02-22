@@ -1,0 +1,101 @@
+package com.ztesoft.common.util;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.common.dao.DAOSQLUtils;
+import com.ztesoft.common.query.util.DcSystemParamUtil;
+
+public class PlatService {
+
+	private static Logger logger = Logger.getLogger(PlatService.class);
+	public static String system_tag = "";
+
+	/**
+	 * 
+	 * @param <T>
+	 * @param province
+	 * @param className
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T> T getPlatInstance(Class<T> cla) throws Exception {
+		String IClassName = cla.getSimpleName();
+
+		if ("".equals(system_tag)) {
+			system_tag = DcSystemParamUtil.getSysParamByCache("SYSTEM_TAG");
+		}
+
+		String classNameInst = cla.getPackage().getName() + "."
+				+ IClassName.substring(1, IClassName.length()) + "Inst";
+		String classNameLacal = classNameInst + system_tag;
+		T t = null;
+
+		Class claName = null;
+		/**
+		 * 修改报错情况： 当本地目录没实现的时候会报错
+		 */
+		try {
+			claName = Class.forName(classNameLacal);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+
+		try {
+			if (claName == null) {
+				claName = Class.forName(classNameInst);
+			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+
+		if (claName != null)
+			t = (T) claName.newInstance();
+
+		return t;
+
+	}
+
+	public static <T> T getPlatClass(Class<T> cla) throws Exception {
+
+		if ("".equals(system_tag)) {
+			system_tag = DcSystemParamUtil.getSysParamByCache("SYSTEM_TAG");
+		}
+
+		String className = cla.getName();
+		String classNameLacal = className + "_" + system_tag;
+		T t = null;
+
+		Class claName = null;
+		/**
+		 * 修改报错情况： 当本地目录没实现的时候会报错
+		 */
+		try {
+			claName = Class.forName(classNameLacal);
+		} catch (Exception e) {
+			logger.debug(e.getMessage());
+		}
+
+		try {
+			if (claName == null) {
+				claName = Class.forName(className);
+			}
+		} catch (Exception e) {
+			logger.debug(e.getMessage());
+		}
+
+		if (claName != null)
+			t = (T) claName.newInstance();
+
+		return t;
+
+	}
+
+	public static String getPlatService(String service) {
+		if ("".equals(system_tag)) {
+			system_tag = DcSystemParamUtil.getSysParamByCache("SYSTEM_TAG");
+		}
+		String serviceLocal = service + system_tag;
+		return serviceLocal;
+	}
+
+}

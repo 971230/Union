@@ -1,0 +1,113 @@
+package com.ztesoft.net.mall.plugin.standard.relarticle;
+
+import com.ztesoft.net.eop.processor.core.freemarker.FreeMarkerPaser;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.params.GoodsExtData;
+import com.ztesoft.net.mall.core.plugin.goods.AbstractGoodsPluginN;
+import com.ztesoft.net.sqls.SF;
+
+import java.util.List;
+import java.util.Map;
+
+public class RelatedArticlesGoodsPluginN extends AbstractGoodsPluginN {
+	private IDaoSupport baseDaoSupport;
+	@Override
+	public void addTabs() {
+		//this.addTags(12, "相关文章");
+	}
+
+	@Override
+	public String onFillGoodsAddInput() {
+		FreeMarkerPaser freeMarkerPaser =FreeMarkerPaser.getInstance();
+		freeMarkerPaser.setPageName("RelatedArticles");
+		return freeMarkerPaser.proessPageContent();
+	}
+
+	@Override
+	public void onBeforeGoodsAdd(Map goods, GoodsExtData goodsExtData) {
+
+	}
+
+	@Override
+	public String onFillGoodsEditInput(Map goods, GoodsExtData goodsExtData) {
+		FreeMarkerPaser freeMarkerPaser =FreeMarkerPaser.getInstance();
+		freeMarkerPaser.setPageName("RelatedArticles");
+		String sql  = SF.goodsSql("GOODS_ARTICLES_BY_ID");
+		List articleList  = this.baseDaoSupport.queryForList(sql, goods.get("goods_id"));
+		freeMarkerPaser.putData("articleList",articleList);
+		return freeMarkerPaser.proessPageContent();
+	}
+
+
+	private void processData(Map goods,GoodsExtData goodsExtData){
+		String goodsid  = goods.get("goods_id").toString();
+		String[] articleidAr = goodsExtData.getArticleid();
+		String[] titleAr = goodsExtData.getTitle();
+		this.baseDaoSupport.execute(SF.goodsSql("GOODS_ARTICLES_DEL"), goodsid);
+		int i=0;
+		if(articleidAr!=null){
+			for(String articleid: articleidAr){
+				String title  = titleAr[i]; 
+				this.baseDaoSupport.execute(SF.goodsSql("GOODS_ARTICLES_INSERT"), articleid,goodsid,title);
+				i++;
+			}
+		}
+	}
+	
+	@Override
+	public void onAfterGoodsAdd(Map goods, GoodsExtData goodsExtData)
+			throws RuntimeException {
+		this.processData(goods,goodsExtData);
+	}
+
+	@Override
+	public void onAfterGoodsEdit(Map goods, GoodsExtData goodsExtData) {
+		this.processData(goods,goodsExtData);
+	}
+	
+	@Override
+	public void onBeforeGoodsEdit(Map goods, GoodsExtData goodsExtData) {
+
+	}
+
+	@Override
+	public String getAuthor() {
+		return "zou.qh";
+	}
+
+	@Override
+	public String getId() {
+		return "rel_articleN";
+	}
+
+	@Override
+	public String getName() {
+		return "商品相关文章";
+	}
+
+	@Override
+	public String getType() {
+		
+		return "goods";
+	}
+
+	@Override
+	public String getVersion() {
+		
+		return "1.0";
+	}
+
+	@Override
+	public void perform(Object... params) {
+
+	}
+
+	public IDaoSupport getBaseDaoSupport() {
+		return baseDaoSupport;
+	}
+
+	public void setBaseDaoSupport(IDaoSupport baseDaoSupport) {
+		this.baseDaoSupport = baseDaoSupport;
+	}
+
+}

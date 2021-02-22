@@ -1,0 +1,1105 @@
+package com.ztesoft.net.cms.core.service.impl;
+
+import com.ztesoft.net.app.base.core.model.MultiSite;
+import com.ztesoft.net.cms.core.model.DataCat;
+import com.ztesoft.net.cms.core.model.DataField;
+import com.ztesoft.net.cms.core.model.DataModel;
+import com.ztesoft.net.cms.core.plugin.ArticlePluginBundle;
+import com.ztesoft.net.cms.core.plugin.IFieldValueShowEvent;
+import com.ztesoft.net.cms.core.service.IDataCatManager;
+import com.ztesoft.net.cms.core.service.IDataFieldManager;
+import com.ztesoft.net.cms.core.service.IDataManager;
+import com.ztesoft.net.cms.core.service.IDataModelManager;
+import com.ztesoft.net.eop.processor.core.freemarker.FreeMarkerPaser;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.context.EopContext;
+import com.ztesoft.net.eop.sdk.context.EopSetting;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.database.IntegerMapper;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.plugin.IPlugin;
+import com.ztesoft.net.framework.util.DateUtil;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.support.DataView;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.servlet.http.HttpServletRequest;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+
+/**
+ * 数据管理
+ * @author kingapex
+ * 2010-7-5下午03:55:14
+ */
+public class DataManager extends BaseSupport implements IDataManager {
+
+	private IDataModelManager dataModelManager;
+	private IDataFieldManager dataFieldManager ;
+	private ArticlePluginBundle articlePluginBundle;
+	private IDataCatManager dataCatManager;
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void add(Integer modelid,String catid) {
+		HttpServletRequest request  = ThreadContextHolder.getHttpRequest();
+		String source_from  = request.getParameter("source_from");
+		DataModel dataModel = this.dataModelManager.get(modelid,source_from);
+		List<DataField> fieldList = dataFieldManager.list(modelid,source_from);
+		Map article = new HashMap(); 
+		
+		//激发字段保存事件 
+		for(DataField field :fieldList){
+			articlePluginBundle.onSave(article, field);
+		}
+		
+		String sort  = request.getParameter("sort");
+		String page_title  = request.getParameter("page_title");
+		String page_keywords  = request.getParameter("page_keywords");
+		String page_description  = request.getParameter("page_description");
+		sort = StringUtil.isEmpty(sort)?"0":sort;
+		Date now = new Date();
+		article.put("cat_id", String.valueOf(catid));
+		article.put("sort", sort);
+		article.put("hit", 0);
+		article.put("page_keywords", page_keywords);
+		article.put("page_title", page_title);
+		article.put("title", page_title);
+		article.put("page_description", page_description);
+		article.put("add_time", now);
+		article.put("lastmodified", now);
+		article.put("source_from", source_from);
+		
+		AdminUser adminUser = ManagerUtils.getAdminUser();
+		String user_id ="";
+		if(!ManagerUtils.isAdminUser())
+			user_id =adminUser.getUserid()+"";
+		article.put("staff_no", user_id); //记录工号信息
+		/**
+		 * 如果是多站点则写入对应的站点code
+		 */
+		if(EopContext.getContext().getCurrentSite().getMulti_site()==1){
+			Integer site_code = EopContext.getContext().getCurrentChildSite().getCode();
+			article.put("site_code", site_code);
+		}
+		article.put("id",this.baseDaoSupport.getSequences("S_ES_EN_ARTICLE", "4",20));//为什么传个10，同一天都是一样的
+		this.baseDaoSupport.insert(dataModel.getEnglish_name(), article);
+	  
+	  	//激发数据保存事件
+		String article_id = article.get("id").toString();
+		article.put("id", article_id);
+		this.articlePluginBundle.onSave(article);
+	}
+
+	 
+	@Override
+	public void delete(String catid,String articleid,String source_from) {
+		DataModel dataModel = this.getModelByCatid(catid,source_from);
+		//激发数据删除事件 lzf add 2010-12-01
+		this.articlePluginBundle.onDelete(catid, articleid,source_from);
+		String sql  ="delete from "+ dataModel.getEnglish_name() +" where id=?";
+		this.baseDaoSupport.execute(sql, articleid);
+		
+	}
+
+	
+	@Override
+	public void edit(Integer modelid,String catid,String articleid,String source_from) {
+		HttpServletRequest request  = ThreadContextHolder.getHttpRequest();
+		DataModel dataModel = this.dataModelManager.get(modelid,source_from);
+		/**
+		 * 如果是多站点应判断数据是否属于当前站点
+		 */
+		if(EopContext.getContext().getCurrentSite().getMulti_site()==1){
+			Integer site_code = EopContext.getContext().getCurrentChildSite().getCode();
+			String site_code_res  = request.getParameter("site_code");
+			if(!site_code.toString().equals(site_code_res)){throw new  IllegalArgumentException("不是本站数据，不能修改");}
+		}
+		List<DataField> fieldList = dataFieldManager.list(modelid,source_from);
+		Map article = new HashMap(); 
+		for(DataField field :fieldList){
+			articlePluginBundle.onSave(article, field);
+		}
+		
+		String page_title  = request.getParameter("page_title");
+		String page_keywords  = request.getParameter("page_keywords");
+		String page_description  = request.getParameter("page_description");
+		article.put("page_keywords", page_keywords);
+		article.put("page_title", page_title);
+		article.put("title", page_title);
+		article.put("page_description", page_description);
+		
+		String sort  = request.getParameter("sort");
+		sort = StringUtil.isEmpty(sort)?"0":sort;
+		article.put("cat_id", catid); 
+		article.put("sort", sort);
+		article.put("id", articleid);
+		article.put("source_from", source_from);
+		
+		if("1".equals(EopSetting.DBTYPE)){
+			article.put("lastmodified", DateUtil.toString(  new Date() , "yyyy-MM-dd HH:mm:ss "));
+		}else{
+			article.put("lastmodified", new Date());
+		}
+		
+		
+		this.baseDaoSupport.update(dataModel.getEnglish_name(), article,"id="+articleid);		
+
+	}
+
+	
+	@Override
+	public Page list(String catid,int page,int pageSize) {
+		DataModel model = this.getModelByCatid(catid,"");
+		String 	sql  ="select "+buildFieldStr(model.getModel_id())+",sort from "+ model.getEnglish_name() +" where cat_id=? order by sort desc, add_time desc";
+		Page webpage  = this.baseDaoSupport.queryForPage(sql, page, pageSize, catid);
+		return webpage;
+	}
+
+	
+	@Override
+	public Page list(String catid,int page,int pageSize, Integer site_code) {
+		DataModel model = this.getModelByCatid(catid,"");
+		String 	sql  ="select "+buildFieldStr(model.getModel_id())+",sort from "+ model.getEnglish_name() +" where cat_id=? and site_code between " + site_code + " and " + StringUtil.getMaxLevelCode(site_code) + " and (not siteidlist like '%," + EopContext.getContext().getCurrentChildSite().getSiteid() + ",%' or siteidlist is null) order by sort desc, add_time desc";
+		
+		Page webpage  = this.baseDaoSupport.queryForPage(sql, page, pageSize, catid);
+		return webpage;
+	}
+	
+	@Override
+	public void importdata(String catid, String[] ids){
+		DataModel model = this.getModelByCatid(catid,"");
+		String ids_str = StringUtil.arrayToString(ids, ",");
+		String site_id = EopContext.getContext().getCurrentChildSite().getSiteid();
+		String sql = "update " + model.getEnglish_name() + " set siteidlist = CASE WHEN siteidlist is null THEN '," + site_id + ",' ELSE CONCAT(siteidlist,'" + site_id + ",') END where id in (" + ids_str + ")";
+		this.baseDaoSupport.execute(sql);
+	}
+
+	
+	@Override
+	public List list(String catid) {
+		DataModel model = this.getModelByCatid(catid,"");
+		String 	sql  ="select "+buildFieldStr(model.getModel_id())+",sort from "+ model.getEnglish_name() +" where cat_id=? order by sort desc, add_time desc";
+		List webpage  = this.baseDaoSupport.queryForList(sql, catid);
+		return webpage;
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void updateSort(String[] ids,Integer[] sorts,String catid ) {
+		if(ids==null ||  sorts==null || sorts.length != ids.length) throw new IllegalArgumentException("ids or sorts params error");
+		DataModel model = this.getModelByCatid(catid,"");
+		String sql  ="update "+ model.getEnglish_name() + " set sort=? where id=?";
+		
+		for(int i=0;i<ids.length;i++){
+			this.baseDaoSupport.execute(sql, sorts[i],ids[i]);
+		}
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void updateSort(String[] ids,Integer[] sorts,String catid,String source_from ) {
+		if(ids==null ||  sorts==null || sorts.length != ids.length) throw new IllegalArgumentException("ids or sorts params error");
+		DataModel model = this.getModelByCatid(catid, source_from);
+		String sql  ="update "+ model.getEnglish_name() + " set sort=? where id=? and source_from=?";
+		
+		for(int i=0;i<ids.length;i++){
+			this.baseDaoSupport.execute(sql, sorts[i],ids[i],source_from);
+		}
+	}
+	
+	@Override
+	public Page listAll(String catid,String source_from,String term, int page, int pageSize) {
+		DataModel model = this.getModelByCatid(catid,"");
+		DataCat cat  =this.dataCatManager.get(catid,source_from);
+		StringBuffer sql  = new StringBuffer("select * from ");
+		sql.append( this.getTableName(model.getEnglish_name()) );
+		sql.append(" where cat_id in (select cat_id from ");
+		sql.append(this.getTableName("data_cat"));
+		sql.append(" where cat_path like '");
+		sql.append(cat.getCat_path());
+		sql.append("%'");
+		sql.append(") ");
+		
+		if(!StringUtil.isEmpty(term)){			
+			sql.append( term );
+		}
+		
+		sql.append(" order by sort desc, add_time desc");
+		logger.info(sql);
+		final List<DataField> fieldList  = this.dataFieldManager.list(model.getModel_id());
+		return this.daoSupport.queryForPage(sql.toString(), page, pageSize, new RowMapper(){
+
+			
+			@Override
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				Map data  = new HashMap();
+				 for(DataField field:fieldList){
+							 
+					 Object value = null;
+					 String name = field.getEnglish_name();
+				 
+					 value=  rs.getString(name) ;
+				 
+					 
+					IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+						}
+					}
+					data.put(name, value);
+				 }
+				 data.put("id", rs.getInt("id"));
+				 data.put("cat_id", rs.getInt("cat_id"));
+				 data.put("sort", rs.getInt("sort"));
+				 data.put("add_time", rs.getTimestamp("add_time"));
+				 data.put("lastmodified", rs.getTimestamp("lastmodified"));
+				 data.put("hit", rs.getLong("hit"));
+				 data.put("sys_lock", rs.getInt("sys_lock"));
+				 
+				 //王峰注释下面语句，此种写法性能过于低下
+				 DataCat cat  = dataCatManager.get(rs.getString("cat_id"),rs.getString("source_from"));
+				 data.put("cat_name",cat.getName());
+				return data;
+			}
+			
+		});
+		
+	}
+
+	@Override
+	public List listRelated(String catid,String relcatid,String id,String fieldname){
+	
+
+		Map article = this.get(id, catid, "", false);
+		String ids =(String) article.get(fieldname);
+		if(StringUtil.isEmpty(ids)){
+	 
+			return new ArrayList();
+		}
+		
+		 
+		DataModel model = this.getModelByCatid(relcatid,"");
+		
+		StringBuffer sql  = new StringBuffer("select * from ");
+		sql.append( this.getTableName(model.getEnglish_name()) );
+		sql.append(" where id in ("+ids+")");
+ 
+		
+		sql.append(" order by sort desc, add_time desc");
+
+		final List<DataField> fieldList  = this.dataFieldManager.list(model.getModel_id());
+		return this.daoSupport.queryForList(sql.toString(), new RowMapper(){
+
+			
+			@Override
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				Map data  = new HashMap();
+				 for(DataField field:fieldList){
+							 
+					 Object value = null;
+					 String name = field.getEnglish_name();
+				 
+					 value=  rs.getString(name) ;
+				 
+					 
+					IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+						}
+					}
+					data.put(name, value);
+				 }
+				 data.put("id", rs.getInt("id"));
+				 data.put("cat_id", rs.getInt("cat_id"));
+				 data.put("sort", rs.getInt("sort"));
+				 data.put("add_time", rs.getTimestamp("add_time"));
+				 data.put("lastmodified", rs.getTimestamp("lastmodified"));
+				 data.put("hit", rs.getLong("hit"));
+				 data.put("sys_lock", rs.getInt("sys_lock"));
+				 
+				 //王峰注释下面语句，此种写法性能过于低下
+				// DataCat cat  = dataCatManager.get(rs.getInt("cat_id"));
+				 data.put("cat_name","");
+				return data;
+			}
+			
+		});
+	}
+	
+	@Override
+	public Map get(String articleid,String catid,String source_from,boolean filter) {
+		DataModel model = this.getModelByCatid(catid,source_from);
+		StringBuffer sql  = new StringBuffer("select * from " + model.getEnglish_name() +" where id=?") ;
+		
+		if(!StringUtil.isEmpty(source_from)){			
+			sql.append(" and source_from ='"+source_from+"' ");
+		}
+//		logger.info(sql+"->"+articleid);
+		Map data = this.baseDaoSupport.queryForMap(sql.toString(), articleid);
+		
+		if(filter){
+			 List<DataField> fieldList  = this.dataFieldManager.list(model.getModel_id());
+			 
+			 for(DataField field:fieldList){
+				 String name = field.getEnglish_name();
+				 Object value = data.get(name);
+				 IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+							 data.put(name, value);	
+						}
+					}
+					 
+			 } 
+		}
+		return data;
+	}
+	
+	/**
+	 * 更新浏览量
+	 */
+	@Override
+	public void updateHit(String id,String catid,String source_from) {
+		DataModel model = this.getModelByCatid(catid,source_from);
+		this.baseDaoSupport.execute("update "+model.getEnglish_name() +" set hit=hit+1 where id=?", id);
+	}
+	
+	private DataModel getModelByCatid(String catid,String source_from){
+		String sql ="select dm.* from " + this.getTableName("data_model") +" dm ,"
+		+ this.getTableName("data_cat" ) +" c where dm.model_id=c.model_id and c.cat_id=? ";
+		if(source_from!=null && !"".equals(source_from)){
+			sql += " and c.source_from = '" + source_from + "'";
+		}else{
+			sql += " and c.source_from = '" + ManagerUtils.getSourceFrom() + "'";
+		}
+		List modelList = this.daoSupport.queryForList(sql,DataModel.class, catid);
+		if(modelList == null || modelList.isEmpty()){
+			throw new RuntimeException("此类别["+catid+"]不存在模型");
+		}
+		DataModel model  =(DataModel) modelList.get(0);
+		
+		return model;
+	}
+	
+	
+	private String buildFieldStr(Integer modelid){
+		StringBuffer sql  = new StringBuffer("id");
+		List<DataField> fieldList =  this.dataFieldManager.listIsShow(modelid);
+		for(DataField field:fieldList){
+			if(field.getIs_show()==1){
+				sql.append(",");
+				sql.append(field.getEnglish_name());
+			}
+		}
+		return sql.toString();
+	}
+	
+	@Override
+	public List search(int modelid) {
+		HttpServletRequest  request  = ThreadContextHolder.getHttpRequest();
+		final  List<DataField> fieldList  =  this.dataFieldManager.list(modelid);
+		DataModel model = this.dataModelManager.get(modelid,"");
+		StringBuffer sql  = new StringBuffer();
+		sql.append("select * from ");
+		sql.append( model.getEnglish_name() );
+		
+		int i=0;
+		StringBuffer term =new StringBuffer();
+		for(DataField field :fieldList){
+			
+			String showform = field.getShow_form();			
+			if("image".equals(showform)) continue;
+			
+			String value  =request.getParameter(field.getEnglish_name());
+			if(!"utf-8".toLowerCase().equals(request.getCharacterEncoding())){
+				if(value!=null) value = StringUtil.toUTF8(value);
+				
+			}
+			
+			String name= field.getEnglish_name();
+		
+			FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getCurrInstance();
+			freeMarkerPaser.putData(name, value);
+		
+			if("radio".equals(showform) || "select".equals(showform)){
+				if(StringUtil.isEmpty(value)) continue;
+				if(i!=0)term.append(" and ");
+				term.append( name );		
+				term.append(" ='");
+				term.append(value);
+				term.append("'");
+			}else if("dateinput".equals(showform)){
+				
+				//对于日期数据要进行区间查询
+				String paramname = field.getEnglish_name();
+				String start=request.getParameter( paramname+"_start" );
+				String end= request.getParameter( paramname+"_end" );
+				if(!StringUtil.isEmpty(start) ||  !StringUtil.isEmpty(end)){
+					term.append("(");
+					if(!StringUtil.isEmpty(start)){
+						term.append( name );
+						term.append(">='");
+						term.append(start);
+						term.append("'");
+					}
+					
+					if(!StringUtil.isEmpty(end)){
+						if(!StringUtil.isEmpty(start)){
+							term.append(" and ");
+						}
+						term.append(name);
+						term.append("<='");
+						term.append(end);
+						term.append("'");
+					}
+					
+					term.append(")");
+				}
+					
+			} else{
+				if(StringUtil.isEmpty(value)) continue;
+				if(i!=0)term.append(" and ");
+				term.append( name );		
+				term.append(" like '%");
+				term.append(value);
+				term.append("%'");
+			}
+			i++;
+		}
+		
+		if(term.length()>0){
+			sql.append(" where ");
+			sql.append(term);
+		}
+		
+		return this.baseDaoSupport.queryForList(sql.toString(), new RowMapper(){
+			
+			@Override
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				Map data  = new HashMap();
+				 for(DataField field:fieldList){
+					 Object value = null;
+					 String name = field.getEnglish_name();
+				 
+					 value=  rs.getString(name) ;
+				 
+					 
+					IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+						}
+					}
+					data.put(name, value);
+				 }
+				 data.put("id", rs.getInt("id"));
+				 data.put("cat_id", rs.getInt("cat_id"));
+				 data.put("add_time", rs.getTimestamp("add_time"));
+				 data.put("hit", rs.getLong("hit"));
+				return data;
+			}
+		});		
+	}
+	
+	@Override
+	public List search(int modelid, boolean showchild) {
+		HttpServletRequest  request  = ThreadContextHolder.getHttpRequest();
+		final  List<DataField> fieldList  =  this.dataFieldManager.list(modelid);
+		DataModel model = this.dataModelManager.get(modelid,"");
+		StringBuffer sql  = new StringBuffer();
+		sql.append("select * from ");
+		sql.append( model.getEnglish_name() );
+		
+		int i=0;
+		StringBuffer term =new StringBuffer();
+		for(DataField field :fieldList){
+			
+			String showform = field.getShow_form();			
+			if("image".equals(showform)) continue;
+			
+			String value  =request.getParameter(field.getEnglish_name());
+			if(!"utf-8".toLowerCase().equals(request.getCharacterEncoding())){
+				if(value!=null) value = StringUtil.toUTF8(value);
+				
+			}
+			
+			String name= field.getEnglish_name();
+		
+			FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getCurrInstance();
+			freeMarkerPaser.putData(name, value);
+		
+			if("radio".equals(showform) || "select".equals(showform)){
+				if(StringUtil.isEmpty(value)) continue;
+				if(i!=0)term.append(" and ");
+				term.append( name );		
+				term.append(" ='");
+				term.append(value);
+				term.append("'");
+			}else if("dateinput".equals(showform)){
+				
+				//对于日期数据要进行区间查询
+				String paramname = field.getEnglish_name();
+				String start=request.getParameter( paramname+"_start" );
+				String end= request.getParameter( paramname+"_end" );
+				if(!StringUtil.isEmpty(start) ||  !StringUtil.isEmpty(end)){
+					term.append("(");
+					if(!StringUtil.isEmpty(start)){
+						term.append( name );
+						term.append(">='");
+						term.append(start);
+						term.append("'");
+					}
+					
+					if(!StringUtil.isEmpty(end)){
+						if(!StringUtil.isEmpty(start)){
+							term.append(" and ");
+						}
+						term.append(name);
+						term.append("<='");
+						term.append(end);
+						term.append("'");
+					}
+					
+					term.append(")");
+				}
+					
+			} else{
+				if(StringUtil.isEmpty(value)) continue;
+				if(i!=0)term.append(" and ");
+				term.append( name );		
+				term.append(" like '%");
+				term.append(value);
+				term.append("%'");
+			}
+			i++;
+		}
+		
+		if(EopContext.getContext().getCurrentSite().getMulti_site()==1){
+			MultiSite site = EopContext.getContext().getCurrentChildSite();
+			Integer site_code = site.getCode();
+			String site_id = site.getSiteid();
+			if(i!=0)sql.append(" and ");
+			term.append(" ((site_code = " + site_code + ") "); //本站数据
+			term.append(" or (siteidlist like '%," + site_id + ",%')");//被本站引用
+			if(showchild){
+				term.append(" or (site_code between " + site_code + " and " + StringUtil.getMaxLevelCode(site_code) + ")");//子站数据
+			}
+			term.append(")");
+		}
+		
+		if(term.length()>0){
+			sql.append(" where ");
+			sql.append(term);
+		}
+		
+		return this.baseDaoSupport.queryForList(sql.toString(), new RowMapper(){
+			
+			@Override
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				Map data  = new HashMap();
+				 for(DataField field:fieldList){
+					 Object value = null;
+					 String name = field.getEnglish_name();
+				 
+					 value=  rs.getString(name) ;
+				 
+					 
+					IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+						}
+					}
+					data.put(name, value);
+				 }
+				 data.put("id", rs.getInt("id"));
+				 data.put("cat_id", rs.getInt("cat_id"));
+				 data.put("add_time", rs.getTimestamp("add_time"));
+				 data.put("hit", rs.getLong("hit"));
+				return data;
+			}
+			
+		});		
+	}
+	
+	@Override
+	public Page search(int pageNo, int pageSize, int modelid) {
+		HttpServletRequest  request  = ThreadContextHolder.getHttpRequest();
+		final  List<DataField> fieldList  =  this.dataFieldManager.list(modelid);
+		DataModel model = this.dataModelManager.get(modelid,"");
+		StringBuffer sql  = new StringBuffer();
+		sql.append("select * from ");
+		sql.append( model.getEnglish_name() );
+		
+		StringBuffer term =new StringBuffer();
+		for(DataField field :fieldList){
+			
+			String showform = field.getShow_form();			
+			if("image".equals(showform)) continue;
+			
+			String value  =request.getParameter(field.getEnglish_name());
+			if(!request.getCharacterEncoding().toLowerCase().equals("utf-8")){
+				if(value!=null) value = StringUtil.toUTF8(value);
+			}
+			String name= field.getEnglish_name();
+		
+			FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getCurrInstance();
+			freeMarkerPaser.putData(name, value);
+			
+			if("radio".equals(showform) || "select".equals(showform)){
+				if(StringUtil.isEmpty(value)) continue;
+				if(term.length()>0) term.append(" and ");
+				term.append( name );		
+				term.append(" ='");
+				term.append(value);
+				term.append("'");
+			}else if("dateinput".equals(showform)){
+				
+				//对于日期数据要进行区间查询
+				String paramname = field.getEnglish_name();
+				String start=request.getParameter( paramname+"_start" );
+				String end= request.getParameter( paramname+"_end" );
+				if(!StringUtil.isEmpty(start) ||  !StringUtil.isEmpty(end)){
+					if(term.length()>0) term.append(" and ");
+					
+					term.append("(");
+					if(!StringUtil.isEmpty(start)){
+						term.append( name );
+						term.append(">='");
+						term.append(start);
+						term.append("'");
+					}
+					
+					if(!StringUtil.isEmpty(end)){
+						if(!StringUtil.isEmpty(start)){
+							term.append(" and ");
+						}
+						term.append(name);
+						term.append("<='");
+						term.append(end);
+						term.append("'");
+					}
+					
+					
+					term.append(")");
+				}
+					
+			} else{
+				
+				if(StringUtil.isEmpty(value)) continue;
+				if(term.length()>0) term.append(" and ");
+				term.append( name );		
+				term.append(" like '%");
+				term.append(value);
+				term.append("%'");
+			}
+		}
+		
+		if(term.length()>0){
+			sql.append(" where ");
+			sql.append(term);
+		}
+		return this.baseDaoSupport.queryForPage(sql.toString(), pageNo, pageSize, new RowMapper(){
+			
+			@Override
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				Map data  = new HashMap();
+				 for(DataField field:fieldList){
+					 Object value = null;
+					 String name = field.getEnglish_name();
+				 
+					 value=  rs.getString(name) ;
+				 
+					 
+					IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+						}
+					}
+					data.put(name, value);
+				 }
+				 data.put("id", rs.getInt("id"));
+				 data.put("cat_id", rs.getInt("cat_id"));
+				 data.put("add_time", rs.getTimestamp("add_time"));
+				 data.put("hit", rs.getLong("hit"));
+				return data;
+			}
+			
+		});
+	}
+	
+	@Override
+	public Page search(int pageNo, int pageSize, int modelid, boolean showchild) {
+		HttpServletRequest  request  = ThreadContextHolder.getHttpRequest();
+		final  List<DataField> fieldList  =  this.dataFieldManager.list(modelid);
+		DataModel model = this.dataModelManager.get(modelid,"");
+		StringBuffer sql  = new StringBuffer();
+		sql.append("select * from ");
+		sql.append( model.getEnglish_name() );
+		
+		int i=0;
+		StringBuffer term =new StringBuffer();
+		for(DataField field :fieldList){
+			
+			String showform = field.getShow_form();			
+			if("image".equals(showform)) continue;
+			
+			String value  =request.getParameter(field.getEnglish_name());
+			if(value!=null) value = StringUtil.toUTF8(value);
+		
+			
+			String name= field.getEnglish_name();
+				
+			if("radio".equals(showform) || "select".equals(showform)){
+				if(StringUtil.isEmpty(value)) continue;
+				if(i!=0)sql.append(" and ");
+				term.append( name );		
+				term.append(" ='");
+				term.append(value);
+				term.append("'");
+			}else if("dateinput".equals(showform)){
+				
+				//对于日期数据要进行区间查询
+				String paramname = field.getEnglish_name();
+				String start=request.getParameter( paramname+"_start" );
+				String end= request.getParameter( paramname+"_end" );
+				if(!StringUtil.isEmpty(start) ||  !StringUtil.isEmpty(end)){
+					term.append("(");
+					if(!StringUtil.isEmpty(start)){
+						term.append( name );
+						term.append(">='");
+						term.append(start);
+						term.append("'");
+					}
+					
+					if(!StringUtil.isEmpty(end)){
+						if(!StringUtil.isEmpty(start)){
+							term.append(" and ");
+						}
+						term.append(name);
+						term.append("<='");
+						term.append(end);
+						term.append("'");
+					}
+					
+					term.append(")");
+				}
+					
+			} else{
+				if(StringUtil.isEmpty(value)) continue;
+				if(i!=0)sql.append(" and ");
+				term.append( name );		
+				term.append(" like '%");
+				term.append(value);
+				term.append("%'");
+			}
+			i++;
+		}
+		
+		if(EopContext.getContext().getCurrentSite().getMulti_site()==1){
+			MultiSite site = EopContext.getContext().getCurrentChildSite();
+			Integer site_code = site.getCode();
+			String site_id = site.getSiteid();
+			if(i!=0)sql.append(" and ");
+			term.append(" ((site_code = " + site_code + ") "); //本站数据
+			term.append(" or (siteidlist like '%," + site_id + ",%')");//被本站引用
+			if(showchild){
+				term.append(" or (site_code between " + site_code + " and " + StringUtil.getMaxLevelCode(site_code) + ")");//子站数据
+			}
+			term.append(")");
+		}
+		
+		if(term.length()>0){
+			sql.append(" where ");
+			sql.append(term);
+		}
+		
+		return this.baseDaoSupport.queryForPage(sql.toString(), pageNo, pageSize, new RowMapper(){
+
+			@Override
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				Map data  = new HashMap();
+				for(DataField field:fieldList){
+					Object value = null;
+					String name = field.getEnglish_name();
+				 
+					value=  rs.getString(name) ;
+					 
+					IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+						}
+					}
+					data.put(name, value);
+				}
+				data.put("id", rs.getInt("id"));
+				data.put("cat_id", rs.getInt("cat_id"));
+				data.put("add_time", rs.getTimestamp("add_time"));
+				data.put("hit", rs.getLong("hit"));
+				return data;
+			}
+			
+		});
+	}
+ 
+
+	/**
+	 * 
+	 */
+	@Override
+	public Map census() {
+		List<DataModel>  modelList =  this.dataModelManager.list();
+		String sql;
+		int count=0;
+		
+		//读取模型列表，并且读取模型相应的信息数，累加之后为当前站点的信息数量和。
+		for(DataModel model :modelList){
+			String tbname = model.getEnglish_name();
+			sql = "select count(0)  from "+ tbname  ;
+			  count += this.baseDaoSupport.queryForInt(sql);
+			
+		}
+		//读取栏目数
+		sql ="select count(0) from data_cat";
+		int catcount = this.baseDaoSupport.queryForInt(sql);
+		
+		//读取留言数
+		sql ="select count(0)  from "+this.getTableName("guestbook")+" g where parentid=0 and g.id not in(select parentid from "+ this.getTableName("guestbook")+" )";
+		int msgcount = this.daoSupport.queryForInt(sql);
+		
+		Map<String,Integer> map = new HashMap<String, Integer>(3);
+		map.put("count", count);
+		map.put("catcount", catcount);
+		map.put("msgcount", msgcount);
+		return map;
+	}
+
+	@Override
+	public Page listAllN(String catid,String source_from, String term, String orders, boolean showchild, int page,
+			int pageSize) {
+		DataModel model = this.getModelByCatid(catid,"");
+		DataCat cat  =this.dataCatManager.get(catid,source_from);
+		StringBuffer sql  = new StringBuffer("select * from ");
+		sql.append( this.getTableName(model.getEnglish_name()) );
+		sql.append(" where cat_id in (select cat_id from ");
+		sql.append(this.getTableName("data_cat"));
+		sql.append(" where cat_path like '");
+		sql.append(cat.getCat_path());
+		sql.append("%'");
+		sql.append(") ");
+		
+		if(!StringUtil.isEmpty(term)){			
+			sql.append( term );
+		}
+		
+		
+		if (!StringUtil.isEmpty(orders)){
+            sql.append(" order by "+orders);
+        }else{
+        	sql.append(" order by sort, add_time desc");
+        }
+
+		final List<DataField> fieldList  = this.dataFieldManager.list(model.getModel_id());
+		String countSql = "select count(*) from "+ sql.toString().substring(sql.toString().indexOf("from")+4);
+		return this.daoSupport.queryForPage(sql.toString(), countSql,page, pageSize, new RowMapper(){
+			@Override
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				DataView dataView = new DataView();
+				for(DataField field:fieldList){
+					Object value = null;
+					String name = field.getEnglish_name();
+				 
+					value=  rs.getString(name) ;
+					 
+					IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+						}
+					}
+					if("title".equals(name))
+						dataView.setTitle(value+"");
+					if("content".equals(name))
+						dataView.setContent(value+"");
+				}
+				
+				DataCat cat  = dataCatManager.get(rs.getString("cat_id"),rs.getString("source_from"));
+				dataView.setCat_name(cat.getName());
+				dataView.setId(rs.getString("id")+"");
+				dataView.setCat_id(rs.getString("cat_id"));
+				dataView.setSort(rs.getInt("sort")+"");
+				//dataView.setArticle_img_url( UploadUtil.replacePath(rs.getString("article_img_url")));
+				dataView.setAdd_time(rs.getString("add_time"));
+				dataView.setLastmodified(rs.getString("lastmodified")+"");
+				dataView.setHit(rs.getLong("hit")+"");
+				dataView.setSys_lock(rs.getInt("sys_lock")+"");
+				dataView.setContent(rs.getString("content"));
+				dataView.setPage_title(rs.getString("page_title"));
+				return dataView;
+			}
+		});
+	}
+	
+	@Override
+	public Page listAll(String catid,String source_from, String term, String orders, boolean showchild, int page,
+			int pageSize) {
+		DataModel model = this.getModelByCatid(catid,source_from);
+		DataCat cat  =this.dataCatManager.get(catid,source_from);
+		StringBuffer sql  = new StringBuffer("select * from ");
+		sql.append( this.getTableName(model.getEnglish_name()) );
+		sql.append(" where cat_id in (select cat_id from ");
+		sql.append(this.getTableName("data_cat"));
+		sql.append(" where cat_path like '");
+		sql.append(cat.getCat_path());
+		sql.append("%'");
+		sql.append(") ");
+		
+		if(!StringUtil.isEmpty(term)){			
+			sql.append( term );
+		}
+		
+		if(EopContext.getContext().getCurrentSite().getMulti_site()==1){
+			MultiSite site = EopContext.getContext().getCurrentChildSite();
+			Integer site_code = site.getCode();
+			String site_id = site.getSiteid();
+			sql.append(" and ((site_code = " + site_code + ") "); //本站数据
+			sql.append(" or (siteidlist like '%," + site_id + ",%')");//被本站引用
+			if(showchild){
+				sql.append(" or (site_code between " + site_code + " and " + StringUtil.getMaxLevelCode(site_code) + ")");//子站数据
+			}
+			sql.append(")");
+		}
+		
+//		if(!StringUtil.isEmpty(StringUtil.getAgnId())){ //前台查询
+//			sql.append(" and staff_no = "+StringUtil.getAgnId());//商户过滤
+//			
+//		}
+		
+//		if(ManagerUtils.getAdminUser()!=null && !ManagerUtils.isAdminUser()){//后端查询 商户
+//			AdminUser adminUser = ManagerUtils.getAdminUser();
+//			sql.append(" and staff_no = "+adminUser.getUserid());//商户过滤
+//		}else if(ManagerUtils.getAdminUser()!=null && ManagerUtils.isAdminUser() ){//后端查询 管理员
+//			sql.append(" and ( staff_no ='' or staff_no is null )");//后端查询 管理员
+//		}
+		
+		if (!StringUtil.isEmpty(orders)){
+            sql.append(" order by "+orders);
+        }else{
+        	sql.append(" order by sort, add_time desc");
+        }
+
+		final List<DataField> fieldList  = this.dataFieldManager.list(model.getModel_id());
+		String countSql = "select count(*) from "+ sql.toString().substring(sql.toString().indexOf("from")+4);
+		return this.daoSupport.queryForPage(sql.toString(), countSql,page, pageSize, new RowMapper(){
+			@Override
+			public Object mapRow(ResultSet rs, int c) throws SQLException {
+				Map data  = new HashMap();
+				for(DataField field:fieldList){
+					Object value = null;
+					String name = field.getEnglish_name();
+				 
+					value=  rs.getString(name) ;
+					 
+					IPlugin plugin = articlePluginBundle.findPlugin(field.getShow_form());
+					if(plugin!=null){
+						if(plugin instanceof IFieldValueShowEvent ){
+							value = ((IFieldValueShowEvent)plugin).onShow(field, value);
+						}
+					}
+					data.put(name, value);
+				}
+			
+				data.put("id", rs.getString("id"));
+				data.put("title", rs.getString("title"));
+				data.put("cat_id", rs.getString("cat_id"));
+				data.put("sort", rs.getInt("sort"));
+				data.put("add_time", rs.getTimestamp("add_time"));
+				data.put("lastmodified", rs.getTimestamp("lastmodified"));
+				data.put("hit", rs.getLong("hit"));
+				data.put("sys_lock", rs.getInt("sys_lock"));
+				data.put("source_from", rs.getString("source_from"));
+				data.put("site_code", rs.getInt("site_code"));
+				 
+				DataCat cat  = dataCatManager.get(rs.getString("cat_id"),rs.getString("source_from"));
+				data.put("cat_name",cat.getName());
+				return data;
+			}
+		});
+	}
+
+	/**
+	 * 获取某篇文章的当前类别下下一个文章id，如果是最后一篇则返回0
+	 * @param currentId
+	 * @return
+	 */
+	@Override
+	public int getNextId(String currentId, String catid) {
+		DataModel model = this.getModelByCatid(catid,"");
+		String sql  ="select min(id)   from " + model.getEnglish_name() +" where cat_id=? and  id>?" ;
+		List<Integer> list = this.baseDaoSupport.queryForList(sql, new IntegerMapper(),catid,currentId);
+		if(list==null || list.isEmpty()) return 0;
+		return list.get(0);
+	}
+
+	/**
+	 * 获取某篇文章的当前类别下的上一篇文章id,如果是第一篇则为0
+	 * @param currentId
+	 * @param catid
+	 * @return
+	 */
+	@Override
+	public int getPrevId(String currentId, String catid) {
+		DataModel model = this.getModelByCatid(catid,"");
+		String sql  ="select max(id)   from " + model.getEnglish_name() +" where cat_id=? and   id<?" ;
+		List<Integer> list = this.baseDaoSupport.queryForList(sql, new IntegerMapper(),catid,currentId);
+		if(list==null || list.isEmpty()) return 0;
+		return list.get(0);
+	}
+	
+	
+	
+	public IDataModelManager getDataModelManager() {
+		return dataModelManager;
+	}
+
+	public void setDataModelManager(IDataModelManager dataModelManager) {
+		this.dataModelManager = dataModelManager;
+	}
+
+	public IDataFieldManager getDataFieldManager() {
+		return dataFieldManager;
+	}
+
+	public void setDataFieldManager(IDataFieldManager dataFieldManager) {
+		this.dataFieldManager = dataFieldManager;
+	}
+
+	public ArticlePluginBundle getArticlePluginBundle() {
+		return articlePluginBundle;
+	}
+
+	public void setArticlePluginBundle(ArticlePluginBundle articlePluginBundle) {
+		this.articlePluginBundle = articlePluginBundle;
+	}
+
+	public IDataCatManager getDataCatManager() {
+		return dataCatManager;
+	}
+
+	public void setDataCatManager(IDataCatManager dataCatManager) {
+		this.dataCatManager = dataCatManager;
+	}
+
+}

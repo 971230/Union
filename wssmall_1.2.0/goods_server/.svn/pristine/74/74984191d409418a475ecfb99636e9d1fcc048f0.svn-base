@@ -1,0 +1,277 @@
+package com.ztesoft.net.mall.plugin.standard.type;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.net.eop.processor.core.freemarker.FreeMarkerPaser;
+import com.ztesoft.net.eop.processor.core.freemarker.RepeatDirective;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Attribute;
+import com.ztesoft.net.mall.core.model.Cat;
+import com.ztesoft.net.mall.core.model.GoodsParam;
+import com.ztesoft.net.mall.core.model.GoodsType;
+import com.ztesoft.net.mall.core.model.support.GoodsTypeDTO;
+import com.ztesoft.net.mall.core.model.support.ParamGroup;
+import com.ztesoft.net.mall.core.params.GoodsExtData;
+import com.ztesoft.net.mall.core.plugin.goods.AbstractGoodsPluginN;
+import com.ztesoft.net.mall.core.service.IGoodsCatManager;
+import com.ztesoft.net.mall.core.service.IGoodsTypeManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+
+/**
+ * 商品参数插件
+ * @author zou.qh
+ *
+ */
+public class GoodsParamsPluginN extends AbstractGoodsPluginN{
+
+	private IGoodsCatManager goodsCatManager;
+	private IGoodsTypeManager goodsTypeManager;
+	private String parent_id;
+	public String getParent_id() {
+		return parent_id;
+	}
+
+	public void setParent_id(String parent_id) {
+		this.parent_id = parent_id;
+	}
+
+	public void addTabs() {
+//		this.addTags(2, "属性");
+//		this.addTags(3, "参数");
+	}
+
+	public void onBeforeGoodsEdit(Map goods, GoodsExtData goodsExtData)  {
+		// 处理参数信息
+		String[] paramnums = goodsExtData.getParamnums();
+		String[] groupnames = goodsExtData.getGroupnames();
+		String[] paramnames = goodsExtData.getParamnames();
+		String[] paramvalues = goodsExtData.getParamvalues();
+		String[] enames = goodsExtData.getEname();
+		String[] attrCodes = goodsExtData.getAttrcode();
+		String[] attrvaltypes = goodsExtData.getAttrvaltype();
+		String[] attrtypes = goodsExtData.getAttrtype();
+		String[] required = goodsExtData.getRequired();
+		
+		String params = goodsTypeManager.getParamString(paramnums, groupnames,
+				paramnames, paramvalues, enames, attrvaltypes, attrtypes, attrCodes,required);
+		goods.put("params", params);
+		
+		//广东联通ECS，当货品类型是套餐时，stype_id字段保存套餐档次
+		if(Consts.ECS_SOURCE_FROM.equals(ManagerUtils.getSourceFrom())){
+			if(enames!=null && enames.length>0 && Consts.OFFER_ID.equals(goods.get("type_id"))){
+				for(int i=0;i<enames.length;i++){
+					String ename = enames[i];
+					if(Consts.MONTH_FEE.equals(ename)){
+						goods.put("stype_id", paramvalues[i]);
+					}
+				}
+			}
+		}	
+	}
+	
+	public void onBeforeGoodsAdd(Map goods, GoodsExtData goodsExtData) {
+		// 处理参数信息
+		//增加request.getAttribute获取参数，广东联通ECS商品导入
+		String[] paramnums = goodsExtData.getParamnums();
+		String[] groupnames = goodsExtData.getGroupnames();
+		String[] paramnames = goodsExtData.getParamnames();
+		String[] paramvalues = goodsExtData.getParamvalues();
+		String[] enames = goodsExtData.getEname();
+		String[] attrCodes = goodsExtData.getAttrcode();
+		String[] attrvaltypes = goodsExtData.getAttrvaltype();
+		String[] attrtypes = goodsExtData.getAttrtype();
+		String[] required = goodsExtData.getRequired();
+		
+		String params = goodsTypeManager.getParamString(paramnums, groupnames,
+				paramnames, paramvalues, enames, attrvaltypes, attrtypes,attrCodes,required);
+		
+		//添加params参数为空判断，防止定时任务导入商品货品时已经组装的参数被覆盖--add by zou.qinghua
+		if(StringUtils.isEmpty(Const.getStrValue(goods,"params"))){
+			goods.put("params", params);
+		}
+		
+		//广东联通ECS，当货品类型是套餐时，stype_id字段保存套餐档次
+		if(Consts.ECS_SOURCE_FROM.equals(ManagerUtils.getSourceFrom())){
+			if(enames!=null && enames.length>0 && Consts.OFFER_ID.equals(goods.get("type_id"))){
+				for(int i=0;i<enames.length;i++){
+					String ename = enames[i];
+					if(Consts.MONTH_FEE.equals(ename)){
+						goods.put("stype_id", paramvalues[i]);
+					}
+				}
+			}
+		}
+//		HttpServletRequest request = ThreadContextHolder.getHttpRequest();
+//		List typeList = goodsTypeManager.listAll();
+//		request.setAttribute("typeList", typeList);
+	}
+
+	
+	public String onFillGoodsAddInput() {
+		HttpServletRequest request =  ThreadContextHolder.getHttpRequest();
+		FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getInstance();// new FreeMarkerPaser(getClass(),"/plugin/type");
+		freeMarkerPaser.setPageName("params_inputn");
+		freeMarkerPaser.putData("ctx",request.getContextPath());
+		freeMarkerPaser.putData("is_edit", false);
+		freeMarkerPaser.putData("repeat", new RepeatDirective());
+		freeMarkerPaser.putData("founder", ManagerUtils.getAdminUser().getFounder()+"");
+//		String catid = goodsExtData.getCatid();
+//		if(!StringUtil.isEmpty(catid)){
+//			freeMarkerPaser.putData("catid",Integer.valueOf(catid));
+//		}
+		return freeMarkerPaser.proessPageContent();
+	}
+ 
+	public void onAfterGoodsEdit(Map goods, GoodsExtData goodsExtData)  {
+		
+	}
+
+	public void onAfterGoodsAdd(Map goods, GoodsExtData goodsExtData)  {
+
+	}
+		
+
+	public String onFillGoodsEditInput(Map goods, GoodsExtData goodsExtData) {
+		String type = Const.getStrValue(goods, "type");//广东联通ECS添加，区分商品货品
+		//读取参数信息
+        ParamGroup[] paramAr1 = null;//类型规格参数
+        ParamGroup[] paramAr2 = null;//商品货品参数
+        ParamGroup[] paramAr = null;//商品货品参数
+		String params  = goods.get("params")==null ? "[]" : goods.get("params").toString();
+		//如果商品货品参数未填，取类型的参数，避免修改商品货品出现“该类型未定义参数”导致不能修改
+		
+		String type_id = (String) goods.get("type_id");
+		GoodsTypeDTO dto = goodsTypeManager.get(type_id);
+		if(Consts.ECS_SOURCE_FROM.equals(ManagerUtils.getSourceFrom())){
+			paramAr1 = dto.getParamGroups();
+			paramAr2 = GoodsTypeUtil.converFormString( params);// 处理参数
+			paramAr = processParamData(paramAr1,paramAr2);//把商品参数值复制到商品类型规格参数中
+		}
+		else{
+			paramAr = GoodsTypeUtil.converFormString( params);
+		}
+		List paramList = getDropdownData(paramAr);
+		
+		FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getInstance();
+		freeMarkerPaser.setPageName("params_inputn");
+		freeMarkerPaser.putData("paramList", paramList);
+		freeMarkerPaser.putData("is_edit", true);
+		freeMarkerPaser.putData("founder", ManagerUtils.getAdminUser().getFounder()+"");
+		freeMarkerPaser.putData("repeat", new RepeatDirective());
+		freeMarkerPaser.putData("type", type);
+		return freeMarkerPaser.proessPageContent();
+	}
+	
+	public ParamGroup[] processParamData(ParamGroup[] paramAr1, ParamGroup[] paramAr2){
+		if(paramAr2!=null && paramAr2.length>0){
+			for(ParamGroup typeParamGrp:paramAr1){
+				String groupName1 = typeParamGrp.getName();
+				for(ParamGroup goodParamGrp:paramAr2){
+					String groupName2 = goodParamGrp.getName();
+					if(groupName1.equals(groupName2)){
+						List<GoodsParam> typeparams = typeParamGrp.getParamList();
+						List<GoodsParam> goodparams = goodParamGrp.getParamList();
+						for(GoodsParam typeparam : typeparams){
+							for(GoodsParam goodparam : goodparams){
+								if(goodparam.getEname().equals(typeparam.getEname())){
+									typeparam.setValue(goodparam.getValue());
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return paramAr1;
+	}
+	
+	public List getDropdownData(ParamGroup[] paramAr){
+		if(paramAr==null) return null;
+		List paramList = new ArrayList();
+		List subParamList = new ArrayList();
+		Map<String,Object> map = null;
+		if(paramAr != null){
+			for(ParamGroup group : paramAr){
+				List<GoodsParam> list = group.getParamList();
+				int j=1;
+				int line = 1;
+				int paramNum = list.size();
+				for(GoodsParam param : list){
+					subParamList.add(param);
+					String attrCode = param.getAttrcode();
+					String attrvaltype = param.getAttrvaltype();
+					if("1".equals(attrvaltype) && !StringUtils.isEmpty(attrCode)){
+						List datas = this.goodsTypeManager.getDropdownData(attrCode);
+						param.setDropdownValues(datas);
+					}
+					if(j%3==0 || j==paramNum){
+						map = new HashMap<String,Object>();
+						if(line==1){
+							map.put("showGroupName", "1");
+						}
+						map.put("subParamList", subParamList);
+						map.put("name", group.getName());
+						map.put("paramNum", paramNum);
+						paramList.add(map);
+						subParamList = new ArrayList();
+						line++;
+					}
+					j++;
+				}
+			}
+		}
+		return paramList;
+	}
+	
+	public void perform(Object... params) {
+
+	}
+	
+	public String getAuthor() {
+		return "zou.qh";
+	}
+
+	public String getId() {
+		return "params_inputN";
+	}
+
+	public String getName() {
+		return "商品参数插件";
+	}
+
+	public String getType() {
+		return null;
+	}
+
+	public String getVersion() {
+		return "1.0";
+	}
+	
+	public void setGoodsTypeManager(IGoodsTypeManager goodsTypeManager) {
+		this.goodsTypeManager = goodsTypeManager;
+	}
+
+	public void setGoodsCatManager(IGoodsCatManager goodsCatManager) {
+		this.goodsCatManager = goodsCatManager;
+	}
+
+	public IGoodsCatManager getGoodsCatManager() {
+		return goodsCatManager;
+	}
+
+	public IGoodsTypeManager getGoodsTypeManager() {
+		return goodsTypeManager;
+	}
+	
+}

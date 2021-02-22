@@ -1,0 +1,100 @@
+.gridlist thead td .delete{background:url(delete.png) no-repeat; width:16px; height:16px; border:none; outline:none; cursor:pointer; vertical-align:middle; margin-top:-3px;}
+.gridlist thead td input{height:18px; line-height:18px; padding:0 1px; margin:0;}
+/*后台样式统一修改*/
+.gridlist thead th { background: url(../images/tile_bg.png) 0 -300px; text-align: left; font-size: 12px; padding: 0 3px; height: 22px; line-height: 22px; border-right: 1px solid #c8d6dc; border-bottom: 1px solid #d0d2d5; color: #4e4e4e; font-weight: normal; white-space: nowrap; vertical-align: middle; }
+
+.gridlist tbody td, .gridlist tbody th { text-align: left; height: 22px; line-height: 22px; border-bottom: 1px solid #e8e8e8; border-right: 1px solid #e8e8e8; white-space: normal; vertical-align: middle; }
+.fb{font-weight:700;}
+.gray{color:#ccc;}
+tr.gray td{color:#ccc;}
+.table-action .btn[disabled] span{color:#ccc;}
+
+.btn_supplier{position:absolute;margin:3px 0 0 135px;}
+.btn-zoom{position:absolute; left:135px; top:3px; cursor:pointer;}
+.btn_pos{position:absolute; left:60px; cursor:pointer;}
+.error_supplier{background:#FBE3E4;border:1px solid #f66;}
+
+.added_item{line-height:28px; height:28px; background:#ddd;border:1px solid #d0d0d0;padding:0 8px;color:#666; margin:2px 0;overflow:hidden;}
+.added_item input.readonly{background:#eee; border:1px solid #7E9DB9;}
+.added_item a{color:#4D6184;}
+.added_item .th{float:left;width:100px; text-align:right;}
+.added_item .td{float:left;}
+.added_item .del{float:right;}
+.division .added_item .del a{color:#666; line-height:28px;}
+
+/*气泡样式*/
+.bubble { background:#eee; padding:0 6px; font:12px/25px Verdana, Geneva, sans-serif;color:#666; position:absolute; top:0; left:0; z-index:65534; }
+
+
+/*---------------------------------------------------------------------------------------------------------------
+	for ome
+ ---------------------------------------------------------------------------------------------------------------*/
+
+.gridlist-foot { background: url(main_bg2.gif) 0 -214px; height: 34px; line-height: 34px; overflow: hidden; padding: 0 10px; }
+.sys-info { background: url(main_bg2.gif) repeat-x 0 -248px; height: 29px; line-height: 29px; padding: 0 10px; }
+
+.ome-stock { border-bottom: 1px solid #ccc; }
+.ome-stock-new { color: red; }
+.ome-stock-disabled, .ome-stock-disabled .ome-stock-new { color: #ccc ; }
+.ome-stock-title, .ome-stock-current, .ome-stock-edited { background: url(main_bg2.gif) 0 -309px; height: 30px; line-height: 30px; overflow: hidden; padding: 0 10px; cursor: pointer; }
+.ome-stock-title .handler { background: url(main_bg2.gif) no-repeat 0 -401px; width: 9px; height: 9px; vertical-align: middle; display: inline-block; display: -moz-line-stack; *display:inline; zoom:1; vertical-align: middle; margin-right: 5px; }
+.ome-stock-current .handler { background-position: -10px -401px; }
+.ome-stock-current { background-position: 0 -369px; color: #fff; }
+.ome-stock-edited { background-position: 0 -339px; color: #fff; }
+.ome-stock-foot { padding: 5px 10px; }
+.ome-stock-find li { border-bottom: 1px solid #eee; text-align: left; margin: 0 5px; }
+
+/*table-circle*/
+.table_boder{ border-bottom:1px solid #C5D0D8; margin-bottom:5px}
+.table_span{ padding:0 10px}
+.table_span a{ color:#336699; font-size:12px}
+.table-circle{ background:#EFEFEF; border-radius: 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px; box-shadow:1px 1px 3px #ccc; -moz-box-shadow:1px 1px 3px #ccc;  -webkit-box-shadow:1px 1px 3px #ccc; margin: 5px; border: 1px solid #d9d9d9; padding: 8px; height:auto}
+.table-circle div{ padding:0 2px; height:auto}
+
+/* for message tip */
+#message .msg{border-width:1px;border-style:solid;font:700 32px/50px "Microsoft YaHei",SimSun; text-align:center; padding:5px;}
+#message .msg_error{border-color:#F79393;background:#FDDFDF;}
+#message em{color:red;}
+#message .msg_notice{border-color:#c6c6c6;background:#E4E4E4;}
+#message .msg_success{border-color:#7DC5A7;background:#DAF2EA;}
+
+/*for spec*/
+#specForm .gridlist-action{height:28px;line-height:28px;}
+#specForm .gridlist-action input{vertical-align:middle;}
+.sepc_value_table,.sepc_value_table table{border-top:0 none;}
+.sepc_value_table caption{border-bottom:1px solid #D5DFE3;border-top:0 none;}
+.sepc_value_table tbody tr:hover { background-color:#FFFFD4; }
+
+/* for online inventory */
+.branch_list{padding:6px; overflow:hidden; margin:0; line-height:30px; color:#444;}
+.branch_list li{float:left; width:160px; font-size:14px; overflow:hidden; white-space:nowrap;}
+.inventory_info,
+.inventory_info td{font-size:16px;}
+.inventory_info td i{ font-style:normal;}
+.inventory_info td strong i{color:#083E96;}
+.scan_input label{font-size:14px; font-weight:700;}
+.scan_input input{font-size:16px; font-weight:700; line-height:26px;  height:26px; margin-bottom:20px;}
+.scan_input .error,
+.newOrder .error{padding:7px 15px; color:#AC060E; background:#FFCCCC; border-color:#F82D36; font-size:14px; font-weight:700; white-space:nowrap;}
+.newOrder .error{padding:3px 10px; font-size:12px; *position:relative; *top:-4px;}
+.newOrder p strong{font-size:16px;}
+.newOrder .addrlist li{line-height:26px;}
+.newOrder .addrlist li q{display:inline-block;}
+.newOrder .addrlist li b,
+.newOrder .addrlist li i,
+.newOrder .addrlist li em{margin-left:30px; font-style:normal;}
+.newOrder .btn[disabled]{color:#999;}
+.newOrder .btn[disabled] span{color:#999;}
+.newOrder .error{ white-space:nowrap;/* position:absolute; */}
+#proNode .error,
+#proNode .notice{position:absolute; padding:0 5px; line-height:22px;}
+#newAddrForm .error{position:absolute; white-space:nowrap; box-shadow:2px 2px 2px #ccc; -moz-box-shadow:2px 2px 2px #ccc; -webkit-box-shadow:2px 2px 2px #ccc;}
+#newAddrForm #validateTip{position:static;}
+
+h3 .num{font-size:12px; color:#999; font-weight:400;}
+h3 .num strong{color:#666;}
+h3 .num .count{padding:0 4px; color:#c00; font-weight:700;}
+.txt-noborder{border:0 none;background:transparent;}
+
+/* for safe stock line */
+.finder-list .list-warning {background-color:#FFE3E7}

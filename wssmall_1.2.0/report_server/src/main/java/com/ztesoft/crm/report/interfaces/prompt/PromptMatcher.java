@@ -1,0 +1,107 @@
+/*     */ package com.ztesoft.crm.report.interfaces.prompt;
+/*     */ 
+/*     */ import com.ztesoft.crm.report.lang.ObjectPropertyUtils;
+/*     */ import com.ztesoft.crm.report.lang.RegularExpressionUtils;
+/*     */ import com.ztesoft.crm.report.lang.Utils;
+/*     */ import java.io.Serializable;
+/*     */ import java.math.BigDecimal;
+/*     */ 
+/*     */ public final class PromptMatcher
+/*     */   implements Serializable
+/*     */ {
+/*     */   private static final long serialVersionUID = -7443020197841033636L;
+/*     */   private String operator;
+/*     */   private String value;
+/*     */   private String relatType;
+/*     */ 
+/*     */   public PromptMatcher()
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public PromptMatcher(Object o)
+/*     */   {
+/*  32 */     ObjectPropertyUtils.copyProperties(this, o, null);
+/*     */   }
+/*     */ 
+/*     */   @Override
+public String toString()
+/*     */   {
+/*  38 */     return ((this.operator == null) ? "" : this.operator) + ((this.value == null) ? "" : this.value) + " " + 
+/*  39 */       ((this.relatType == null) ? "" : this.relatType);
+/*     */   }
+/*     */ 
+/*     */   public boolean match(String v)
+/*     */   {
+/*  47 */     int i = compare(this.value, v);
+/*  48 */     if ("=".equals(this.operator)) {
+/*  49 */       return (i == 0);
+/*     */     }
+/*     */ 
+/*  52 */     if (">=".equals(this.operator)) {
+/*  53 */       return (i <= 0);
+/*     */     }
+/*     */ 
+/*  56 */     if (">".equals(this.operator)) {
+/*  57 */       return (i < 0);
+/*     */     }
+/*  59 */     if ("<".equals(this.operator)) {
+/*  60 */       return (i > 0);
+/*     */     }
+/*  62 */     if ("<=".equals(this.operator)) {
+/*  63 */       return (i >= 0);
+/*     */     }
+/*     */ 
+/*  66 */     if ("!=".equals(this.operator)) {
+/*  67 */       return (i != 0);
+/*     */     }
+/*  69 */     return false;
+/*     */   }
+/*     */ 
+/*     */   private int compare(String v1, String v2) {
+/*  73 */     if ((Utils.isEmpty(v1)) && (!(Utils.isEmpty(v2))))
+/*  74 */       return -1;
+/*  75 */     if ((!(Utils.isEmpty(v1))) && (Utils.isEmpty(v2)))
+/*  76 */       return 1;
+/*  77 */     if ((Utils.isEmpty(v1)) && (Utils.isEmpty(v2))) {
+/*  78 */       return 0;
+/*     */     }
+/*  80 */     if ((RegularExpressionUtils.isNumber(v1.toString())) && 
+/*  81 */       (RegularExpressionUtils.isNumber(v2.toString())))
+/*     */     {
+/*  83 */       return new BigDecimal(v1.toString()).compareTo(
+/*  84 */         new BigDecimal(v2.toString()));
+/*     */     }
+/*     */ 
+/*  87 */     return v1.toString().compareTo(v2.toString());
+/*     */   }
+/*     */ 
+/*     */   public String getOperator()
+/*     */   {
+/*  92 */     return this.operator;
+/*     */   }
+/*     */ 
+/*     */   public void setOperator(String operator) {
+/*  96 */     this.operator = operator;
+/*     */   }
+/*     */ 
+/*     */   public String getValue() {
+/* 100 */     return this.value;
+/*     */   }
+/*     */ 
+/*     */   public void setValue(String value) {
+/* 104 */     this.value = value;
+/*     */   }
+/*     */ 
+/*     */   public String getRelatType() {
+/* 108 */     return ((this.relatType == null) ? "" : this.relatType);
+/*     */   }
+/*     */ 
+/*     */   public void setRelatType(String relatType) {
+/* 112 */     this.relatType = relatType;
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.interfaces.prompt.PromptMatcher
+ * JD-Core Version:    0.5.3
+ */

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+		http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-autowire="byName" default-lazy-init="false">
+
+	<bean id="advService" class="com.ztesoft.remote.inf.impl.AdvService"/>
+	<bean id="articleService" class="com.ztesoft.remote.inf.impl.ArticleService"/>
+	<bean id="newsService" class="com.ztesoft.remote.inf.impl.NewsService"/>
+	<bean id="noticeService" class="com.ztesoft.remote.inf.impl.NoticeService"/>
+	
+	<bean id="infoServices" class="zte.net.service.InfoServices"/>
+	<bean id="dcPublicInfoCacheService" class="zte.net.service.DcPublicInfoCacheService"/>
+
+</beans>

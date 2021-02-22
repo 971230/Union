@@ -1,0 +1,105 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
+
+import com.ztesoft.cache.CacheList;
+import com.ztesoft.net.app.base.core.model.RoleData;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.service.IOrderRoleDataManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.OrderRole;
+import com.ztesoft.net.sqls.SF;
+import com.ztesoft.util.CacheUtils;
+
+public class OrderRoleDataManager extends BaseSupport implements IOrderRoleDataManager {
+
+	@Override
+	public List<RoleData> listOrderRoleData() {
+		String sql = SF.orderSql("LISTORDERROLEDATA");
+		List<RoleData> list = this.baseDaoSupport.queryForList(sql, RoleData.class);
+		return list;
+	}
+
+	@Override
+	public List<RoleData> cacheOrderRoleData() {
+		List<RoleData> list = this.listOrderRoleData();
+		if(list!=null){
+			CacheList<RoleData> clist = new CacheList<RoleData>();
+			clist.addAll(list);
+			CacheUtils.addCache(CacheUtils.ORDER_ROLE_DATA_KEY, clist);
+		}
+		return list;
+	}
+
+	@Override
+	public List<RoleData> getCacheOrderRoleData() {
+		CacheList<RoleData> clist = CacheUtils.getCache(CacheUtils.ORDER_ROLE_DATA_KEY);
+		if(clist!=null)return clist;
+		List<RoleData> list = this.cacheOrderRoleData();
+		return list;
+	}
+
+	@Override
+	public boolean agentAuto(String user_id, String agent_code) {
+		String sql = SF.orderSql("AGENTAUTOSQL");
+		return this.baseDaoSupport.queryForInt(sql, agent_code,user_id)>0;
+	}
+
+	@Override
+	public void batchInsertOrderRole(List<OrderRole> list) {
+		if(list!=null && list.size()>0){
+			Connection conn = this.baseDaoSupport.getConnection();
+			PreparedStatement pst = null;
+			String sql = SF.orderSql("INSERTORDERROLE");
+			try{
+				pst = conn.prepareStatement(sql);
+				String source_from = ManagerUtils.getSourceFrom();
+				if(source_from==null)source_from="";
+				for(OrderRole o:list){
+					pst.setString(1, o.getOrder_id());
+					pst.setString(2, o.getRole_id());
+					pst.setString(3, source_from);
+					pst.setString(4, o.getAuth_id()==null?"":o.getAuth_id());
+					pst.addBatch();
+				}
+				pst.executeBatch();
+			}catch(Exception ex){
+				ex.printStackTrace();
+			}finally{
+				if(pst!=null){
+					try {
+						pst.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+				if (conn != null) {
+					try{
+						this.baseDaoSupport.closeConnection(conn);
+					}catch(Exception ex){
+						ex.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+	
+	public void deleteOrderRole(String order_id){
+		String sql = SF.orderSql("DELETEORDERROLE");
+		this.baseDaoSupport.execute(sql, order_id);
+	}
+
+	@Override
+	public boolean selectOrderAuthorityByUser(String order_id,String user_id){
+		String sql = SF.orderSql("COUNT_ORDER_AUTHORITY_BY_USER");
+		int i = this.baseDaoSupport.queryForInt(sql, user_id, order_id);
+		if (i>0) {
+			return true;
+		}else{
+			return false;
+		}
+	}
+}

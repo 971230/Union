@@ -1,0 +1,145 @@
+package com.ztesoft.net.service;
+
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import services.ServiceBase;
+import zte.net.ecsord.params.spec.req.NumberSpecReq;
+import zte.net.ecsord.params.spec.resp.NumberSpecResp;
+import zte.net.iservice.INumberService;
+import zte.params.number.req.NoCoDeleteReq;
+import zte.params.number.req.NoInfoByNoReq;
+import zte.params.number.req.NumberChangeStatusReq;
+import zte.params.number.req.NumberSynInfoReq;
+import zte.params.number.resp.NoCoDeleteResp;
+import zte.params.number.resp.NoInfoByNoResp;
+import zte.params.number.resp.NumberChangeStatusResp;
+import zte.params.number.resp.NumberSynInfo;
+import zte.params.number.resp.NumberSynInfoResp;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.net.mall.core.model.Numero;
+import com.ztesoft.net.mall.core.service.INumeroManager;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+import commons.CommonTools;
+
+/**
+* 号码service
+* @作者 deng.yx 
+* @创建日期 2014-4-21 
+* @版本 V 2.0
+* 
+ */
+@SuppressWarnings("unchecked")
+@ServiceMethodBean(version = "1.0")
+public class NumberService extends ServiceBase implements INumberService  {
+
+	@Resource
+	private INumeroManager numeroManager;
+
+	@Override
+	public NoInfoByNoResp queryNoInfoByNo(NoInfoByNoReq req) {
+		
+		NoInfoByNoResp resp = new NoInfoByNoResp();
+		
+		try {
+			Map noMap = numeroManager.queryNoInfoByNo(req.getNo());
+			resp.setNoMap(noMap);
+			resp.setNumberSynInfoList((List<NumberSynInfo>)noMap.get("noList"));
+	        resp.setError_code("0");
+	        resp.setError_msg("成功");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+            CommonTools.addFailError(ex.getMessage());
+		}
+		
+		return resp;
+	}
+	
+	@Override
+	public NumberSynInfoResp queryNumSynInfo(NumberSynInfoReq numberReq){
+		
+		NumberSynInfoResp resp = new NumberSynInfoResp();
+		String batch_id = numberReq.getBatch_id();
+		
+		try {
+			List<NumberSynInfo> numberSynInfoList = numeroManager.queryNumberSynInfo(batch_id);
+			resp.setNumberSynInfoList(numberSynInfoList);
+            resp.setError_code("0");
+            resp.setError_msg("成功");
+        }catch(RuntimeException e){
+            e.printStackTrace();
+            CommonTools.addFailError(e.getMessage());
+        }
+        return resp;
+    }
+
+	@Override
+	public NumberChangeStatusResp changeNumStatus(
+			NumberChangeStatusReq numeroReq) {
+		
+		
+		NumberChangeStatusResp resp = new NumberChangeStatusResp();
+		String no = numeroReq.getNo();
+		String status_old = numeroReq.getStatus_old();
+		String status_new = numeroReq.getStatus_new();
+		String orderId = numeroReq.getOrder_id();
+		try {
+			numeroManager.modificar(no, status_old, status_new,orderId);
+            resp.setError_code("0");
+            resp.setError_msg("成功");
+        }catch(Exception e){
+            e.printStackTrace();
+            resp.setError_code("1");
+            resp.setError_msg("失败");
+            CommonTools.addFailError(e.getMessage());
+        }
+        return resp;
+    }
+
+	@Override
+	public NoCoDeleteResp deleteNoCo(NoCoDeleteReq req) {
+		NoCoDeleteResp resp = new NoCoDeleteResp();
+		String dn_no = req.getDn_no();
+		try{
+			numeroManager.deleteNoCoData(dn_no);
+			resp.setError_code("0");
+            resp.setError_msg("成功");
+		}catch(Exception e){
+			e.printStackTrace();
+            resp.setError_code("1");
+            resp.setError_msg("失败");
+            CommonTools.addFailError(e.getMessage());
+		}
+		return resp;
+	}
+
+	@Override
+	public NumberSpecResp getNumberSpec(NumberSpecReq req) {
+		String dn_no = req.getDn_no();
+		NumberSpecResp resp = new NumberSpecResp();
+		try{
+			Map numero = numeroManager.getNumberSpec(dn_no);
+			if(numero!=null){
+				resp.setNumeroMap(numero);
+				resp.setError_code("0");
+				resp.setError_msg("成功");
+			}
+			else{
+				resp.setError_code("-1");
+				resp.setError_msg("失败：查不到号码规格信息");
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			resp.setError_code("-1");
+			resp.setError_msg("失败：出现异常");
+			CommonTools.addFailError(e.getMessage());
+		}
+		return resp;
+	}
+
+}

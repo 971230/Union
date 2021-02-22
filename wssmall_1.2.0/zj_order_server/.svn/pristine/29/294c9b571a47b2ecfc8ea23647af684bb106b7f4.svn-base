@@ -1,0 +1,481 @@
+package zte.net.iservice.impl;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import params.ZteResponse;
+import services.ServiceBase;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+import zte.net.ecsord.params.base.req.AttrInstLoadListReq;
+import zte.net.ecsord.params.base.req.AttrSyLoadListReq;
+import zte.net.ecsord.params.base.req.BusiCompRequest;
+import zte.net.ecsord.params.base.req.GroupAttrInstLoadReq;
+import zte.net.ecsord.params.base.req.OrderLockReq;
+import zte.net.ecsord.params.base.req.QueryUrlByOrderIdReq;
+import zte.net.ecsord.params.base.resp.AttrInstLoadListResp;
+import zte.net.ecsord.params.base.resp.AttrSyLoadListResp;
+import zte.net.ecsord.params.base.resp.BusiCompResponse;
+import zte.net.ecsord.params.base.resp.GroupAttrInstLoadResp;
+import zte.net.ecsord.params.base.resp.QueryUrlByOrderIdResp;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.ecaop.req.ChannelConvertQrySubReq;
+import zte.net.ecsord.params.ecaop.resp.ChannelConvertQrySubResp;
+import zte.net.ecsord.params.order.req.NewStartOrderPlanReq;
+import zte.net.ecsord.params.order.req.RunWorkflowReq;
+import zte.net.ecsord.params.order.req.StartOrderPlanReq;
+import zte.net.ecsord.params.order.req.StartWorkflowReq;
+import zte.net.ecsord.params.order.req.UpdateOrderTreeReq;
+import zte.net.ecsord.params.order.req.WorkflowMatchReq;
+import zte.net.ecsord.params.order.resp.RunWorkflowRsp;
+import zte.net.ecsord.params.order.resp.StartOrderPlanResp;
+import zte.net.ecsord.params.order.resp.StartWorkflowRsp;
+import zte.net.ecsord.params.order.resp.UpdateOrderTreeRsp;
+import zte.net.ecsord.params.order.resp.WorkflowMatchRsp;
+import zte.net.ecsord.params.workCustom.po.ES_WORK_CUSTOM_CFG;
+import zte.net.ecsord.params.workCustom.po.WORK_CUSTOM_FLOW_DATA;
+import zte.net.ecsord.rule.tache.TacheFact;
+import zte.net.iservice.IOrderPlanService;
+import zte.net.iservice.IOrderStandardizing;
+import zte.net.params.resp.RuleTreeExeResp;
+import zte.params.order.resp.OrderAttrHanderResp;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.inf.communication.client.CommCaller;
+import com.ztesoft.net.attr.hander.AttrSwitchParams;
+import com.ztesoft.net.attr.hander.IAttrHandler;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.model.AttrDef;
+import com.ztesoft.net.model.Outer;
+import com.ztesoft.net.rule.util.RuleFlowUtil;
+import com.ztesoft.net.service.IEcsOrdManager;
+import com.ztesoft.net.service.workCustom.interfaces.IWorkCustomEngine;
+import com.ztesoft.util.CacheUtils;
+
+import consts.ConstsCore;
+
+public class OrderPlanService extends ServiceBase implements IOrderPlanService{
+
+	@Resource
+	private IOrderStandardizing orderStandardizing;
+	private IOrderManager orderManager;
+    private IEcsOrdManager ecsOrdManager;
+    
+    @Resource
+	private IWorkCustomEngine workCustomEngine;
+    
+	public StartOrderPlanResp startOrderStandingPlan(StartOrderPlanReq req){
+
+		//华盛订单刷新订单树缓存    HSOrderHandler中使用批量方法直接插入数据库，并没有存入缓存，需要更新缓存加载订单树数据
+		List<String> orderIdList = req.getOrderIdList();
+		String order_id =orderIdList.get(0);
+		StartOrderPlanResp resp = orderStandardizing.syncOrderStandardizing(req);
+
+		//如果总商已经退单，调退单方案
+		String return_flag = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.RETURN_FLAG);
+		if(EcsOrderConsts.IS_DEFAULT_VALUE.equals(return_flag)){
+			CommonDataFactory.getInstance().updateAttrFieldValue(order_id, 
+					new String[]{AttrConsts.ZB_REFUND_STATUS,AttrConsts.REFUND_AUDIT_MODE,AttrConsts.RETURNED_REASON_CODE}, 
+					new String[]{EcsOrderConsts.IS_DEFAULT_VALUE,EcsOrderConsts.REFUND_AUDIT_HAND,"0402"});
+			
+			TacheFact fact = new TacheFact();
+			fact.setOrder_id(order_id);
+			RuleTreeExeResp ruleTreeExeResp = RuleFlowUtil.executeRuleTree(EcsOrderConsts.ORDER_RETURNED_PLAN, EcsOrderConsts.ORDER_RETURN_APPLY_RULE, fact,true,true,EcsOrderConsts.DEAL_FROM_PAGE);
+		}
+		return resp;
+	}
+	public ZteResponse startOrderStandingPlan(NewStartOrderPlanReq req){
+		ZteResponse resp = new ZteResponse();
+		for (String order_id : req.getOrderIdList()) {
+    		BusiCompRequest busi = new BusiCompRequest();
+    		busi.setOrder_id(order_id);
+    		Map<String,String> queryParams = new HashMap<String,String>();
+    		queryParams.put("order_id", order_id);
+    		queryParams.put("plan_id", EcsOrderConsts.ORDER_COLLECT_PLAN_NEW);
+    		busi.setEnginePath("enterTraceRule.startOrderStandingPlan");
+    		busi.setQueryParams(queryParams);
+    		long start = System.currentTimeMillis();
+			BusiCompResponse busiComp = CommonDataFactory.getInstance().execOrderStandingPlanBusiComp(busi);
+    		long end = System.currentTimeMillis();
+    		logger.info("订单编号:"+order_id+"订单归集方案执行完成时间：=====>"+(end-start));
+			
+//    		OrderExtBusiRequest orderExt= CommonDataFactory.getInstance().getOrderExtBusiRequest(order_id);
+//    		
+//			String order_model =orderExt.getOrder_model();
+//			String is_send_wms =orderExt.getIs_send_wms();
+//			String flow_inst_id =orderExt.getFlow_inst_id();
+//			String zb_status =orderExt.getZb_status();
+//			String flow_id =orderExt.getFlow_id();
+//			String flow_trace_id =orderExt.getFlow_trace_id();
+//			
+//			OrderExtvlBusiRequest orderExtvl = CommonDataFactory.getInstance().getOrderExtvlBusiRequest(order_id);
+//			String sys_code =orderExtvl.getSys_code();
+//			String syn_ord_zb =orderExtvl.getSyn_ord_zb();
+//			
+//			this.baseDaoSupport.execute("update es_order_ext a set a.order_model = ?,a.is_send_wms = ?,flow_inst_id = ? , zb_status = ? ,flow_id = ?, flow_trace_id= ? where order_id = ? ", order_model,is_send_wms,flow_inst_id,zb_status,flow_id,flow_trace_id,order_id);
+//			this.baseDaoSupport.execute("update es_order_extvtl a set a.sys_code = ?,a.syn_ord_zb = ? where order_id = ? ", sys_code,syn_ord_zb,order_id);
+//		
+    		//如果总商已经退单，调退单方案，暂时屏蔽
+//    		String return_flag =orderExt.getReturn_flag();
+//    		
+//    		if(EcsOrderConsts.IS_DEFAULT_VALUE.equals(return_flag)){
+//    			OrderExtvlBusiRequest orderExtvl = CommonDataFactory.getInstance().getOrderExtvlBusiRequest(order_id);
+//    			orderExtvl.setZb_refund_status(EcsOrderConsts.IS_DEFAULT_VALUE);
+//    			
+//    			orderExt.setRefund_audit_mode(EcsOrderConsts.REFUND_AUDIT_HAND);
+//    			orderExt.setReturned_reason_code("0402");
+//    			TacheFact fact = new TacheFact();
+//    			fact.setOrder_id(order_id);
+//    			RuleTreeExeResp ruleTreeExeResp = RuleFlowUtil.executeRuleTree(EcsOrderConsts.ORDER_RETURNED_PLAN, EcsOrderConsts.ORDER_RETURN_APPLY_RULE, fact,true,true,EcsOrderConsts.DEAL_FROM_PAGE);
+//    		}
+		}
+		resp.setError_code(ConstsCore.ERROR_SUCC);
+		resp.setError_msg("订单归集方案调用成功");
+		return resp;
+	}
+	@Override
+	public AttrSyLoadListResp attrSyValiList(AttrSyLoadListReq req)
+			throws ApiBusiException {
+		AttrSyLoadListResp resp = new AttrSyLoadListResp();
+		try{
+			Outer outer = req.getOuter();
+			Map extMap = outer.getExtMap();
+			Iterator it = extMap.keySet().iterator();
+			while (it.hasNext()) {
+				String key =(String) it.next();
+				String value = (String) extMap.get(key);
+//			    ZteClient client = ClientFactory.getZteRopClient(AppKeyEnum.APP_KEY_WSSMALL_ECSORD);
+				 ZteClient client = ClientFactory.getZteDubboClient("ECS");
+				AttrSyLoadReq attrSyLoadReq = new AttrSyLoadReq();
+				attrSyLoadReq.setOuter(outer);
+				attrSyLoadReq.setKey(key);
+				attrSyLoadReq.setValue(value);
+				AttrDef attrDef = CacheUtils.getCacheAttrDef(key+EcsOrderConsts.ATTR_SPEC_ID_999);
+				if(attrDef !=null){
+					attrSyLoadReq.setHander_class(attrDef.getHandler_class());
+					AttrSyLoadResp attrSyLoadResp = attrSyVali(attrSyLoadReq);
+					if(ConstsCore.ERROR_FAIL.equals(attrSyLoadResp.getError_code())) //抛出异常
+						throw new RuntimeException(attrSyLoadResp.getError_msg());
+				}
+			}
+			resp.setError_code(ConstsCore.ERROR_SUCC);
+		}catch(Exception e){
+			e.printStackTrace();
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+			resp.setError_msg(e.getMessage());
+		}
+		return resp;
+	}
+	private AttrSyLoadResp attrSyVali(AttrSyLoadReq req)throws ApiBusiException {
+		AttrSyLoadResp resp = new AttrSyLoadResp();
+		resp.setError_code(ConstsCore.ERROR_SUCC); //缺省为成功
+		if(!StringUtils.isEmpty(req.getHander_class())){
+			IAttrHandler handler = null;
+			try{
+				handler = SpringContextHolder.getBean(req.getHander_class());
+			}catch(Exception ex){
+				
+			}
+			resp = handler.attrSyingVali(req);
+		}
+		if(resp ==null){
+			resp = new AttrSyLoadResp();
+			resp.setError_code(ConstsCore.ERROR_SUCC); //缺省为成功
+		}
+		return resp;
+	}
+	@Override
+	public AttrInstLoadListResp attrInstLoadList(AttrInstLoadListReq req)throws ApiBusiException {
+		List<AttrSwitchParams> attrs = req.getAttrs();
+		AttrInstLoadListResp res = new AttrInstLoadListResp();
+		Map<String,AttrInstLoadResp> attrInstList = new HashMap<String, AttrInstLoadResp>();
+		for(AttrSwitchParams attr: attrs){
+			AttrInstLoadResp resp = new AttrInstLoadResp();
+			try{
+				resp = handler(attr);
+				attrInstList.put(resp.getField_attr_id(), resp);
+			}catch(Exception ex){ //业务异常
+				ex.printStackTrace();
+			}			
+		}
+		res.setAttrInstList(attrInstList);
+		return res;
+	}
+	
+	private AttrInstLoadResp handler(AttrSwitchParams req) throws ApiBusiException {
+		AttrInstLoadResp resp = new AttrInstLoadResp();
+		resp.setError_code(ConstsCore.ERROR_SUCC); //缺省为成功
+		if(!StringUtils.isEmpty(req.getHander_class())){
+			try{
+				IAttrHandler handler = SpringContextHolder.getBean(req.getHander_class());
+				resp = handler.handler(req);
+			}catch(Exception e){
+//				e.printStackTrace();
+			}
+			
+		}
+		if(resp ==null){
+			resp = new AttrInstLoadResp();
+			resp.setError_code(ConstsCore.ERROR_SUCC); //缺省为成功
+		}
+		return resp;
+	}
+	@Override
+	public GroupAttrInstLoadResp groupAndInsertAttrByTable(GroupAttrInstLoadReq req)throws ApiBusiException{
+		orderManager = SpringContextHolder.getBean("orderManager");
+		Map values = req.getValues();
+		OrderAttrHanderResp resp = orderManager.groupAndInsertAttrByTable(req.getIndex(),
+				req.getAttrs(), values, req.getOrder_id(), req.getInst_id(), 
+				req.getGoods_id(), req.getPro_goods_id(), req.getOrder_from(), req.getTbList(),
+				req.getGoods_pro_id(), req.getProduct_pro_id());
+		GroupAttrInstLoadResp gresp = new GroupAttrInstLoadResp();
+		gresp.setAttInstList(resp.getAttInstList());
+		gresp.setAttrDefTable(resp.getAttrDefTable());
+		gresp.setValues(values);
+		return gresp;
+	}
+	public ZteResponse order_lock(OrderLockReq req){
+		ZteResponse resp = new ZteResponse();
+		String order_id = req.getOrder_id();
+		String user_id = req.getUser_id();
+		String user_name = req.getUser_name();
+		try {
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+			String visible_status  = orderTree.getOrderExtBusiRequest().getVisible_status();
+			String abnoraml_type  = orderTree.getOrderExtBusiRequest().getAbnormal_type();
+			//不可见订单，如果是伪自动化、自动化异常，可以锁定；
+			boolean abnoramlFlag = EcsOrderConsts.VISIBLE_STATUS_1.equals(visible_status)&&(EcsOrderConsts.ORDER_ABNORMAL_TYPE_2.equals(abnoraml_type)||EcsOrderConsts.ORDER_ABNORMAL_TYPE_3.equals(abnoraml_type));
+			if(EcsOrderConsts.VISIBLE_STATUS_0.equals(visible_status)||abnoramlFlag){
+				if(ecsOrdManager==null){
+					ecsOrdManager = SpringContextHolder.getBean("ecsOrdManager");
+				}
+				ecsOrdManager.order_lock(order_id,null);
+				resp.setError_code(ConstsCore.ERROR_SUCC);
+				resp.setError_msg("操作成功");
+			}else{
+				resp.setError_msg("不可见的订单不能被锁定");
+			}
+		}catch (Exception e) {
+			e.printStackTrace();
+			resp.setError_msg(e.getMessage());
+		}
+		return resp;
+	}
+	public QueryUrlByOrderIdResp getJspPath(QueryUrlByOrderIdReq req){
+	    QueryUrlByOrderIdResp  resp = new QueryUrlByOrderIdResp();
+	    String order_id = req.getOrder_id();
+		try{
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+			String trace_id = orderTree.getOrderExtBusiRequest().getFlow_trace_id();
+			String action_url = RuleFlowUtil.getOrderUrl(order_id, trace_id);
+		    if(StringUtil.isEmpty(action_url)){
+				action_url = EcsOrderConsts.YCL_URL;
+			}
+		    resp.setError_code(ConstsCore.ERROR_SUCC);
+		    resp.setError_msg("操作成功");
+		    resp.setAction_url(action_url);
+		 }catch(Exception e){
+				e.printStackTrace();
+				 resp.setError_msg(e.getMessage());
+		  }
+		  return resp;
+	}
+	public IEcsOrdManager getEcsOrdManager() {
+		return ecsOrdManager;
+	}
+	public void setEcsOrdManager(IEcsOrdManager ecsOrdManager) {
+		this.ecsOrdManager = ecsOrdManager;
+	}
+	
+	@Override
+	public StartWorkflowRsp doStartWorkflow(StartWorkflowReq req)
+			throws Exception {
+		StartWorkflowRsp rsp = new StartWorkflowRsp();
+		String workflow_id = "";
+		String msg = "";
+		WORK_CUSTOM_FLOW_DATA flowData = null;
+		
+		try{
+			if(req.getCfg() == null)
+				throw new Exception("未传入流程配置");
+				
+			String cfg_type = req.getCfg().getCfg_type();
+
+			if("intent".equals(cfg_type)){
+				//意向单启动流程
+				if(req.getOrderIntent() == null)
+					throw new Exception("传入的意向单信息为空");
+				
+				if(StringUtils.isEmpty(req.getOrderIntent().getOrder_id()))
+					throw new Exception("传入的订单编号为空");
+
+				flowData = this.workCustomEngine.startWorkFlow(req.getOrderIntent(), req.getCfg());
+			}else{
+				//正式订单启动流程
+				if(StringUtils.isEmpty(req.getOrder_id()))
+					throw new Exception("传入的订单编号为空");
+				
+				String order_id = req.getOrder_id();
+				
+				OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+				
+				flowData = this.workCustomEngine.startWorkFlow(orderTree, req.getCfg());
+			}
+			
+			if(flowData == null){
+				workflow_id = "0";
+				msg = "未匹配到自定义流程";
+			}else{
+				workflow_id = flowData.getWorkflow().getWorkflow_id();
+				msg = "流程启动成功";
+			}
+		}catch(Exception e){
+			workflow_id = "-1";
+			msg = e.getMessage();
+			
+			logger.error("启动自定义流程失败："+e.getMessage(), e);
+		}
+		
+		rsp.setWorkflow_id(workflow_id);
+		rsp.setError_code(workflow_id);
+		rsp.setError_msg(msg);
+		
+		return rsp;
+	}
+
+	@Override
+	public WorkflowMatchRsp doWorkflowMatch(WorkflowMatchReq req)
+			throws Exception {
+		WorkflowMatchRsp rsp = new WorkflowMatchRsp();
+		String errorCode = "-1";
+		String errorMsg = "";
+		
+		try{
+			ES_WORK_CUSTOM_CFG cfg = null;
+			
+			if("intent".equals(req.getCfg_type())){
+				cfg = this.workCustomEngine.doWorkCustomCfgMatch(req.getFlow_code(),
+						req.getOrderIntent(), req.getCfg_type());
+			}else{
+				cfg = this.workCustomEngine.doWorkCustomCfgMatch(req.getFlow_code(),
+						req.getOrderTree(),req.getCfg_type());
+			}
+
+			if(cfg == null){
+				errorCode = "0";
+				errorMsg = "未匹配到自定义流程";
+			}else{
+				errorCode = "1";
+				errorMsg = "匹配到自定义流程";
+				rsp.setCfg(cfg);
+			}
+		}catch(Exception e){
+			errorMsg = e.getMessage();
+			
+			logger.error("自定义流程匹配失败："+e.getMessage(), e);
+		}
+		
+		rsp.setError_code(errorCode);
+		rsp.setError_msg(errorMsg);
+		
+		return rsp;
+	}
+	
+    @Override
+    public ChannelConvertQrySubResp channelConvertSubInfo( ChannelConvertQrySubReq req) throws ApiBusiException {
+        ChannelConvertQrySubResp resp = new ChannelConvertQrySubResp();
+        CommCaller caller = new CommCaller();
+        Map<String, Object> param = new HashMap<String, Object>();
+        try {
+            BeanUtils.bean2MapForAiPBSS(param, req);
+            resp = (ChannelConvertQrySubResp) caller.invoke("ecaop.trades.query.channel.convert.qry", param);
+        }catch (Exception e) {
+            resp.setError_code("-9999");
+            resp.setError_msg("调用接口异常:" + e.getMessage());
+            e.printStackTrace();
+        }
+        return resp;
+    }
+    
+    @Override
+	public RunWorkflowRsp doRunWorkflow(RunWorkflowReq req) throws Exception {
+		RunWorkflowRsp rsp = new RunWorkflowRsp();
+		
+		String instance_id = req.getInstance_id();
+		boolean isGoNextManual = req.isGoNextManual();
+		String webCondition = req.getWebCondition();
+		String remark = req.getRemark();
+		String json_param = req.getJson_param();
+		
+		String errorCode = "-1";
+		String errorMsg = "";
+
+		try{
+			if(org.apache.commons.lang.StringUtils.isBlank(instance_id))
+				throw new Exception("传入订单环节实例编号为空");
+			
+			WORK_CUSTOM_FLOW_DATA flowData = this.workCustomEngine.runNodeManual(instance_id, isGoNextManual, webCondition, remark, json_param);
+		
+			if(flowData == null){
+				errorCode = ConstsCore.ERROR_FAIL;
+				errorMsg = "流程执行失败";
+			}else{
+				errorCode = flowData.getRun_result();
+				errorMsg = flowData.getRun_msg();
+			}
+		}catch(Exception e){
+			errorCode = ConstsCore.ERROR_FAIL;
+			errorMsg = e.getMessage();
+			
+			logger.error("自定义流程执行失败："+e.getMessage(), e);
+		}
+		
+		rsp.setError_code(errorCode);
+		rsp.setError_msg(errorMsg);
+		
+		return rsp;
+	}
+    
+	@Override
+	public UpdateOrderTreeRsp updateOrderTree(UpdateOrderTreeReq req)
+			throws Exception {
+		UpdateOrderTreeRsp rsp = new UpdateOrderTreeRsp();
+		String order_id = req.getOrder_id();
+		
+		String errorCode = ConstsCore.ERROR_FAIL;
+		String errorMsg = "";
+
+		try{
+			if(org.apache.commons.lang.StringUtils.isBlank(order_id))
+				throw new Exception("传入订单编号为空");
+			
+			CommonDataFactory.getInstance().updateOrderTree(order_id);
+			
+			errorCode = ConstsCore.ERROR_SUCC;
+		}catch(Exception e){
+			errorCode = ConstsCore.ERROR_FAIL;
+			errorMsg = e.getMessage();
+			
+			logger.error("自定义流程执行失败："+e.getMessage(), e);
+		}
+		
+		rsp.setError_code(errorCode);
+		rsp.setError_msg(errorMsg);
+		
+		return rsp;
+	}
+}

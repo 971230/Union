@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	
+	<bean id="goodsDataProvider" class="com.ztesoft.net.mall.widget.goods.list.GoodsDataProvider"  parent="baseSupport"   scope="prototype" />
+    <bean id="cardStockScheduler" class="com.ztesoft.net.mall.core.timer.CardStockScheduler" />
+	<bean id="goodsNetCacheWrite" class="com.ztesoft.net.cache.common.GoodsNetCacheWrite" />
+	<bean id="goodsNetCacheRead" class="com.ztesoft.net.cache.common.GoodsNetCacheRead" />
+	
+	<bean id="goodsAdjunctManager" class="com.ztesoft.net.mall.core.service.impl.GoodsAdjunctManager" parent="baseSupport"></bean>
+	<bean id="promotionActivityManager" class="com.ztesoft.net.mall.core.service.impl.PromotionActivityManager" parent="baseSupport"></bean>
+	<bean id="giveGift" class="com.ztesoft.net.mall.core.service.impl.promotion.GiveGiftMethod" parent="baseSupport"></bean>
+	<bean id="discount" class="com.ztesoft.net.mall.core.service.impl.promotion.DiscountMethod" ></bean>
+ 	<bean id="reducePrice" class="com.ztesoft.net.mall.core.service.impl.promotion.ReducePriceMethod" ></bean>
+ 	<bean id="timesPoint" class="com.ztesoft.net.mall.core.service.impl.promotion.TimesPointMethod" ></bean>
+ 	<bean id="freeFreight" class="com.ztesoft.net.mall.core.service.impl.promotion.FreeFreightMethod" ></bean>
+ 	<bean id="brandManager" class="com.ztesoft.net.mall.core.service.impl.BrandManager"   parent="baseSupport" />
+ 	<bean id="brandModelManager" class="com.ztesoft.net.mall.core.service.impl.BrandModelManager"   parent="baseSupport" />
+ 	<bean id="catComplexManager" class="com.ztesoft.net.mall.core.service.impl.CatComplexManager" parent="baseSupport"></bean>
+	<bean id="freeOfferManager" class="com.ztesoft.net.mall.core.service.impl.FreeOfferManager"  parent="baseSupport" />
+	<bean id="freeOfferCategoryManager" class="com.ztesoft.net.mall.core.service.impl.FreeOfferCategoryManager"  parent="baseSupport" />
+	<bean id="couponManager" class="com.ztesoft.net.mall.core.service.impl.CouponManager"  parent="baseSupport" />
+    <bean id="promotionRedManager" class="com.ztesoft.net.mall.core.service.impl.PromotionRedManager" parent="baseSupport"></bean>
+	<bean id="cardManager" class="com.ztesoft.net.mall.core.service.impl.CardManager" parent="baseSupport"></bean>
+	<bean id="commentsManager" class="com.ztesoft.net.mall.core.service.impl.CommentsManager" parent="baseSupport"></bean>
+	<bean id="favoriteManager" class="com.ztesoft.net.mall.core.service.impl.FavoriteManager" parent="baseSupport"></bean>
+	<bean id="agreeManager" class="com.ztesoft.net.mall.core.service.impl.GoodsAgreementManager"></bean>
+	<bean id="goodsAlbumManager" class="com.ztesoft.net.mall.core.service.impl.GoodsAlbumManager"  parent="baseSupport" />
+	<bean id="goodsAreaManager" class="com.ztesoft.net.mall.core.service.impl.GoodsAreaManager" parent="baseSupport" />
+	<bean id="goodsCatManagerImpl" class="com.ztesoft.net.mall.core.service.impl.GoodsCatManager"  parent="baseSupport"/>
+	<bean id="goodsComplexManager" class="com.ztesoft.net.mall.core.service.impl.GoodsComplexManager"  parent="baseSupport" />
+	<bean id="goodsFieldManager" class="com.ztesoft.net.mall.core.service.impl.GoodsFieldManager" parent="baseSupport"></bean>
+	<bean id="goodsImportManager" class="com.ztesoft.net.mall.core.service.impl.GoodsImportManager" parent="baseSupport"></bean>
+	<bean id="goodsPriceManager" class="com.ztesoft.net.mall.core.service.impl.GoodsPriceManager" parent="baseSupport"></bean>
+	
+	<bean id="goodsOrgManager" class="com.ztesoft.net.mall.core.service.impl.GoodsOrgManager"  parent="baseSupport" /> 
+	<bean id="goodsSearchManager" class="com.ztesoft.net.mall.core.service.impl.GoodsSearchManager"  parent="baseSupport" />
+	<bean id="goodsSearchManager2" class="com.ztesoft.net.mall.core.service.impl.GoodsSearchManager2" parent="baseSupport"></bean>
+	<bean id="goodsTypeManager" class="com.ztesoft.net.mall.core.service.impl.GoodsTypeManager"  parent="baseSupport"  />
+	<bean id="goodsUsageManager" class="com.ztesoft.net.mall.core.service.impl.GoodsUsageManager"  parent="baseSupport"/>
+	<bean id="groupBuyManager" class="com.ztesoft.net.mall.core.service.impl.GroupBuyManager" parent="baseSupport"></bean>
+	<bean id="invoiceApplyManager" class="com.ztesoft.net.mall.core.service.impl.InvoiceApplyManager" parent="baseSupport"></bean>
+	<bean id="limitBuyManager" class="com.ztesoft.net.mall.core.service.impl.LimitBuyManager" parent="baseSupport"></bean>
+	<bean id="specManager" class="com.ztesoft.net.mall.core.service.impl.SpecManager" parent="baseSupport"></bean>
+    <bean id="specValueManager" class="com.ztesoft.net.mall.core.service.impl.SpecValueManager" parent="baseSupport"></bean>
+    <bean id="tagManager" class="com.ztesoft.net.mall.core.service.impl.TagManager"  parent="baseSupport"  />
+    <bean id="shop" class="com.ztesoft.net.mall.ShopApp"></bean>
+    <bean id="goods_list"  class="com.ztesoft.net.mall.widget.goods.list.GoodsList"  scope="prototype"></bean>
+  <!--  <bean id="goods_search"  class="com.ztesoft.net.mall.widget.goods.search.GoodsSearchWidget"  scope="prototype"></bean>
+   -->
+    <bean id="tag_goods"  class="com.ztesoft.net.mall.widget.goods.list.TagsGoods"  scope="prototype"></bean>
+    <!-- 以下代码移动本地
+    <bean id="fadeplay"  class="com.ztesoft.net.app.base.widget.adv.fadeplay.FadePlayWidget"  scope="prototype"></bean>
+    -->
+    <bean id="level_goods"  class="com.ztesoft.net.mall.widget.goods.list.LevelGoods"  scope="prototype"></bean>
+    
+    <!-- 仓库 -->
+    <bean id="warehouseManager" class="com.ztesoft.net.mall.core.service.impl.WarehouseManager" parent="baseSupport"></bean>
+    <bean id="warehouseSeatManager" class="com.ztesoft.net.mall.core.service.impl.WarehouseSeatManager" parent="baseSupport"></bean>
+    
+    <!-- 合约机 -->
+    <bean id="contractConfigManager" class="com.ztesoft.net.mall.core.service.impl.ContractConfigManager" parent="baseSupport"></bean>
+    
+    <!-- 商品分类缓存代理 -->
+	<bean id="goodsCatManager" class="com.ztesoft.net.mall.core.service.impl.cache.GoodsCatCacheProxy"  >
+		<constructor-arg><ref bean="goodsCatManagerImpl"/></constructor-arg>
+	</bean>
+	<!-- 商品批量导入-->	
+ 	<bean id="goodsDataBatchManager" class="com.ztesoft.net.mall.core.service.impl.batchimport.GoodsDataBatchManager" ></bean>
+ 	<!-- 商品名称导入器-->	
+ 	<bean id="goodsFieldImporter" class="com.ztesoft.net.mall.core.service.impl.batchimport.GoodsFieldImporter" ></bean>
+ 	<!-- 商品品牌导入器-->
+ 	<bean id="goodsBrandImporter" class="com.ztesoft.net.mall.core.service.impl.batchimport.GoodsBrandImporter" ></bean>
+ 	<!-- 商品属性导入器-->
+ 	<bean id="goodsPropImporter" class="com.ztesoft.net.mall.core.service.impl.batchimport.GoodsPropImporter" ></bean>
+ 	<!-- 商品价格导入器-->
+ 	<bean id="goodsPriceImporter" class="com.ztesoft.net.mall.core.service.impl.batchimport.GoodsPriceImporter" ></bean>
+ 	<!-- 商品图片读取器-->
+ 	<bean id="goodsImageReader" class="com.ztesoft.net.mall.core.service.impl.batchimport.util.GoodsImageReader" ></bean> 
+ 	<!-- 商品图片导入器-->
+ 	<bean id="goodsImageImporter" class="com.ztesoft.net.mall.core.service.impl.batchimport.GoodsImageImporter" ></bean> 
+ 	<!-- 商品描述读取器-->
+ 	<bean id="goodsDescReader" class="com.ztesoft.net.mall.core.service.impl.batchimport.util.GoodsDescReader" ></bean> 
+ 	<!-- 商品描述导入器-->
+ 	<bean id="goodsDescImporter" class="com.ztesoft.net.mall.core.service.impl.batchimport.GoodsDescImporter" ></bean> 	
+ 	<!-- 商品规格导入器-->
+ 	<bean id="goodsSpecImporter" class="com.ztesoft.net.mall.core.service.impl.batchimport.GoodsSpecImporter" ></bean>
+ 	<bean id="packageProductManager" class="com.ztesoft.net.mall.core.service.impl.PackageProductManager" parent="baseSupport"></bean> 	
+
+	<bean id="joinApply_CompManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.JoinApply_CompManager_Audit" ></bean>
+	<bean id="joinApply_DeptManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.JoinApply_DeptManager_Audit" ></bean>
+	<bean id="joinApply_ProductManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.JoinApply_ProductManager_Audit" ></bean>
+	<bean id="joinApply_SupplierManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.JoinApply_SupplierManager_Audit" ></bean>
+	<bean id="productService" class="com.ztesoft.net.app.base.core.service.solution.impl.ProductServiceImpl" scope="prototype"></bean>
+
+	<bean id="modPrice_CompManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModPrice_CompManager_Audit" ></bean>
+	<bean id="modPrice_DeptManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModPrice_DeptManager_Audit" ></bean>
+	<bean id="modPrice_ProductManager_Audit" class="com.ztesoft.net.mall.core.workflow.core.ModPrice_ProductManager_Audit" ></bean>
+	
+	
+	<bean id="goodsUserManager" class ="com.ztesoft.net.mall.core.service.impl.GoodsUserManagerImpl" parent="baseSupport"></bean>
+    <bean id="goodsManager" class="com.ztesoft.net.mall.core.service.impl.GoodsManager"  parent="baseSupport" />
+    <!-- <bean id="ruleTypeRelaManager" class="com.ztesoft.net.mall.core.service.impl.RuleTypeRelaManager"  parent="baseSupport" />
+    <bean id="businessTypeManager" class="com.ztesoft.net.mall.core.service.impl.BusinessTypeManager"  parent="baseSupport" /> -->
+    <bean id="goodsManagerN" class="com.ztesoft.net.mall.core.service.impl.GoodsManagerN"  parent="baseSupport" />
+    <bean id="goodsImportHandler" class="com.ztesoft.net.mall.core.service.impl.GoodsImportHandler"  parent="baseSupport" />
+    <bean id="terminalImportHandler" class="com.ztesoft.net.mall.core.service.impl.TerminalImportHandler"  parent="baseSupport" />
+    <bean id="warhouseGoodsStoreManager" class="com.ztesoft.net.mall.core.service.impl.WarhouseGoodsStoreManager"  parent="baseSupport" />
+    <bean id="goodsInventoryManager" class="com.ztesoft.net.mall.core.service.impl.GoodsInventoryManager"  parent="baseSupport" />
+    <bean id="goodsConManager" class="com.ztesoft.net.mall.core.service.impl.GoodsContractManager"  parent="baseSupport" />
+      
+    <bean id="productManager" class="com.ztesoft.net.mall.core.service.impl.ProductManager" parent="baseSupport" ></bean>
+    
+	<bean id="sqlUtils" class="com.ztesoft.net.mall.core.utils.SqlUtils" parent="baseSupport"></bean>
+	<bean id="advice_Manage_Audit" class="com.ztesoft.net.mall.core.workflow.core.Advice_Manage_Audit" ></bean>
+
+	<!-- 商品插件桩-->
+    <bean id="goodsPluginBundleN" class="com.ztesoft.net.mall.core.plugin.goods.GoodsPluginBundleN"></bean>
+
+    <!-- 商品插件桩-->
+    <bean id="goodsPluginBundle" class="com.ztesoft.net.mall.core.plugin.goods.GoodsPluginBundle"></bean>
+
+    <!-- 商品字段插件桩 -->
+    <bean id="goodsFieldPluginBundle" class="com.ztesoft.net.mall.core.plugin.field.GoodsFieldPluginBundle"></bean>
+    <!-- 商品搜索插件桩 -->
+    <bean id="goodsSearchPluginBundle" class="com.ztesoft.net.mall.core.plugin.search.GoodsSearchPluginBundle"></bean>
+    <!-- 商品数据过滤插件桩 -->
+    <bean id="goodsDataFilterBundle" class="com.ztesoft.net.mall.core.plugin.search.GoodsDataFilterBundle"></bean>
+
+	
+	
+
+	<!-- 货品发布-->
+	<bean id="productoM" class="com.ztesoft.net.mall.core.service.impl.ProductoManager"  parent="baseSupport" />
+	
+	<!-- 商品发布 -->
+    <bean id="esGoodsM" class="com.ztesoft.net.mall.core.service.impl.EsGoodsCoManager"  parent="baseSupport" />
+     
+    <!-- 号码发布限制 --> 
+    <bean id="esnclM" class="com.ztesoft.net.mall.core.service.impl.ESNoCoLimitManager"  parent="baseSupport" />
+	
+	<!-- 获取缓存数据--> 
+	<bean id="dcPublicInfoManager" class="com.ztesoft.net.mall.core.service.impl.DcPublicManagerImpl"  parent="baseSupport" />
+	 
+	 <bean id="broadbandGoodsManager" class="com.ztesoft.net.mall.core.service.impl.BroadbandGoodsManager"  parent="baseSupport" />
+	 <bean id="goodsCommonManager" class="com.ztesoft.net.mall.core.service.impl.GoodsCommonManager"  parent="baseSupport" />
+</beans>

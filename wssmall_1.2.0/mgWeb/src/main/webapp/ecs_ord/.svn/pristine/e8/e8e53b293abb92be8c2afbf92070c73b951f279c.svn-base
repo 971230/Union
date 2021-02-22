@@ -1,0 +1,565 @@
+
+<%@page import="zte.net.ecsord.common.AttrConsts"%>
+<%@page import="zte.net.ecsord.common.CommonDataFactory"%>
+<%@page import="zte.net.ecsord.common.SpecConsts"%>
+<%@page import="zte.net.ecsord.common.StypeConsts"%>
+<%@page import="zte.net.ecsord.utils.AttrUtils"%>
+<%@page import="org.apache.commons.lang3.StringUtils"%>
+<%@page import="com.ztesoft.net.mall.core.consts.EcsOrderConsts"%>
+<%@page import="zte.net.ecsord.params.busi.req.OrderFileBusiRequest"%>
+<%@page import="java.util.List"%>
+<%@page import="java.util.ArrayList"%>
+<%@page import="com.ztesoft.soc.fastdfs.IDfsManager"%>
+<%@page import="com.ztesoft.net.framework.context.spring.SpringContextHolder"%>
+<%@page import="zte.net.ecsord.common.CommonDataFactory"%>
+<%@page import="com.ztesoft.net.mall.core.consts.EcsOrderConsts"%>
+<%@page import="com.ztesoft.net.framework.util.StringUtil"%>
+<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ include file="/commons/taglibs.jsp"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http:UI//www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>历史订单详情</title>
+<script type="text/javascript" src="<%=request.getContextPath() %>/public/common/control/js/Base.js" ></script>
+<script type="text/javascript" src="<%=request.getContextPath() %>/public/common/control/js/splitScreen.js" ></script>
+<script type="text/javascript" src="<%=request.getContextPath() %>/public/common/control/js/artZoom.min.js"></script>
+<link href="<%=request.getContextPath() %>/public/common/control/css/lrtk.css" rel="stylesheet" type="text/css" />
+<%
+
+  
+  String order_id = (String)request.getAttribute("order_id");
+  String order_is_his = (String)request.getAttribute("order_is_his");
+  pageContext.setAttribute("order_is_his_page_flag", order_is_his);
+  String order_from  = "";
+  String customerType = "";
+
+  if(order_is_his!=null&&EcsOrderConsts.IS_ORDER_HIS_YES.equals(order_is_his)){
+	 order_from  = CommonDataFactory.getInstance().getAttrFieldValueHis(order_id, AttrConsts.ORDER_FROM);
+	 customerType = CommonDataFactory.getInstance().getAttrFieldValueHis(order_id, AttrConsts.CUSTOMER_TYPE);
+  }else{
+	  order_from  = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.ORDER_FROM);
+	  customerType = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.CUSTOMER_TYPE);
+  }
+  
+  boolean custFlag = EcsOrderConsts.CUSTOMER_CUST_TYPE_JTKH.equals(customerType);
+  String d_type = (String)request.getAttribute("d_type");
+  String yclbtn = "";
+  if("ycl".equals(d_type)){
+	  yclbtn = "ycl";
+	  request.setAttribute("yclbtn", yclbtn);
+  }
+%>
+
+</head>
+
+<script src="<%=request.getContextPath() %>/ecs_ord/js/autoord.js"></script>
+<script src="<%=request.getContextPath() %>/ecs_ord/js/preDealOrder.js"></script>
+<body>
+<form action="javascript:void(0);" id="preDealOrderForm" method="post">
+<input type="hidden" id="custFlag" value="<%=custFlag%>"/>
+<div class="gridWarp">
+	<div class="new_right">
+        <div class="right_warp">
+            <!-- 顶部公共 -->
+            
+            <div id="auto_flows_div">
+	            <c:choose>
+	            	<c:when test="${orderTree.orderExtBusiRequest.is_work_custom=='1'}">
+	            		<jsp:include page="custom_flow.jsp?order_id=${order_id }"/>
+	            	</c:when>
+	            	<c:otherwise>
+	            		<jsp:include page="auto_flows.jsp?order_id=${order_id }&btn=${yclbtn }&order_is_his=${order_is_his }&is_order_view=1"/> 
+	            	</c:otherwise>
+	            </c:choose>
+     		</div>
+            
+        	<!-- 路由信息 -->
+            <jsp:include page="route_info.jsp?order_id=${order_id }&hide_div=handle_input_area"/>
+         
+         	<!-- 关联订单显示开始-->
+            <!-- <div class="grid_n_div">
+	            <h2><a href="javascript:void(0);" class="openArrow"></a>关联订单信息</h2> 
+	           	<div class="grid_n_cont">
+	    		  	<div id="relations_info" style="height: 40px"></div>
+	            </div>
+            </div> -->
+            <!-- 关联订单显示结束 -->
+          <!-- 订单全部信息开始 -->  
+            <%-- <div>
+               <a href="<%=request.getContextPath()%>/shop/admin/ordAuto!showOrderList.do?query_type=order_view&params.visible_status=-1"   class="dobtn" style="margin-left:20px;">返回</a>
+            </div>	 --%>
+        	<div class="grid_n_div">
+            	 <h2><a href="javascript:void(0);" class="closeArrow"></a>订单基本信息<!--<a href="#" class="editBtn">编辑</a>--></h2> 
+              	<div class="grid_n_cont">
+            		<%-- <div class="remind_div"><img src="${context}/images/ic_remind.png" width="16" height="16"><span>缺少信息或者信息格式不正确！</span></div> --%>
+					<div id="order_base">
+						 <jsp:include page="include/new_view_order_base.jsp?order_id=${order_id }&order_amount=${order_amount }&order_is_his=${order_is_his }"/> 
+					</div>
+					<!-- <div id="order_ext" style="height: 80px"></div> -->
+        	    </div>
+        	</div>
+        	<!-- 订单全部信息结束 -->
+        	 <div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>联系人信息</h2> 
+              	  
+              	<div class="grid_n_cont">
+              	<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+              		<tr>
+              		<th>联系人姓名：</th>
+              		<td><html:orderattr disabled="disabled"  order_id="${order_id}" field_name="ship_name"  field_desc ="收货人姓名" field_type="input"></html:orderattr></td>
+              		<th>联系电话：</th>
+              		<td>${buyInfoMap.mobile}</td>
+              		<th>联系地址：</th>
+              		<td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="ship_addr"  field_desc ="详细地址" field_type="input"></html:orderattr></td>
+              		</tr>
+              		<tr>
+              		<th>联系电话2：</th>
+              		<td>${buyInfoMap.mobile}</td>
+              		</tr>
+              		</table>
+                </div>
+              </div> 
+               <div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>客户信息 <span id="certValidateMsg" style="color:red;">
+                      <%--      <%
+                             String valiMsg = "身份证检验信息：";
+                             String valiCode = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.ACCOUNT_VALI);
+                             if(EcsOrderConsts.ACCOUNT_VALI_1.equals(valiCode)){
+                            	 valiMsg +="校验成功"; 
+                             }else if(StringUtil.isEmpty(valiCode)){
+                            	 valiMsg += "未校验";
+                             }else if(EcsOrderConsts.ACCOUNT_VALI_2.equals(valiCode)){
+                            	 valiMsg += "图片不一致";
+                             }else if(EcsOrderConsts.ACCOUNT_VALI_3.equals(valiCode)){
+                            	 valiMsg += "图片一致";
+                             }
+                           %>
+                        <%=valiMsg%></span> | <span style="color:red;">预校验信息：
+                         <%
+                             String validateMsg = "";
+                             String validateCode = CommonDataFactory.getInstance().getOrderTree(order_id).getOrderItemBusiRequests().
+             						get(0).getOrderItemExtBusiRequest().getEss_pre_status();
+                             if(EcsOrderConsts.ESS_PRE_STATUS_1.equals(validateCode)){
+                            	 validateMsg +="校验成功"; 
+                             }else if(StringUtil.isEmpty(validateCode)){
+                            	 validateMsg += "未校验";
+                             }else{
+                            	 validateMsg += "校验失败";
+                             }
+                           %><%=validateMsg%> --%>
+              	  </h2>
+              	<div class="grid_n_cont">
+              		<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+              		<tr>
+              		<th>实名校验：</th>
+              		<td><html:orderattr attr_code="DC_IS_OR_NO" disabled="disabled"   order_id="${order_id}" field_name="is_realname"  field_desc ="是否实名" field_type="select"  ></html:orderattr></td>
+              		<th>客户姓名：</th>
+              		<td><html:orderattr  order_id="${order_id}" disabled="disabled" field_name="phone_owner_name"  field_desc ="客户名称" field_type="input" ></html:orderattr></td>
+              		<th>证件类型：</th>
+              		<td><html:orderattr attr_code="DIC_CARD_TYPE" disabled="disabled"  order_id="${order_id}" field_name="certi_type"  field_desc ="证件类型" field_type="select" ></html:orderattr></td>
+              		</tr>
+              		<tr>
+              		<th>证件号码：</th>
+              		<td><html:orderattr  order_id="${order_id}" disabled="disabled" field_name="cert_card_num"  field_desc ="证件号码" field_type="input" ></html:orderattr></td>
+              		<th>证件地址：</th>
+              		<td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="cert_address"  field_desc ="证件地址" field_type="input"></html:orderattr></td>
+              		<th>民族：</th>
+              		<td><html:orderattr  order_id="${order_id}" disabled="disabled" field_name="cert_card_nation"  field_desc ="开户人民族" field_type="input" ></html:orderattr></td>
+              		</tr>
+              		<tr>
+              		<th>性别：</th>
+              		<td><html:orderattr  order_id="${order_id}" disabled="disabled" field_name="certi_sex"  field_desc ="证件性别" field_type="input" ></html:orderattr></td>
+              		<th>生日：</th>
+              		<td><html:orderattr  order_id="${order_id}" disabled="disabled" field_name="birthday"  field_desc ="开户人生日" field_type="input" ></html:orderattr></td>
+              		<th>签发机关：</th>
+              		<td><html:orderattr  order_id="${order_id}" disabled="disabled" field_name="cert_issuer"  field_desc ="证件机关" field_type="input" ></html:orderattr></td>
+              		</tr>
+              		<tr>
+              		<th>失效时间：</th>
+              		<td><html:orderattr  order_id="${order_id}" disabled="disabled" field_name="cert_failure_time"  field_desc ="证件失效时间" field_type="input" ></html:orderattr></td>
+              		<th>生效时间：</th>
+              		<td><html:orderattr  order_id="${order_id}" disabled="disabled" field_name="cert_eff_time"  field_desc ="证件生效时间" field_type="input" ></html:orderattr></td>
+              		<th>客户电话：</th>
+              		<td>${buyInfoMap.mobile}</td>
+              		</tr>
+              		<tr>
+              		<th>客户编号：</th>
+              		<td></td>
+              		<th>客户类型：</th>
+              		<td><html:orderattr attr_code="DIC_CUSTOMER_TYPE" disabled="disabled"   order_id="${order_id}" field_name="CustomerType"  field_desc ="客户类型" field_type="select"  ></html:orderattr></td>
+              		<th>收入归集集团：</th>
+              		<td></td>
+              		</tr>
+              		<tr>
+              		<th>出入境号：</th>
+              		<td></td>
+              		<th><span></span>短信最近发送时间：</th>
+                    <td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="messages_send_lasttime"  field_desc ="证件审核短信最近发送时间" field_type="input"></html:orderattr></td>
+                    <th><span></span>短信发送次数：</th>
+                    <td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="messages_send_count"  field_desc ="证件审核短信发送次数" field_type="input"></html:orderattr></td>
+              		</tr>
+              		<tr>
+              		<th>证件审核状态：</th>
+              		<td><html:orderattr  disabled="disabled" order_id="${order_id}" field_name="account_vali"  field_desc ="开户人身份验证" field_type="select"></html:orderattr></td>
+              		</tr>
+              		
+              		</table>
+              		</div>
+              		<div class="grid_n_cont">
+              		<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+              		<tr>
+              		
+              		<%
+							List<String> img_list = new ArrayList<String>();
+							List<OrderFileBusiRequest> orderFileBusiRequests = CommonDataFactory.getInstance().getOrderTree(order_id).getOrderFileBusiRequests();
+							if (orderFileBusiRequests != null && orderFileBusiRequests.size() > 0) {
+								for (OrderFileBusiRequest obj : orderFileBusiRequests) {
+									String status = obj.getStatus();
+									String file_type = obj.getFile_type();
+									if("1".equals(status)&&"jpg".equals(file_type)){
+										String imgPath = request.getContextPath() + "/servlet/OrderShowPhotoServlet?file_path=" + obj.getFile_path();
+										img_list.add(imgPath);
+									}
+								}
+							}
+							request.setAttribute("img_list", img_list);
+							int a = img_list.size();
+							if(a>0){
+								%><th>用户证件图片：</th><%
+							}
+						%>
+						<div class="picListDiv" id="show_id_cart">
+							<ul class="imgList">
+							
+								<c:forEach items="${img_list}" var="img">
+								<th></th>
+									<td>
+										<a class="artZoom" href="${img}" rel="${img}">
+											<img src="${img}" style="width: 180px;height: 180px" attr="${img}"/>
+										</a>
+									</td>
+								</c:forEach>
+								
+							</ul>
+						</div>
+              		</tr>
+              		</table>
+                </div>
+              </div> 
+              <div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>发展人信息</h2> 
+              	<div class="grid_n_cont">
+              	<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+              	<tr>
+              	<th>发展人编码：</th>
+                <td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="develop_code_new"  field_desc ="发展人编码" field_type="input"></html:orderattr></td>
+                <th>发展人名称：</th>
+                <td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="develop_name_new"  field_desc ="发展人名称" field_type="input"></html:orderattr></td>
+              	<th>发展点编码：</th>
+                <td>${development_point_code }</td>
+              	</tr>
+              	<tr>
+              	<th>发展点名称：</th>
+                <td>${development_point_name }</td>
+              	<th>受理人编码：</th>
+              	<td></td>
+              	<th>受理人名称：</th>
+              	<td></td>
+              	</tr>
+              	<tr>
+              	<th>下单人编码：</th>
+              	<td>${operatorInfoMap.out_operator }</td>
+              	<th>下单人名称：</th>
+              	<td>${operatorInfoMap.out_operator_name }</td>
+              	<th>下单点编码：</th>
+              	<td>${operatorInfoMap.out_office }</td>
+              	</tr>
+              	<tr>
+              	<th>下单点名称：</th>
+              	<td>${operatorInfoMap.out_office_name }</td>
+              	</tr>
+              	</table>
+              	</div>
+              	</div>
+              	<div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>种子用户信息</h2> 
+              	<div class="grid_n_cont">
+              	<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+              	<tr>
+              	<th>自传播营销ID:</th>
+              	<td>${topSeedInfoMap.market_user_id }</td>
+              	<th>种子用户ID:</th>
+              	<td>${topSeedInfoMap.seed_user_id }</td>
+              	<th>种子用户号码:</th>
+              	<td>${topSeedInfoMap.share_svc_num }</td>
+              	</tr>
+              	<tr>
+              	<th>顶级种子用户ID:</th>
+              	<td>${topSeedInfoMap.top_share_userid }</td>
+              	<th>顶级种子用户号码:</th>
+              	<td>${topSeedInfoMap.top_share_num }</td>
+              	<th>自传播活动名称:</th>
+              	<td>${topSeedInfoMap.activity_name }</td>
+              	</tr>
+              	<tr>
+              	<th>顶级种子专业线:</th>
+              	<td>${topSeedInfoMap.top_seed_professional_line }</td>
+              	<th>顶级种子类型:</th>
+              	<td>${topSeedInfoMap.top_seed_type }</td>
+              	<th>顶级种子分组：</th>
+              	<td>${topSeedInfoMap.top_seed_group }</td>
+              	</tr>
+              	</table>
+              	</div>
+              	</div>
+              	<div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>支付信息</h2> 
+              	<div class="grid_n_cont">
+              	<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+              	<tr>
+              	<th>订单总价：</th>
+              	<td><input class='ipt_new' disabled="disabled" style="width:200px;" onkeypress="if ((event.keyCode <48 && event.keyCode!=46) || event.keyCode > 57) event.returnValue = false;"
+                                 name="order_amount" value="${order_amount}"/></td></td>
+              	<th>支付时间：</th> 
+              	<td><html:orderattr disabled="disabled"  order_id="${order_id}" field_name="pay_time"  field_desc ="支付时间" field_type="date"></html:orderattr></td>
+              	<th>实收金额：</th>
+              	<td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="order_realfee"  field_desc ="实收金额（元）" field_type="input"></html:orderattr></td>
+              	</tr>
+              	<tr>
+              	<th>支付状态：</th>
+              	<td><html:orderattr disabled="disabled" attr_code="DIC_PAY_STATUS" order_id="${order_id}" field_name="pay_status"  field_desc ="支付状态" field_type="select"></html:orderattr></td>
+              	<th>支付类型：</th>
+              	<td><html:orderattr  disabled="disabled"  attr_code="DIC_PAY_TYPE" order_id="${order_id}" field_name="paytype"  field_desc ="支付类型"  field_type="select"></html:orderattr></td>
+              	<th>支付方式：</th>
+              	<td><html:orderattr disabled="disabled"   attr_code="DIC_PAY_WAY" order_id="${order_id}" field_name="pay_method"   field_desc ="支付方式" field_type="select"></html:orderattr></td>
+              	</tr>
+              	<tr>
+              	<th>支付发起流水：</th>
+              	<td></td>
+              	<th>支付返回流水：</th>
+              	<td></td>
+              	</tr>
+              	</table>
+              	</div>
+              	</div>
+              	<div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>物流信息</h2> 
+              	<div class="grid_n_cont">
+              	<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+              	<tr>
+              	<th>物流单号：</th>
+              	<td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="logi_no"  field_desc ="物流单号" field_type="input"></html:orderattr></td>
+              	<th>应收运费（元）：</th>
+              	<td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="post_fee"  field_desc ="应收运费（元）" field_type="input"></html:orderattr></td>
+              	<th>实收运费（元）：</th>
+              	<td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="n_shipping_amount"  field_desc ="实收运费（元）" field_type="input"></html:orderattr></td>
+              	</tr>
+              	<tr>
+              	<th>物流公司名称：</th>
+                              	<td>
+                                <select disabled="disabled" name="shipping_company" field_name="shipping_company"  field_desc="物流公司" 
+											id="logi_company" class="ipt_new" style="width:200px;">
+												<option value="NULL_VAL">---请选择---</option>
+												<c:forEach var="logicompany" items="${logiCompanyList }">
+													<option key_str="${logicompany.key_str }"
+													<c:if test="${order_model=='01' && logicompany.id=='SF0001'}">selected="selected"</c:if>
+														value="${logicompany.id }">${logicompany.name }</option>
+												</c:forEach>
+										</select> 
+										<input type="hidden"  name="shipping_company_name"  id="shipping_company_name" value="${shipping_company_name}" >
+									<script type="text/javascript">
+										var sc = '${shipping_company}';
+										if(sc){
+											$("[name='shipping_company'] option[value='${shipping_company}']").attr("selected","selected");
+										}
+									    $("[name='shipping_company']").change(function(){
+												var shipping_name =  $(this).find("option:selected").text(); 
+												$("[name='shipping_company_name']").val(shipping_name);
+										 });
+										
+		                            </script></td>
+              	<th>手机号码：</th>
+              	<td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="receiver_mobile"  field_desc ="手机号码" field_type="input"></html:orderattr></td>
+              	</tr>
+              	<tr>
+              	<th>配送时间：</th>
+              	<td><html:orderattr disabled="disabled" attr_code ='DIC_SHIPPING_TIME'   order_id="${order_id}" field_name="shipping_time"  field_desc ="配送时间" field_type="select"></html:orderattr></td>
+              	<th>收货人姓名：</th>
+              	<td><html:orderattr  disabled="disabled" order_id="${order_id}" field_name="ship_name"  field_desc ="收货人姓名" field_type="input"></html:orderattr></td>
+              	<th>收货省份：</th>
+              	<td><select disabled="disabled" name="provinc_code" field_desc="收货省份" field_name="provinc_code" id="provinc_code" class="ipt_new" style="width:200px;" >
+                              	     <option value="">--请选择--</option>
+                              	     <c:forEach var="pro" items="${provList}">
+                              	        <c:if test="${provinc_code==pro.code}">
+                              	          <option value="${pro.code}" selected="selected">${pro.name}</option>
+                              	        </c:if>
+                              	         <c:if test="${provinc_code!=pro.code}">
+                              	          <option value="${pro.code}">${pro.name}</option>
+                              	        </c:if>
+                              	     </c:forEach>
+                              	   </select></td>
+              	</tr>
+              	<tr>
+              	<th>收货地市：</th>
+              	<td><select disabled="disabled" name="city_code" field_desc="收货地市" field_name="city_code" id="city_code" class="ipt_new" style="width:200px;" >
+                              	     <option value="">--请选择--</option>
+                              	     <c:forEach var="cityList" items="${cityList}">
+                              	       <%--  <c:if test="${city_code==cityList.code}"> --%>
+                              	          <option value="${cityList.code}" <c:if test="${city_code==cityList.code}">selected="selected"</c:if>>${cityList.name}</option>
+                              	        <%-- </c:if>
+                              	         <c:if test="${provinc_code!=cityList.code}">
+                              	          <option value="${cityList.code}">${cityList.name}</option> 
+                              	        </c:if> --%>
+                              	     </c:forEach>
+                              	   </select></td>
+              	<th>收货区县：</th>
+              	<td><select disabled="disabled" name="district_id" field_desc="收货区县" field_name="district_id" id="district_id" class="ipt_new" style="width:200px;" >
+                              	     <option value="">--请选择--</option>
+                              	     <c:forEach var="districtList" items="${districtList}">
+                              	        <%-- <c:if test="${district_id==districtList.code}"> --%>
+                              	          <option value="${districtList.code}" <c:if test="${district_id==districtList.code}">selected="selected" </c:if>>${districtList.name}</option>
+                              	        <%-- </c:if>
+                              	         <c:if test="${district_id!=districtList.code}">
+                              	          <option value="${districtList.code}">${districtList.name}</option>
+                              	        </c:if> --%>
+                              	     </c:forEach>
+                              	   </select></td>
+              	<th>详细地址：</th>
+              	<td><html:orderattr disabled="disabled" order_id="${order_id}" field_name="ship_addr"  field_desc ="详细地址" field_type="input"></html:orderattr></td>
+              	</tr>
+              	</table>
+              	</div>
+              	</div>
+              <div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>客户历史订单<input type="button" id="open_order_his_list" value="点击展开" onclick="load_ord_his()" class="graybtn1"></h2> 
+              	  
+              	<div class="grid_n_cont">
+              		<div id="order_his_before" style="height: 80px;" ></div>
+              		<!-- <div id="order_his" style="height: 80px;display:none" ></div> -->
+                </div>
+              </div> 
+              <div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>电话外呼记录<input type="button" id="open_calllog_list" value="点击展开" onclick="load_calllog()" class="graybtn1"></h2> 
+              	  
+              	<div class="grid_n_cont">
+              		<div id="calllog_info_before" style="height: 80px;" ></div>
+              		<!-- <div id="calllog_info" style="height: 80px;display:none" ></div> -->
+                </div>
+              </div> 
+              <div class="grid_n_div">
+            	<h2><a href="#" class="openArrow"></a>订单修改记录<input type="button" id="open_changelog_list" value="点击展开" onclick="load_changelog()" class="graybtn1"></h2> 
+              	<div class="grid_n_cont">
+              		<div id="order_change" style="height: 80px"></div>
+                </div>
+              </div>
+        	<!-- 商品信息开始 -->
+        	
+              <!-- 总部反馈费用项减免结束 -->
+              <jsp:include page="new_order_handler.jsp?order_id=${order_id }"/>
+        </div>
+        
+    </div>
+</div>
+
+</form>
+<br />
+<br /><br /><br />
+</body>
+</html>
+
+<script type="text/javascript">
+jQuery('a.artZoom').artZoom();
+
+function load_ord_his(){
+	//$("#table_show").show();
+     // $("#table_show").toggle();
+  	
+  	 <%-- var order_id = "<%=request.getAttribute("order_id")%>";
+  	 $("#order_his_before").load("<%=request.getContextPath() %>/shop/admin/orderFlowAction!newLoadOrderHisPage.do",{"order_id":order_id,"ajax":"yes","includePage":"order_his_before"});
+  	document.getElementById('table_show').style.display='block'; --%>
+	//$("#order_his").show();
+	
+	if(showdiv_display = document.getElementById('table_show').style.display=='none'){//如果show是隐藏的
+		var order_id = "<%=request.getAttribute("order_id")%>";
+	 	$("#order_his_before").load("<%=request.getContextPath() %>/shop/admin/orderFlowAction!newLoadOrderHisPage.do",{"order_id":order_id,"ajax":"yes","includePage":"new_order_his_before"},function(){
+	 		document.getElementById('table_show').style.display='block';//show的display属性设置为block（显示）
+	 	});
+	 	
+  	   }else{//如果show是显示的
+  		document.getElementById('table_show').style.display='none';//show的display属性设置为none（隐藏）
+  		 
+  		}
+	
+	
+};
+function load_calllog(){
+	//$("#table_show").show();
+     // $("#table_show").toggle();
+  	 /* $("#log_table_show").toggle(); */
+	//$("#order_his").show();
+  	if(showdiv_display = document.getElementById('log_table_show').style.display=='none'){//如果show是隐藏的
+		var order_id = "<%=request.getAttribute("order_id")%>";
+	 	$("#calllog_info_before").load("<%=request.getContextPath() %>/shop/admin/ordCall!newQueryCalllog.do",{"order_id":order_id,"ajax":"yes","includePage":"new_calllog_info_before"},function(){
+	 		document.getElementById('log_table_show').style.display='block';//show的display属性设置为block（显示）
+	 	});
+	 	
+  	   }else{//如果show是显示的
+  		document.getElementById('log_table_show').style.display='none';//show的display属性设置为none（隐藏）
+  		 
+  		}
+};
+
+function load_changelog(){
+	//$("#table_show").show();
+     // $("#table_show").toggle();
+  	 /* $("#log_table_show").toggle(); */
+	//$("#order_his").show();
+  	if(showdiv_display = document.getElementById('order_change_logs_show').style.display=='none'){//如果show是隐藏的
+		var order_id = "<%=request.getAttribute("order_id")%>";
+	 	$("#order_change").load("<%=request.getContextPath() %>/shop/admin/orderFlowAction!getOrderChangeLogs.do",{"order_id":order_id,"ajax":"yes","includePage":"new_order_change"},function(){
+	 		document.getElementById('order_change_logs_show').style.display='block';//show的display属性设置为block（显示）
+	 	});
+	 	
+  	   }else{//如果show是显示的
+  		document.getElementById('order_change_logs_show').style.display='none';//show的display属性设置为none（隐藏）
+  		 
+  		}
+};
+</script>
+ 
+
+<script type="text/javascript">
+
+  $(function(){
+	  //CommonLoad.loadJSP('order_base','< %=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"order_base"},false,null,true);
+	  //CommonLoad.loadJSP('relations_info','< %=request.getContextPath() %>/shop/admin/orderFlowAction!getRealtionOrders.do',{order_id:"${order_id }",ajax:"yes",includePage:"relations_info"},false,function(){AutoFlow.checkMsg();},true);
+  	  
+	  CommonLoad.loadJSP('order_ext','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"order_ext"},false,function(){AutoFlow.checkMsg();},true);
+	  CommonLoad.loadJSP('prod_info','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"prod_info"},false,function(){AutoFlow.checkMsg();},true);
+	  CommonLoad.loadJSP('calllog_info_before','<%=request.getContextPath() %>/shop/admin/ordCall!newQueryCalllog.do',{order_id:"${order_id }",first_load:"yes",call_order_type:"order",ajax:"yes",includePage:"new_calllog_info_before"},false,null,true); 
+      //先加载总数和按钮页
+	 CommonLoad.loadJSP('order_his_before','<%=request.getContextPath() %>/shop/admin/orderFlowAction!newLoadOrderHisPage.do',{order_id:"${order_id }",order_is_his:"${order_is_his }",first_load:"yes",ajax:"yes",includePage:"new_order_his_before"},false,null,true);
+	 
+      CommonLoad.loadJSP('order_change','<%=request.getContextPath() %>/shop/admin/orderFlowAction!getOrderChangeLogs.do',{order_id:"${order_id }",order_is_his:"${order_is_his }",ajax:"yes",first_load:"yes",includePage:"new_order_change"},false,null,true);
+	  if(${!(orderTree.orderBusiRequest.order_type=='09'&&orderTree.orderExtBusiRequest.order_from=='10053')}){//非多商品
+		  CommonLoad.loadJSP('goods_info','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"goods_info"},false,function(){AutoFlow.checkMsg();},true);
+		  if(${orderTree.orderExtBusiRequest.order_model=='10'}||${orderTree.orderExtBusiRequest.order_from=='10012'}){
+			  CommonLoad.loadJSP('goods_open','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"view_goods_open"},false,function(){AutoFlow.checkMsg();},true);
+		  }else{
+			  CommonLoad.loadJSP('goods_open','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"goods_open"},false,function(){AutoFlow.checkMsg();},true);
+		  }
+	  	  
+		  CommonLoad.loadJSP('sp_product','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"sp_product"},false,function(){AutoFlow.checkMsg();},true);
+		  CommonLoad.loadJSP('goods_gift','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"goods_gift"},false,function(){AutoFlow.checkMsg();},true);
+	  }
+	  if(${orderTree.orderBusiRequest.order_type=='09'&&orderTree.orderExtBusiRequest.order_from=='10053'}){//多商品
+		  CommonLoad.loadJSP('goods_info_more','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"view_goods_info_more"},false,function(){AutoFlow.checkMsg();},true);
+	  }
+	  CommonLoad.loadJSP('fee_info','<%=request.getContextPath() %>/shop/admin/orderFlowAction!includePage.do',{order_id:"${order_id }",ajax:"yes",includePage:"fee_info"},false,function(){AutoFlow.checkMsg();},true);
+	   //校验信息
+	  AutoFlow.checkMsg();
+	  
+  });
+</script>
+

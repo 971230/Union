@@ -1,0 +1,108 @@
+package com.ztesoft.net.sqls;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+public class Sqls_Goods_Local extends Sqls{
+	
+	
+	public Sqls_Goods_Local(){
+		//SqlUtil.initSqls(Sqls_Goods.class, this , sqls) ;}
+	}
+	
+	public String getSql(String getName, Sqls cInst) {
+		String sql = this.getPropSql(getName, this, cInst);
+		return sql;
+	}
+	public String getACTIVE_TYPE_GET(){return "select (case "+
+	         " when b.cat_id = '690301000' then  5 "+
+				" when b.cat_id = '690302000' then  4 "+
+				" when b.cat_id = '690303000' then  3 "+
+				" end) ative_type "+
+				" from es_goods_rel a, es_goods b "+
+				" where a.a_goods_id = ? "+
+				" and b.type_id = 10001 "+
+				" and b.type = 'product'" +
+				" and b.source_from='"+ManagerUtils.getSourceFrom()+"'"+
+				" and a.z_goods_id = b.goods_id";}
+		
+		
+		public String getPRODUCT_MODEL(){return "select b.model_code as specification_code, "+
+					" (select c.model_name from es_brand_model c where c.model_code=b.model_code  "+ManagerUtils.apSFromCond("c")+") as specification_name "+
+					" from es_goods_rel a, es_goods b "+
+					" where a.a_goods_id = ? "+
+					" and b.type_id = 10000 "+
+					" and b.type = 'product'"+
+					" and b.source_from='"+ManagerUtils.getSourceFrom()+"'"+
+					" and a.z_goods_id = b.goods_id";}
+		
+		public String getIS_IPHONE_PLAN(){return "select (case "+
+	        " when b.cat_id = '690102000' then  '1' "+
+				" else '0' "+
+				" end) is_iphone_plan "+
+				" from es_goods_rel a, es_goods b "+
+				" where a.a_goods_id = ? "+
+				" and b.type_id = 10002 "+
+				" and b.type = 'product' "+
+				" and b.source_from='"+ManagerUtils.getSourceFrom()+"'"+
+				" and a.z_goods_id = b.goods_id";}
+		
+		public String getCOLOR_GET(){return "select color color_code,(select pname from es_dc_public t "
+				+ " where p.color=t.pkey and t.stype=10002"
+				+ " and t.source_from = '" + ManagerUtils.getSourceFrom() + "') color_name "+
+				" from es_goods g,es_product p, es_goods_rel r where g.goods_id=p.goods_id and p.product_id=r.product_id "+
+				" and g.source_from='"+ManagerUtils.getSourceFrom()+"' and p.color is not null and a_goods_id=?";}
+		
+		public String getUSE_COUPON (){return "select  c.* from  es_member_coupon mc , es_coupons c, es_promotion p where mc.cpns_id = c.cpns_id and mc.memc_code=? and mc.member_id=? and ?>mc.memc_used_times" +
+	            " and c.cpns_status='1' and c.pmt_id=p.pmt_id and sysdate between p.pmt_time_begin and p.pmt_time_end  and p.source_from='"+ManagerUtils.getSourceFrom()+"'";}
+		public String getATTR_CODE_GET (){return "select dc_sql from es_dc_sql where source_from='"+ManagerUtils.getSourceFrom()+"' and dc_name=?";}
+		public String getPMT_MEMBER_LV_DEL (){return "delete from pmt_member_lv where pmt_id=?";}
+		public String getPMT_GOODS_DEL (){return "delete from pmt_goods where pmt_id=?";}
+		public String getPROMOTION_LIST(){
+			return "select distinct t.id,t.begin_time,t.end_time,t.name,t.enable,a.pmt_id,a.disabled,a.promotion_type,a.pmt_describe,a.pmts_id,a.pmt_solution"+
+					" from es_promotion_activity t, es_promotion a  where t.source_from='"+ManagerUtils.getSourceFrom()+"' and t.source_from = a.source_from and t.id = a.pmta_id  ";
+		}
+		public String getPROMOTION_SELECT_0 (){return "select * from  es_promotion where pmt_basic_type='order' " +
+			    " and pmt_time_begin<"+DBTUtil.current()+" and  pmt_time_end>" +DBTUtil.current()+
+			    " and order_money_from<=? and order_money_to>=?" +
+			    " and ((pmt_id in (select pmt_id from es_pmt_member_lv where lv_id =? ) " + 
+			    " and pmt_type='0'  ";}
+		/**
+		 * 根据pmt_solution查找pmta_id 
+		 * @return
+		 */
+		public String getPMTA_ID(){
+			return " select t.pmta_id from es_promotion t where t.pmt_solution =?";
+		}
+		
+		public String getPROMOTION_ACTIVITY_ENABLE(){
+			return " update es_promotion_activity set enable=? where id =?";
+		}
+		public String getGET_COUP_PMTID (){return "select  c.pmt_id from es_member_coupon mc ,es_coupons c where mc.cpns_id = c.cpns_id and mc.memc_code=?  and mc.source_from='"+ManagerUtils.getSourceFrom()+"'";}
+		public String getPMT_GOODS_SELECT (){return "select COUNT(*) count from es_pmt_goods where pmt_id = ? and goods_id = ? or goods_id =-1 ";}
+		public String getPMT_GOODS_COUNT (){return "select count(*) from es_pmt_goods where pmt_id = ? and goods_id = ? or goods_id =-1 ";}
+		public String getLIST_BY_ACTIVITYID (){return "select * from promotion where disabled='false' and pmta_id=?";}
+		public String getPLUGIN_SAVE (){return "update promotion set pmt_solution =? where pmt_id=?";}
+		
+		public String getSAVE_MEMBER_LV (){return "insert into pmt_member_lv(pmt_id,lv_id)values(?,?)";}
+		public String getPMT_GOODS_INSERT (){return "insert into pmt_goods(pmt_id,goods_id)values(?,?)";}
+		
+		public String getPMT_GOODS_DEL_BY_IDS (){return "delete from pmt_goods where 1=1";}
+		
+		public String getPMT_MEMBER_LV_BY_IDS (){return "delete from pmt_member_lv where 1=1";}
+		
+		public String getPROMOTION_DEL_BY_IDS (){return "delete from promotion where 1=1";}
+		
+		public String getPROMOTION_SELECT_BY_ID (){return "select * from promotion where pmt_id =?";}
+		
+		public String getGOODS_SELECT_BY_PMT_ID (){return "select * from  es_goods where goods_id in(select goods_id from es_pmt_goods where pmt_id =?  "+ManagerUtils.apSFromCond("")+")";}
+		public String getLIST_MEMBER_LVID (){return "select lv_id from pmt_member_lv where pmt_id =? ";}
+		
+		public String getLIST_ORDER_PMT (){return "select * from order_pmt where order_id = ?";}
+		
+		public String getHAS_ORDER_PMT (){return "select count(*) from  es_promotion where pmt_basic_type='order' and pmt_time_begin<? and  pmt_time_end>? " +
+	    " and pmt_id in (select pmt_id from es_pmt_member_lv where lv_id =?  "+ManagerUtils.apSFromCond("")+") and pmt_type='0'";}
+		public String getPRODUCT_SELECT_BY_ID (){return "select * from product where product_id=? and source_from='"+ManagerUtils.getSourceFrom()+"'";}
+		
+		
+}

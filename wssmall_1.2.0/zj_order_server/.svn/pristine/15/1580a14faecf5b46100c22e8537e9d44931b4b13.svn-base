@@ -1,0 +1,213 @@
+package zte.net.common.rule;
+
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import params.ZteResponse;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderInfoUpdateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.TradeQueryReq;
+import com.ztesoft.net.ecsord.params.ecaop.resp.TradeQueryResp;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.consts.ZjEcsOrderConsts;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import commons.CommonTools;
+import consts.ConstsCore;
+import zte.net.common.annontion.context.action.ZteMethodAnnontion;
+import zte.net.common.annontion.context.action.ZteServiceAnnontion;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.common.SpecConsts;
+import zte.net.ecsord.params.base.req.BusiCompRequest;
+import zte.net.ecsord.params.base.resp.BusiCompResponse;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderPayBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.ecaop.resp.MainViceOpenResp;
+import zte.net.ecsord.rule.tache.TacheFact;
+@ZteServiceAnnontion(trace_name = "ZtePaymentTraceRule", trace_id = "1", version = "1.0", desc = "订单支付环节业务组件")
+public class ZtePaymentTraceRule extends ZteTraceBaseRule {
+	
+	private Logger log = Logger.getLogger(this.getClass());
+	@Override
+	@ZteMethodAnnontion(name = "支付环节入口", group_name = "订单支付", order = "1", page_show = true, path = "ztePaymentTraceRule.engineDo")
+	public BusiCompResponse engineDo(BusiCompRequest busiCompRequest) {
+		BusiCompResponse resp = new BusiCompResponse();
+		
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+
+	/**
+	 * 接收码上购支付结果
+	 */
+	//由于接口未开发完成，从对象获取属性就先不实现，加上备注说明一下，后面接口开发完成后再补上
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@ZteMethodAnnontion(name = "接收码上购支付结果", group_name = "订单支付", order = "2", page_show = true, path = "ztePaymentTraceRule.acceptMaPayResult")
+	public BusiCompResponse acceptMasPayResult(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String order_id = busiCompRequest.getOrder_id();
+		Map params = busiCompRequest.getQueryParams();
+		TacheFact fact = (TacheFact) params.get("fact");
+		OrderInfoUpdateReq req = (OrderInfoUpdateReq) fact.getRequest();
+		ZteResponse planResp = new ZteResponse();
+		String pay_result = req.getPay_result(); 
+		if (StringUtils.equals(pay_result,ZjEcsOrderConsts.MA_PAY_SUCCESS)){
+			ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+			String QUERY_PAY_RESULT = cacheUtil.getConfigInfo("QUERY_PAY_RESULT");
+			if(!StringUtil.isEmpty(QUERY_PAY_RESULT)&&"yes".equals(QUERY_PAY_RESULT)){
+				if(!StringUtil.isEmpty(req.getPay_sequ())){
+					TradeQueryReq reqe = new TradeQueryReq();
+					reqe.setNotNeedReqStrOrderId(order_id);
+					reqe.setOutTradeNo(req.getPay_sequ());
+					ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+					TradeQueryResp resps = client.execute(reqe, TradeQueryResp.class);
+					if(StringUtil.isEmpty(resps.getResp_code())||!"0000".equals(resps.getResp_code())){
+						CommonTools.addBusiError("-99999", resps.getResultDesc());
+					}
+				}
+			}
+			//更新数据库支付状态
+			CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{AttrConsts.PAY_STATUS}, new String[]{"1"});
+			
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+			
+			//更新订单树支付状态
+			OrderBusiRequest OrderBusi = orderTree.getOrderBusiRequest();
+			OrderBusi.setPay_status(1);
+			OrderBusi.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+			OrderBusi.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+			OrderBusi.store();
+			
+			/**
+			 * 更新支付时间
+			 */
+			OrderBusiRequest orderReq = orderTree.getOrderBusiRequest();
+			orderReq.setPay_time(Consts.SYSDATE);
+			orderReq.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+			orderReq.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+			orderReq.store();
+			
+			String pay_method = req.getPay_method();
+			DcPublicInfoCacheProxy dcPublicCache = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+			String pname = "";
+			if (StringUtil.equals("1", orderTree.getOrderExtBusiRequest().getIs_aop())) {
+				List<Map> list = dcPublicCache.getList("DIC_PAY_METHOD_CBSS");
+		        for(int i=0;i<list.size();i++){
+		        	if(StringUtil.equals(pay_method, (String)list.get(i).get("pkey"))){
+		        		pname = (String)list.get(i).get("pname");
+		        		break;
+		        	}
+		        }
+			}else{
+				List<Map> list = dcPublicCache.getList("DIC_PAY_METHOD_BSS");
+		        for(int i=0;i<list.size();i++){
+		        	if(StringUtil.equals(pay_method, (String)list.get(i).get("pkey"))){
+		        		pname = (String)list.get(i).get("pname");
+		        		break;
+		        	}
+		        }
+			}
+	        if(!StringUtil.isEmpty(pname)){
+	        	pay_method = pname;
+	        }
+	        
+	        OrderPayBusiRequest orderpay = orderTree.getOrderPayBusiRequests().get(0);
+	        
+			orderpay.setPay_method(pay_method);
+			orderpay.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+			orderpay.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+			orderpay.store();
+			String pay_id = "";
+			if(!StringUtils.isEmpty(req.getPay_sequ())){
+				pay_id = req.getPay_sequ()+"|";
+			}else{
+				pay_id = "null"+"|";
+			}
+			if(!StringUtils.isEmpty(req.getPay_back_sequ())){
+				pay_id += req.getPay_back_sequ();
+			}else{
+				pay_id +="null";
+			}
+			
+			CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{AttrConsts.PAY_PLATFORM_ORDER_ID}, new String[]{pay_id});
+			String is_pay = req.getIs_pay();
+			if(!StringUtils.isEmpty(is_pay)){
+				CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{AttrConsts.IS_PAY}, new String[]{is_pay});
+			}
+	        String order_from = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.ORDER_FROM);
+	        String catId = CommonDataFactory.getInstance().getGoodSpec(order_id, null, SpecConsts.CAT_ID);
+			if("10093".equals(order_from) && StringUtils.equals(catId, EcsOrderConsts.GOODS_CAT_ID_WUXIANKD)){
+                CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{AttrConsts.IS_PAY}, new String[]{"1"});
+            }
+			String is_bss = req.getIs_bss();
+			if(!StringUtils.isEmpty(is_bss)){
+				CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{"is_bss"}, new String[]{is_bss});
+			}
+			String new_out_operator  = req.getDeal_operator();
+			String new_out_office  = req.getDeal_office_id();
+			if(!StringUtils.isEmpty(new_out_office)){
+				String old_out_office  = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.OLD_OUT_OFFICE);
+				if(StringUtil.isEmpty(old_out_office)){
+					String out_office  = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.OUT_OFFICE);
+					CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{AttrConsts.OLD_OUT_OFFICE}, new String[]{out_office});
+				}
+				CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{AttrConsts.OUT_OFFICE}, new String[]{new_out_office});
+			}
+			if(!StringUtils.isEmpty(new_out_operator)){
+				String old_out_operator  = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.OLD_OUT_OPERATOR);
+				if(StringUtil.isEmpty(old_out_operator)){
+					String out_operator  = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.OUT_OPERATOR);
+					CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{AttrConsts.OLD_OUT_OPERATOR}, new String[]{out_operator});
+				}
+				CommonDataFactory.getInstance().updateAttrFieldValue(order_id,new String[]{AttrConsts.OUT_OPERATOR}, new String[]{new_out_operator});
+			}
+			String cbss_order_id = req.getCbss_order_id();
+			String bss_order_id = req.getBss_order_id();
+			if(!StringUtil.isEmpty(cbss_order_id)||!StringUtil.isEmpty(bss_order_id)){
+				OrderItemExtBusiRequest itemsExt = orderTree.getOrderItemBusiRequests().get(0).getOrderItemExtBusiRequest();
+				if(!StringUtil.isEmpty(cbss_order_id)){
+					itemsExt.setActive_no(cbss_order_id);
+				}
+				if(!StringUtil.isEmpty(bss_order_id)){
+					itemsExt.setBssOrderId(bss_order_id);
+					itemsExt.setActive_no(bss_order_id);
+				}
+				itemsExt.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+				itemsExt.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+				itemsExt.store();
+			}
+		}else if(StringUtils.equals(pay_result,ZjEcsOrderConsts.MA_PAY_FAIL)){
+			CommonTools.addBusiError("-99999", planResp.getError_msg());
+		}
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 下一步（环节跳转）-自动化模式
+	 */
+	@ZteMethodAnnontion(name="下一步（订单支付）",group_name="订单支付",order="7",page_show=true,path="ztePaymentTraceRule.nextStep")
+	public BusiCompResponse nextStep(BusiCompRequest busiCompRequest){		
+		BusiCompResponse resp = this.nextflow(busiCompRequest,false,"P");
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+}

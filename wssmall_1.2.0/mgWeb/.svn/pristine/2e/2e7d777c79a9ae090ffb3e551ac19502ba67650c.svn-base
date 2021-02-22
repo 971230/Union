@@ -1,0 +1,27 @@
+<script type="text/javascript" src="js/Cat.js"></script>
+<div class="grid">
+
+	<div id="cat_list">
+		
+	<table>
+		<thead>
+			<tr>
+				<th width=50>选择</th>
+				<th width=200>名称</th> 
+				<th width=100>类型</th>
+			</tr>
+		</thead> 
+		<tbody>
+			<#assign children=catList />
+			<#assign level=1 />
+			<#include 'staff_list_children.html' />  
+		</tbody>
+	</table>	
+		
+	</div>
+	
+	<div style="text-align:center">
+	 <input name="button" type="button" class="button" id="staffRelCatBtn" value="保存" />
+	</div>
+<div style="clear:both;padding-top:5px;"></div>
+</div>

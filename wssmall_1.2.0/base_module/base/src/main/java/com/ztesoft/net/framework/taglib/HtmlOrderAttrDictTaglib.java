@@ -1,0 +1,218 @@
+package com.ztesoft.net.framework.taglib;
+
+import javax.servlet.jsp.JspException;
+import javax.servlet.jsp.tagext.Tag;
+
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.common.element.AbsOrderAttrElement;
+import zte.net.ecsord.common.element.OrderAttrFactory;
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+
+public class HtmlOrderAttrDictTaglib extends EnationTagSupport {
+	
+	private String order_id;
+	private String field_name;
+	private String field_desc;
+	private String field_value;
+	private String attr_code;
+	private String style;
+	private String appen_options;
+	
+	//textarea有效
+	private String rows;
+	private String cols;
+	private String field_type;
+	private String disabled;
+	
+	/*
+	 * 
+	 * 
+	 * 自定义属性标签举例说明
+	 <html:orderattr  order_id ="201409305211134430" field_name="development_code"  field_desc ="发展人编码" ></html:orderattr> 
+	 <html:orderattr  order_id ="201409305211134430" field_name="service_remarks" field_type='textarea'  style='width:600px;' field_desc ="客服备注" ></html:orderattr> 
+	 <html:orderattr  order_id ="201409305211134430" field_name="order_from" field_value='126' field_desc ="订单来源" ></html:orderattr>
+	 <html:orderattr  order_id ="201409305211134430" field_name="order_from" field_value='126' field_type="checkbox" field_desc ="订单来源" ></html:orderattr>
+	 <html:orderattr  order_id ="201409305211134430" field_name="order_from" field_value='126' field_type="radio" field_desc ="订单来源" ></html:orderattr>
+	 * 
+	 */
+	
+	@Override
+	@SuppressWarnings("rawtypes")
+	public int doEndTag() throws JspException {
+		
+//		OrderTreeBusiRequest orderTreeBusiRequest = new OrderTreeBusiRequest();
+//		orderTreeBusiRequest.setOrder_id(order_id);
+//		orderTreeBusiRequest.setDb_action(ConstsCore.DB_ACTION_INSERT);
+//		orderTreeBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+//		orderTreeBusiRequest.store();
+//		CommonDataFactory.getInstance().updateOrderTree(order_id);
+//		long beforeMemory=Runtime.getRuntime().totalMemory();
+		//add by wui优化处理
+		OrderTreeBusiRequest ot = (OrderTreeBusiRequest) pageContext.getAttribute("ot");
+//		List<AttrInstBusiRequest> attrInsts =(List<AttrInstBusiRequest>) pageContext.getAttribute("attrInsts");
+		Object order_is_his_page_flag= pageContext.getAttribute("order_is_his_page_flag");//在jsp头部标识
+		if(ot==null){//一个页面只加载一次缓存
+			String order_is_his="";
+			if(order_is_his_page_flag!=null){
+				order_is_his=(String)order_is_his_page_flag;
+			}
+			if(EcsOrderConsts.IS_ORDER_HIS_YES.equals(order_is_his)){//历史订单树取
+				ot = CommonDataFactory.getInstance().getOrderTreeHis(order_id);
+			}else{
+				ot = CommonDataFactory.getInstance().getOrderTree(order_id);
+			}
+			
+			pageContext.setAttribute("ot", ot);
+		}
+//		if(attrInsts ==null){
+//			attrInsts = CommonDataFactory.getInstance().getAttrInstBusiRequests(order_id);
+//			pageContext.setAttribute("attrInsts",attrInsts);
+//		}
+//		OrderTreeBusiRequest orderTree=(OrderTreeBusiRequest) ot;//CommonDataFactory.getInstance().getOrderTree(order_id);
+//		OrderTreeBusiRequest orderTree=CommonDataFactory.getInstance().getOrderTree(order_id);
+//		long afterMemory=Runtime.getRuntime().totalMemory();
+//        logger.info("Memory used:"+(beforeMemory-afterMemory));
+        
+        //文件流计算文件大小
+//        ByteArrayOutputStream bs = new ByteArrayOutputStream();
+//        ObjectOutputStream os;
+//		try {
+//			os = new ObjectOutputStream(bs);
+//			os.writeObject(orderTree);
+//	        os.flush();
+//	        logger.info(bs.size());  //4K
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+        
+		AttrInstLoadReq req = new AttrInstLoadReq();
+		req.setField_name(field_name);
+		req.setOrder_id(order_id);
+		req.setAttr_code(attr_code);
+		req.setNew_value(field_value);
+		req.setStyle(style);
+		req.setRows(rows);
+		req.setCols(cols);
+		req.setField_type(field_type);
+		req.setDisabled(disabled);
+		req.setAppen_options(this.appen_options);
+		ZteClient client = ClientFactory.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ECSORD);
+		req.setOrderTree(ot);
+//		req.setAttrInsts(attrInsts);
+		
+		req.setAction_time(EcsOrderConsts.ACTION_TIME_PAGELOAD);
+		AttrInstLoadResp resp = client.execute(req, AttrInstLoadResp.class);
+		
+		AbsOrderAttrElement element = OrderAttrFactory.getInstance().getAttrElement(req,resp);
+		
+		String elestr =element.toElement().toString();
+		this.print(elestr.toString());
+		return Tag.EVAL_BODY_INCLUDE;
+	}
+
+	@Override
+	public int doStartTag() throws JspException {
+		return Tag.EVAL_PAGE;
+	}
+
+	public String getAttr_code() {
+		return attr_code;
+	}
+
+	public void setAttr_code(String attr_code) {
+		this.attr_code = attr_code;
+	}
+
+	
+
+	public String getField_value() {
+		return field_value;
+	}
+
+	public void setField_value(String field_value) {
+		this.field_value = field_value;
+	}
+
+	public String getField_name() {
+		return field_name;
+	}
+
+	public void setField_name(String field_name) {
+		this.field_name = field_name;
+	}
+
+	public String getOrder_id() {
+		return order_id;
+	}
+
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+
+	
+
+	public void setAppen_options(String appen_options) {
+		this.appen_options = appen_options;
+	}
+
+	public String getAppen_options() {
+		return appen_options;
+	}
+
+	public String getStyle() {
+		return style;
+	}
+
+	public void setStyle(String style) {
+		this.style = style;
+	}
+
+	public String getField_desc() {
+		return field_desc;
+	}
+
+	public void setField_desc(String field_desc) {
+		this.field_desc = field_desc;
+	}
+
+	public String getRows() {
+		return rows;
+	}
+
+	public void setRows(String rows) {
+		this.rows = rows;
+	}
+
+	public String getCols() {
+		return cols;
+	}
+
+	public void setCols(String cols) {
+		this.cols = cols;
+	}
+
+	public String getField_type() {
+		return field_type;
+	}
+
+	public void setField_type(String field_type) {
+		this.field_type = field_type;
+	}
+
+	public String getDisabled() {
+		return disabled;
+	}
+
+	public void setDisabled(String disabled) {
+		this.disabled = disabled;
+	}
+
+
+}

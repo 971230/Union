@@ -1,0 +1,68 @@
+package com.ztesoft.net.mall.core.service.impl.cache;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import services.GoodsInf;
+import services.GoodsTypeInf;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.GoodsType;
+import com.ztesoft.net.mall.core.service.impl.cache.IGoodsCacheUtil;
+
+@SuppressWarnings("unchecked")
+public class GoodsCacheUtil extends BaseSupport implements IGoodsCacheUtil {
+
+    @Resource
+    private GoodsInf goodsServ;
+    @Resource
+    private GoodsTypeInf goodsTypeServ;
+
+	/**
+	 * 获取es_goods配置信息
+	 * @param 
+	 */
+	@Override
+	public List<Goods> getGoods(){
+		/*GoodsInfoCacheProxy goodsCache = new GoodsInfoCacheProxy(goodsManager);
+		return goodsCache.getGoods();*/
+        return  this.goodsServ.listGoods();
+	}
+	/**
+	 * 获取es_goods信息
+	 * @param goodsid
+	 */
+	@Override
+	public Goods getGoodsById(String goodsid){
+		
+		//add by wui去除商品缓存限制，存在已下架的商品在途单是可以继续受理的场景
+		return this.goodsServ.getGoodsById(goodsid);
+//		GoodsInfoCacheProxy goodsCache = new GoodsInfoCacheProxy(goodsManager);
+//		return goodsCache.getGoodsById(goodsid);
+	}
+	
+	/**
+	 * 获取es_goods信息
+	 * @param goodsid
+	 */
+	@Override
+	public GoodsType getGoodsTypeById(String goodsid){
+		/*GoodsTypeInfoCacheProxy goodsTypeCache = new GoodsTypeInfoCacheProxy(goodsTypeManager);
+		return goodsTypeCache.getGoodsTypeById(goodsid);*/
+        return  this.goodsTypeServ.getGoodsTypeById(goodsid);
+	}
+	
+	/**
+	 * 
+	 * 刷新缓存方法，可添加其他数据表缓存刷新
+	 */
+	@Override
+	public void refreshGoodsCache(){
+		//es_goods表数据缓存刷新
+		/*GoodsInfoCacheProxy goodsCache = new GoodsInfoCacheProxy(goodsManager);
+		goodsCache.refreshCache();		*/
+		
+	}
+}

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:rop="http://www.ztesoft.com/schema/rop"
+       xmlns="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-3.1.xsd       
+       http://www.ztesoft.com/schema/rop http://www.ztesoft.com/schema/rop/rop-1.0.xsd">
+
+    <!-- 启动Rop框架 -->
+
+    <rop:annotation-driven
+            id="router"
+            core-pool-size="200"
+            ext-error-base-name="i18n/rop/error"
+            invoke-times-controller="invokeTimesController"
+            keep-alive-seconds="300"
+            max-pool-size="500"
+            queue-capacity="50"
+            service-access-controller="serviceAccessController"
+            service-timeout-seconds="600"
+            session-manager="sessionManager"
+            sign-enable="true"
+            upload-file-max-size="10"
+            upload-file-types="png,gif"/>
+
+    <bean id="sessionManager" class="com.ztesoft.rop.session.DefaultSessionManager"/>
+
+    <bean id="invokeTimesController" class="com.ztesoft.rop.security.DefaultInvokeTimesController"/>
+
+
+    <bean id="serviceAccessController" class="com.ztesoft.rop.route.impl.DefaultServiceAccessController"/>
+
+    <!--注册拦截器，可配置多个-->
+    <rop:interceptors>
+        <bean class="com.ztesoft.rop.interceptor.RopLogManagerInterceptor"/>
+    </rop:interceptors>
+
+    <!-- 自定义method,appKey等这些系统级参数的参数名 -->
+
+    <rop:sysparams format-param-name="messageFormat"/>
+
+</beans>

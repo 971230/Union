@@ -1,0 +1,180 @@
+package org.springframework.web.multipart.commons;
+
+import org.apache.commons.fileupload.DiskFileUpload;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileUploadBase;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.core.io.Resource;
+import org.springframework.util.StringUtils;
+import org.springframework.web.context.ServletContextAware;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+import org.springframework.web.multipart.MultipartResolver;
+import org.springframework.web.multipart.support.DefaultMultipartHttpServletRequest;
+import org.springframework.web.util.WebUtils;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+public class CommonsMultipartResolver
+  implements MultipartResolver, ServletContextAware
+{
+  protected final Log logger;
+  private DiskFileUpload fileUpload;
+  private String defaultEncoding;
+  private File uploadTempDir;
+
+
+//  public CommonsMultipartResolver(ServletContext paramServletContext)
+//  {
+//    setServletContext(paramServletContext);
+//  }
+//  
+  public CommonsMultipartResolver()
+  {
+    this.logger = LogFactory.getLog(super.getClass());
+
+    this.defaultEncoding = "ISO-8859-1";
+
+    this.fileUpload = newFileUpload();
+  }
+
+
+  protected DiskFileUpload newFileUpload()
+  {
+    return new DiskFileUpload();
+  }
+
+  public DiskFileUpload getFileUpload()
+  {
+    return this.fileUpload;
+  }
+
+  public void setMaxUploadSize(long paramLong)
+  {
+    this.fileUpload.setSizeMax(paramLong);
+  }
+
+  public void setMaxInMemorySize(int paramInt)
+  {
+    this.fileUpload.setSizeThreshold(paramInt);
+  }
+
+  public void setDefaultEncoding(String paramString)
+  {
+    this.defaultEncoding = paramString;
+    this.fileUpload.setHeaderEncoding(paramString);
+  }
+
+  public void setUploadTempDir(Resource paramResource)
+    throws IOException
+  {
+    if ((!(paramResource.exists())) && (!(paramResource.getFile().mkdirs()))) {
+      throw new IllegalArgumentException("Given uploadTempDir [" + paramResource + "] could not be created");
+    }
+    this.uploadTempDir = paramResource.getFile();
+    this.fileUpload.setRepositoryPath(paramResource.getFile().getAbsolutePath());
+  }
+
+  public void setServletContext(ServletContext paramServletContext) {
+    if (this.uploadTempDir == null)
+      this.fileUpload.setRepositoryPath(WebUtils.getTempDir(paramServletContext).getAbsolutePath());
+  }
+
+  public boolean isMultipart(HttpServletRequest paramHttpServletRequest)
+  {
+    return FileUploadBase.isMultipartContent(paramHttpServletRequest);
+  }
+
+  public MultipartHttpServletRequest resolveMultipart(HttpServletRequest paramHttpServletRequest) throws MultipartException {
+    DiskFileUpload localDiskFileUpload = this.fileUpload;
+    String str = determineEncoding(paramHttpServletRequest);
+
+    if (!(str.equals(this.defaultEncoding))) {
+      localDiskFileUpload = new DiskFileUpload();
+      localDiskFileUpload.setSizeMax(this.fileUpload.getSizeMax());
+      localDiskFileUpload.setSizeThreshold(this.fileUpload.getSizeThreshold());
+      localDiskFileUpload.setRepositoryPath(this.fileUpload.getRepositoryPath());
+      localDiskFileUpload.setHeaderEncoding(str);
+    }
+    try
+    {
+      HashMap localHashMap1 = new HashMap();
+      HashMap localHashMap2 = new HashMap();
+
+      List localList = localDiskFileUpload.parseRequest(paramHttpServletRequest);
+      for (Iterator localIterator = localList.iterator(); localIterator.hasNext(); ) {
+        FileItem localFileItem = (FileItem)localIterator.next();
+        Object localObject =null;
+        if (localFileItem.isFormField()) {
+          localObject = null;
+          try {
+            localObject = localFileItem.getString(str);
+          }
+          catch (UnsupportedEncodingException localUnsupportedEncodingException) {
+            this.logger.warn("Could not decode multipart item '" + localFileItem.getFieldName() + "' with encoding '" + str + "': using platform default");
+
+            localObject = localFileItem.getString();
+          }
+          String[] arrayOfString1 = (String[])(String[])localHashMap2.get(localFileItem.getFieldName());
+          if (arrayOfString1 == null)
+          {
+            localHashMap2.put(localFileItem.getFieldName(), new String[] { (String) localObject });
+          }
+          else
+          {
+            String[] arrayOfString2 = StringUtils.addStringToArray(arrayOfString1, (String)localObject);
+            localHashMap2.put(localFileItem.getFieldName(), arrayOfString2);
+          }
+        }
+        else
+        {
+          localObject = new CommonsMultipartFile(localFileItem);
+          localHashMap1.put(((CommonsMultipartFile)localObject).getName(), localObject);
+          if (this.logger.isDebugEnabled()) {
+            this.logger.debug("Found multipart file [" + ((CommonsMultipartFile)localObject).getName() + "] of size " + ((CommonsMultipartFile)localObject).getSize() + " bytes with original filename [" + ((CommonsMultipartFile)localObject).getOriginalFilename() + "], stored " + ((CommonsMultipartFile)localObject).getStorageDescription());
+          }
+        }
+
+      }
+
+      return new DefaultMultipartHttpServletRequest(paramHttpServletRequest, localHashMap1, localHashMap2);
+    }
+    catch (FileUploadBase.SizeLimitExceededException localSizeLimitExceededException) {
+      throw new MaxUploadSizeExceededException(this.fileUpload.getSizeMax(), localSizeLimitExceededException);
+    }
+    catch (FileUploadException localFileUploadException) {
+      throw new MultipartException("Could not parse multipart request", localFileUploadException);
+    }
+  }
+
+  protected String determineEncoding(HttpServletRequest paramHttpServletRequest)
+  {
+    String str = paramHttpServletRequest.getCharacterEncoding();
+    if (str == null) {
+      str = this.defaultEncoding;
+    }
+    return str;
+  }
+
+  public void cleanupMultipart(MultipartHttpServletRequest paramMultipartHttpServletRequest) {
+    Map localMap = paramMultipartHttpServletRequest.getFileMap();
+    for (Iterator localIterator = localMap.values().iterator(); localIterator.hasNext(); ) {
+      CommonsMultipartFile localCommonsMultipartFile = (CommonsMultipartFile)localIterator.next();
+      if (this.logger.isDebugEnabled()) {
+        this.logger.debug("Cleaning up multipart file [" + localCommonsMultipartFile.getName() + "] with original filename [" + localCommonsMultipartFile.getOriginalFilename() + "], stored " + localCommonsMultipartFile.getStorageDescription());
+      }
+
+      localCommonsMultipartFile.getFileItem().delete();
+    }
+  }
+}

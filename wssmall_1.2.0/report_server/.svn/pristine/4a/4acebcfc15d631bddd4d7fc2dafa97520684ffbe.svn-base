@@ -1,0 +1,63 @@
+/*    */ package com.ztesoft.crm.report.actions;
+/*    */ 
+/*    */ import com.ztesoft.crm.report.ReportContext;
+/*    */ import com.ztesoft.crm.report.lang.StreamUtils;
+/*    */ import com.ztesoft.crm.report.storage.StorageStream;
+/*    */ import com.ztesoft.crm.report.storage.StorageStreamFactory;
+/*    */ import java.io.BufferedReader;
+/*    */ import java.io.ByteArrayInputStream;
+/*    */ import java.io.ByteArrayOutputStream;
+/*    */ import java.io.IOException;
+/*    */ import java.io.InputStream;
+/*    */ import java.io.InputStreamReader;
+/*    */ import java.io.OutputStream;
+/*    */ import java.io.PrintStream;
+/*    */ import javax.servlet.ServletContext;
+/*    */ 
+/*    */ public class ReportXMLAction extends AbstractAction
+/*    */ {
+/*    */   protected void execute(OutputStream out, ParameterMap map)
+/*    */     throws Exception
+/*    */   {
+/* 35 */     InputStream in = null;
+/*    */     try {
+/* 37 */       String config = ReportContext.getContext().getServerConfig();
+/*    */ 
+/* 47 */       if ("/report_server.xml".equals(getUrl()))
+/* 48 */         in = getContext().getResourceAsStream(config);
+/*    */       else {
+/* 50 */         in = StorageStreamFactory.createStream().getReport(
+/* 51 */           getContext(), getUrl());
+/*    */       }
+/* 53 */       ByteArrayOutputStream buff = new ByteArrayOutputStream();
+/*    */ 
+/* 55 */       StreamUtils.write(buff, in);
+/* 56 */       buff.close();
+/* 57 */       out.write(
+/* 58 */         new String(buff.toByteArray(), ReportContext.getContext().getConfigEncoding()).getBytes(map.getReplyEncoding()));
+/*    */     }
+/*    */     catch (Exception e)
+/*    */     {
+/* 62 */       throw e;
+/*    */     } finally {
+/*    */       try {
+/* 65 */         if (in != null)
+/* 66 */           in.close();
+/*    */       }
+/*    */       catch (Exception localException1) {
+/*    */       }
+/*    */     }
+/*    */   }
+/*    */ 
+/*    */   public static void main(String[] args) throws IOException {
+/* 74 */     String s = "许大虎";
+/* 75 */     BufferedReader reader = new BufferedReader(
+/* 76 */       new InputStreamReader(new ByteArrayInputStream(s.getBytes("UTF-8")), "UTF-8"));
+/* 77 */     System.out.println(reader.readLine());
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.actions.ReportXMLAction
+ * JD-Core Version:    0.5.3
+ */

@@ -1,0 +1,420 @@
+/*
+ * Created on 2005-3-16
+ *
+ * TODO To change the template for this generated file go to
+ * Window - Preferences - Java - Code Style - Code Templates
+ * 
+ * 
+ * 
+ * 此监控的配置放在ibss.xml中的Monitor节
+ * 目前有：
+ *   TopTen  指定统计最慢的处理详情
+ *   LogPath 日志文件的绝对路径
+ * 
+ * 
+ */
+package com.powerise.ibss.framework;
+
+import com.powerise.ibss.util.SysSet;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+/**
+ * @author Administrator
+ * 
+ * TODO To change the template for this generated type comment go to Window -
+ * Preferences - Java - Code Style - Code Templates
+ */
+class ServCompare implements Comparator {
+    int m_Type = 0;
+    long m_TotalTime;
+    long m_TotalCalls;
+    public ServCompare() {
+        m_Type = 0;
+    }
+    public ServCompare(int iType, long lTotalTime, long lTotalCalls) {
+        m_Type = iType;
+        m_TotalTime = lTotalTime;
+        m_TotalCalls = lTotalCalls;
+    }
+    public void setCompareType(int iType) {
+        m_Type = iType;
+    }
+    public int compare(Object o1, Object o2) {
+        int iCompare = 0;
+        long lData1 = 0, lData2 = 0;
+        ServItem item1, item2;
+        if (o1 != null && o2 != null) {
+            item1 = (ServItem) o1;
+            item2 = (ServItem) o2;
+            switch (m_Type) {
+            case 0:
+                lData1 = item1.m_Average;
+                lData2 = item2.m_Average;
+                break;
+            case 1:
+                lData1 = item1.m_CallTotal;
+                lData2 = item2.m_CallTotal;
+                break;
+            case 2:
+                lData1 = item1.m_MaxTime;
+                lData2 = item2.m_MaxTime;
+                break;
+            case 3:
+                lData1 = item1.m_MinTime;
+                lData2 = item2.m_MinTime;
+                break;
+            case 4:
+                lData1 = (long) (((double) item1.m_CallTotalTime / m_TotalTime) * 100000);
+                lData2 = (long) (((double) item2.m_CallTotalTime / m_TotalTime) * 100000);
+                break;
+            case 5:
+                lData1 = (long) (((double) item1.m_CallTotal / m_TotalCalls) * 100000);
+                lData2 = (long) (((double) item2.m_CallTotal / m_TotalCalls) * 100000);
+                break;
+            default:
+                break;
+            }
+            if (lData1 < lData2)
+                iCompare = -1;
+            else if (lData1 > lData2)
+                iCompare = 1;
+        }
+        return iCompare;
+    }
+}
+class ServItem {
+    String m_ServID = null;
+    long m_CallTotal = 0; //调用总数
+    long m_CallTotalTime = 0; //以毫秒计算
+    long m_MaxTime = 0; //最大计算时间
+    long m_MinTime = 100000;//最小计算时间
+    long m_Average = 0;
+    static int m_Tops = -1;
+    long m_TopTen[];
+    String m_TopTenTime[];
+    public ServItem(String strServId) {
+        m_ServID = strServId;
+        if (m_Tops == -1) {
+            try {
+                String strTops = SysSet.getSystemSet("Monitor", "TopTen", "10");
+                m_Tops = Integer.parseInt(strTops);
+            } catch (FrameException e) {
+                m_Tops = 10;
+            }
+        }
+        m_TopTen = new long[m_Tops];
+        m_TopTenTime = new String[m_Tops];
+        for (int i = 0; i < m_Tops; i++) {
+            m_TopTen[i] = 0;
+            m_TopTenTime[i] = "";
+        }
+    }
+    public void setInfo(long lConsumeTime) {
+        int i = -1;
+        m_CallTotal++;
+        m_CallTotalTime = m_CallTotalTime + lConsumeTime;
+        m_Average = m_CallTotalTime / m_CallTotal;
+        if (lConsumeTime < m_MinTime)
+            m_MinTime = lConsumeTime;
+        if (lConsumeTime > m_MaxTime)
+            m_MaxTime = lConsumeTime;
+        for (i = 0; i < m_Tops; i++) {
+            if (lConsumeTime > m_TopTen[i])
+                break;
+        }
+        if (i >= 0 && i < m_Tops) {
+            for (int j = m_Tops - 1; j > i; j--) {
+                m_TopTen[j] = m_TopTen[j - 1];
+                m_TopTenTime[j] = m_TopTenTime[j - 1];
+            }
+            m_TopTen[i] = lConsumeTime;
+            SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日 HH时mm分ss秒");
+            String strTemp = df.format(new java.util.Date());
+            m_TopTenTime[i] = strTemp;
+            df = null;
+        }
+    }
+    public String outputTopTenHtml() {
+        StringBuffer strBuf = new StringBuffer();
+        String LINE_SEP = System.getProperty("line.separator");
+        strBuf.append("效率最慢的" + m_Tops + "次调用(毫秒):");
+        strBuf.append(LINE_SEP);
+        for (int i = 0; i < m_Tops; i++) {
+            if (m_TopTen[i] == 0)
+                break;
+            strBuf.append(m_TopTen[i]);
+            strBuf.append("  --- 调用时间:");
+            strBuf.append(m_TopTenTime[i]);
+            strBuf.append(LINE_SEP);
+        }
+        return strBuf.toString();
+    }
+}
+public class Monitor {
+    private static String m_StartTime = null;
+    private static HashMap m_hmData = null;
+    private static int m_TotalCalls = 0;
+    private static int m_TotalTimes = 0;
+    private static Object[] m_SortData = null;
+    private static int m_Type = 0;
+    private static long m_StartMills = 0;
+    private static long m_SaveMills = 0;//  间隔多长启动写入文件，以毫秒为单位
+    private static String m_LogPath = null;// 日志文件路径
+    private static String m_LogFileName = null; //日志文件的名称+写入时间
+    private static long m_LastSaveMills = 0;
+    private static boolean m_LogFile = false;
+    /**
+     * 定时将日志写入文件
+     *  
+     */
+    private static void SaveFile() {
+        String strFileName;
+        String strPath;
+        strPath =  m_LogPath + System.getProperty("file.separator") + m_LogFileName;
+        File fDir = new File(strPath);
+        if(fDir.exists() == false)
+        {
+            //创建目录
+            fDir.mkdir();
+        }
+        
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
+        strFileName = m_LogPath + System.getProperty("file.separator") + m_LogFileName+ System.getProperty("file.separator") + df.format(new java.util.Date()) + ".htm";
+        df = null;
+        FileOutputStream fo = null;
+        try {
+            fo = new FileOutputStream(new File(strFileName));
+            PrintWriter pr = new PrintWriter(fo);
+            //写入包头
+            pr.println("<html>");
+            pr.println("<head>");
+            pr.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=gb2312\">");
+            pr.println("<title>进程" + m_LogFileName + "日志</title>");
+            pr.println("<style type=\"text/css\"><!--");
+            pr.println("body, table {font-family: arial,sans-serif; font-size: x-small;} th {background: #336699; color: #FFFFFF; text-align: left;}");
+            pr.println("--></style>");
+            pr.println("</head><body>");
+            pr.println("进程" + m_LogFileName + "日志");
+            pr.println("</p>");
+            outputHtmlTotal(null, pr, 0);
+            pr.println("</body></html>");
+            pr.flush();
+            pr.close();
+        } catch (Exception e) {
+            ;
+        } finally {
+            if (fo != null) {
+                try {
+                    fo.flush();
+                    fo.close();
+                } catch (Exception e) {}
+            }
+        }
+        // 
+    }
+    public static synchronized void setInfo(String strServId, long lConsumeTime) {
+        if (m_hmData != null) {
+            Object o = m_hmData.get(strServId);
+            if (o != null) {
+                ((ServItem) o).setInfo(lConsumeTime);
+            } else {
+                ServItem t = new ServItem(strServId);
+                t.setInfo(lConsumeTime);
+                m_hmData.put(strServId, t);
+            }
+            //判断是否需要写日志文件
+            if (m_LogFile) {
+                if (System.currentTimeMillis() - m_LastSaveMills >= m_SaveMills)
+                {
+                    SaveFile();
+                    m_LastSaveMills = System.currentTimeMillis();
+                }
+            }
+        }
+    }
+    public static void start() {
+        Object o;
+        
+    
+        SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日 HH时mm分ss秒");
+        m_StartTime = df.format(new java.util.Date());
+        df = null;
+        if (m_hmData == null)
+            m_hmData = new HashMap();
+        else
+        {
+            ServItem.m_Tops = -1;
+            m_hmData.clear();
+        }
+        m_StartMills = System.currentTimeMillis();
+        //获取是否需要写文件
+        o = System.getProperty("MONITOR_LOG_TIME");//以分钟为单位
+        if (o == null)
+            m_LogFile = false;
+        else {
+            m_SaveMills = Long.parseLong((String) o);
+            m_SaveMills = m_SaveMills*1000*60;
+            m_LogFile = true;
+        }
+        try {
+            m_LogPath = SysSet.getSystemSet("Monitor", "LogPath", "");
+        } catch (FrameException e) {
+            m_LogPath = null;
+            m_LogFile = false;
+        }
+        //获取写日志的文件名
+        o = System.getProperty("MONITOR_LOG_FILE");//日志文件名
+        if (o == null)
+            m_LogFile = false;
+        else {
+            m_LogFileName = (String) o;
+            m_LogFile = true;
+        }
+        if (m_LogFile)
+            m_LastSaveMills = m_StartMills;
+    }
+    public static HashMap getMonitorData() {
+        return m_hmData;
+    }
+    private static void preProcess() {
+        ServItem item = null;
+        m_TotalCalls = 0;
+        m_TotalTimes = 0;
+        Iterator it = m_hmData.values().iterator();
+        while (it.hasNext()) {
+            item = (ServItem) it.next();
+            m_TotalCalls += item.m_CallTotal;
+            m_TotalTimes += item.m_CallTotalTime;
+        }
+    }
+    private static void sort() {
+        String strId;
+        long lAverage = 0;
+        ServItem item = null;
+        int iSize = 0;
+        iSize = m_hmData.size();
+        m_SortData = m_hmData.values().toArray();
+        ServCompare comp = new ServCompare(m_Type, m_TotalTimes, m_TotalCalls);
+        Object[] o = m_hmData.values().toArray();
+        Arrays.sort(m_SortData, comp);
+    }
+    public static void outputHtmlTotal(String strUrl, PrintWriter prn, int iType) {
+        ServItem item = null;
+        StringBuffer strBuf = null;
+        DecimalFormat nf = new DecimalFormat("##.###%");
+        double dTemp;
+        String strEnd;
+        if (m_hmData == null) {
+            try{
+            if (SysSet.getSystemSet("Monitor", "true").equals("true"))
+                start();
+            }catch(FrameException e){}
+            return;
+        }
+        SimpleDateFormat df = new SimpleDateFormat("yyyy年MM月dd日 HH时mm分ss秒");
+        strEnd = df.format(new java.util.Date());
+        df = null;
+        m_Type = iType;
+        preProcess();
+        sort();
+        prn.println("记录时间 " + m_StartTime + " 至 " + strEnd);
+        prn.println("<table border='1' width='100%'  bordercolor='#224466' cellpadding='4' cellspacing='0'>");
+        //共7列
+        prn.println("<tr>");
+        prn.println("<th>服务名称</th>");
+        if (strUrl != null)
+            prn.println("<th> <a href='" + strUrl + "?sorttype=1'>调用次数");
+        else
+            prn.println("<th>调用次数");
+        if (m_Type == 1)
+            prn.println(" *");
+        prn.println("</a></th>");
+        if (strUrl != null)
+            prn.println("<th> <a href='" + strUrl + "?sorttype=2'>最大耗时(毫秒)");
+        else
+            prn.println("<th>最大耗时(毫秒)");
+        if (m_Type == 2)
+            prn.println(" *");
+        prn.println("</a></th>");
+        if (strUrl != null)
+            prn.println("<th> <a href='" + strUrl + "?sorttype=3'>最小耗时(毫秒)");
+        else
+            prn.println("<th>最小耗时(毫秒)");
+        if (m_Type == 3)
+            prn.println(" *");
+        prn.println("</a></th>");
+        if (strUrl != null)
+            prn.println("<th> <a href='" + strUrl + "?sorttype=0'>平均耗时(毫秒)");
+        else
+            prn.println("<th>平均耗时(毫秒)");
+        if (m_Type == 0)
+            prn.println(" *");
+        prn.println("</a></th>");
+        if (strUrl != null)
+            prn.println("<th> <a href='" + strUrl + "?sorttype=4'>占全部耗时百分比");
+        else
+            prn.println("<th>占全部耗时百分比");
+        if (m_Type == 4)
+            prn.println(" *");
+        prn.println("</a></th>");
+        if (strUrl != null)
+            prn.println("<th> <a href='" + strUrl + "?sorttype=5'>占全部调用百分比");
+        else
+            prn.println("<th>占全部调用百分比");
+        if (m_Type == 5)
+            prn.println(" *");
+        prn.println("</a></th>");
+        prn.println("</tr>");
+        Iterator it = m_hmData.keySet().iterator();
+        int iSize = m_SortData.length;
+        strBuf = new StringBuffer();
+        for (int i = iSize - 1; i >= 0; i--) {
+            strBuf.append("<tr>");
+            item = (ServItem) m_SortData[i];
+            //服务名称
+            strBuf.append("<td title='" + item.outputTopTenHtml() + "'>");
+            strBuf.append(item.m_ServID);
+            strBuf.append("</td>");
+            //调用次数
+            strBuf.append("<td>");
+            strBuf.append(item.m_CallTotal);
+            strBuf.append("</td>");
+            //最大耗时
+            strBuf.append("<td>");
+            strBuf.append(item.m_MaxTime);
+            strBuf.append("</td>");
+            //最小耗时
+            strBuf.append("<td>");
+            strBuf.append(item.m_MinTime);
+            strBuf.append("</td>");
+            //平均耗时
+            strBuf.append("<td>");
+            strBuf.append(item.m_Average);
+            strBuf.append("</td>");
+            // 占全部耗时百分比
+            strBuf.append("<td>");
+            dTemp = (double) item.m_CallTotalTime / m_TotalTimes;
+            strBuf.append(nf.format(dTemp));
+            strBuf.append("</td>");
+            //占全部调用百分比
+            strBuf.append("<td>");
+            dTemp = (double) item.m_CallTotal / m_TotalCalls;
+            strBuf.append(nf.format(dTemp));
+            strBuf.append("</td>");
+            strBuf.append("</tr>");
+        }
+        prn.print(strBuf.toString());
+        prn.println("</table>");
+        prn.println("</p>运行服务共计: " + iSize);
+        strBuf = null;
+        m_SortData = null;
+    }
+}

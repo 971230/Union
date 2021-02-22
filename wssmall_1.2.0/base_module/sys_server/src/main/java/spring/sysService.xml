@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+
+
+	
+	<!-- 用户管理 -->
+	<bean id="sysUtils" class="com.ztesoft.net.mall.core.util.SysUtils"></bean>
+	
+	<!-- 用户管理 -->
+	<bean id="userManager" class="com.ztesoft.net.eop.resource.impl.UserManagerImpl"></bean>
+	
+ 	<!-- 用户详细管理 -->
+	<bean id="userDetailManager" class="com.ztesoft.net.eop.resource.impl.UserDetailManagerImpl"></bean>
+	
+ 	<!-- 菜单管理 -->
+	<bean id="menuManager" class="com.ztesoft.net.eop.resource.impl.MenuManagerImpl"  parent="baseSupport" ></bean>
+	
+	<!-- 角色管理 -->
+	<bean id="roleServ" class="services.RoleServ"  parent="baseSupport" ></bean>
+	<bean id="roleManager" class="com.ztesoft.net.app.base.core.service.auth.impl.RoleManager" parent="baseSupport"></bean>
+	
+	<!-- 消息管理 -->
+	<bean id="messageServ" class="services.MessageServ"  parent="baseSupport" ></bean>
+	<bean id="messageManager" class="com.ztesoft.net.mall.core.service.impl.MessageManager" parent="baseSupport"></bean>
+	<bean id="userMessageManager" class="com.ztesoft.net.mall.core.service.impl.MessageManagerImpl" parent="baseSupport"></bean>
+	<!-- 登录管理 -->
+	<bean id="smsCode" class="com.ztesoft.net.mall.core.service.impl.SmsCode" scope="prototype"/>
+	<bean id="smsCodeServ" class="services.SmsCodeServ" scope="prototype"/>
+	
+	<!-- 权限管理 -->
+	<bean id="permissionServ" class="services.PermissionServ" scope="prototype"/>
+	<bean id="permissionManager" class="com.ztesoft.net.app.base.core.service.auth.impl.PermissionManager" parent="baseSupport"></bean>
+	<!-- 日志管理 -->
+	<bean id="workLogServ" class="services.WorkLogServ" scope="prototype"/>
+	<bean id="mblLogManager" class="com.ztesoft.net.mall.core.service.impl.MblLogManager" ></bean>
+	<!-- 单点登录 -->
+	<bean id="sinLoginServ" class="services.SinLoginServ" scope="prototype"/>
+	
+	<!-- 权限管理 -->
+	<bean id="authServ" class="services.AuthServ" scope="prototype"/>
+	<bean id="authActionManager" class="com.ztesoft.net.app.base.core.service.auth.impl.AuthActionManager" parent="baseSupport"></bean>
+	<bean id="authDataManager" class="com.ztesoft.net.app.base.core.service.auth.impl.AuthDataManager" parent="baseSupport"></bean>
+	
+	
+	<bean id="adminUserManager" class="com.ztesoft.net.app.base.core.service.auth.impl.AdminUserManagerImpl" parent="baseSupport" />
+	<bean id="sysLoginAction" class="com.ztesoft.net.mall.core.action.backend.SysLoginAction" scope="prototype"/>
+	<bean id="rankManager" class="com.ztesoft.net.mall.core.service.impl.RankManager" parent="baseSupport"></bean>
+    <bean id="lanManager" class="com.ztesoft.net.mall.core.service.impl.LanManager" parent="baseSupport" ></bean>
+
+
+    <!--dubbo-->
+    
+    
+    <bean id ="orderGroupManager" class ="com.ztesoft.net.mall.core.service.impl.OrderGroupManagerImpl" parent="baseSupport"></bean>
+    
+    <!-- 组织 -->
+	<bean id="orgAdminManager" class="com.ztesoft.net.app.base.core.service.impl.OrgAdminManager" />
+	<!-- 区域 -->
+	<bean id="commonRegionManager" class="com.ztesoft.net.app.base.core.service.impl.CommonRegionManagerImpl" parent="baseSupport" ></bean>
+	<!-- 站点菜单 -->	
+    <bean id="siteMenuManagerImpl" class="com.ztesoft.net.app.base.core.service.impl.SiteMenuManager" parent="baseSupport"></bean>
+    <bean id="askManager" class="com.ztesoft.net.app.base.core.service.impl.AskManager"  ></bean>
+    <!-- 数据权限 -->
+    <bean id="roleAuthManager" class="com.ztesoft.net.app.base.core.service.impl.RoleAuthManager" />
+    <bean id="orgManager" class="com.ztesoft.net.eop.resource.impl.OrgManagerImpl" parent="baseSupport" ></bean>
+	
+	<!-- 缓存代理 -->	
+	<bean id="siteMenuManager" class="com.ztesoft.net.app.base.core.service.impl.cache.SiteMenuCacheProxy" >
+		<constructor-arg><ref bean="siteMenuServ"/></constructor-arg>
+	</bean>
+	
+	<bean id="appPermissionManager" class="com.ztesoft.net.app.base.core.service.auth.impl.AppPermissionManager" parent="baseSupport" ></bean>
+
+	<!-- 快捷菜单管理 -->
+	<bean id="usersMenuManager" class="com.ztesoft.net.mall.core.service.impl.UsersMenuManagerImpl" />
+	
+	 
+	 
+	 
+	 
+	 
+	 <bean id="sysNetCacheWrite" class="com.ztesoft.net.mall.core.cache.common.SysNetCacheWrite"  />
+	 <bean id="sysNetCacheRead" class="com.ztesoft.net.mall.core.cache.common.SysNetCacheRead"  />
+	 <bean id="sysCacheManager" class="com.ztesoft.net.mall.core.service.impl.SysCacheManager"   parent="baseSupport" />
+	 
+	 <bean id="encryptUtil" class="com.ztesoft.common.util.EncryptUtil" scope="singleton"></bean>
+	 
+</beans>

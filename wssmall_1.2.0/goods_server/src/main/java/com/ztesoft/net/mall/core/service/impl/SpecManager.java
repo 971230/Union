@@ -1,0 +1,124 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.ztesoft.net.eop.sdk.context.EopContext;
+import com.ztesoft.net.eop.sdk.context.EopSetting;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.SpecValue;
+import com.ztesoft.net.mall.core.model.Specification;
+import com.ztesoft.net.mall.core.service.ISpecManager;
+import com.ztesoft.net.mall.core.service.ISpecValueManager;
+import com.ztesoft.net.sqls.SF;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 规格管理
+ * @author kingapex
+ *2010-3-7上午11:19:20
+ */
+public class SpecManager extends BaseSupport<Specification>  implements ISpecManager {
+	private ISpecValueManager specValueManager;
+	
+	/**
+	 * 此版本未实现规格值排序功能
+	 */
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)  
+	
+	public void add(Specification spec, List<SpecValue> valueList) {
+		
+		this.baseDaoSupport.insert("es_specification", spec);
+		String specId= spec.getSpec_id();
+		for(SpecValue value : valueList){
+			value.setSpec_id(specId);
+			value.setSpec_type(spec.getSpec_type());
+			String path  = value.getSpec_image();
+			if(path!=null){
+				path = path.replaceAll(EopSetting.IMG_SERVER_DOMAIN+ EopContext.getContext().getContextPath(), EopSetting.FILE_STORE_PREFIX);
+			}
+			value.setSpec_image(path);
+			specValueManager.add(value);
+		}
+		
+	}
+
+	
+	
+	/**
+	 * 
+	 */
+	@Override
+	public boolean checkUsed(String[] idArray){
+		if(idArray==null) return false;
+		
+		String idStr = StringUtil.arrayToString( idArray,",");
+		String sql  = SF.goodsSql("CHECK_USED") + " and spec_id in (-1," + idStr + ")";
+		
+		int count  = this.baseDaoSupport.queryForInt(sql);
+		if(count>0)
+			return true;
+		else
+			return false;
+	}
+	
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)  
+	public void delete(String[] idArray) {
+		
+		String idStr = StringUtil.arrayToString( idArray,",");
+		String sql = SF.goodsSql("SPECIFICATION_DEL_BY_IDS") + " and spec_id in (-1, " + idStr +")";
+		this.baseDaoSupport.execute(sql);
+		
+		sql = SF.goodsSql("SPEC_VALUES_DEL") + " and spec_id in (-1, " + idStr +")";
+		this.baseDaoSupport.execute(sql);
+		
+		sql = SF.goodsSql("GOODS_SPEC_DEL") + " and spec_id in (-1, " + idStr + ")";
+		this.baseDaoSupport.execute(sql);
+	}
+	
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)  
+	public void edit(Specification spec, List<SpecValue> valueList) {
+		String sql = SF.goodsSql("SPEC_VALUES_DEL_BY_ID");
+		this.baseDaoSupport.execute(sql, spec.getSpec_id());
+		this.baseDaoSupport.update("es_specification", spec, "spec_id="+spec.getSpec_id());
+		for(SpecValue value : valueList){
+			value.setSpec_id(spec.getSpec_id());
+			value.setSpec_type(spec.getSpec_type());
+			String path  = value.getSpec_image();
+			if(path!=null){
+				path = path.replaceAll(EopSetting.IMG_SERVER_DOMAIN+ EopContext.getContext().getContextPath(), EopSetting.FILE_STORE_PREFIX);
+			}
+			value.setSpec_image(path);			
+			specValueManager.add(value);
+		}		
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)  
+	public List list() {
+		String sql = SF.goodsSql("SPECIFICATION_LIST_ALL");
+		return this.baseDaoSupport.queryForList(sql);
+	}
+
+	@Override
+	public Map get(String spec_id){
+		String sql = SF.goodsSql("SPECIFICATION_GET_BY_ID");
+		return this.baseDaoSupport.queryForMap(sql, spec_id);
+	}
+	
+	public ISpecValueManager getSpecValueManager() {
+		return specValueManager;
+	}
+
+	public void setSpecValueManager(ISpecValueManager specValueManager) {
+		this.specValueManager = specValueManager;
+	}
+
+}

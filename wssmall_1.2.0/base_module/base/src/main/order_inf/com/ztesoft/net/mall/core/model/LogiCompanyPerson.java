@@ -1,0 +1,150 @@
+package com.ztesoft.net.mall.core.model;
+
+/**
+ * 本地网物流公司发货人
+ * 对应表es_logi_company_person
+ * @author zhangjun
+ */
+
+public class LogiCompanyPerson implements java.io.Serializable {
+
+	private String	model_id; 
+	private String	oper_id; 
+	private String	org_code; 
+	private String	post_id; 
+	private String	origin; 
+	private String	pickup_user; 
+	private String	customer_account; 
+	private String	monthly_payment; 
+	private String	post_linkman; 
+	private String	post_comp; 
+	private String	post_code; 
+	private String	post_address; 
+	private String	post_tel; 
+	private String	is_signback; 
+	private String	receiv_account; 
+	private String	post_num; 
+	private String	sp_del; 
+	private String	post_remarks; 
+	private String	source_from;
+	
+	public String getModel_id() {
+		return model_id;
+	}
+	public void setModel_id(String model_id) {
+		this.model_id = model_id;
+	}
+	public String getOper_id() {
+		return oper_id;
+	}
+	public void setOper_id(String oper_id) {
+		this.oper_id = oper_id;
+	}
+	public String getOrg_code() {
+		return org_code;
+	}
+	public void setOrg_code(String org_code) {
+		this.org_code = org_code;
+	}
+	public String getPost_id() {
+		return post_id;
+	}
+	public void setPost_id(String post_id) {
+		this.post_id = post_id;
+	}
+	public String getOrigin() {
+		return origin;
+	}
+	public void setOrigin(String origin) {
+		this.origin = origin;
+	}
+	public String getPickup_user() {
+		return pickup_user;
+	}
+	public void setPickup_user(String pickup_user) {
+		this.pickup_user = pickup_user;
+	}
+	public String getCustomer_account() {
+		return customer_account;
+	}
+	public void setCustomer_account(String customer_account) {
+		this.customer_account = customer_account;
+	}
+	public String getMonthly_payment() {
+		return monthly_payment;
+	}
+	public void setMonthly_payment(String monthly_payment) {
+		this.monthly_payment = monthly_payment;
+	}
+	public String getPost_linkman() {
+		return post_linkman;
+	}
+	public void setPost_linkman(String post_linkman) {
+		this.post_linkman = post_linkman;
+	}
+	public String getPost_comp() {
+		return post_comp;
+	}
+	public void setPost_comp(String post_comp) {
+		this.post_comp = post_comp;
+	}
+	public String getPost_code() {
+		return post_code;
+	}
+	public void setPost_code(String post_code) {
+		this.post_code = post_code;
+	}
+	public String getPost_address() {
+		return post_address;
+	}
+	public void setPost_address(String post_address) {
+		this.post_address = post_address;
+	}
+	public String getPost_tel() {
+		return post_tel;
+	}
+	public void setPost_tel(String post_tel) {
+		this.post_tel = post_tel;
+	}
+	public String getIs_signback() {
+		return is_signback;
+	}
+	public void setIs_signback(String is_signback) {
+		this.is_signback = is_signback;
+	}
+	public String getReceiv_account() {
+		return receiv_account;
+	}
+	public void setReceiv_account(String receiv_account) {
+		this.receiv_account = receiv_account;
+	}
+	public String getPost_num() {
+		return post_num;
+	}
+	public void setPost_num(String post_num) {
+		this.post_num = post_num;
+	}
+	public String getSp_del() {
+		return sp_del;
+	}
+	public void setSp_del(String sp_del) {
+		this.sp_del = sp_del;
+	}
+	public String getPost_remarks() {
+		return post_remarks;
+	}
+	public void setPost_remarks(String post_remarks) {
+		this.post_remarks = post_remarks;
+	}
+	public String getSource_from() {
+		return source_from;
+	}
+	public void setSource_from(String source_from) {
+		this.source_from = source_from;
+	}
+	
+	
+	
+	
+	
+}

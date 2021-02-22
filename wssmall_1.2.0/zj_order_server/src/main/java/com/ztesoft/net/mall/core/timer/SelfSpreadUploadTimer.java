@@ -1,0 +1,292 @@
+package com.ztesoft.net.mall.core.timer;
+
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.net.ftp.FTP;
+
+
+ 
+
+ 
+  
+  
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.util.FTPUtil;
+
+
+public class SelfSpreadUploadTimer {
+	private static Logger logger = Logger.getLogger(SelfSpreadUploadTimer.class);
+	private static String QUERY_SQL =
+					"select t.* from ("+
+					" (select to_char(sysdate - 1, 'yyyyMMdd') as check_DAY,                           			  "+
+					"                      eoi.market_user_id as share_scheme_id,                                  "+
+					"                      eoi.order_id as order_center_id,              					"+
+					"                      eoie.active_no as bms_accept_id,                                        "+
+					"  (case(select eoie.goods_type from es_order_items_ext eoie where eoie.order_id=eoi.order_id) "+
+					"          when '170801434582003010' then 'CBSS'          	                                   "+
+					"          when '170801435262003016' then 'BSS'	                                               "+
+					"           END) as order_source,				                                               "+
+					"                      eoie.phone_num as service_num,					                       "+
+					"                      eoi.acc_nbr as sub_id,                        						   "+
+					"                  	   eoex.out_office as office_id,                        				   "+
+					"                      eoex.out_operator as operator_id,                                       "+
+					"                      eoex.development_code as develop_id,	                           "+
+					"                      eoex.development_name as develop_man,				                   "+
+					"                      eoi.seed_user_id as share_partner_id,								   "+
+					"                      eoi.share_svc_num as share_svc_num,                        			   "+
+					"                      eoi.order_province_code as region_id,		                           "+
+					"                	   '00000012' as order_sale_plat,	                                       "+
+					"                      eoi.goods_id as share_goods_id,                                         "+
+					"                      eoi.deal_office_id as order_get_channel,                                "+
+					"                      eoi.deal_operator as order_get_oper                                     "+
+					"                  from es_order_intent eoi                                                    "+
+					"                  LEFT JOIN es_order eo ON eo.order_id = eoi.order_id                         "+
+					"                  LEFT JOIN es_order_ext eoe ON eoe.order_id = eoi.order_id                   "+
+					"                  LEFT JOIN es_order_items_ext eoie on eoie.order_id =eoi.order_id            "+
+					"                  LEFT JOIN es_order_extvtl eoex on eoex.order_id=eo.order_id				   "+
+					" 				 where 	eoi.source_from = 'ECS'	and												   "+
+					"                 (trunc(eo.create_time, 'dd')) >= trunc(sysdate - 1, 'dd') and               "+
+					"                  trunc(eo.create_time, 'dd') < trunc(sysdate, 'dd') and                     "+
+					"                  (eoe.flow_trace_id = 'L' or eoe.flow_trace_id = 'J') and                    "+
+					"                  eoi.share_svc_num is not null  and                                         "+
+					"                    eo.order_id = eoi.order_id)                                                "+
+					"				UNION ALL		 																"+
+					" (select to_char(sysdate - 1, 'yyyyMMdd') as check_DAY,                           			  "+
+					"                      eoex.market_user_id AS share_scheme_id,                                 "+
+					"                      eoex.order_id AS order_center_id,             					"+
+					"                      eoie.active_no as bms_accept_id,                                        "+
+					"  (case(select eoie.goods_type from es_order_items_ext eoie where eoie.order_id=eo.order_id) "+
+					"          when '170801434582003010' then 'CBSS'          	                                   "+
+					"          when '170801435262003016' then 'BSS'	                                               "+
+					"           END) as order_source,				                                               "+
+					"                      eoie.phone_num as service_num,					                       "+
+					"                      eo.acc_nbr as sub_id,                        						   "+
+					"                  	   eoex.out_office as office_id,                        				   "+
+					"                      eoex.out_operator as operator_id,                                       "+
+					"                      eoex.development_code as develop_id,	                           "+
+					"                      eoex.development_name as develop_man,				                   "+
+					"                      eoex.seed_user_id AS share_partner_id,								   "+
+					"                      eoex.share_svc_num AS share_svc_num,                        			   "+
+					"                      eoex.order_provinc_code AS region_id,		                           "+
+					"                	   '00000012' as order_sale_plat,	                                       "+
+					"                      eo.goods_id as share_goods_id,                                          "+
+					"                      eoex.deal_office_type AS order_get_channel,                             "+
+					"                      eoex.deal_operator_num AS order_get_oper                                "+
+					"                  from es_order_extvtl eoex                                                   "+
+					"                  LEFT JOIN es_order eo ON eo.order_id = eo.order_id                         "+
+					"                  LEFT JOIN es_order_ext eoe ON eoe.order_id = eo.order_id                   "+
+					"                  LEFT JOIN es_order_items_ext eoie on eoie.order_id =eoex.order_id           "+
+					" 				 where 	eoex.source_from  = 'ECS'	and									       "+
+					"                 (trunc(eo.create_time, 'dd')) >= trunc(sysdate - 1, 'dd') and               "+
+					"                  trunc(eo.create_time, 'dd') < trunc(sysdate, 'dd') and                     "+
+					"                  (eoe.flow_trace_id = 'L' or eoe.flow_trace_id = 'J') and                    "+
+					"                  eoex.share_svc_num is not null   and                                         "+
+					"                    eo.order_id = eoex.order_id) )t  order by t.order_center_id desc          ";
+
+	public void upload() {
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "upload")) {
+  			return;
+		}
+		PrintWriter writer = null;
+
+		logger.info("------------------------begin---------------------------");
+
+		String time = "";
+		String url = "";
+		//Pattern p = Pattern.compile("\\s*|\t|\r|\n");
+		//Matcher m = null;
+		IDaoSupport support = SpringContextHolder.getBean("baseDaoSupport");
+		ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		String num = cacheUtil.getConfigInfo("ORDER_DETAILS_NUM");
+		
+		//自传播文件上传配置
+		String url1 = cacheUtil.getConfigInfo("SELFSPREAD_PATH");
+		String idAndPass = cacheUtil.getConfigInfo("AUDIT_ID_PASSWORD");
+		String ip = cacheUtil.getConfigInfo("AUDIT_IP");
+		String port = cacheUtil.getConfigInfo("AUDIT_PORT");
+		//生产上传文件路径
+		String local_url = cacheUtil.getConfigInfo("ORDER_SELFSPREAD_LOCAL");
+		//本机测试上传路径
+		//		String local_url = "D://SelfSpread//";
+		try{
+			SimpleDateFormat new_time=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			
+			String[] ids = idAndPass.split("/");
+			String userName  = "";
+			String passWord = "";
+			if(ids != null && ids.length >= 2) {
+				userName = ids[0];
+				passWord = ids[1];
+			}
+			
+			logger.info("---------------------------------数据查询开始时间："+new_time.format(new java.util.Date())+"--------------------------------");
+			List queueList = support.queryForList(QUERY_SQL);
+			logger.info("---------------------------------数据查询结束时间："+new_time.format(new java.util.Date())+"--------------------------------");
+			Map<String,String> login_map = new HashMap<String,String>();
+			login_map.put("ip", ip);
+			login_map.put("port", port);
+			login_map.put("userName", userName);
+			login_map.put("passWord", passWord);
+			FTPUtil.setArg(login_map);
+			FTPUtil.setFileType(FTP.BINARY_FILE_TYPE);// 设置传输二进制文件 
+			
+			time=DateUtil.getTime3();
+			url = url1+time;
+			File f1 = new File(local_url+"/new_SelfSpread"+time); 
+			if(f1.exists()) delFolder(local_url+"/new_SelfSpread"+time); f1.delete();
+			f1.mkdirs();
+
+			int j = 0;
+			String str ="";
+			logger.info("-----------------------生成REQfor循环开始时间："+new_time.format(new java.util.Date())+"--------------------------");
+			if(queueList == null || queueList.size() == 0 ) {
+				File f = new File(local_url+"/new_SelfSpread"+time+"/Order_selfSpread_"+time+"_"+"0001"+".REQ"); 
+				if(f.exists()) f.delete();
+				//Order_selfSpread_yyyymmdd_xxxx.REQ；
+				writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(local_url+"/new_SelfSpread"+time+"/Order_selfSpread_"+time+"_"+"0001"+".REQ"), "GBK"));
+				//FTPUtil.uploadFile("".getBytes("GBK"), url1, "Order_Audit_"+time+"_"+"0001"+".REQ");
+			}
+//			int otherNum = queueList.size();
+			for(int i=1;i<=queueList.size();i++){
+				if(i%Integer.parseInt(num)==1){
+					j++;
+					//查出的数据量大于num,分多个文件,文件头
+//					if(otherNum >= Integer.parseInt(num) ) {
+//						str = String.format("%010d", Integer.parseInt(num))+"\n";
+//						otherNum = otherNum-Integer.parseInt(num);
+//					}else {
+//						str = String.format("%010d", otherNum)+"\n";
+//					}
+					logger.info("----------------------第"+j+"个文件内容开始时间:"+new_time.format(new java.util.Date())+"--------------------------");
+					File f = new File(local_url+"/new_SelfSpread"+time+"/Order_selfSpread_"+time+"_"+String.format("%04d", j)+".REQ"); 
+					if(f.exists()) f.delete();
+					writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(local_url+"/new_SelfSpread"+time+"/Order_selfSpread_"+time+"_"+String.format("%04d", j)+".REQ"), "GBK"));
+					
+				}
+//				String new_str = Const.getStrValue((Map)queueList.get(i-1), "check_day");
+				String check_day = Const.getStrValue((Map)queueList.get(i-1), "check_day");
+				String share_scheme_id = Const.getStrValue((Map)queueList.get(i-1), "share_scheme_id");
+				String order_center_id = Const.getStrValue((Map)queueList.get(i-1), "order_center_id");
+				String bms_accept_id = Const.getStrValue((Map)queueList.get(i-1), "bms_accept_id");
+				String order_source = Const.getStrValue((Map)queueList.get(i-1), "order_source");
+				String service_num = Const.getStrValue((Map)queueList.get(i-1), "service_num");
+				String sub_id = Const.getStrValue((Map)queueList.get(i-1), "sub_id");
+				String office_id = Const.getStrValue((Map)queueList.get(i-1), "office_id");
+				String operator_id = Const.getStrValue((Map)queueList.get(i-1), "operator_id");
+				String develop_id = Const.getStrValue((Map)queueList.get(i-1), "develop_id");
+				String develop_man = Const.getStrValue((Map)queueList.get(i-1), "develop_man");
+				String share_partner_id = Const.getStrValue((Map)queueList.get(i-1), "share_svc_num");
+				String share_svc_num = Const.getStrValue((Map)queueList.get(i-1), "check_day");
+				String region_id = Const.getStrValue((Map)queueList.get(i-1), "region_id");
+				String order_sale_plat = Const.getStrValue((Map)queueList.get(i-1), "order_sale_plat");
+				String share_goods_id = Const.getStrValue((Map)queueList.get(i-1), "share_goods_id");
+				String order_get_channel = Const.getStrValue((Map)queueList.get(i-1), "order_get_channel");
+				String order_get_oper = Const.getStrValue((Map)queueList.get(i-1), "order_get_oper");
+
+				str += 	check_day+"\t|"+
+						share_scheme_id+"\t|"+
+						order_center_id+"\t|"+
+						bms_accept_id+"\t|"+
+						order_source+"\t|"+
+						service_num+"\t|"+
+						sub_id+"\t|"+
+						office_id+"\t|"+
+						operator_id+"\t|"+
+						develop_id+"\t|"+
+						develop_man+"\t|"+
+						share_partner_id+"\t|"+
+						share_svc_num+"\t|"+
+						region_id+"\t|"+
+						order_sale_plat+"\t|"+
+						share_goods_id+"\t|"+
+						order_get_channel+"\t|"+
+						order_get_oper+"\n";
+				//writer.print(Const.getStrValue((Map)queueList.get(i-1), "info")+"\n");
+				if(i%Integer.parseInt(num)==0||i==queueList.size()){
+					logger.info("----------------------第"+j+"个文件生成开始时间:"+new_time.format(new java.util.Date())+"--------------------------");
+					FTPUtil.uploadFile(str.getBytes("GBK"), url1, "Order_selfSpread_"+time+"_"+String.format("%04d", j)+".REQ");
+					logger.info("----------------------第"+j+"个文件生成结束时间:"+new_time.format(new java.util.Date())+"--------------------------");
+					writer.print(str);
+					writer.close();
+				}
+			}
+			logger.info("-----------------------生成REQfor循环结束时间："+new_time.format(new java.util.Date())+"--------------------------");  		
+		}catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+			url = url1+"/"+time;
+			//FTPUtil.closeConnect();
+			boolean is_del = FTPUtil.isDirExist(url);
+			FTPUtil.closeConnect();
+			FTPUtil.makeDirectoryToPath(time,url1,is_del);
+			//FTPUtil.closeConnect();
+			FTPUtil.uploadManyFile(local_url+"/new_SelfSpread"+time,url1);
+			FTPUtil.closeConnect();// 关闭连接 
+		}
+		
+		logger.info("------------------------end---------------------------");
+	}
+	
+	//删除文件夹
+			//param folderPath 文件夹完整绝对路径
+
+			     public static void delFolder(String folderPath) {
+			     try {
+			        delAllFile(folderPath); //删除完里面所有内容
+			        String filePath = folderPath;
+			        filePath = filePath.toString();
+			        java.io.File myFilePath = new java.io.File(filePath);
+			        myFilePath.delete(); //删除空文件夹
+			     } catch (Exception e) {
+			       e.printStackTrace(); 
+			     }
+			}
+
+			//删除指定文件夹下所有文件
+			//param path 文件夹完整绝对路径
+			   public static boolean delAllFile(String path) {
+			       boolean flag = false;
+			       File file = new File(path);
+			       if (!file.exists()) {
+			         return flag;
+			       }
+			       if (!file.isDirectory()) {
+			         return flag;
+			       }
+			       String[] tempList = file.list();
+			       File temp = null;
+			       for (int i = 0; i < tempList.length; i++) {
+			          if (path.endsWith(File.separator)) {
+			             temp = new File(path + tempList[i]);
+			          } else {
+			              temp = new File(path + File.separator + tempList[i]);
+			          }
+			          if (temp.isFile()) {
+			             temp.delete();
+			          }
+			          if (temp.isDirectory()) {
+			             delAllFile(path + "/" + tempList[i]);//先删除文件夹里面的文件
+			             delFolder(path + "/" + tempList[i]);//再删除空文件夹
+			             flag = true;
+			          }
+			       }
+			       return flag;
+			     }
+    
+}

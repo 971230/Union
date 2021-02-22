@@ -1,0 +1,973 @@
+package com.ztesoft.net.service;
+
+import java.util.List;
+import java.util.Map;
+
+import com.ztesoft.net.ecsord.params.ecaop.req.OrderListActivateReq;
+import com.ztesoft.net.ecsord.params.ecaop.req.ProductSubReq;
+import com.ztesoft.net.ecsord.params.ecaop.resp.O2OStatusUpdateResp;
+import com.ztesoft.net.ecsord.params.ecaop.resp.OrderListActivateResp;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.CoQueue;
+import com.ztesoft.net.mall.core.model.Logi;
+import com.ztesoft.net.model.AopQueryDataVo;
+import com.ztesoft.net.model.BusiDealResult;
+import com.ztesoft.net.model.EntityInfoVO;
+import com.ztesoft.net.model.OrdReceipt;
+import com.ztesoft.net.model.OrderBtn;
+import com.ztesoft.net.model.OrderQueryParams;
+
+import params.req.HeadquartersMallBusiRequest;
+import zte.net.ecsord.params.base.po.ATTR_OPTIONS;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.ecaop.req.vo.EmpOperInfoVo;
+import zte.net.ecsord.params.sf.vo.WaybillRoute;
+import zte.net.ecsord.params.wyg.req.WYGTestRequest;
+import zte.net.ecsord.params.wyg.resp.WYGTestResponse;
+
+
+public interface IEcsOrdManager {
+
+	/**
+	 * 查询订单列表
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-30 
+	 * @param pageNo
+	 * @param pageSize
+	 * @return
+	 */
+	public Page queryOrderForPageBuyFlow(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/***
+	 * 优化查询订单列表
+	 * @作者 huangxm
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 */
+	public Page queryOrderForPageBuyFlowNew(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/**
+	 * 按流程ID查询订单处理按钮
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-30 
+	 * @param trace_id
+	 * @return
+	 */
+	public OrderBtn getOrderFlowBtns(String trace_id);
+	
+	/**
+	 * 查询订单流程所有按钮
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-30 
+	 * @param trace_id
+	 * @return
+	 */
+	public List<OrderBtn> listOrderFlowBtns(String trace_id);
+	
+	/**
+	 * 查询订单流程所有按钮
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-30 
+	 * @param trace_id
+	 * @return
+	 */
+	public List<OrderBtn> listOrderCrawlerBtns(String trace_id);
+	
+	/**
+	 * 订单挂起
+	 * @作者 ZX
+	 * @创建时间 2014-10-14
+	 * @param order_id
+	 */
+	OrderTreeBusiRequest suspend_save(String order_id, String pending_reason);
+	
+	/**
+	 * 订单锁定
+	 * @作者 ZX
+	 * @创建时间 2014-10-16
+	 * @param order_id
+	 */
+	void order_lock(String order_id,String tache_code);
+	
+	/**
+	 * 订单列表预警信息
+	 * @作者 zhangjun
+	 * @创建时间 2014-10-16
+	 * @param order_id
+	 */
+	String getWarning(String order_ids);
+	
+	/**
+	 * @作者 ZX
+	 * @创建时间 2014-10-16
+	 * @param obj_name
+	 * @param order_id 
+	 * @return
+	 */
+	Page adminUserList(int pageNO, int pageSize, String obj_name, String order_id);
+	
+	/**
+	 * @作者 ZX
+	 * @创建时间 2014-10-16
+	 * @param order_id
+	 * @param userid
+	 * @param username
+	 * @return
+	 */
+	String entrust_save(String order_id, String userid, String username);
+
+	/**
+	 * @作者 ZX
+	 * @创建时间 2014-10-23
+	 * 物流公司
+	 * @return
+	 */
+	List<Logi> logi_company (String order_id);
+	
+	/**
+	 * @作者 ZX
+	 * @创建时间 2014-10-23
+	 * 物流公司
+	 * @return
+	 */
+	List<Map> logi_company_regions (String logi_post_id);
+	
+	/**
+	 * @作者 ZX
+	 * @创建时间 2014-10-24
+	 * 回收资料
+	 * @return
+	 */
+	List<Map> dic_material_retrieve();
+	
+	/**
+	 * @作者 ZX
+	 * @创建时间 2014-10-25
+	 * 回单确认
+	 * @param order_id
+	 */
+	void affirm_receipt(String order_id, OrdReceipt ordReceipt);
+	
+	
+	
+	/**
+	 * 
+	 * @param order_id
+	 * @param ordReceipt
+	 */
+	boolean oldOrderArchivesForStanding(CoQueue coQueue);
+	
+	
+	
+	
+	/**
+	 * @作者 ZX
+	 * @创建时间 2014-10-25
+	 * 回单确认
+	 * @param order_id
+	 */
+	void newOrderArchivesForStanding(CoQueue coQueue) throws Exception;
+	
+	/**
+	 * 获取es_dc_sql下拉框
+	 * @作者ZX
+	 * @param dcName
+	 * @return
+	 */
+	List<Map> getDcSqlByDcName(String dcName);
+	
+	List<EntityInfoVO> entityInfoList(String order_id, String serial_num);
+	/***
+	 * 查询当前用户被锁定的单
+	 * @param param 参数
+	 * @param pageNo 
+	 * @param pageSize
+	 * @param params
+	 * @return 
+	 */
+	public Page getLockOrdList(int pageNo,int pageSize,OrderQueryParams params);
+	/**
+	 * 查询当前用户被锁定的订单ID
+	 * @return
+	 */
+	public List getLockOrderIds(OrderQueryParams params);
+	/**
+	 * 根据外部单号查询当前被锁定的订单ID
+	 * @return
+	 */
+	public List getLockOrderIdsByOuttids(OrderQueryParams params);
+	
+	public String unLock(String order_id);
+	/**
+	 * 根据用户ID锁定订单
+	 * @param order_id
+	 * @param userId
+	 */
+	public Boolean orderLockByWl(String order_id,String userId);
+	/**
+	 * 异常列表查询
+	 * @param order_id 订单ID
+	 * @return
+	 */
+	public List getExceptionLogList(String order_id);
+	
+	/**
+	 * 查询闪电送日志
+	 * @param order_id
+	 * @return
+	 */
+	public List getSdsLogList(String order_id);
+	
+	/**
+	 * 顺丰物流信息处理
+	 * @param waybillRouteList
+	 */
+	public BusiDealResult doSFLogisticsInfo(List<WaybillRoute> waybillRouteList);
+	
+	/**
+	 * 新商城异常单模拟测试,根据环节获取模拟返回报文
+	 * @param wYGTestRequest
+	 * @return
+	 */
+	public WYGTestResponse getWygTestReturnMsg(WYGTestRequest wYGTestRequest);
+	
+	/**
+	 * 判断订单是否已归档
+	 * @作者 MoChunrun
+	 * @创建日期 2015-2-11 
+	 * @param order_id
+	 * @return
+	 */
+	public boolean isOrderHasAchive(String order_id);
+	/**
+	 * 根据订单归属城市获取物流公司
+	 * @param order_id
+	 * @param city_code
+	 * @return
+	 */
+	List<Logi> logi_company_city_code (String city_code);
+	
+	public Page queryOrderMonitorList(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/**
+	 * 根据条件查询库管日报
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 */
+	public Page queryOrderWarehouseDailyList(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/**
+	 * 根据日期条件查询订单领取报表
+	 */
+	
+	public Page queryOrderReceiveReportList(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/**
+	 * 根据日期条件查询实收款稽核报表
+	 */
+	public Page queryOrderActualRevenueAuditReport(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/**
+	 * 物流报表
+	 */
+	public Page queryDistributionReportList(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/**
+	 * 营业报表
+	 */
+	public Page queryOrderBusinessReportList(int pageNo,int pageSize,OrderQueryParams params);
+	/**
+	 * 宽带电商化报表
+	 */
+	public Page queryOrderBroadbandCommerceList(int pageNo,int pageSize,OrderQueryParams params);
+	/**
+	 * 订单数据查询
+	 */
+	public Page queryOrderDataBySearchList(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/**
+	 * 退款订单报表
+	 */
+	public Page queryOrderWhichRefundList(int pageNo,int pageSize,OrderQueryParams params);
+	
+	/**
+	 * 查询终端串号/号码释放失败记录
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 */
+	public Page queryReleaseList(int pageNo, int pageSize,OrderQueryParams params);
+	/**
+	 * 释放资源(手机终端串号/号码)
+	 */
+	public String releaseRecord(String release_id);
+	/**
+	 * 通过接口释放资源(手机终端串号/号码)
+	 */
+	public String releaseRecordByI(String release_id);
+	/**
+	 * 页面输入串号实现终端调拨
+	 * @param ess_emp_id bss工号
+	 * @param terminal_nums 串号
+	 * @return
+	 */
+	public String terminalTransfer(String ess_emp_id,String terminal_nums);
+	/**
+	 * 校验终端串号
+	 * @param order_id 订单id
+	 * @param terminal_num 串号
+	 * @return true 校验通过
+	 */
+	public boolean terminalNumCheck(String order_id,String  terminal_num) ;
+	/**
+	 * 根据订单工号获取邦定关系列表
+	 * @param orderOperId	订单系统工号
+	 * @return
+	 */
+	public List<EmpOperInfoVo> getBindRelByOrderGonghao(String orderOperId);
+
+	/**
+	 * 按环境标识过滤是否属于解藕环境的订单
+	 * @param order_id
+	 * @return
+	 */
+	public boolean getOrderCtn(String order_id);
+	
+	/**
+	 * 外呼处理确认
+	 * @param order_id
+	 * @return
+	 */
+	public String ordOutCallApply(Map cParams);
+	
+	
+	/**
+	 * 查询订单领取分布
+	 * @param 
+	 * @return
+	 */
+	public List<Map> queryOrderGetGroup();
+	
+	/**
+	 * 查询订单状态分布
+	 * @param 
+	 * @return
+	 */
+	public List<Map> queryOrderStatusGroup();
+	
+	/**
+	 * 根据sn获取sku(目前仅针对华盛裸机订单)
+	 * @param sn
+	 * @return
+	 */
+	public String getSkuBySn(String sn);
+
+
+	public Page getOrderHisPage(String order_id,int pageNo,int pageSize);
+
+
+	public void saveChange(Map old_map,Map new_map,String order_id);
+	
+	public List getOrderChangeList(String order_id);
+	
+	public Map getUpdate(String order_id);
+	
+	public Page getAllotOrdList(int pageNo,int pageSize,OrderQueryParams params);
+
+	public Page getUserList(int page, int pageSize, String userparams,String allotType,String lockOrderIdStr, String allot_county_id);
+	
+	/**
+	 * 校验订单配货环节录入的终端串号与现取货的终端串号是否一致
+	 * @param terminal_nums 页面录入的终端串号
+	 * @param order_sn 页面录入的订单领取号
+	 * @return
+	 */
+	public Map<String,String> validateTerminalNum(String terminal_nums, String order_sn);
+
+	public List<Map> getOrderReceiveList(int pageNo,int pageSize,OrderQueryParams params);
+
+	public Page qryOrdHisList(int page, int pageSize, OrderQueryParams params);
+
+	public void dealDealInfo(String order_id, String dealDesc);
+	
+	/**
+	 * 获取序列
+	 * @param seq_name
+	 * @return
+	 */
+	public String getSequences(String seq_name);
+	public Page queryOrderForPageByBatchPre(int pageNo, int pageSize,
+			OrderQueryParams params) ;
+	/**
+	 * 根据订单条形码和订单ICCID获取订单号
+	 * @param orderSn
+	 * @param iccId
+	 * @return
+	 */
+	public String getOrderInfoBySn(String orderSn, String iccId);
+	//获取发货环节后的订单信息
+	public List<Map> getEmsLogisticsInfoList();
+	
+	public String checkLockUser(String order_id,String query_type);
+	
+	public List<AopQueryDataVo> getOrdId();
+	
+	public void updateDealStatus(String order_id,String status);
+	
+	public Map getOrderDtl(String order_id);
+	
+	public Page emsOrderInfoQuery(int pageNo,int pageSize);
+	
+	/**
+	 * 查询总商登录用户信息
+	 * @作者 FanQijie
+	 * @创建日期 2016-12-29 
+	 * @param pageNo
+	 * @param pageSize
+	 * @return
+	 */
+	public Page queryHeadquartersMallStaff(int pageNo,int pageSize,String staff_code);
+	
+	/**
+	 * 查询总商登录用户详情
+	 * @作者 FanQijie
+	 * @创建日期 2016-12-29 
+	 * @param staff_code
+	 * @return
+	 */
+	public HeadquartersMallBusiRequest queryHeadquartersMallStaffDetail(String staff_code);
+	
+	/**
+	 * 修改总商登录用户信息
+	 * @param params
+	 */
+	public void editHeadquartersMallStaff(HeadquartersMallBusiRequest params);
+	
+	/**
+	 * 删除总商登录用户信息
+	 * @param params
+	 */
+	public void deleteHeadquartersMallStaff(HeadquartersMallBusiRequest params);
+	
+	/**
+	 * 删除总商登录用户信息
+	 * @param params
+	 */
+	public void addHeadquartersMallStaff(HeadquartersMallBusiRequest params);
+	
+	/**
+	 * 修改登录状态方法
+	 * @param params
+	 */
+	public void editHeadquartersMallStaffStatus(String staff_code);
+	
+	public List<Map> getOPerId(String order_id,String tache_code);
+	
+	
+	/**
+	 * 未开户分布查询
+	 */
+	public List<Map> queryAccount_noopen_group();
+	
+	
+	/**
+	 * 待审核订单分布
+	 * @return
+	 */
+	public List<Map> queryAccount_audit_group();
+	
+	/**
+	 * 查询马上购协议图片
+	 * @param orderId
+	 * @return 协议图片路径
+	 */
+	public List<String> queryOrdAgrtImg(String orderId);
+	
+	/**
+	 * 更新订单外呼信息
+	 * @param order_id
+	 */
+	public void updateEsOrderOutallLog(String order_id);
+	
+	/**
+	 * 查询外呼前订单状态
+	 * @param order_id
+	 */
+	public String queryOrderStatusByorderId(String order_id);
+	/**
+	 * 顺丰物流单号查询
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 */
+	public Page querySFlogiOrder(int pageNo,int pageSize,OrderQueryParams params);
+	public List<Map<String, String>> getCrawlerProc();
+	/**
+	 * 修改进程状态
+	 */
+	public void editThreadState(String ip,String port,String thread_name,String editType);
+	/**
+	 * 获取爬虫线程列表
+	 */
+	public List<Map<String, String>> qryCrawlerProcList(String qryType);
+	
+	/**
+	 * 查询写卡成功订单数量
+	 */
+	public Page qryQueueCardOrderNum(OrderQueryParams params,int pageNo,int pageSize);
+	
+	/**
+	 * 查询导入订单信息
+	 */
+	public Page queryInputOrder(OrderQueryParams params,int pageNo,int pageSize);
+	
+	/**
+	 * 查询导入订单详细信息
+	 */
+	public Page queryInputOrderInfo(String bat_id,int pageNo,int pageSize);
+	
+	public List queryAllInputOrderInfoByBatID(String bat_id) ;
+	/**
+	 * 查询订单内部单号
+	 */
+	public Map queryOrderID(String out_tid);
+	
+	/**
+	 * 身份证类型
+	 */
+	public String queryCertiType(String type);
+	
+	/**
+	 * 查询地市
+	 */
+	public String queryCityCode(String cityCode);
+	
+	/**
+	 * 区县
+	 */
+	public String queryRegionCode(String regionCode);
+	
+	public Page getCountyList(int page, int pageSize, String county_name);
+
+	public String getAttrIdByName(String field_name);
+
+	public Page newGetAllotOrdList(int page, int pageSize,OrderQueryParams params);
+
+	public Page newGetUserList(int page, int pageSize, String userparams,String allotType, 
+			String lockOrderIdStr, String allot_county_id,String county_code) throws Exception;
+
+	public Page queryOrderReceiveList(int page, int pageSize,OrderQueryParams params);
+	
+	public Page getCountInfoByName(String name,int pageNo,int pageSize );
+	
+	
+	/**
+	 * 获取当前县分下所有的工号信息
+	 * @param county_id
+	 * @param gonghao 
+	 * @return
+	 */
+	public List<Map> queryAllGonghaoByCountyId(String county_id, String gonghao) throws Exception;
+	
+	/**
+	 * 意向单报表统计
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public Page queryIntentOrderReportList(int pageNo,int pageSize,OrderQueryParams params) throws Exception;
+	/**
+	 * 电商订单监控表统计
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public Page queryBroadbandMonitorList(int pageNo,int pageSize,OrderQueryParams params) throws Exception;
+	/**
+	 * 电商订单监控表导出
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public List queryBroadbandMonitorListDtl(OrderQueryParams params) throws Exception;
+	
+	/**
+	 * v计划报表统计
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public Page queryVplanOrderReportList(int pageNo,int pageSize,OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 意向单报表明细导出
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public Page exportIntentOrderDtl(int pageNo,int pageSize,OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 各人员各环节订单量报表 by name
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public Page queryOrderQuantityReportListByName(int pageNo,int pageSize,OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 各人员各环节订单量报表
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public Page queryOrderQuantityReportList(int pageNo,int pageSize,OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 总部蜂行动中间表查询
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public Page queryBeeActionIntentMidList(int pageNo,int pageSize,OrderQueryParams params) throws Exception;
+	/**
+	 * 短信异步发送列表
+	 * @param pageNo
+	 * @param pageSize
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public Page queryMessageSendMidList(int pageNo,int pageSize,OrderQueryParams params) throws Exception;
+	/**
+	/**
+	 * 获取意向单报表明细数量
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public int getExportIntentOrderDtlCount(OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 获取意向单报表数量
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public int getExportIntentOrderCount(OrderQueryParams params) throws Exception;
+	/**
+	 * 根据订单查询页面统计明细数量
+	 * <p>Title: getExportOrderReport</p>
+	 * <p>Description: TODO</p>
+	 * @author songgaofeng
+	 * @time 2018年7月9日 上午10:53:21
+	 * @version 1.0
+	 * @param params
+	 */
+    public int getExportOrderReport(OrderQueryParams params);
+    /**
+     * 订单查询数据导出
+     * <p>Title: exportOrderReportExcel</p>
+     * <p>Description: TODO</p>
+     * @author Name
+     * @time 2018年7月9日 下午12:37:02
+     * @version 1.0
+     * @param i
+     * @param count
+     * @param params
+     * @return
+     */
+    public Page exportOrderReportExcel(int i, int count, OrderQueryParams params);
+    
+    /**
+     * 获取当前这个操作权限下的所有员工信息
+     * @param userId
+     * @return
+     * @throws Exception
+     */
+	public List<Map> queryAllAdminUserId(String userId) throws Exception;
+
+	/**
+	 *  获取员工信息
+	 */
+	public List<Map> queryAllocationAdminUserId(String userId);
+	
+	
+	/**
+	 * 获取超过6个小时没处理订单的人员信息  电话 姓名 
+	 * @return
+	 */
+	 public List<Map> queryMessageAdminReminder ();
+	
+	
+	/**
+	 * 催县分中台：分10:00,14:00，17;00三个时间点催超过2小时未处理的订单 
+	 * 信息查询
+	 * @return
+	 */
+	public List<Map> queryMessageOitaReminder();
+
+	/**
+	 * 查询是否是意向单
+	 * @param order_id 订单号
+	 * @return
+	 * @author GL
+	 */
+	public String queryIsWorkCustom(String order_id);
+
+	/**
+	 * 查询县分
+	 * @param old_ship_name
+	 * @return
+	 */
+	public String queryOrgName(String old_ship_name);
+
+	/**
+	 * 编码转换
+	 * 
+	 * @param order_city_code
+	 * @return
+	 */
+	public String queryCountyCoding(String order_city_code);
+
+	/**
+	 * 导出意向单统计报表
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("rawtypes")
+	public List queryIntentOrderReportList(OrderQueryParams params) throws Exception;
+
+	/**
+	 * 导出意向单明细
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("rawtypes")
+	public List exportIntentOrderDtl(OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 导出V计划统计报表
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("rawtypes")
+	public List queryVplanOrderReportList(OrderQueryParams params) throws Exception;
+
+	/**
+	 * 导出v计划明细
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("rawtypes")
+	public List exportVplanOrderDtl(OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 
+	 * 查询所有团队信息
+	 * @param team_level
+	 * @param team_id
+	 * @param team_name
+	 * @return
+	 * @author GL
+	 */
+	public Page getUserGroupList(int page, int pageSize, String team_level, String team_id, String team_name);
+
+	/**
+	 * 汇总量报表统计
+	 */
+    public Page queryCommerceDevelopChannelReportList(int page, int pageSize,  OrderQueryParams params) throws Exception;
+	
+
+
+	/**
+	 * 查询证件类型
+	 * @return
+	 */
+	public List<Map> getRoleGroup();
+	/**
+	 * 记录短信发送次数及时间 GL
+	 */
+	public void messages_send_count(String order_id);
+	
+	/**
+	 *汇总量信息导出 sgf 
+	 */
+    @SuppressWarnings("rawtypes")
+	public List queryCommerceDevelopChannelReportListExcel(  OrderQueryParams params) throws Exception;
+
+    public Page findByCommerChannel(int page, int pageSize, OrderQueryParams params) throws Exception;
+
+    @SuppressWarnings("rawtypes")
+	public List findByCommerChannelExcel(OrderQueryParams params);
+    
+    public String getOrderCityOrder(String order_id) throws Exception;
+    
+    /**
+         * 查询 instance_id  环节实例  deal_url  页面处理方法配置 GL
+     * @param order
+     * @return
+     */
+    public List<Map> queryInstanceId(String order_id);
+    
+     /**
+         *  查询卡信息是否为空  GL
+     * @param order_id
+     * @return
+     */
+    public String queryIccId(String order_id);
+    
+    
+    /**
+       * 自定义流程是否当前环节  GL
+     * @return
+     */
+    public String queryWorkCustomIsLink();
+    
+    /**
+     * 查询是否自定义流程订单
+     * @author GL
+     * @return
+     */
+    public String queryisWorkCustom(String order_id);
+    
+    /**
+     * 自定义流程订单领取
+     * @author GL
+     * @param order_id
+     */
+    public void updateWorkCustom(String order_id);
+    
+    /**
+   	 * 批量查询属性值
+   	 * @param order_id
+   	 * @param attr_names
+   	 * @return
+   	 * @throws Exception
+   	 */
+   	@SuppressWarnings("rawtypes")
+   	public Map getAttrValuesBatch(String order_id,List<String> attr_names) throws Exception;
+   	
+	/**
+	 * 批量查询属性枚举值
+	 * @param option_list
+	 * @return
+	 * @throws Exception
+	 */
+	public Map<String,List<ATTR_OPTIONS>> getAttrOptions(List<String> option_list) throws Exception;
+	
+	//add by cqq 20181217 自定义流程
+    public void updateOrderTreeCustom(String set_sql,String table_name,String order_id,OrderTreeBusiRequest orderTree) throws Exception;
+
+
+   
+    /**
+     * 查询监控历史表
+     * @param params
+     * @return
+     */
+	public List queryBroadbandMonitorListDtl_His(OrderQueryParams params);
+
+	public Page queryBroadbandMonitorList_His(int pageNo, int pageSize,
+			OrderQueryParams params);
+
+	/**
+	 * 营业县分转行政县分
+	 * @param countyList
+	 * @return
+	 */
+	public List<String> transBusiCounty2County(List<String> countyList);
+
+	public Map getOperatorInfo(String order_id);
+	/**
+     * 简单订单信息查询
+     * @param requ
+     * @return
+     */
+    public OrderListActivateResp queryOrderActivate(OrderListActivateReq requ);
+
+    /**
+     * 查询所有物流公司编码
+     * @author GL
+     * @return
+     */
+	public List<String> getLogiCompanyCodeList();
+	
+	/**
+	 * 查询流程编码
+	 * @author GL
+	 * @param order_id
+	 * @return
+	 */
+	public String getFlowCode(String order_id);
+	
+    
+    public Map gettopSeedInfo(String order_id);
+    /**
+     * 外呼处理环节，新增校验信息情况
+     * @param order_id
+     * @return
+     */
+	public boolean getLockShowCallOut(String order_id);
+	/**
+	 * 
+	 */
+	public void order_lock_showCallout(String order_id, String tacheCode);
+	/**
+	 * 
+	 * 杭州银行联名卡发展日报
+	 * @return
+	 * @throws Exception
+	 */
+	public Page queryHangZhouDayReport(int pageNo, int pageSize, OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 杭州银行联名卡发展详单
+	 * @param params
+	 * @return
+	 * @throws Exception
+	 */
+	public List queryHangZhouDevReport(OrderQueryParams params) throws Exception;
+	
+	/**
+	 * 加速包充值包请求参数
+	 * @param order_id
+	 * @return
+	 * @throws Exception
+	 */
+	public ProductSubReq productReqSet(String order_id) throws Exception;
+	
+	/**
+	 * 退单通知手机商城
+	 * @param order_id
+	 * @return
+	 * @throws Exception
+	 */
+	public O2OStatusUpdateResp returnToMobileStore(String order_id) throws Exception;
+}

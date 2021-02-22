@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+	<bean id="partnerAction" class="com.ztesoft.net.mall.core.action.backend.PartnerAction" scope="prototype"/>
+	<bean id="partnerAddrAction" class="com.ztesoft.net.mall.core.action.backend.PartnerAddrAction" scope="prototype"/>
+	<bean id="partnerShopMappingAction" class="com.ztesoft.net.mall.core.action.backend.PartnerShopMappingAction" scope="prototype"/>
+	<bean id="partnerAccountAction" class="com.ztesoft.net.mall.core.action.desposit.PartnerAccountAction" scope="prototype"/>
+	<bean id="partnerFreezeLogAction" class="com.ztesoft.net.mall.core.action.desposit.PartnerFreezeLogAction" scope="prototype"/>
+	<bean id="depositChargeAction" class="com.ztesoft.net.mall.core.action.desposit.DepositChargeAction" scope="prototype"/>
+</beans>

@@ -1,0 +1,49 @@
+<tr>
+	<th><span class="red">*</span>商品分类：</th>
+	<td><select name="goods.cat_id" id="cat_id" required="true" style="width:150px;">
+			<option value="">请选择商品分类</option> <#assign children=catList />
+			<#assign level=1 /> <#include 'select_children.html' />
+	</select>
+	<a href="javascript:void(0);" class="gray_btn" id="goodsTypeQuickBtn">选择</a>
+	</td>
+	<th><span class="red">*</span>商品类型：</th>
+	<td><select name="goods.type_id" id="type_select" required="true">
+			<option value="">请选择商品类型</option> <#list typeList as type>
+			<option join_brand="${type.join_brand}" value="${type.type_id }">
+				${type.name }</option> </#list>
+	</select></td>
+	<th><span class="red">*</span>品牌：</th>
+	<td><select name="goods.brand_id" id="brand_select" style="width:150px;" required="true">
+			<option value="">请选择品牌</option>
+	</select>
+	<a href="javascript:void(0);" class="gray_btn" id="addBrandDialog">添加</a>
+	</td>
+</tr>
+<div id="add_brand_dialog"></div>
+<div id="goodsTypeQuickBtn_dialog"></div>
+<script type="text/javascript" src="js/input_handlersn.js"></script>
+<script type="text/javascript">
+ <#if is_edit>
+ var cat_id = '${cat_id}';
+ $("#cat_id").val(cat_id);
+ var type_id = '${type_id}';
+ $("#type_select").val(type_id);
+ var brand_id = '${brand_id}';
+ $.ajax({
+	type: "get",
+	url:app_path+"/shop/admin/type!listBrand.do?ajax=yes",
+	data:"type_id=" + type_id +"&m=" + new Date().getTime(),
+	dataType:"html",
+	success:function(result){
+		 
+		   $("#brand_select").empty().append(result);
+		   if(brand_id){
+		   	$("#brand_select").val(brand_id);
+		   }
+	  
+	},
+	 error :function(res){alert("异步读取失败:" + res);}
+	});
+ 
+ </#if>
+</script>

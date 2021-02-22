@@ -1,0 +1,104 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import params.ZteRequest;
+import params.ZteResponse;
+import rule.params.coqueue.req.FailQueueScanReq;
+import zte.net.iservice.IOrderQueueBaseManager;
+import zte.net.ord.params.busi.req.OrderQueueFailBusiRequest;
+import zte.params.orderctn.req.FailAndExpQueueHandleReq;
+
+import com.ztesoft.api.Task;
+import com.ztesoft.api.TaskThreadPool;
+import com.ztesoft.api.ThreadPoolFactory;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.OrderQueueConsts;
+
+import consts.ConstsCore;
+
+/**
+ * 处理订单失败队列表数据定时任务
+ * @作者 wanpeng
+ * @创建日期 2015-12-05 
+ * @版本 V 1.0
+ */
+public class OrderFailQueueCtnTimer {
+	
+	private static Logger logger = Logger.getLogger(OrderFailQueueCtnTimer.class);
+	
+	private static final Object _KEY = new Object();
+	private static final int maxNum = 50;  //每次扫描50条
+	
+	public void run(){
+		if(!CheckTimerServer.isMatchServer(this.getClass().getName(),"run"))
+  			return ;
+		logger.info("[OrderFailQueueCtnTimer] 处理失败队列定时任务执行开始");
+		synchronized (_KEY) {
+			final IOrderQueueBaseManager orderQueueBaseManager = SpringContextHolder.getBean("orderQueueBaseManager");
+			//1、读取失败表的列表数据，24小时内的数据
+			FailQueueScanReq failQueueScanReq = null;
+			String handle_sys = getHandleSys();
+			logger.info("[OrderFailQueueCtnTimer] 处理失败队列定时任务执行获取队关键参数 handle_sys:[" + handle_sys +"]");
+			List<OrderQueueFailBusiRequest> list = orderQueueBaseManager.listOrderFailQueue(maxNum, handle_sys, OrderQueueConsts.QUEUE_TYPE_CTN);
+			logger.info("[OrderFailQueueCtnTimer] 处理失败队列定时任务执行获取队列数量["+list.size()+"]");
+			for (OrderQueueFailBusiRequest orderQueue : list) {
+				String co_id=orderQueue.getCo_id();
+				String order_id=orderQueue.getOrder_id();
+				logger.info("[OrderFailQueueCtnTimer] 处理失败队列定时任务执行:"+order_id);
+				
+				failQueueScanReq = new FailQueueScanReq();
+				failQueueScanReq.setCo_id(co_id);
+				failQueueScanReq.setOrder_id(order_id);
+				failQueueScanReq.setAction_code(orderQueue.getAction_code());
+				failQueueScanReq.setService_code(orderQueue.getService_code());
+				failQueueScanReq.setSourceFrom(orderQueue.getSource_from());
+				
+				TaskThreadPool taskThreadPool = new TaskThreadPool(new Task(failQueueScanReq) {
+ 					@Override
+					public ZteResponse execute(ZteRequest zteRequest) {
+ 						FailQueueScanReq failQueueScanReq = (FailQueueScanReq) zteRequest;
+ 						String co_id = failQueueScanReq.getCo_id();
+ 						FailAndExpQueueHandleReq failreq = new FailAndExpQueueHandleReq();
+ 						failreq.setCo_id(co_id);
+ 						failreq.setIs_exception(true);
+ 						try {
+ 							orderQueueBaseManager.failAndExpQueueHandle(failreq);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+ 						
+ 						return new ZteResponse();
+ 					}
+ 				});
+ 				
+ 				
+ 				ThreadPoolFactory.getOrderThreadPoolExector().execute(taskThreadPool); //异步单线程执行
+				
+			}
+		}
+		
+	}
+	
+	/**
+	 * 
+	 * @Description: 获取当前主机环境
+	 * @return   
+	 * @author zhouqiangang
+	 * @date 2015年12月15日 下午3:10:19
+	 */
+	@SuppressWarnings("unchecked")
+	private String getHandleSys() {
+//		Map<String,String> envMap =  com.ztesoft.common.util.BeanUtils.getCurrHostEnv();
+//		if(null != envMap && envMap.containsKey("env_code")){
+//			return envMap.get("env_code");
+//		}else{
+//			CommonTools.addError(ConstsCore.ERROR_FAIL, "主机环境未配置！");
+//			return null;
+//		}
+		return com.ztesoft.common.util.BeanUtils.getHostEnvCodeByEnvStatus(ConstsCore.MACHINE_EVN_CODE_ECSORD_STD);
+	}
+	
+}

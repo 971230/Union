@@ -1,0 +1,41 @@
+package com.ztesoft.net.eop.processor.backend;
+
+import com.ztesoft.net.eop.processor.Processor;
+import com.ztesoft.net.eop.processor.core.Response;
+import com.ztesoft.net.eop.processor.core.StringResponse;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+public class LogoutProcessor implements Processor {
+
+	
+	public Response process(int mode, HttpServletResponse httpResponse,
+			HttpServletRequest httpRequest) {
+		
+		//WebSessionContext<UserContext> sessonContext = ThreadContextHolder.getSessionContext();			
+		Response response= new StringResponse();
+		/*AdminUser user = ManagerUtils.getAdminUser();
+		IAdminUserManager adminUserManager = SpringContextHolder.getBean("adminUserManager");
+		if(user!=null)
+			adminUserManager.updateLoginStatus(user.getUserid(), null, 0);*/
+		//sessonContext.removeAttribute(UserContext.CONTEXT_KEY);
+		//sessonContext.removeAttribute("admin_user_key");
+		
+		//HttpSessionContextHolder.getInstance().invalidateSession(httpRequest.getSession().getId());
+		httpRequest.getSession().invalidate();
+		
+//		outB.append("var width = screen.availWidth-3;");
+//		outB.append("var height = screen.availHeight-20;");
+//		outB.append("var left = -4;");
+//		outB.append("var top = -4;");
+//		outB.append("var url ='/mgWeb/'");
+//		outB.append("var windowPar='toolbar=no,alwaysLowered=yes,status=no,location=no,titlebar=no,menubar=no, scrollbars=yes,resizable=yes,width='+width+',height='+height+',top=0,left=0';");
+//		outB.append("var loginMainWin = window.open(url,'crmloginwindow',windowPar);");
+//		outB.append("window.self.close();)");
+		
+		response.setContent("<script>window.self.close();</script>");
+		return response;
+	}
+ 
+}

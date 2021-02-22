@@ -1,0 +1,149 @@
+package com.zte.cbss.autoprocess;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.zte.cbss.autoprocess.model.CustomBill;
+import com.zte.cbss.autoprocess.model.CustomInfo;
+import com.zte.cbss.autoprocess.model.LoginInfo;
+
+public class OpenAccountAndWriteCardHandler {
+
+	static final Logger log = LoggerFactory.getLogger(CreateCustomHandler.class);
+
+	public static void main(String[] args) throws Exception{
+		LoginInfo info = new LoginInfo();
+		info.setCbssAccount("HLWFS679");
+		info.setCbssPassword("Pct2ApB4OAhSZEkPBzk6ZuZfiqY=");
+		info.setProvinceCode("51");
+		HttpLoginClient client = HttpLoginClientPool.add(info);
+		if(client != null){
+			CustomBill bill = new CustomBill();
+			bill.setPsptId("432503197610259117");
+			bill.setCustomName("罗振廷");
+			bill.setContact("宛一夏");
+			bill.setContactPhone("18565380400");
+			bill.setPsptEndDate("2018-05-08");
+			bill.setIdTypeCode("1");
+			bill.setPhone("18681185694");
+			bill.setPostAddress("广东省广州市天河区中山大道"); //通信地址必须大于八个字符
+		    bill.setSerialNumber("18576561785");  //开户的新号，必须是空号
+		    
+		    /*       自由组合的测试      
+            // 搜索产品名称的key 
+            bill.setProductName("自由");
+            // 移动业务选号，电信类型（50:4G移动业务类型）
+            bill.setNetTypeCode("50");
+            // 客户归属业务区
+            bill.setUserCityCode("512039");
+            // 选择的产品编码
+            bill.setSelectedProductId("99999829");
+            
+    		//套餐编码
+    		bill.setFirstFeeType("02");
+    		List<String> addServiceCode = new ArrayList<String>();
+    		addServiceCode.add("5574000");
+    		addServiceCode.add("5573000");
+    		
+    		bill.setFlowPackage("5509000");
+    	 //   bill.setCallPackage("5536000");
+    	  //  bill.setMessageCode("5563000");
+    	    //bill.setCallDisplay("5557000");
+        	bill.setFlowFirstFeeType("03");
+    	//	bill.setCallFirstFeeType("03");
+    	//	bill.setMessageFirstFeeType("03");
+    		
+    		bill.setFee("1");
+    		bill.setAddServiceCode(addServiceCode );
+    		
+//    		List<String> addServiceCode = new ArrayList<String>();
+//    		
+//    		addServiceCode.add("5574000");addServiceCode.add("5573000");
+    		//短信业务编码
+    		bill.setMessageCode("5561000");
+    		//增值业务集合
+    		bill.setAddServiceCode(addServiceCode );
+    		
+			client.getParam().setDevelopStaffId("5102471614"); //发展人编码
+			client.getParam().setDevelopDepartId("51b1456"); //渠道编码       51b1456:小米电子渠道—佛山 
+			client.getParam().setDevelopCityCode("512039");//发展人业务区   
+			client.getParam().setDevelopEparchyCode("0757"); //发展人区号
+			client.getParam().setUserCallingArea("51b12z3"); //用户归属区域
+            
+            //创建客户信息或直接查询得到客户信息,对应首页里面的操作
+			CustomInfo cust = CreateCustomHandler.emulate(bill, client);
+			if(cust == null) {//add by lijinzhong 20140804
+				log.info("证件验证失败，证件编号:"+bill.getPsptId()+"，客户名称:"+bill.getCustomName());
+				return ;
+			}
+			
+			//活动选择和产品定制
+			ChooseProductHandler.chooseFreeProduct(client.getBrowser(), client.getParam());
+            //信息录入和费用收取
+			InformationInput.executeFreeInfomationInput(client.getBrowser(), client.getParam());
+	            
+            //提交订单,完成开户
+			Charge.submitFreeOrder(client.getBrowser(), client.getParam());
+            // 写卡
+//          WriteCard.openAccountAndWriteFreeCard(client.getBrowser(), client.getParam());
+			*/
+			
+            /*       一体化的测试      */
+            // 搜索产品名称的key 
+			//bill.setProductName("106");
+	        // 移动业务选号，电信类型（50:4G移动业务类型）
+	    //    bill.setNetTypeCode("50");
+	        // 客户归属业务区
+	     //   bill.setUserCityCode("512039");
+	        // 选择的产品编码
+	      //  bill.setSelectedProductId("99999829");
+	        // 活动类型
+	       // bill.setActivityType("CFSF001");	          
+	        //活动编码
+	  		//bill.setActivityCode("89000100");
+
+  		  //  bill.setFirstFeeType("02");
+  		  //  List<String> addServiceCode = new ArrayList<String>();
+  		//    addServiceCode.add("5574000");
+  		  //  addServiceCode.add("5573000");
+  		
+  		  //  bill.setFlowPackage("5509000");
+  		  //  bill.setFlowFirstFeeType("03");
+  		
+  		  //  bill.setFee("1");
+  		
+  		    //短信业务编码
+  		    //bill.setMessageCode("5561000");
+    		//增值业务集合
+  		   // bill.setAddServiceCode(addServiceCode );
+  		
+			/*client.getParam().setDevelopStaffId("5102471614"); //发展人编码
+			client.getParam().setDevelopDepartId("51b1456"); //渠道编码       51b1456:小米电子渠道—佛山 
+			client.getParam().setDevelopCityCode("512039");//发展人业务区   
+			client.getParam().setDevelopEparchyCode("0757"); //发展人区号
+			client.getParam().setUserCallingArea("51b12z3"); //用户归属区域
+          */
+          /**创建客户信息或直接查询得到客户信息,对应首页里面的操作*/
+			CustomInfo cust = CreateCustomHandler.emulate(bill, client);
+			if(cust == null) {//add by lijinzhong 20140804
+				log.info("证件验证失败，证件编号:"+bill.getPsptId()+"，客户名称:"+bill.getCustomName());
+				return ;
+			}
+			log.info("============"+cust.getHomeAddress());
+			//活动选择和产品定制
+       //  ChooseProductHandler.chooseProduct(client.getBrowser(), client.getParam());
+          //信息录入和费用收取
+      //    InformationInput.executeInfomationInput(client.getBrowser(), client.getParam());	            
+          //提交订单,完成开户
+        //  Charge.submitOrder(client.getBrowser(), client.getParam());
+          // 写卡
+         //  WriteCard.openAccountAndWriteCard(client.getBrowser(), client.getParam());
+          
+          
+        }
+        else {
+        	log.warn("登录失败，请检查用户名和密码是否正确.");
+            throw new Exception("登录失败!");
+        }
+    }
+}

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>电商平台 - API详情</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="shortcut icon" href="" type="image/x-icon">
+<link rel="stylesheet" href="css/base-min.css">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/error.css">
+<link rel="stylesheet" href="css/open-base.css">
+<link rel="stylesheet" href="css/sh.css">
+<link rel="stylesheet" href="css/editor-pkg-min-datauri.css" >
+<link rel="stylesheet" href="css/right-tools.css">
+<script src="js/jquery-1.4.2.min.js"></script>
+</head>
+<body>
+	<div class="top-header-menu">
+		<div class="top-menu-cont">
+			<h1 class="top-logo" style="display:none;">
+				<a class="top-logo-link" href="http://open.taobao.com/" alt="淘宝开放平台"></a>
+			</h1>
+			<!-- 搜索start -->
+			<div class="search-wrap">
+				<div class="search">
+					<div id="search">
+						<div class="default"><span class="initText">请输入您要搜索的内容</span></div>
+						<div class="actived">
+							<input autocomplete="off" class="searchText" id="searchText" t="api" onkeypress="EnterPress()" onkeydown="EnterPress(event)" type="text"> 
+							<a class="sBtn" onclick="searchapi()"></a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- 搜索end -->
+			<ul class="top-nav-menu clearfix">
+				<li><a href="#">文档</a></li>
+				<li class="selected"><a href="index.html">API<iclass="reddot"></i></a></li>
+			</ul>
+		</div>
+	</div>
+	<!-- header end -->
+
+	<!--header end-->
+	<!--面包屑 begin-->
+	<div class="crumbs">
+		<a href="index.html">用户API</a>
+		<a class="last" href="#">com.ztesoft.remote.basic.inf.IFeeQueryBasicService</a>
+		<!--class with "last"-->
+	</div>
+	<!--面包屑 end-->
+
+	<div class="container grid-s165m0 layout">
+		<!--正文区 begin-->
+		<div class="col-main bg_line">
+			<div class="main-wrap">
+				<div class="title-wrap">
+					<h1 class="open-bg title">
+						com.ztesoft.remote.basic.inf.IFeeQueryBasicService 费用查询API 
+					</h1>
+
+					<ul class="api-sub-title layout clearfix">
+						<li class="sub-title"><a class="link" href="#param-in-h2">函数输入参数</a></li>
+						<li class="sub-title last"><a class="link" href="#param-out-h2">函数输出参数</a></li>
+					</ul>
+				</div>
+
+				<div class="api-detail-bd" id="bd">
+					<div>
+						<p class="title-intro">费用查询API[账户余额、实时话费、欠费查询、缴费记录、流量卡充值记录、流量卡剩余流量、上月账单、本月账单、PUK查询、账单查询、订单进度查询、短信清单查询、数据清单查询、语音清单查询、增值业务清单查询、产品资料查询、增值订购关系查询、产品列表查询]</p>
+						<!-- 函数入参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-in-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-in')"> 函数输入参数<font color="blue"><b>class com.ztesoft.remote.basic.params.req.PackageUseRequest</b></font>
+							</h2>
+							<div id="param-in" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">手机号码</td>
+											<td class="middle"><font color='red'>accNbr</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">移动用户： 11 位手机号     固网 /宽带 /小灵通： 0+ 区号 +号码 （“ 0+ 区号”例如： 010 北京， 北京， 021 上海，0531 济南。）</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">用户属性</td>
+											<td class="middle"><font color='red'>destinationAttr</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">用户属性( 0固话 1小灵通 2移动用户  3ADSL)</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">帐期格式 </td>
+											<td class="middle"><font color='red'>billingCycle</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">帐期 格式 YYYYMM</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">产品id</td>
+											<td class="middle"><font color='red'>product_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">产品id(套餐使用情况)</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">规则编码</td>
+											<td class="middle"><font color='red'>service_code</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">规则编码</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数入参>>end -->
+						<!-- 函数出参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-out-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-out')"> 函数输出参<font color="blue"><b>class com.ztesoft.remote.basic.params.resp.PackageUseResponse</b></font>
+							</h2>
+							<div id="param-out" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>										
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">业务参数</td>
+											<td class="middle"><font color='red'>map</font></td>
+											<td class="middle">java.util.Map</td>
+											<td class="middle">Y</td>
+											<td class="left">调用EOP返回值</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数出参>>end -->						
+					</div>
+					
+				</div>
+			</div>
+		</div>
+		<!--正文区 end-->
+		<!--左侧导航栏 begin-->
+		<div class="col-sub">
+			<div class="APIgory">
+				<ul id="leftnavigation">
+					<li>
+						<div class="APIgory-title">
+							<a href="index.html">返回&nbsp;<span class="APIgory-sub-title">com.ztesoft.remote.basic.inf.IFeeQueryBasicService</span></a>
+						</div>
+					</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryCurrentPackage.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryCurrentPackage.html" title="qryCurrentPackage">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryCurrentPackage</a>
+									<p class="APIgory-intro info-overflow">当前套餐查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.realTimeFee.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.realTimeFee.html" title="realTimeFee">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.realTimeFee</a>
+									<p class="APIgory-intro info-overflow">实时话费</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.arrearage.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.arrearage.html" title="arrearage">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.arrearage</a>
+									<p class="APIgory-intro info-overflow">欠费查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.payFeeRecords.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.payFeeRecords.html" title="payFeeRecords">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.payFeeRecords</a>
+									<p class="APIgory-intro info-overflow">缴费记录</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryWalletBalance.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryWalletBalance.html" title="queryWalletBalance">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryWalletBalance</a>
+									<p class="APIgory-intro info-overflow">钱包余额</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryPackageUse.html">
+							<div class="APIgory-list focus ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryPackageUse.html" title="qryPackageUse">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryPackageUse</a>
+									<p class="APIgory-intro info-overflow">套餐使用情况查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.accBalance.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.accBalance.html" title="accBalance">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.accBalance</a>
+									<p class="APIgory-intro info-overflow">账户余额</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.pukQry.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.pukQry.html" title="pukQry">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.pukQry</a>
+									<p class="APIgory-intro info-overflow">PUK查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.voiceUDRQuery.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.voiceUDRQuery.html" title="voiceUDRQuery">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.voiceUDRQuery</a>
+									<p class="APIgory-intro info-overflow">语音清单查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.smsudrQuery.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.smsudrQuery.html" title="smsudrQuery">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.smsudrQuery</a>
+									<p class="APIgory-intro info-overflow">短信清单查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.dataUDRQuery.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.dataUDRQuery.html" title="dataUDRQuery">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.dataUDRQuery</a>
+									<p class="APIgory-intro info-overflow">数据清单查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.spudrQuery.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.spudrQuery.html" title="spudrQuery">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.spudrQuery</a>
+									<p class="APIgory-intro info-overflow">增值业务清单查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryProdInst.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryProdInst.html" title="qryProdInst">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryProdInst</a>
+									<p class="APIgory-intro info-overflow">产品资料查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.subInstQry.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.subInstQry.html" title="subInstQry">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.subInstQry</a>
+									<p class="APIgory-intro info-overflow">增值订购关系查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryProdInstList.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryProdInstList.html" title="qryProdInstList">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryProdInstList</a>
+									<p class="APIgory-intro info-overflow">产品列表查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.paymentInformationList.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.paymentInformationList.html" title="paymentInformationList">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.paymentInformationList</a>
+									<p class="APIgory-intro info-overflow">充值记录查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.preOrderList.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.preOrderList.html" title="preOrderList">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.preOrderList</a>
+									<p class="APIgory-intro info-overflow">订单列表查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.hisBills.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.hisBills.html" title="hisBills">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.hisBills</a>
+									<p class="APIgory-intro info-overflow">历史账单</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.trafficCardRecords.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.trafficCardRecords.html" title="trafficCardRecords">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.trafficCardRecords</a>
+									<p class="APIgory-intro info-overflow">流量卡充值记录</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.remianingTrafficFlow.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.remianingTrafficFlow.html" title="remianingTrafficFlow">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.remianingTrafficFlow</a>
+									<p class="APIgory-intro info-overflow">流量卡剩余流量</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.lastMonthBill.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.lastMonthBill.html" title="lastMonthBill">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.lastMonthBill</a>
+									<p class="APIgory-intro info-overflow">上月账单</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.currMonthBill.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.currMonthBill.html" title="currMonthBill">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.currMonthBill</a>
+									<p class="APIgory-intro info-overflow">本月账单</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryFlowSum.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryFlowSum.html" title="qryFlowSum">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryFlowSum</a>
+									<p class="APIgory-intro info-overflow">流量汇总查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIntegral.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIntegral.html" title="queryIntegral">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIntegral</a>
+									<p class="APIgory-intro info-overflow">积分查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIntegralConsumeRecords.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIntegralConsumeRecords.html" title="queryIntegralConsumeRecords">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIntegralConsumeRecords</a>
+									<p class="APIgory-intro info-overflow">积分消费记录</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.feeNumberShow.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.feeNumberShow.html" title="feeNumberShow">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.feeNumberShow</a>
+									<p class="APIgory-intro info-overflow">缴费号码展示</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.feeCycleShow.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.feeCycleShow.html" title="feeCycleShow">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.feeCycleShow</a>
+									<p class="APIgory-intro info-overflow">话费周期展示</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.alreadyChargeFee.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.alreadyChargeFee.html" title="alreadyChargeFee">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.alreadyChargeFee</a>
+									<p class="APIgory-intro info-overflow">已充话费</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageCycleShow.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageCycleShow.html" title="packageCycleShow">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageCycleShow</a>
+									<p class="APIgory-intro info-overflow">套餐周期展示</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageNumberShow.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageNumberShow.html" title="packageNumberShow">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageNumberShow</a>
+									<p class="APIgory-intro info-overflow">套餐号码展示</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageDetails.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageDetails.html" title="packageDetails">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.packageDetails</a>
+									<p class="APIgory-intro info-overflow">套餐详情</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIncome.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIncome.html" title="queryIncome">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIncome</a>
+									<p class="APIgory-intro info-overflow">收益查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIncomeCount.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIncomeCount.html" title="queryIncomeCount">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.queryIncomeCount</a>
+									<p class="APIgory-intro info-overflow">收益统计</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryCustOrder.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryCustOrder.html" title="qryCustOrder">com.ztesoft.remote.basic.inf.IFeeQueryBasicService.qryCustOrder</a>
+									<p class="APIgory-intro info-overflow">订单进度查询</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+				</ul>
+			</div>
+		</div>
+		<!--左侧导航栏 end-->
+	</div>
+
+	<script type="text/javascript">
+		function changeHide(imgDom, contentDivId) {
+			var contentDiv = document.getElementById(contentDivId);
+			if (contentDiv.style.display == "none") {
+				contentDiv.style.display = "";
+				imgDom.src = "image/tri_down.png";
+			} else {
+				contentDiv.style.display = "none";
+				imgDom.src = "image/tri_right.png";
+			}
+		}
+		
+		$(function(){
+				$($("#leftnavigation").find("li")).each(function(){
+					$(this).bind("click",function(){
+						 window.location.href=$(this).attr("url");
+					});	
+					
+				});
+		
+		})
+	</script>
+	<!--footer begin-->
+	<div id="footer">
+		<div class="footer">
+			<div class="contact">
+				<a class="weibo" href="#" target="_blank">电商平台</a> 
+			</div>
+
+			<div class="about">
+				<span class="copyright">Copyright ? 2003-2012 ZteSoft 版权所有</span>
+				<span class="links">
+				 <a href="#" target="_blank">关于我们</a>
+				</span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

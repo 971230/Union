@@ -1,0 +1,856 @@
+package com.powerise.ibss.taglibs;
+
+import com.powerise.ibss.framework.ActionDispatch;
+import com.powerise.ibss.framework.DynamicDict;
+import com.powerise.ibss.framework.FrameException;
+import com.powerise.ibss.util.SysSet;
+
+import org.apache.commons.fileupload.DiskFileUpload;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.log4j.Logger;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.jsp.PageContext;
+
+import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.DecimalFormat;
+import java.util.*;
+public class TagFunc  {
+
+	private final static String  tempPath = "d:\\temp";
+	private final static String  special_item = "`flag`msg`exception`";
+	private static Logger logger = Logger.getLogger(TagFunc.class);
+		public static String getValue(DynamicDict aDict,String s_name){
+		if(aDict ==null || s_name==null) return null;
+		Object obj = null;
+
+		s_name = s_name.trim();
+		try{
+
+//    		add by ryan 2007.3.30 begin
+    		obj   = aDict.getValueByName(s_name, false);
+    		if ((obj == null) || (obj.equals(""))) {
+    			return null;
+    		}
+
+//    			add by ryan 2007.3.30 begin
+/*
+ 			obj = aDict.getValueByName(s_name, false);
+			if(obj==null) return null;
+*/
+			if(obj.getClass().getName().endsWith(".String")) return (String)obj;
+		}catch(Exception e){
+		}
+		return null;
+  }
+
+	public static Object getObject(PageContext pc,Object objValue,String paraName,String scope ) {
+    	if(objValue==null || paraName==null ) return null;
+    	Object      obj       = null;
+    	ArrayList   aList     = null;
+    	HashMap     aHash     = null;
+    	Hashtable   bHash     = null;
+    	DynamicDict aDict     = null;
+    	String      class_name= null;
+    	String      f_name    = null;
+
+    	int    iPos   = 0;
+    	int    iIndex = 0;
+
+    	try{
+
+	    	class_name = objValue.getClass().getName();
+	    	//logger.info("---->>对象类型:"+class_name);
+	    	paraName   = paraName.trim();
+	    	if(paraName.equals("")) return null;
+	    	iPos = paraName.indexOf(".");
+	    	if(iPos<0){
+	    		f_name   = paraName;
+	    		paraName = "";
+	    	}else{
+	    		f_name   = paraName.substring(0,iPos);
+	    		if(paraName.indexOf("$")>-1){
+	    			paraName = paraName.substring(iPos+2);
+	    			paraName  = pc.getRequest().getParameter(paraName);
+	    		}else
+	    		 paraName = paraName.substring(iPos+1);
+	    	}
+	    	f_name = f_name.trim();
+
+	    	if(f_name.equals("")) return null;
+
+	    	if(f_name.startsWith("``")) {
+	    		f_name = f_name.substring(2);
+				obj    = getObject( pc,pc, f_name ,"");
+
+				logger.info(f_name+"="+obj);
+	    		if(obj==null || !obj.getClass().getName().endsWith(".String")) return null;
+	    		f_name = (String) obj;
+	    		f_name = f_name.trim();
+	    		obj    = null;
+	    	}
+	    	if(f_name.equals("")) return null;
+
+
+	    	if(class_name.startsWith("java.lang.")){
+	    		if(paraName.equals("")) return objValue;
+	    		return null;
+	    	}
+	    	if(class_name.indexOf("HttpServletRequest")>-1 || class_name.indexOf("RequestFacade")>-1){
+				HttpServletRequest request = (HttpServletRequest)objValue;
+				obj   = request.getAttribute(f_name);
+
+				if(obj==null) obj  = request.getParameter(f_name);
+				if(paraName.equals("")) return obj;
+				return getObject(pc,obj,paraName,scope);
+			}
+			if(class_name.indexOf("PageContextImpl")>-1 || class_name.indexOf("PageContext")>-1){
+				PageContext ppc = (PageContext)objValue;
+				obj   = ppc.getAttribute(f_name);
+
+				if(scope==null) scope = "";
+				scope = scope.trim().toLowerCase();
+
+				if(scope.equals("") || scope.startsWith("req")){
+					if(obj==null) obj  = ppc.getRequest().getAttribute(f_name);
+					if(obj==null) obj  = ppc.getRequest().getParameter(f_name);
+				}
+				if(scope.startsWith("ses")){
+					if(obj==null) obj  = ppc.getSession().getAttribute(f_name);
+				}
+				if(paraName.equals("")) return obj;
+				return getObject(pc,obj,paraName,scope);
+			}
+	    	//如果对象为字典
+	    	if(class_name.endsWith("DynamicDict")){
+	    		aDict = (DynamicDict)objValue;
+
+	    		if(f_name.equalsIgnoreCase("`flag")) {
+	    			return String.valueOf(aDict.flag);
+	    		}
+	    		if(f_name.equalsIgnoreCase("`msg" )) {
+	    			return aDict.msg;
+	    		}
+	    		if(f_name.equalsIgnoreCase("`exception" )) {
+	    			return aDict.exception;
+	    		}
+
+//	    		add by ryan 2007.3.30 begin
+	    		obj   = aDict.getValueByName(f_name, false);
+	    		if ((obj == null) || (obj.equals(""))) {
+	    			return null;
+	    		}
+
+//	    			add by ryan 2007.3.30 begin
+
+	    		//del by ryan 2007.3.30 begin
+	    		/*
+	    		try{
+	    			obj   = aDict.getValueByName(f_name);
+	    		}catch(Exception e){
+	    			return null;
+	    		}
+	    		*/
+//	    		del by ryan 2007.3.30 end
+
+
+
+	    		if(paraName.equals("")) return obj;
+
+	    		return getObject(pc,obj,paraName,scope);
+	    	}
+
+	    	if(class_name.equals("java.util.ArrayList")){
+	    		aList = (ArrayList)objValue;
+	    		if(f_name.equals("`size")) return String.valueOf(aList.size());
+	    		try{
+	    			iIndex= Integer.parseInt(f_name);
+	    		}catch(Exception e ){
+	    			return null;
+	    		}
+	    		if(aList.size()<=iIndex) return null;
+	    		obj = aList.get(iIndex);
+	    		if(paraName.equals("")) return obj;
+	    		return getObject(pc,obj,paraName,scope);
+	    	}
+
+	    	if(class_name.equals("java.util.HashMap")){
+				aHash = (HashMap)objValue;
+				obj   = aHash.get(f_name);
+	    		if(paraName.equals("")) return obj;
+	    		return getObject(pc,obj,paraName,scope);
+			}
+			if(class_name.equals("java.util.Hashtable")){
+				bHash = (Hashtable)objValue;
+				obj   = bHash.get(f_name);
+	    		if(paraName.equals("")) return obj;
+	    		return getObject(pc,obj,paraName,scope);
+			}
+    	}catch(Exception e){
+    		logger.info("取值异常:"+e.getMessage());
+    	}
+    	return null;
+    }
+
+	public static void pushPara(DynamicDict aDict,String rs_name,String paraName,String paraValue) {
+    	if(aDict==null || paraName==null ) return ;
+
+    	Object    obj   = null;
+    	Object    objTmp= null;
+    	ArrayList aList = null;
+    	HashMap   aHash = null;
+    	Hashtable bHash = null;
+    	String    class_name = null;
+    	String    s_rs_name  = null;
+    	try{
+	    	if(rs_name==null || rs_name.trim().equals("")){
+				aDict.setValueByName( paraName, paraValue);
+				return ;
+	    	}
+	    	rs_name  = rs_name.trim();
+	    	s_rs_name= rs_name.toUpperCase();
+	    	try{
+	    		obj = aDict.getValueByName(rs_name, false);
+	    	}catch(Exception e1){
+	    	}
+	    	//如果不存在该结果集，则创建
+			if(obj==null){
+
+				aHash = new HashMap();
+				aHash.put(paraName, paraValue);
+
+				if(s_rs_name.equals("PARAMETER")){
+					aDict.setValueByName(rs_name,aHash);
+				}else{
+					aList = new ArrayList();
+					aList.add(aHash);
+					aDict.setValueByName(rs_name,aList);
+				}
+				return ;
+			}
+			class_name = obj.getClass().getName();
+
+
+			if(class_name.equals("java.util.ArrayList")){
+				aList = (ArrayList)obj;
+				objTmp= null;
+				if(aList.size()>0) objTmp = aList.get(0);
+				if(objTmp!=null){
+					class_name = obj.getClass().getName();
+					if(class_name.equals("java.util.HashMap")){
+						aHash = (HashMap)objTmp;
+						aHash.put(paraName, paraValue);
+					}
+					if(class_name.equals("java.util.Hashtable")){
+						bHash = (Hashtable)objTmp;
+						bHash.put(paraName, paraValue);
+					}
+				}
+				return ;
+	    	}
+	    	if(class_name.equals("java.util.HashMap")){
+				aHash = (HashMap)obj;
+				aHash.put(paraName, paraValue);
+				return ;
+			}
+			if(class_name.equals("java.util.Hashtable")){
+				bHash = (Hashtable)obj;
+				bHash.put(paraName, paraValue);
+				return ;
+			}
+    	}catch(Exception e){
+    		logger.info("pushPara DynamicDict :"+e.getMessage());
+    	}
+    }
+
+    //支撑函数
+	//依据参数名称，从request中取得值
+	public static  String getValueFromRequest(PageContext pg,String paramName,String scope){
+		if (scope    ==null || scope.trim().equals("" )   ) return null;
+		if (paramName==null || paramName.trim().equals("")) return null;
+		scope = ";"+scope.trim().toLowerCase()+";";
+		javax.servlet.http.HttpServletRequest request = (javax.servlet.http.HttpServletRequest)pg.getRequest();
+		javax.servlet.http.HttpSession        session = null;
+		if (request == null ) return null;
+		if (";request;r;".indexOf(scope)>-1){
+			return request.getParameter(paramName);
+		}
+		Object obj = null;
+		String className = null;
+		if (";session;s;".indexOf(scope)>-1){
+			session = request.getSession();
+			if (session == null ) return null;
+			obj = session.getAttribute(paramName);
+			if (obj ==null) return null;
+			className = obj.getClass().getName();
+			if (className!=null && className.indexOf("String")>-1){
+				return (String)obj;
+			}
+		}
+		return null;
+	}
+	public static String replStr(String str,String s,String d){
+		String ret = "";
+		int    iPos= 0;
+		int    iSubLen = s.length();
+		while(true){
+			iPos = str.indexOf(s);
+			if(iPos<0) break;
+			ret += str.substring(0,iPos) ;
+			ret += d ;
+			str =  str.substring(iPos+iSubLen);
+		}
+		ret += str;
+		return ret;
+	}
+	public static void copyHash(HashMap sHash,HashMap dHash,boolean bRepl){
+		if(sHash==null || dHash==null) return ;
+		Iterator it = null;
+		it = dHash.keySet().iterator();
+		while(it!=null && it.hasNext()){
+			Object f_name  = (String)it.next();
+			if(f_name==null) continue;
+			if(!bRepl && dHash.containsKey(f_name)) continue;
+			Object f_value = (String) sHash.get(f_name);
+			dHash.put(f_name,f_value);
+		}
+	}
+	//判断两个HashMap 中是否相同,判断键名称有dHash来提供
+	public static boolean isEuqals(HashMap sHash,HashMap dHash){
+		if(sHash==null || dHash==null) return false;
+		String   f_name   = null;
+		String   f_value  = null;
+		String   f_temp   = null;
+		Iterator it = null;
+		it = dHash.keySet().iterator();
+		while(it!=null && it.hasNext()){
+			f_name  = (String)it.next();
+			if(f_name==null) continue;
+			f_value = (String) sHash.get(f_name);
+			f_temp  = (String) dHash.get(f_name);
+			if(f_value==null) f_value = "";
+			if(f_temp ==null) f_temp  = "";
+			if(f_temp.equals(f_value)) continue;
+			return  false;
+		}
+		return true;
+	}
+	//判断列表中是否存在指定的值
+	public static HashMap getFirstValue(ArrayList vList,HashMap vHash){
+		if(vHash==null || vList==null) return null;
+		int      iLoop    = 0;
+		int      iLoopNum = 0;
+		HashMap  fHash    = null;
+		boolean  bExist   = true;
+
+		iLoopNum = vList.size();
+		for(iLoop=0;iLoop<iLoopNum;iLoop++){
+			fHash = (HashMap)vList.get(iLoop);
+			if(fHash==null) continue;
+			bExist = isEuqals(fHash , vHash);
+			if(bExist) return fHash;
+		}
+		return null;
+	}
+
+	public static HashMap getValues(String str){
+		if(str==null) return null;
+		HashMap aHash = null;
+		int       iPos1  = 0;
+		int       iPos   = 0;
+		String    f_name = null;
+		String    f_value=null;
+		str = "`" + str;
+		while(!str.equals("")){
+			iPos  = str.indexOf("`");
+			if(iPos<0) {
+				f_name = str;
+				str    = "";
+			}else{
+				f_name = str.substring(0,iPos);
+				str    = str.substring( iPos+1 );
+			}
+			iPos   = f_name.indexOf("=");
+			if(iPos<0 || f_name.trim().equals("")) continue;
+
+			f_value= f_name.substring(iPos+1);
+			f_name = f_name.substring(0,iPos);
+			f_name = f_name.trim();
+			if(aHash==null) aHash = new HashMap();
+			aHash.put(f_name , f_value);
+		}
+		return aHash;
+	}
+	public static HashMap getParamData(PageContext pc) {
+		HttpServletRequest _httpRequest = null;
+		HashMap hashData   = null;
+		Enumeration   keys    = null;
+		String s_name  = null;
+		String s_value = null;
+		if(pc==null) return null;
+		_httpRequest = (HttpServletRequest)pc.getRequest();
+		if(_httpRequest==null) return null;
+		keys = _httpRequest.getParameterNames();
+		while(keys!=null && keys.hasMoreElements()){
+			s_name = (String ) keys.nextElement();
+			if(s_name==null || s_name.trim().equals("")) continue;
+			s_value= _httpRequest.getParameter(s_name);
+			if(hashData==null) hashData = new HashMap();
+			hashData.put(s_name,s_value);
+		}
+		return hashData;
+	}
+	public static HashMap getRequestData(PageContext pc) {
+		HttpServletRequest _httpRequest = null;
+
+		HashMap hashData   = null;
+		String  web_root   = ""  ;
+		String  file_name  = null;
+		String  real_file  = null;
+		String  file_suffix= null;
+		String  file_path  = null;
+		String  save_file  = null;
+		long    file_size  = 0   ;
+
+
+		FileItem fi         = null;
+		List     fileItems  = null;
+		Iterator it         = null;
+		Object   obj        = null;
+		String   class_name = null;
+		String   f_name     = null;
+		String   f_value    = null;
+
+		if(pc==null) return null;
+		_httpRequest = (HttpServletRequest)pc.getRequest();
+		if(_httpRequest==null) return null;
+
+		web_root = _httpRequest.getRealPath("/");
+		if(web_root==null) web_root = "";
+		web_root = replStr(web_root , "/"  , File.separator);
+		web_root = replStr(web_root , "\\" , File.separator);
+		if(!web_root.endsWith(File.separator)) web_root+= File.separator;
+
+		file_path = web_root + "attach"+File.separator;
+		//创建一个新的文件上传句柄
+		DiskFileUpload upload  = null;
+
+		try{
+			//设置上传参数
+			upload = new DiskFileUpload();
+			upload.setSizeThreshold(4096);
+			upload.setSizeMax(1000000);
+			upload.setRepositoryPath(tempPath);
+			//解析请求
+			upload    = new DiskFileUpload();
+			upload.setHeaderEncoding("GBK");
+			fileItems = upload.parseRequest(_httpRequest);
+			if(fileItems!=null) it = fileItems.iterator();
+			while(it!=null && it.hasNext()){
+				obj        =  it.next();
+				if(obj==null) continue;
+				class_name = obj.getClass().getName();
+				if(class_name.indexOf("FileItem")<0) continue;
+				fi = (FileItem) obj;
+				f_name  = fi.getFieldName();
+				if(f_name==null) f_name = "";
+				f_name  = f_name.toUpperCase().trim();
+				if (fi.isFormField()){
+					f_value = new String(fi.getString("GBK")) ;
+					if(f_name==null) continue;
+					if(f_value==null) f_value = "";
+					if(hashData==null) hashData = new HashMap();
+					hashData.put(f_name,f_value);
+					continue;
+				}
+				file_name  = fi.getName();
+				file_size  = fi.getSize();
+
+
+				file_name  = getFileName(file_name);
+				file_suffix= getFileSuffix(file_name);
+
+				save_file  = getFileSerial();
+				save_file  = save_file +"."+file_suffix;
+				real_file  = file_path+save_file;
+				if(hashData==null) hashData = new HashMap();
+
+				real_file = File.separator+"attach"+File.separator+save_file;
+				hashData.put(f_name,real_file);
+				hashData.put(f_name+"_NAME" ,real_file);
+				hashData.put(f_name+"_ALIAS",file_name);
+				hashData.put(f_name+"_SIZE" ,String.valueOf(file_size));
+				fi.write(new File(file_path, save_file));
+				hashData.put("_WEB_ROOT_",web_root);
+			}
+		}catch(Exception e){
+			logger.info("带文件上传取参数异常"+ e.getMessage());
+		}
+		return hashData;
+	}
+	public static String getFileSerial(){
+		DynamicDict  aDict       = new DynamicDict(1);
+
+		String    file_serial= null;
+		HashMap   aHash      = new HashMap();
+		HashMap   bHash      = null;
+		Object    obj        = null;
+		ArrayList aList      = null;
+
+		try{
+			aDict.setValueByName("parameter",aHash);
+			aDict.flag	     = 1;
+			aDict.m_ActionId = "WB_SEQ_01001";
+			aDict = ActionDispatch.dispatch(aDict);
+			obj   = aDict.m_Values.get("WB_SEQ_01001");
+			if(obj==null) return null;
+			if(obj.getClass().getName().indexOf("ArrayList")<0) return null;
+			aList = (ArrayList)obj;
+			if(aList.size()>0){
+				bHash = (HashMap)aList.get(0);
+				if(bHash!=null){
+					file_serial = (String)bHash.get("file_serial");
+					if(file_serial==null) file_serial = (String)bHash.get("FILE_SERIAL");
+				}
+			}
+		}catch(Exception e){
+
+		}
+		return file_serial;
+
+
+	}
+	public static String getFileName(String s_file_name){
+		//入参检验
+		int    iPos  = 0;
+		if(s_file_name==null) return "";
+		s_file_name = s_file_name.trim();
+
+		iPos   = s_file_name.lastIndexOf("/");
+		if(iPos<0){
+			iPos = s_file_name.lastIndexOf("\\");
+		}
+		if(iPos<0) return s_file_name;
+		return s_file_name.substring(iPos+1);
+	}
+	public static String getFileSuffix(String s_file_name){
+		//入参检验
+		int    iPos  = 0;
+		if(s_file_name==null) return "";
+		s_file_name = s_file_name.trim();
+		iPos   = s_file_name.lastIndexOf(".");
+		if(iPos<0) return "";
+		return s_file_name.substring(iPos+1);
+	}
+
+	//加密
+
+	public static String crypt(String in,String ver) throws FrameException //入参明文或密文->出参密文
+	{
+		final String decrypted_charset_2   =  "0123456789 "; //明文字符集 老的
+		final String crypted_charset_2     = "\\?*&^%$#@!~"; //密文字符集 老的
+		final String decrypted_charset_3   =  "0123456789 *#";  //明文字符集 贵州新的，加了*#
+		final String crypted_charset_3     = "\\?{&^%$}@!~[]";  //密文字符集 贵州新的
+		final int[] d2c = new int[] {3,5,1,2,0,4};    //明文-》密文字符位置对应
+		final int[] c2d = new int[] {4,2,3,0,5,1};    //密文-》明文字符位置对应
+		String decrypted_charset, crypted_charset;
+		if(ver==null || ver.trim().equals("")) return in;
+		ver = com.powerise.ibss.util.SysSet.getSystemSet("System", "CryptVer", "");
+		if(ver==null || ver.trim().equals("")) return in;
+		//老的
+		decrypted_charset = decrypted_charset_2;
+		crypted_charset = crypted_charset_2;
+		if(ver.equals("3")){//新的
+			decrypted_charset = decrypted_charset_3;
+			crypted_charset = crypted_charset_3;
+		}else{
+			return in;
+		}
+		int i;
+		//入参前6位有效
+		if(in.length()>6) in = in.substring(0,6);
+			//检查是否入参已为密文：长度为6位，并且每个字符都是密文字符
+			if(in.length()==6){
+			for(i = 0; i<6; i++)
+				if( crypted_charset.indexOf(in.charAt(i)) <0 ) {
+					break;
+				}
+			if(i>=6) return in;
+		}
+		//检查是否入参为明文：补足6位，并且每个字符都是明文字符
+		in = (in + "      ").substring(0,6);   //补足6位
+		for(i = 0; i<6; i++)
+			if( decrypted_charset.indexOf(in.charAt(i)) <0 ){
+			//throw new FrameException(-9900201,"密码不符合密码规则：0-9数字组成");
+			return in;
+		}
+		//加密
+		String out = "";
+		for(i = 0; i<6; i++){
+			int p = c2d[i];
+			out += crypted_charset.charAt(decrypted_charset.indexOf(in.substring(p,p+1)));
+		}
+		return out;
+    }
+	//解密
+	public static String decrypt(String in,String ver)   throws FrameException //入参明文或密文->出参明文
+	{
+		final String decrypted_charset_2   =  "0123456789 "; //明文字符集 老的
+		final String crypted_charset_2     = "\\?*&^%$#@!~"; //密文字符集 老的
+		final String decrypted_charset_3   =  "0123456789 *#";  //明文字符集 贵州新的，加了*#
+		final String crypted_charset_3     = "\\?{&^%$}@!~[]";  //密文字符集 贵州新的
+		final int[] d2c = new int[] {3,5,1,2,0,4};    //明文-》密文字符位置对应
+		final int[] c2d = new int[] {4,2,3,0,5,1};    //密文-》明文字符位置对应
+		String decrypted_charset, crypted_charset;
+		int i = 0;
+		if(ver.equals("2"))  //老的
+		{
+			decrypted_charset = decrypted_charset_2;
+			crypted_charset = crypted_charset_2;
+		}else if(ver.equals("3")) //新的
+		{
+			decrypted_charset = decrypted_charset_3;
+			crypted_charset = crypted_charset_3;
+		}else{
+			return in;
+		}
+
+		//入参前6位有效
+		if(in.length()>6) in = in.substring(0,6);
+		//检查是否入参已为明文：长度为0-6位，并且每个字符都是明文字符
+		in = (in + "      ").substring(0,6);   //补足6位
+		for(i = 0; i<6; i++){
+			if( decrypted_charset.indexOf(in.charAt(i)) <0 ){
+				break;
+			}
+		}
+		if(i>=6) return in.trim();
+
+		//检查是否入参为密文：长度为6位，并且每个字符都是密文字符
+		for(i = 0; i<6; i++){
+			if( crypted_charset.indexOf(in.charAt(i)) <0 ){
+				//throw new FrameException(-9900202,"密码解密错误");
+				return in;
+			}
+		}
+
+		//解密
+		String out = "";
+		for(i = 0; i<6; i++){
+			int p = d2c[i];
+			out += decrypted_charset.charAt(crypted_charset.indexOf(in.substring(p,p+1)));
+		}
+		return out.trim();
+    }
+    //取得堆栈信息
+    public static  String getStackInfo(Exception e ) {
+		StringWriter sw = null;
+		PrintWriter pw = null;
+		String strMsg = "";
+
+		sw = new StringWriter();
+		pw = new PrintWriter(sw);
+		try {
+			e.printStackTrace(pw);
+			sw.flush();
+			strMsg = sw.toString();
+			sw.close();
+			pw.close();
+		} catch (java.io.IOException le) {
+			strMsg = "待定处理";
+		}
+		return strMsg;
+	}
+	public static ArrayList getDataFromStr(String str){
+		if(str==null) return null;
+
+		int       iPos1  = 0;
+		int       iPos   = 0;
+		String    f_name = null;
+		String    f_value= null;
+		String    f_expr = null;
+		ArrayList aList  = null;
+		HashMap   aHash  = null;
+		while(!str.equals("")){
+			iPos  = str.indexOf("`");
+			if(iPos<0){
+				f_expr = str;
+				str    = "" ;
+			}else{
+				f_expr = str.substring(0,iPos );
+				str    = str.substring(iPos + 1);
+			}
+			iPos = f_expr.indexOf("=");
+			if(iPos<0) continue;
+
+			f_name  = f_expr.substring(0,iPos );
+			f_value = f_expr.substring(iPos + 1);
+
+			if(aHash==null || aHash.containsKey(f_name)) {
+				aHash = new HashMap();
+				if(aList==null) aList= new ArrayList(10);
+				aList.add(aHash);
+			}
+			aHash.put(f_name,f_value);
+		}
+		return aList;
+	}
+	public static String patternPrint(String pattern, double x) {
+       DecimalFormat df = new DecimalFormat(pattern);
+       String money = df.format(x); //当
+		if(money.indexOf(".00")>-1){ 
+			String last_Prefix = money.substring(money.lastIndexOf(".00"));
+			if(".00".equals(last_Prefix))
+				money =money.substring(0,money.indexOf(".00"));
+		}else if(money.indexOf(".0")>-1){
+			String last_Prefix = money.substring(money.lastIndexOf(".0"));
+			if(".0".equals(last_Prefix))
+				money =money.substring(0,money.indexOf(".0"));
+		}
+		return money;
+    }
+    public static String replstr(String str,String source,String dest){
+		if(str==null || str.equals("") || source==null || source.equals("")) return str;
+		if(dest==null) dest = "";
+		int iSubLen = source.length();
+		String sRet = "";
+		int    iPos = 0;
+		while(!str.equals("")){
+			iPos = str.indexOf(source);
+			if(iPos<0)break;
+			sRet += str.substring(0,iPos);
+			sRet += dest;
+			str  = str.substring(iPos+iSubLen);
+		}
+		sRet += str;
+		return sRet;
+	}
+
+    //银行支付相关函数
+	public static String getCF_Info(String cf_id){
+		DynamicDict aDict = null;
+		String      item  = "";
+		Object      obj   = null;
+		try{
+			aDict	= new DynamicDict(1);
+			aDict.m_ActionId	= "WB_GETCF";
+			aDict.setValueByName("CF_ID",cf_id);
+			aDict = ActionDispatch.dispatch(aDict);
+			if (aDict.flag >= 0 ){
+				obj = aDict.getValueByName("CF_VALUE");
+				if(obj==null || !obj.getClass().getName().equals("java.lang.String")) return "";
+				item = (String)obj;
+				return item;
+			}
+			return item;
+		}catch(FrameException e){
+			return "";
+		}finally{
+			if(aDict!=null) aDict.destroy();
+			aDict = null;
+		}
+	}
+	public static String getSequence(String vServName){
+		DynamicDict aDict = new DynamicDict(1);
+		ArrayList   aList = null;
+		HashMap     aHash = null;
+		try{
+			if(vServName==null || vServName.trim().equals("")) vServName = "MWB_139";
+
+			aDict.m_ActionId = vServName;
+			aDict.flag = 1;
+			aDict.setValueByName("parameter",new HashMap());
+			aDict = ActionDispatch.dispatch(aDict);
+
+			aList = (ArrayList)aDict.getValueByName(aDict.m_ActionId, false);
+			if(aList!=null && aList.size()>0){
+				aHash = (HashMap)aList.get(0);
+			}
+			if(aHash!=null){
+				return (String)aHash.get("SERIAL_NO");
+			}
+		}catch(FrameException e){
+
+		}finally{
+			if(aDict!=null) aDict.destroy();
+			aDict = null;
+		}
+		return "";
+	}
+	//营业密码检验
+	public static int verifyUser(String area_code,String num,String password,String flag)throws Exception{
+		DynamicDict aDict = null;
+		Object      obj   = null;
+		String      strMsg= "";
+		String      strRet= "";
+		int         iSuccFlag=0;
+		if(area_code==null) area_code = "";
+		if(num      ==null) num       = "";
+		if(password ==null) password  = "";
+		if(flag     ==null) flag      = "";
+
+		try{
+			aDict	= new DynamicDict(1);
+			aDict.m_ActionId = "MCM_067";
+			aDict.flag       = 0;
+			aDict.setValueByName("AREA_CODE"  ,area_code);
+			aDict.setValueByName("NUM"        ,num);
+			aDict.setValueByName("USER_PASSWD",password);
+			aDict.setValueByName("FLAG"       ,flag);
+
+			aDict = SysSet.callRemoteService(aDict);
+			if(aDict!=null) {
+				iSuccFlag = aDict.flag;
+				strMsg    = aDict.msg;
+				if (iSuccFlag>=0){
+					obj = aDict.getValueByName("RET",false);
+					if(obj!=null && obj.getClass().getName().endsWith("String")) strRet = (String)obj;
+					if (strRet!=null && strRet.equals("1")) {
+						iSuccFlag = -1;
+						strMsg    ="用户输入的密码不正确";
+					}
+				}
+			}
+		}catch(Exception e){
+			iSuccFlag = -2;
+			strMsg    = "用户合法性检验出错：\n"+e.getMessage();
+		}finally{
+			if(aDict!=null) aDict.destroy();
+			aDict = null;
+		}
+		if(iSuccFlag>=0) return iSuccFlag;
+		strMsg = replstr(strMsg,"\"","\\\"");
+		strMsg = replstr(strMsg,"\'","\\\'");
+		strMsg = replstr(strMsg,"\n"," ");
+		throw new Exception (strMsg);
+	}
+	//山东
+	public static String binToAscii(byte[] bySourceByte){
+		int len,i;
+		byte tb;
+		char high,tmp,low;
+		String item = new String();
+		len = bySourceByte.length;
+		for(i = 0; i< len;i ++){
+			tb = bySourceByte[i];
+			tmp = (char)((tb >>> 4) & 0x000f);
+			if(tmp >= 10)
+				high = (char)('a' + tmp - 10);
+			else
+				high = (char)('0' + tmp);
+
+			item += high;
+			tmp =( char)(tb & 0x000f);
+
+			if(tmp >= 10)
+				low = (char)('a' + tmp - 10);
+			else
+				low = (char)('0' + tmp);
+			item += low;
+		}
+		return item;
+	}
+
+}

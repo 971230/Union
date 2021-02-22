@@ -1,0 +1,122 @@
+package com.ztesoft.net.mall.core.model;
+
+import java.io.Serializable;
+import java.util.Date;
+
+import com.ztesoft.net.framework.database.NotDbField;
+
+public class CreditVO implements Serializable{
+	private String cfg_id;
+	private String bank_id;
+	private String create_time;
+	
+    private String id;
+	
+	private String name;
+	private Float pay_fee;
+	private String type;
+	private String config;
+	private String biref;
+	private String source_from ;
+	private String cfg_prop;
+	private String tip_info;
+	private String online_flag;
+	private String bank_adss;
+	
+	//@NotDbField
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	//@NotDbField
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	//@NotDbField
+	public Float getPay_fee() {
+		return pay_fee;
+	}
+	public void setPay_fee(Float pay_fee) {
+		this.pay_fee = pay_fee;
+	}
+	//@NotDbField
+	public String getType() {
+		return type;
+	}
+	public void setType(String type) {
+		this.type = type;
+	}
+	//@NotDbField
+	public String getConfig() {
+		return config;
+	}
+	public void setConfig(String config) {
+		this.config = config;
+	}
+	//@NotDbField
+	public String getBiref() {
+		return biref;
+	}
+	public void setBiref(String biref) {
+		this.biref = biref;
+	}
+	//@NotDbField
+	public String getSource_from() {
+		return source_from;
+	}
+	public void setSource_from(String source_from) {
+		this.source_from = source_from;
+	}
+	//@NotDbField
+	public String getCfg_prop() {
+		return cfg_prop;
+	}
+	public void setCfg_prop(String cfg_prop) {
+		this.cfg_prop = cfg_prop;
+	}
+	//@NotDbField
+	public String getTip_info() {
+		return tip_info;
+	}
+	public void setTip_info(String tip_info) {
+		this.tip_info = tip_info;
+	}
+	//@NotDbField
+	public String getOnline_flag() {
+		return online_flag;
+	}
+	public void setOnline_flag(String online_flag) {
+		this.online_flag = online_flag;
+	}
+	//@NotDbField
+	public String getBank_adss() {
+		return bank_adss;
+	}
+	public void setBank_adss(String bank_adss) {
+		this.bank_adss = bank_adss;
+	}
+	public String getCfg_id() {
+		return cfg_id;
+	}
+	public void setCfg_id(String cfg_id) {
+		this.cfg_id = cfg_id;
+	}
+	public String getBank_id() {
+		return bank_id;
+	}
+	public void setBank_id(String bank_id) {
+		this.bank_id = bank_id;
+	}
+	public String getCreate_time() {
+		return create_time;
+	}
+	public void setCreate_time(String create_time) {
+		this.create_time = create_time;
+	}
+	
+}

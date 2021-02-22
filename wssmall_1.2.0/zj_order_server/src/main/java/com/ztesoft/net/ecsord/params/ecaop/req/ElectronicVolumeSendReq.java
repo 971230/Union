@@ -1,0 +1,327 @@
+package com.ztesoft.net.ecsord.params.ecaop.req;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+
+import params.ZteRequest;
+ 
+public class ElectronicVolumeSendReq extends ZteRequest{
+	@ZteSoftCommentAnnotationParam(name = "订单号", type = "String", isNecessary = "Y", desc = "订单系统内部订单")
+	private String notNeedReqStrOrderId;
+	
+	@ZteSoftCommentAnnotationParam(name = "活动编号",type="String",isNecessary="Y",desc="活动编号")
+	private String actid;
+	
+	@ZteSoftCommentAnnotationParam(name = "活动名称",type="String",isNecessary="Y",desc="活动名称")
+	private String actnm;
+	
+	@ZteSoftCommentAnnotationParam(name = "受理状态",type="String",isNecessary="Y",desc="1：受理成功2：受理中3：受理失败4：受理异常")
+	private String actsts;
+	
+	@ZteSoftCommentAnnotationParam(name = "bss侧发放流水",type="String",isNecessary="Y",desc="bss侧发放流水")
+	private String bsendjnl;
+	
+	@ZteSoftCommentAnnotationParam(name = "bss侧用户id",type="String",isNecessary="Y",desc="bss侧用户id")
+	private String bssusrid;
+	
+	@ZteSoftCommentAnnotationParam(name = "订单中心流水",type="String",isNecessary="Y",desc="订单中心流水")
+	private String serialno;
+	
+	@ZteSoftCommentAnnotationParam(name = "用户手机归属地市",type="String",isNecessary="Y",desc="用户手机归属地市")
+	private String citycode;
+	
+	@ZteSoftCommentAnnotationParam(name = "用户手机号",type="String",isNecessary="Y",desc="用户手机号")
+	private String mobileno;
+	
+	@ZteSoftCommentAnnotationParam(name = "订单日期",type="String",isNecessary="Y",desc="yyyyMMdd")
+	private String orddt;
+	
+	@ZteSoftCommentAnnotationParam(name = "订单时间",type="String",isNecessary="Y",desc="HHmmss")
+	private String ordtm;
+	
+	@ZteSoftCommentAnnotationParam(name = "权益中心侧券规则ID",type="String",isNecessary="Y",desc="权益中心侧券规则ID")
+	private String ruleid;
+	
+	@ZteSoftCommentAnnotationParam(name = "生效日期",type="String",isNecessary="Y",desc="yyyyMMdd")
+	private String valdt;
+	
+	@ZteSoftCommentAnnotationParam(name = "接口编号",type="String",isNecessary="Y",desc="接口编号")
+	private String apiid;
+	
+	@ZteSoftCommentAnnotationParam(name = "业务时间",type="String",isNecessary="Y",desc="YYYYMMDD")
+	private String busdt;
+	
+	@ZteSoftCommentAnnotationParam(name = "渠道编码",type="String",isNecessary="Y",desc="渠道编码")
+	private String chnno;
+	
+	@ZteSoftCommentAnnotationParam(name = "渠道IP",type="String",isNecessary="Y",desc="用于做IP鉴权")
+	private String ipaddr;
+	
+	@ZteSoftCommentAnnotationParam(name = "请求流水",type="String",isNecessary="Y",desc="请求流水")
+	private String reqjnl;
+	
+	@ZteSoftCommentAnnotationParam(name = "请求操作时间",type="String",isNecessary="Y",desc="YYYYMMDDHHMISS")
+	private String reqopetm;
+	
+	@ZteSoftCommentAnnotationParam(name = "返回代码",type="String",isNecessary="Y",desc="")
+	private String respcode;
+	
+	@ZteSoftCommentAnnotationParam(name = "返回流水",type="String",isNecessary="Y",desc="返回流水")
+	private String respjnl;
+	
+	@ZteSoftCommentAnnotationParam(name = "返回消息内容",type="String",isNecessary="Y",desc="")
+	private String respmsg;
+	
+	@ZteSoftCommentAnnotationParam(name = "返回操作时间",type="String",isNecessary="Y",desc="")
+	private String respopetm;
+	
+	@ZteSoftCommentAnnotationParam(name = "版本号",type="String",isNecessary="Y",desc="版本号")
+	private String version;
+	
+	@ZteSoftCommentAnnotationParam(name = "加密数据",type="String",isNecessary="Y",desc="加密数据")
+	private String desvalue;
+	
+	@ZteSoftCommentAnnotationParam(name = "签名数据",type="String",isNecessary="Y",desc="签名数据")
+	private String signvalue;
+	
+	public String getNotNeedReqStrOrderId() {
+		return notNeedReqStrOrderId;
+	}
+
+	public void setNotNeedReqStrOrderId(String notNeedReqStrOrderId) {
+		this.notNeedReqStrOrderId = notNeedReqStrOrderId;
+	}
+	
+	public String getBsendjnl() {
+		return bsendjnl;
+	}
+
+	public void setBsendjnl(String bsendjnl) {
+		this.bsendjnl = bsendjnl;
+	}
+
+	public String getBssusrid() {
+		return bssusrid;
+	}
+
+	public void setBssusrid(String bssusrid) {
+		this.bssusrid = bssusrid;
+	}
+
+	public String getCitycode() {
+		return citycode;
+	}
+
+	public void setCitycode(String citycode) {
+		this.citycode = citycode;
+	}
+
+	public String getMobileno() {
+		return mobileno;
+	}
+
+	public void setMobileno(String mobileno) {
+		this.mobileno = mobileno;
+	}
+
+	public String getOrddt() {
+		return orddt;
+	}
+
+	public void setOrddt(String orddt) {
+		this.orddt = orddt;
+	}
+
+	public String getOrdtm() {
+		return ordtm;
+	}
+
+	public void setOrdtm(String ordtm) {
+		this.ordtm = ordtm;
+	}
+
+	public String getRuleid() {
+		return ruleid;
+	}
+
+	public void setRuleid(String ruleid) {
+		this.ruleid = ruleid;
+	}
+
+	public String getValdt() {
+		return valdt;
+	}
+
+	public void setValdt(String valdt) {
+		this.valdt = valdt;
+	}
+
+	public String getApiid() {
+		return apiid;
+	}
+
+	public void setApiid(String apiid) {
+		this.apiid = apiid;
+	}
+
+	public String getBusdt() {
+		return busdt;
+	}
+
+	public void setBusdt(String busdt) {
+		this.busdt = busdt;
+	}
+
+	public String getChnno() {
+		return chnno;
+	}
+
+	public void setChnno(String chnno) {
+		this.chnno = chnno;
+	}
+
+	public String getIpaddr() {
+		return ipaddr;
+	}
+
+	public void setIpaddr(String ipaddr) {
+		this.ipaddr = ipaddr;
+	}
+
+	public String getReqjnl() {
+		return reqjnl;
+	}
+
+	public void setReqjnl(String reqjnl) {
+		this.reqjnl = reqjnl;
+	}
+
+	public String getReqopetm() {
+		return reqopetm;
+	}
+
+	public void setReqopetm(String reqopetm) {
+		this.reqopetm = reqopetm;
+	}
+
+	public String getRespcode() {
+		return respcode;
+	}
+
+	public void setRespcode(String respcode) {
+		this.respcode = respcode;
+	}
+
+	public String getRespjnl() {
+		return respjnl;
+	}
+
+	public void setRespjnl(String respjnl) {
+		this.respjnl = respjnl;
+	}
+
+	public String getRespmsg() {
+		return respmsg;
+	}
+
+	public void setRespmsg(String respmsg) {
+		this.respmsg = respmsg;
+	}
+
+	public String getRespopetm() {
+		return respopetm;
+	}
+
+	public void setRespopetm(String respopetm) {
+		this.respopetm = respopetm;
+	}
+
+	@Override
+	public String getVersion() {
+		return this.version;
+	}
+
+	@Override
+	public void setVersion(String version) {
+		this.version = version;
+	}
+
+	public String getDesvalue() {
+		return desvalue;
+	}
+
+	public void setDesvalue(String desvalue) {
+		this.desvalue = desvalue;
+	}
+
+	public String getSignvalue() {
+		return signvalue;
+	}
+
+	public void setSignvalue(String signvalue) {
+		this.signvalue = signvalue;
+	}
+
+	
+	public String getActid() {
+		return actid;
+	}
+
+	public void setActid(String actid) {
+		this.actid = actid;
+	}
+
+	public String getActnm() {
+		return actnm;
+	}
+
+	public void setActnm(String actnm) {
+		this.actnm = actnm;
+	}
+
+	public String getActsts() {
+		return actsts;
+	}
+
+	public void setActsts(String actsts) {
+		this.actsts = actsts;
+	}
+	
+	
+
+	public String getSerialno() {
+		return serialno;
+	}
+
+	public void setSerialno(String serialno) {
+		this.serialno = serialno;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "com.zte.yrservice.zj.electronic.volumesend";
+	}
+	
+	/**
+	* get the value from Map
+	*/
+	public void fromMap(Map map) {
+	}
+	/**
+	* set the value from Map
+	*/
+	public Map toMap() {
+		Map map = new HashMap();
+		return map;
+	}
+}

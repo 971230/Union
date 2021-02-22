@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<include file="struts/struts-orders-gj.xml"/>
+	
+	<!-- 后台action -->
+	<package name="struts-order" extends="shop_default" namespace="/shop/admin">
+	
+		<!-- 退换货申请-->
+		<action name="applyn" class="orderApplyNAction">
+			<result name="apply_n_page">/shop/admin/applyn/applyList.jsp</result>
+			<result name="apply_returned_apply">/shop/admin/applyn/order_returned_apply.jsp</result>
+			<result name="select_orders">/shop/admin/applyn/select_order.jsp</result>
+			<result name="apply_goods_list">/shop/admin/applyn/apply_goods_list.jsp</result>
+		</action>
+		<!-- 退换货申请-->
+	
+		<!-- 优惠卷-->
+		<action name="coupon" class="couponAction">
+			<result name="list">activities/couponlist.jsp</result>
+			<result name="add">activities/couponadd.jsp</result>
+			<result name="edit">activities/couponedit.jsp</result>
+			<result name="exlist">activities/excouponlist.jsp</result>
+			<result name="addExchange">
+				activities/excouponadd.jsp
+			</result>
+			<result name="editExchange">
+				activities/excouponedit.jsp
+			</result>
+			<result name="select_plugin">
+				promotion/select_plugin.jsp
+			</result>
+			<result name="select_condition">
+				promotion/select_condition.jsp
+			</result>
+			<result name="show">promotion/couponinfo.jsp</result>
+		</action>
+		
+		<!-- 促销规则-->
+		<action name="promotion" class="promotionAction">
+			<result name="list">promotion/promotion_list.jsp</result>
+			<result name="listActivity">promotion/promotion_list_new.jsp</result>
+			<result name="select_plugin">
+				promotion/select_plugin.jsp
+			</result>
+			<result name="select_condition">
+				promotion/select_condition.jsp
+			</result>
+			<result name="select_condition_ProAct">
+				promotion/select_condition_ProAct.jsp
+			</result>
+			<result name="show">promotion/promotioninfo.jsp</result>
+		</action>
+		
+		<!-- 订单 -->
+		<action name="order" class="orderAction">
+			<result name="list">order/order_list.jsp</result>
+			<result name="trash_list">order/trash_list.jsp</result>
+			<result name="detail">order/order_detail.jsp</result>
+			<result name="base">order/order_base.jsp</result>
+			<result name="items">order/item_list.jsp</result>
+			<result name="pay_log">order/pay_log.jsp</result>
+			<result name="ship_log">order/ship_log.jsp</result>
+			<result name="pmt">order/pmt.jsp</result>
+			<result name="log">order/log.jsp</result>
+			<result name="remark">order/order_remark.jsp</result>
+			<result name="return_list">order/return_list.jsp</result>
+			<result name="return_detail">order/return_detail.jsp</result>
+			<result name="export">order/export.jsp</result>
+		</action>
+		
+	     <action name="ordern" class="orderNAction">
+			<result name="list">ordern/order_list.jsp</result>
+			<result name="list_after_service">ordern/order_after_service_list.jsp</result>
+			<result name="trash_list">ordern/trash_list.jsp</result>
+			<result name="detail">ordern/order_detail.jsp</result>
+			<result name="base">ordern/order_base.jsp</result>
+			<result name="listYuyue">ordern/yuyue_list.jsp</result>
+			<result name="items">ordern/item_list.jsp</result>
+			<result name="pay_log">ordern/pay_log.jsp</result>
+			<result name="ship_log">ordern/ship_log.jsp</result>
+			<result name="pmt">ordern/pmt.jsp</result>
+			<result name="log">ordern/log.jsp</result>
+			<result name="remark">ordern/order_remark.jsp</result>
+			<result name="return_list">ordern/return_list.jsp</result>
+			<result name="return_detail">ordern/return_detail.jsp</result>
+			<result name="export">ordern/export.jsp</result>
+			<result name="showbtns">ordern/showbtns.jsp</result>
+			<result name="auditlog">ordern/auditlog.jsp</result>
+			<result name="cloudlog">ordern/cloudlog.jsp</result>
+			<result name="cardlog">ordern/cardlog.jsp</result>
+			<result name="order_fail_dialog">ordern/order_fail_dialog.jsp</result>
+			<result name="order_exception_list">ordern/order_exception_list.jsp</result>
+			<result name="order_exception_add">ordern/order_exception_add.jsp</result>
+		</action>
+		
+		<!-- 物流管理 -->
+		<action name="flown" class="deliveryFlowAction">
+			<result name="list">ordern/commonage/flow_list.jsp</result>
+			<result name="showaddflow">ordern/commonage/flow_add.jsp</result>
+		</action>
+		
+		<!-- 订单处理 -->
+		<action name="orderdw" class="orderDealWidthAction">
+			<result name="showFHDialog">ordern/commonage/shipping.jsp</result>
+			<result name="showSHDialog">ordern/commonage/shipping_confirm.jsp</result>
+			<result name="showFinishDialog">ordern/commonage/finishdialog.jsp</result>
+			<result name="showcustacceptdialog">ordern/commonage/bhdialog.jsp</result>
+		</action>
+		
+		<action name="ordcomment" class="orderCommentsAction">
+			<result name="list">ordern/order_comments_list.jsp</result>
+			<result name="unlist">ordern/order_uncomments_list.jsp</result>
+			<result name="exceptionDialog">ordern/exceptionDialog.jsp</result>
+			<result name="cancelDialog">ordern/cancelDialog.jsp</result>
+		</action>
+		
+	</package>
+	
+	<package name="struts-orderaccept" extends="shop_default" namespace="/shop/admin">
+		<action name="accept" class="orderAcceptAction">
+			<result name="addorder">/shop/admin/accept/addorder.jsp</result>
+			<result name="goodslist">/shop/admin/accept/goods_selector.jsp</result>
+			<result name="memberlist">/shop/admin/accept/member_selector.jsp</result>
+			<result name="memberLvList">/shop/admin/accept/member_lvlist.jsp</result>
+			<result name="province">/shop/admin/accept/province_select.jsp</result>
+			<result name="city">/shop/admin/accept/city_select.jsp</result>
+			<result name="region">/shop/admin/accept/region_select.jsp</result>
+			<result name="dlyType">/shop/admin/accept/dlytypelist.jsp</result>
+			<result name="orderTotal">/shop/admin/accept/ordertotal.jsp</result>
+			<result name="cart_list">/shop/admin/accept/cart_list.jsp</result>
+		</action>
+	</package>
+	
+	<package name="struts-wpdelivery" extends="shop_default" namespace="/shop/admin">
+		<action name="wpdelivery" class="wPDeliveryAction">
+			<result name="wp_deliverylist">/shop/admin/wp/deliverylist.jsp</result>
+			<result name="delivery_base">/shop/admin/wp/base.jsp</result>
+			<result name="delivery_items">/shop/admin/wp/items.jsp</result>
+			<result name="wp_detial">/shop/admin/wp/delivery_detail.jsp</result>
+			<result name="returned_dialog">/shop/admin/wp/returned_dialog.jsp</result>
+		</action>
+	</package>
+	
+	<!--<package name="json" extends="json-default" namespace="/ajax">
+		<action name="cancleOrder" class="com.ztesoft.net.mall.core.action.backend.UserAction" method="cancleOrder">
+			<result type="json"></result>
+		</action>
+	</package>-->
+</struts>

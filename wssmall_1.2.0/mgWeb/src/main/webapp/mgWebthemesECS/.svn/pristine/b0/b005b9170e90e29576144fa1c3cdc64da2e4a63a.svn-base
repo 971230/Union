@@ -1,0 +1,256 @@
+/*CSS 变量*/
+/*CSS reset*/
+body,
+div,
+dl,
+dt,
+dd,
+ul,
+ol,
+li,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+pre,
+form,
+fieldset,
+button,
+input,
+textarea,
+hr,
+p,
+blockquote,
+th,
+td {
+  margin: 0;
+  padding: 0;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+}
+fieldset,
+img {
+  border: 0;
+}
+address,
+caption,
+cite,
+code,
+dfn,
+em,
+i,
+strong,
+th,
+var {
+  font-style: normal;
+  font-weight: normal;
+}
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 14px;
+  vertical-align: middle;
+}
+ol,
+ul,
+li {
+  list-style: none;
+}
+hr {
+  height: 0;
+  border: none;
+}
+caption,
+th {
+  text-align: left;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: 100%;
+  font-weight: normal;
+}
+a,
+a:hover,
+a:active,
+a:link {
+  text-decoration: none;
+}
+body {
+  background: #fff;
+}
+body,
+input,
+button,
+select,
+textarea {
+  font-size: 12px;
+  color: #62626f;
+  font-family: "microsoft yahei", "Droid Sans", "Helvetica Neue", "Droid Sans Fallback", "Heiti SC", "Hiragino Sans GB", Simsun, Tahoma, Arial, Roboto, sans-self;
+  outline: none;
+}
+.clear-fix:after {
+  display: block;
+  clear: both;
+  content: "";
+  visibility: hidden;
+  height: 0;
+}
+.clear-fix {
+  zoom: 1;
+}
+.clear {
+  clear: both;
+}
+.login-bg {
+  background: url("../images/login-bg.png") no-repeat #fff;
+  background-size: cover;
+}
+.login-wrap {
+  margin: 0 auto;
+  min-width: 1000px;
+}
+.login-head {
+  padding: 10px;
+  margin-bottom: 60px;
+}
+.login-head .login-logo,
+.login-head .poj-name {
+  float: left;
+}
+.login-head .login-logo {
+  margin-right: 20px;
+}
+.login-head .login-logo img {
+  display: block;
+}
+.login-head .login-logo,
+.login-head .login-logo img {
+  width: 100px;
+  height: 60px;
+}
+.login-head .poj-name {
+  padding-top: 26px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+}
+.login-main {
+  margin: 0 auto;
+  width: 1000px;
+  min-height: 460px;
+  background: url("../images/login-ad.png") no-repeat top left;
+}
+.login-main .login-content {
+  float: right;
+  width: 300px;
+  padding: 30px 40px 40px 40px;
+  border-radius: 5px;
+  box-shadow: 0 2px 6px 1px rgba(45, 100, 120, 0.2);
+  background: #fff;
+}
+.login-main .login-title {
+  text-align: center;
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 20px;
+}
+.login-main .login-list .login-item {
+  margin-bottom: 15px;
+}
+.login-main .login-text-label {
+  border: 1px solid #e7e7e7;
+  position: relative;
+  height: 38px;
+  padding: 0 10px;
+  display: block;
+}
+.login-main .login-text-label.login-ico-label {
+  padding-right: 48px;
+}
+.login-main .login-text-label.login-code-label {
+  padding-right: 140px;
+}
+.login-main .login-text-label.login-full-label {
+  padding: 0;
+}
+.login-main .login-inp-text,
+.login-main .login-inp-select {
+  font-size: 14px;
+  width: 100%;
+  border: none;
+  background: none;
+  height: 38px;
+  line-height: 38px;
+}
+.login-main .login-inp-select {
+  padding-left: 10px;
+  line-height: 36px;
+}
+.login-main .login-user-ico,
+.login-main .login-psw-ico {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 38px;
+  height: 38px;
+  display: block;
+}
+.login-main .login-user-ico {
+  background: url("../images/login-user-ico.png") no-repeat center;
+}
+.login-main .login-psw-ico {
+  background: url("../images/login-psw-ico.png") no-repeat center;
+}
+.login-main .login-code-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: #f1f1f1;
+  text-align: center;
+  width: 130px;
+  height: 38px;
+  border-left: 1px solid #e7e7e7;
+}
+.login-main .login-code-btn:hover {
+  background: #f1f1f1;
+}
+.login-main .login-code-btn:active {
+  background: #f2f0f0;
+}
+.login-main .login-code-btn .time-txt {
+  color: #ff6600;
+}
+.login-main .login-tips {
+  text-align: center;
+  color: #ff6600;
+}
+.login-main .login-bottom {
+  margin-top: 20px;
+}
+.login-main .login-submit-btn {
+  text-align: center;
+  font-size: 14px;
+  color: #fff;
+  width: 100%;
+  display: block;
+  height: 44px;
+  border-radius: 5px;
+  background: #ff6600;
+}
+.login-main .login-submit-btn:hover {
+  background: #ff9100;
+}
+.login-main .login-submit-btn:active {
+  background: #ff6600;
+}

@@ -1,0 +1,129 @@
+package com.ztesoft.api;
+
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import consts.ConstsCore;
+
+
+/**
+ * 应用平台调用工厂类
+ * 
+ * @author wui
+ * @since 1.0, 2013-12-25
+ * 
+ * 
+ * 
+ *举例说明：福建调用订单归集功能
+ *
+ *OrderAddReq orderAddReq = new OrderAddReq();
+ *ZteClient client = ClientFactory.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_FJ);
+ *OrderAddResp resp = client.execute(orderAddReq, OrderAddResp.class);
+ *		
+ */
+public class ClientFactory {
+	
+	
+//	/**
+//	 * dubbo调用处理工厂
+//	 */
+	
+	public static ZteClient getZteDubboClient(String source_from) {
+		AppKeyEnum appKeyEnum =getAppKeyEnum(source_from);
+		DefaultZteDubboClient client = new DefaultZteDubboClient(appKeyEnum.getAppKey(),appKeyEnum.getAppSec());
+		return client;
+	}
+	
+	
+	/**
+	 * dubbo调用处理工厂
+	 * 
+	 * @param appKey
+	 * @param appSec
+	 * @return
+	 */
+	public static ZteClient getZteDubboClient(AppKeyEnum appKeyEnum) {
+		DefaultZteDubboClient client = new DefaultZteDubboClient(appKeyEnum.getAppKey(),appKeyEnum.getAppSec());
+		return client;
+	}
+	
+	
+
+	/**
+	 * rop调用处理工厂
+	 * 
+	 * @param appKey
+	 * @param appSec
+	 * @return
+	 */
+	public static ZteClient getZteRopClient(AppKeyEnum appKeyEnum) {
+		DefaultZteRopClient client = new DefaultZteRopClient(appKeyEnum.getAppUrl(),appKeyEnum.getAppKey(),appKeyEnum.getAppSec(),"1.0");
+		return client;
+	}
+	public static ZteClient getZteRopClient(String appUrl,String appKey,String appSec) {
+		DefaultZteRopClient client = new DefaultZteRopClient(appUrl,appKey,appSec,"1.0");
+		return client;
+	}
+	/**
+	 * dubbo调用处理工厂
+	 */
+	@Deprecated
+	public static ZteClient getZteRopClient(String source_from) {
+		AppKeyEnum appKeyEnum =getAppKeyEnum(source_from);
+		DefaultZteRopClient client = new DefaultZteRopClient(appKeyEnum.getAppUrl(),appKeyEnum.getAppKey(),appKeyEnum.getAppSec(),"1.0");
+		return client;
+	}
+	
+	/**
+	 * mq调用处理工厂
+	 * 
+	 * @param appKey
+	 * @param appSec
+	 * @return
+	 */
+	public static ZteClient getZteMqClient(AppKeyEnum appKeyEnum) {
+		DefaultZteMqClient client = new DefaultZteMqClient(appKeyEnum.getAppKey(),appKeyEnum.getAppSec(),"1.0");
+		return client;
+	}
+	/**
+	 * mq调用处理工厂
+	 */
+	
+	public static ZteClient getZteMqClient(String source_from) {
+		AppKeyEnum appKeyEnum =getAppKeyEnum(source_from);
+		DefaultZteMqClient client = new DefaultZteMqClient(appKeyEnum.getAppKey(),appKeyEnum.getAppSec(),"1.0");
+		return client;
+	}
+	
+	public static AppKeyEnum getAppKeyEnum(String source_from) {
+		if(ConstsCore.SOURCE_FROM_FJ.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_FJ;
+		}else if(ConstsCore.SOURCE_FROM_LLKJ_WT.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_LLKJ_WT;
+		}else if(ConstsCore.SOURCE_FROM_LLKJ_AGENT.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_LLKJ_AGENT;
+		}else if(ConstsCore.SOURCE_FROM_ECS.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_ESC;
+		}else if(ConstsCore.SOURCE_FROM_LLKJ_ZT.equals(source_from)){
+			return AppKeyEnum.WSSMALL_WEBZT;
+		}else if(ConstsCore.SOURCE_FROM_LLKJ_LBS.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_LLKJ_LBS;
+		}else if(ConstsCore.SOURCE_FROM_LLKJ_FT.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_LLKJ_FT;
+		}else if(ConstsCore.SOURCE_FROM_LLKJ_IVR.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_LLKJ_IVR;
+		}else if(ConstsCore.SOURCE_FROM_SHP.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_SHP;
+		}else if(ConstsCore.SOURCE_FROM_JSORD.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_JSORD;
+		}else if(ConstsCore.SOURCE_FROM_HB.equals(source_from)){
+			return AppKeyEnum.APP_KEY_WSSMALL_HB;
+		}else {
+			return AppKeyEnum.APP_KEY_WSSMALL;
+		}
+	}
+	
+}
+
+
+
+

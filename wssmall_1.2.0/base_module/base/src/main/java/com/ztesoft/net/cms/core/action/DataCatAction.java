@@ -1,0 +1,274 @@
+package com.ztesoft.net.cms.core.action;
+
+import com.opensymphony.xwork2.Action;
+import com.ztesoft.net.cms.core.model.DataCat;
+import com.ztesoft.net.cms.core.service.ArticleCatRuntimeException;
+import com.ztesoft.net.cms.core.service.IDataCatManager;
+import com.ztesoft.net.cms.core.service.IDataModelManager;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import java.util.List;
+
+/**
+ * 文章类别管理action
+ * @author kingapex
+ * 2010-7-5上午09:26:26
+ */
+public class DataCatAction extends WWAction {
+	private IDcPublicInfoManager dcPublicInfoManager;
+	private IDataCatManager dataCatManager;
+	private IDataModelManager dataModelManager;
+	private boolean isEdit;
+	private List catList;
+	private List modelList;
+	private DataCat cat;
+	private String cat_id;
+	private String[] cat_ids; //分类id 数组,用于保存排序
+	private int[] cat_sorts; //分类排序值
+	private int is_founder;
+	private String source_from;
+	private List sourceFromList;
+	
+	public String list(){
+		this.catList = this.dataCatManager.listAllChildren("0");
+		is_founder = ManagerUtils.isAdminUser() ? 1 : 0;
+		return "list";
+	}
+	
+	
+
+	//到添加页面
+	public String add(){
+		DcPublicInfoCacheProxy dcPublicCache = new DcPublicInfoCacheProxy(
+				dcPublicInfoManager);
+		this.sourceFromList = dcPublicCache.getList("10003");
+		isEdit =false;
+		catList = dataCatManager.listAllChildren("0");
+		modelList  = this.dataModelManager.list();
+		return Action.INPUT;
+	}
+	
+	
+	//保存编辑
+	public String edit(){
+		DcPublicInfoCacheProxy dcPublicCache = new DcPublicInfoCacheProxy(
+				dcPublicInfoManager);
+		this.sourceFromList = dcPublicCache.getList("10003");
+		isEdit = true;
+		catList = dataCatManager.listAllChildren("0");
+		modelList  = this.dataModelManager.list();
+		cat = dataCatManager.get(cat_id,source_from);
+		return Action.INPUT;
+	}
+	
+	
+	//保存添加
+	public String saveAdd(){
+		try{
+		   dataCatManager.add(cat);
+		}catch(ArticleCatRuntimeException ex){
+		   this.msgs.add("同级文章栏目不能同名");
+		   this.urls.put("分类列表", "cat!list.do");
+		   return WWAction.MESSAGE; 
+		}
+		this.msgs.add("文章栏目添加成功");
+		this.urls.put("分类列表", "cat!list.do");
+		return WWAction.MESSAGE; 
+	}
+ 
+	
+	
+	//保存修改 
+	public String saveEdit(){
+		try{
+		   this.dataCatManager.edit(cat);
+		}catch(ArticleCatRuntimeException ex){
+			   this.msgs.add("同级文章栏目不能同名");
+			   this.urls.put("分类列表", "cat!list.do");
+			   return WWAction.MESSAGE; 
+		}
+		this.msgs.add("文章栏目修改成功");
+		this.urls.put("分类列表", "cat!list.do");
+		return WWAction.MESSAGE;
+	}
+	
+	
+	//删除
+	public String delete(){
+		
+		int r  = this.dataCatManager.delete(cat_id);
+		
+		if(r==0){
+			json= "{'result':1,'message':'删除成功'}";
+		}else if(r==1){
+			json= "{'result':0,'message':'此类别下存在子类别或者文章不能删除!'}";
+		}		
+				
+		return WWAction.JSON_MESSAGE;
+	}
+	
+	
+	public String saveSort(){
+		try{
+			this.dataCatManager.saveSort(cat_ids, cat_sorts);
+			json= "{'result':1,'message':'保存成功'}";
+		}catch(RuntimeException  e){
+			this.logger.info(e.getMessage(),e);
+			json= "{'result':0,'message':'保存成功'}";
+		}
+		return WWAction.JSON_MESSAGE;
+	}
+
+	
+	/**
+	 * 用于异步显示分类树
+	 * @return
+	 */
+	public String showCatTree(){
+		catList = dataCatManager.listAllChildren(cat_id);
+		return "cat_tree";
+	}
+
+
+	public IDataCatManager getDataCatManager() {
+		return dataCatManager;
+	}
+
+
+
+	public void setDataCatManager(IDataCatManager dataCatManager) {
+		this.dataCatManager = dataCatManager;
+	}
+
+
+
+	public IDataModelManager getDataModelManager() {
+		return dataModelManager;
+	}
+
+
+
+	public void setDataModelManager(IDataModelManager dataModelManager) {
+		this.dataModelManager = dataModelManager;
+	}
+
+
+
+	public List getCatList() {
+		return catList;
+	}
+
+
+
+	public void setCatList(List catList) {
+		this.catList = catList;
+	}
+
+
+
+	public DataCat getCat() {
+		return cat;
+	}
+
+
+
+	public void setCat(DataCat cat) {
+		this.cat = cat;
+	}
+
+
+
+	public String getCat_id() {
+		return cat_id;
+	}
+
+
+
+	public void setCat_id(String catId) {
+		cat_id = catId;
+	}
+
+
+
+	public String[] getCat_ids() {
+		return cat_ids;
+	}
+
+
+
+	public void setCat_ids(String[] catIds) {
+		cat_ids = catIds;
+	}
+
+
+
+	public int[] getCat_sorts() {
+		return cat_sorts;
+	}
+
+
+
+	public void setCat_sorts(int[] catSorts) {
+		cat_sorts = catSorts;
+	}
+
+
+
+	public List getModelList() {
+		return modelList;
+	}
+
+
+
+	public void setModelList(List modelList) {
+		this.modelList = modelList;
+	}	
+	
+	public void setIsEdit(boolean isEdit){
+		this.isEdit = isEdit;
+	}
+	
+	public boolean getIsEdit(){
+		return this.isEdit;
+	}
+	
+	public int getIs_founder() {
+		return is_founder;
+	}
+
+	public void setIs_founder(int is_founder) {
+		this.is_founder = is_founder;
+	}
+
+
+
+	public IDcPublicInfoManager getDcPublicInfoManager() {
+		return dcPublicInfoManager;
+	}
+
+
+
+	public void setDcPublicInfoManager(IDcPublicInfoManager dcPublicInfoManager) {
+		this.dcPublicInfoManager = dcPublicInfoManager;
+	}
+
+	public List getSourceFromList() {
+		return sourceFromList;
+	}
+
+	public void setSourceFromList(List sourceFromList) {
+		this.sourceFromList = sourceFromList;
+	}
+
+	public String getSource_from() {
+		return source_from;
+	}
+
+	public void setSource_from(String source_from) {
+		this.source_from = source_from;
+	}
+	
+}

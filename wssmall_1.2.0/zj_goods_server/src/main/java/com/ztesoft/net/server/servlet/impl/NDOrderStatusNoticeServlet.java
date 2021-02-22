@@ -1,0 +1,114 @@
+package com.ztesoft.net.server.servlet.impl;
+
+import java.text.SimpleDateFormat;
+
+import java.util.Date;
+
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.codehaus.jackson.map.ObjectMapper;
+
+
+
+import zte.net.ecsord.params.nd.req.NotifyOrderStatuNDRequset;
+
+import zte.net.ecsord.params.nd.resp.NotifyOrderStatuNDResponse;
+import zte.net.ecsord.params.nd.vo.NDBaseMessage;
+
+import com.ztesoft.api.ClientFactory;
+
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.server.servlet.ICommonServlet;
+import commons.CommonTools;
+
+
+/**
+ * 南都订单状态通知接口
+ * 
+ * @author zhang.jun
+ */
+
+public class NDOrderStatusNoticeServlet implements ICommonServlet {
+    private final static Log log = LogFactory.getLog(NDOrderStatusNoticeServlet.class);
+    private  static String interfaceName="【南都订单状态通知接收】";
+    private String targetReqType;
+    public NDOrderStatusNoticeServlet(String targetReqType) {
+        this.targetReqType = targetReqType;
+    }
+
+    /**
+	 * 南都订单状态通知接口处理
+	 */
+    @Override
+   	public String service(String reqString) throws Exception {
+    	log.info(interfaceName+"请求报文内容：" + reqString);
+		JSONObject json=null;
+		try{
+			json=JSONObject.fromObject(reqString);
+		}catch(Exception e){
+			log.info(interfaceName+"请求报文不满足JSON格式");
+			throw new Exception(interfaceName+"请求报文不满足JSON格式");
+		}
+		
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date now = new Date();
+        String jsonString = null;
+        String activeNo = json.getString("activeNo");// 请求流水
+        String reqId = json.getString("reqId");// 请求ID
+        String reqType = json.getString("reqType");// 请求类型
+       
+        //错误返回
+        NDBaseMessage baseMsg = new NDBaseMessage();
+        baseMsg.setActiveNo(activeNo);
+        baseMsg.setErrorCode(EcsOrderConsts.ND_INF_FAIL_CODE);
+        baseMsg.setReqId(reqId);
+        baseMsg.setReqTime(sdf.format(now));
+        baseMsg.setReqType(reqType);
+        
+        ObjectMapper mapper = new ObjectMapper();
+        // 验证请求ID
+        if (!EcsOrderConsts.SDS_COMP_ND .equals(reqId)) {
+            baseMsg.setErrorMessage("报文中repId["+reqId+"]不正确.");
+            jsonString = mapper.writeValueAsString(baseMsg);
+            jsonString = jsonString.replaceAll("\":null", "\":\"\"");
+            return jsonString;
+        }
+        // 验证请求类型
+        if (!targetReqType.equals(reqType)) {
+            baseMsg.setErrorMessage("请求类型[reqType]不一致.");
+            jsonString = mapper.writeValueAsString(baseMsg);
+            jsonString = jsonString.replaceAll("\":null", "\":\"\"");
+            return jsonString;
+        }
+        
+        //调用订单系统的接口
+        try {
+        	//dubbo客户端
+        	ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+    		//请求对象转换
+        	NotifyOrderStatuNDRequset	zteRequest =CommonTools.jsonToBean(json.toString(),NotifyOrderStatuNDRequset.class );;
+    		if(zteRequest==null){//转换出错
+    			throw new Exception("json字符串转zteRequest对象转换出错,json字符串："+json.toString());
+    		}else{
+    			//dubbo调用
+        		NotifyOrderStatuNDResponse zteResponse =  client.execute(zteRequest, NotifyOrderStatuNDResponse.class);
+        		jsonString =mapper.writeValueAsString(zteResponse);
+    		}
+    		
+		} catch (Exception e) {
+			e.printStackTrace();
+            baseMsg.setErrorMessage("更新订单状态时,出现异常:"+e.getMessage());
+            jsonString = mapper.writeValueAsString(baseMsg);
+            jsonString = jsonString.replaceAll("\":null", "\":\"\"");
+            return jsonString;
+        
+		}
+
+        return jsonString;
+    }
+}

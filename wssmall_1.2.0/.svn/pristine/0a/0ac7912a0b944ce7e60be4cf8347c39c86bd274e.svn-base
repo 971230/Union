@@ -1,0 +1,44 @@
+package com.rop.core.db;
+
+import java.sql.Connection;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+
+import com.rop.core.spring.SpringContextHolder;
+import com.ztesoft.api.spring.ApiContextHolder;
+
+
+/*
+* 链接获取类
+* */
+public class DBConnection {
+
+    public static Connection getConnection(String dBName)
+            throws Exception {
+//        if (StringUtils.isBlank(dBName)) {
+//            dBName = "dataSource"; //add by wuirop数据源定制
+//        }
+        
+//    	ApiContextHolder.getBean("dataSource");
+        JdbcTemplate  jdbcTemplate = ApiContextHolder.getBean("jdbcTemplate");
+//        baseDaoSupport.c
+        
+        Connection conn = DataSourceUtils.getConnection(jdbcTemplate.getDataSource());
+        return conn;
+//        DataSource dataSource = SpringContextHolder.getBean(dBName);
+//        try {
+//            if (dataSource != null)
+//                return dataSource.getConnection();
+//            else
+//                return null;
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            return null;
+//        }
+    }
+
+    public static Connection getConnection()throws Exception{
+        return getConnection(null);
+    }
+}

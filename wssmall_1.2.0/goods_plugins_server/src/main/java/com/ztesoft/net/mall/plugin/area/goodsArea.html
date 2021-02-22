@@ -1,0 +1,94 @@
+<div tabid="tab_8" class="tab-panel">
+	<table class="form-table">
+		<tbody>
+			<#if listArea?exists> <#list listArea as area>
+			<tr>
+				<th>
+					<span style="width: 80px;">${area.pname}&nbsp;&nbsp;</span>
+				</th>
+				<td>
+					<ul>
+						<#if areaInfo?exists> <#if areaInfo.lan_id == area.pkey>
+						<input type="checkbox" name="area_checked" lv_name="${area.pname}"
+							lv_id="${area.pkey}" checked="checked">
+						关联外系统id：
+						<input type="text" name="goods.crm_offer_id" autocomplete="off"
+							value="${areaInfo.crm_offer_id}">
+						<#else>
+						<input type="checkbox" name="area_checked" lv_name="${area.pname}"
+							lv_id="${area.pkey}">
+
+						关联外系统id：
+						<input type="text" name="goods.crm_offer_id" autocomplete="off">
+						</#if> <#else>
+						<input type="checkbox" name="area_checked" lv_name="${area.pname}"
+							lv_id="${area.pkey}">
+
+						关联外系统id：
+						<input type="text" name="goods.crm_offer_id" autocomplete="off">
+						</#if>
+						</li>
+					</ul>
+				</td>
+			</tr>
+			</#list> </#if>
+		</tbody>
+	</table>
+</div>
+<script>
+
+	$(document).ready(function(){	
+		//只能勾选一个
+		var check_box = $("input[name='area_checked']");
+		var text = $("input[name='goods.crm_offer_id']");
+		check_box.bind("click",function(){
+			var check_text = $(this).siblings("input[name='goods.crm_offer_id']");
+			if($(this).attr("checked")){
+				text.not(check_text).val("").attr("disabled",true);
+				check_box.not(this).attr("checked",false).attr("disabled",true);
+			}else{
+				text.not(check_text).attr("disabled",false);
+				check_box.not(this).attr("disabled",false);
+			}
+		});
+	});
+
+	var GoodsArea = {
+		//保存验证
+		beforeSave:function(){
+			var flag = false;
+			var param = "";
+		
+			var check_box = $("input[name='area_checked']:checked");
+			check_box.each(function(){
+				var lan_id = $(this).attr("lv_id");
+				var crm_offer_id = $(this).siblings("input[name='goods.crm_offer_id']").val().trim();
+				if(crm_offer_id == ""){
+					alert("请填写所选本地网的关联id！");
+					return flag;
+				}else{
+					flag = true;
+					//组装id传递到后台
+					param = lan_id+"_"+crm_offer_id;
+				}
+			});
+			if(flag){
+				var url = ctx+ "/shop/admin/goods!saveGoodsArea.do?ajax=yes";
+				var data = {};
+				data["goodsAreaParam"] = param;
+				$.ajax({
+					type: "post",
+					url: url,
+					data: data,
+					success: function(){
+					}
+				});
+			}
+		}
+		
+	}
+		
+	String.prototype.trim = function (){
+		return this .replace(/^\s\s*/, '' ).replace(/\s\s*$/, '' );
+	};
+</script>

@@ -1,0 +1,304 @@
+package com.service.impls;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.jws.WebService;
+
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.wms.req.NotifyOrderStatusFromWMSReq;
+import zte.net.ecsord.params.wms.req.SynCardInfoWMSReq;
+import zte.net.ecsord.params.wms.req.SynSerialNumWMSReq;
+import zte.net.ecsord.params.wms.req.SynchronousCheckFromWMSReq;
+import zte.net.ecsord.params.wms.resp.NotifyOrderStatusFromWMSResp;
+import zte.net.ecsord.params.wms.resp.SynCardInfoWMSResp;
+import zte.net.ecsord.params.wms.resp.SynSerialNumWMSResp;
+import zte.net.ecsord.params.wms.resp.SynchronousCheckFromWMSResp;
+import zte.net.ecsord.params.wms.vo.NotifyStatusFromWMSGoodInfoVo;
+import zte.net.ecsord.params.wms.vo.NotifyStatusFromWMSOrderInfoVo;
+import zte.net.ecsord.params.wms.vo.SynCardInfoGoodInfoVo;
+import zte.net.ecsord.params.wms.vo.SynCardInfoOrderInfoVo;
+import zte.net.ecsord.params.wms.vo.SynCheckFromWMSGoodInfoVo;
+import zte.net.ecsord.params.wms.vo.SynCheckFromWMSOrderInfoVo;
+import zte.net.ecsord.params.wms.vo.SynSerialGoodInfoVo;
+import zte.net.ecsord.params.wms.vo.SynSerialOrderInfoVo;
+
+import com.service.WmsInfoService;
+import com.service.beans.CommonResponse;
+import com.service.beans.SyncAuditingInfoRequest;
+import com.service.beans.SyncOrderStatusRequest;
+import com.service.beans.SyncTerminalImeiRequest;
+import com.service.beans.SyncWriteCardRequest;
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+@WebService(targetNamespace="http://service.com/",endpointInterface="com.service.WmsInfoService",serviceName="WmsInfoService")
+public class WmsInfoServiceImpl implements WmsInfoService {
+
+	/**
+	 * 稽核数据 同：SynchronousCheckFromWMSReq
+	 * 
+	 * @param syncAuditingInfo
+	 * @return
+	 */
+	public CommonResponse syncAuditingInfo(
+			SyncAuditingInfoRequest syncAuditingInfo) {
+		CommonResponse webResp = new CommonResponse();
+		SynchronousCheckFromWMSReq req = new SynchronousCheckFromWMSReq();
+		SynchronousCheckFromWMSResp resp = new SynchronousCheckFromWMSResp();
+		if (syncAuditingInfo != null) {
+			req.setActiveNo(syncAuditingInfo.getActiveNo());
+			req.setReqId(syncAuditingInfo.getReqId());
+			req.setReqType(syncAuditingInfo.getReqType());
+			req.setReqTime(syncAuditingInfo.getReqTime() != null ? syncAuditingInfo
+					.getReqTime().toString() : getTime());
+			if (syncAuditingInfo.getOrderInfo() != null) {
+				SyncAuditingInfoRequest.OrderInfo webOrderInfo = syncAuditingInfo.getOrderInfo();
+				List<SynCheckFromWMSOrderInfoVo> fromOrderVoList = new ArrayList<SynCheckFromWMSOrderInfoVo>();
+				SynCheckFromWMSOrderInfoVo orderInfoVo = new SynCheckFromWMSOrderInfoVo();
+				orderInfoVo.setOrderId(webOrderInfo.getOrderId());
+				if (webOrderInfo.getGoodInfo() != null
+						&& webOrderInfo.getGoodInfo().size() > 0) {
+					List<SynCheckFromWMSGoodInfoVo> goodInfoList = new ArrayList<SynCheckFromWMSGoodInfoVo>();
+					for (SyncAuditingInfoRequest.GoodInfo goodInfo : webOrderInfo.getGoodInfo()) {
+						SynCheckFromWMSGoodInfoVo vo = new SynCheckFromWMSGoodInfoVo();
+						vo.setImei(goodInfo.getImei());
+						vo.setItemsType(goodInfo.getItemsType());
+						vo.setOrderProductId(goodInfo.getOrderPorductId());
+						vo.setProductCode(goodInfo.getProductCode());
+						vo.setProductName(goodInfo.getProductName());
+						vo.setProductNum(goodInfo.getProductNum() != null ? Integer
+								.valueOf(goodInfo.getProductNum()) : 0);
+						vo.setUserDef1(goodInfo.getUserDef1());
+						vo.setUserDef2(goodInfo.getUserDef2());
+						goodInfoList.add(vo);
+					}
+					orderInfoVo.setGoodInfo(goodInfoList);
+					fromOrderVoList.add(orderInfoVo);
+					req.setOrderInfo(fromOrderVoList);
+				}
+				String source_from = ManagerUtils.getSourceFrom();
+				HashMap param = new HashMap();
+				param.put("source_from", source_from);
+				param.put("order_id", syncAuditingInfo.getOrderInfo().getOrderId());
+				param.put("op_code", "syncAuditingInfo");
+				param.put("out_tid", CommonDataFactory.getInstance().getAttrFieldValue(syncAuditingInfo.getOrderInfo().getOrderId(), AttrConsts.OUT_TID));
+				param.put("zb_inf_id", CommonDataFactory.getInstance().getAttrFieldValue(syncAuditingInfo.getOrderInfo().getOrderId(), AttrConsts.ZB_INF_ID));
+				BeanUtils.ordBindEvnLog(param);
+			}
+			req.setNotNeedReqStrOrderId(syncAuditingInfo.getOrderInfo()
+					.getOrderId());
+		}
+		ZteClient client = ClientFactory
+				.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ESC);
+		resp = client.execute(req, SynchronousCheckFromWMSResp.class);
+		webResp.setActiveNo(resp.getActiveNo());
+		webResp.setErrorCode(resp.getErrorCode());
+		webResp.setErrorMessage(resp.getErrorMessage());
+		return webResp;
+	}
+
+	/**
+	 * 状态同步 同：NotifyOrderStatusFromWMSReq
+	 * 
+	 * @param syncOrderStatus
+	 * @return
+	 */
+	public CommonResponse syncOrderStatus(SyncOrderStatusRequest syncOrderStatus) {
+		CommonResponse webResp = new CommonResponse();
+		NotifyOrderStatusFromWMSReq req = new NotifyOrderStatusFromWMSReq();
+		NotifyOrderStatusFromWMSResp resp = new NotifyOrderStatusFromWMSResp();
+		if (syncOrderStatus != null) {
+			req.setActiveNo(syncOrderStatus.getActiveNo());
+			req.setReqId(syncOrderStatus.getReqId());
+			req.setReqType(syncOrderStatus.getReqType());
+			req.setReqTime(syncOrderStatus.getReqTime() != null ? syncOrderStatus
+					.getReqTime().toString() : getTime());
+			SyncOrderStatusRequest.OrderInfo orderInfo = syncOrderStatus.getOrderInfo();
+			if (orderInfo != null) {
+				NotifyStatusFromWMSOrderInfoVo orderInfoVo = new NotifyStatusFromWMSOrderInfoVo();
+				orderInfoVo.setDesc(orderInfo.getDesc());
+				orderInfoVo.setOrderId(orderInfo.getOrderId());
+				orderInfoVo.setStationNo(orderInfo.getStationNo());
+				orderInfoVo.setStatus(orderInfo.getStatus());
+				orderInfoVo
+						.setStatusUpdateTime(orderInfo.getStatusUpdateTime() != null ? orderInfo
+								.getStatusUpdateTime().toString() : getTime());
+				orderInfoVo.setToteId(orderInfo.getToteId());
+				orderInfoVo.setUserDef1(orderInfo.getUserDef1());
+				orderInfoVo.setUserDef2(orderInfo.getUserDef2());
+				orderInfoVo.setWeight(orderInfo.getWeight());
+				List<SyncOrderStatusRequest.GoodInfo> goodslist = orderInfo.getGoodInfo();
+				if (goodslist != null && goodslist.size() > 0) {
+					List<NotifyStatusFromWMSGoodInfoVo> list = new ArrayList<NotifyStatusFromWMSGoodInfoVo>();
+					for (SyncOrderStatusRequest.GoodInfo good : goodslist) {
+						NotifyStatusFromWMSGoodInfoVo ginfo = new NotifyStatusFromWMSGoodInfoVo();
+						ginfo.setImei(good.getImei());
+						ginfo.setIndexNum(good.getIndexNum());
+						ginfo.setOrderProductId(good.getOrderProductId());
+						ginfo.setPackageId(good.getPackageId());
+						ginfo.setUserDef3(good.getUserDef3());
+						ginfo.setUserDef4(good.getUserDef4());
+						list.add(ginfo);
+					}
+					orderInfoVo.setGoodInfo(list);
+				}
+				req.setOrderInfo(orderInfoVo);
+				
+				String source_from = ManagerUtils.getSourceFrom();
+				HashMap param = new HashMap();
+				param.put("source_from", source_from);
+				param.put("order_id", orderInfo.getOrderId());
+				param.put("op_code", "syncOrderStatus");
+				param.put("out_tid", CommonDataFactory.getInstance().getAttrFieldValue(orderInfo.getOrderId(), AttrConsts.OUT_TID));
+				param.put("zb_inf_id", CommonDataFactory.getInstance().getAttrFieldValue(orderInfo.getOrderId(), AttrConsts.ZB_INF_ID));
+				BeanUtils.ordBindEvnLog(param);
+			}
+			ZteClient client = ClientFactory
+					.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ESC);
+			resp = client.execute(req, NotifyOrderStatusFromWMSResp.class);
+		}
+		webResp.setActiveNo(resp.getActiveNo());
+		webResp.setErrorCode(resp.getErrorCode());
+		webResp.setErrorMessage(resp.getErrorMessage());
+		return webResp;
+	}
+
+	/**
+	 * 拣货（同步串号） 同：SynSerialNumWMSReq
+	 * 
+	 * @param syncTerminalImei
+	 * @return
+	 */
+	public CommonResponse syncTerminalImei(
+			SyncTerminalImeiRequest syncTerminalImei) {
+		CommonResponse webResp = new CommonResponse();
+		SynSerialNumWMSReq req = new SynSerialNumWMSReq();
+		SynSerialNumWMSResp resp = new SynSerialNumWMSResp();
+		if (syncTerminalImei != null) {
+			req.setActiveNo(syncTerminalImei.getActiveNo());
+			req.setReqId(syncTerminalImei.getReqId());
+			req.setReqType(syncTerminalImei.getReqType());
+			req.setReqTime(syncTerminalImei.getReqTime() != null ? syncTerminalImei
+					.getReqTime().toString() : getTime());
+			SynSerialOrderInfoVo orderInfoVo = new SynSerialOrderInfoVo();
+			SyncTerminalImeiRequest.OrderInfo orderInfo = syncTerminalImei.getOrderInfo();
+			if (orderInfo != null) {
+				orderInfoVo.setOrderId(orderInfo.getOrderId());
+				List<SyncTerminalImeiRequest.GoodInfo> goodInfo = orderInfo
+						.getGoodInfo();
+				List<SynSerialGoodInfoVo> goodInfoVo = new ArrayList<SynSerialGoodInfoVo>();
+				if (goodInfo != null && goodInfo.size() > 0) {
+					for (SyncTerminalImeiRequest.GoodInfo good : goodInfo) {
+						SynSerialGoodInfoVo vo = new SynSerialGoodInfoVo();
+						vo.setCardType(good.getCardType());
+						vo.setIccid(good.getIccid());
+						vo.setIndexNum(good.getIndexNum());
+						vo.setItemsType(good.getItemsType());
+						vo.setOrderProductId(good.getOrderProductId());
+						vo.setPackageId(good.getPackageId());
+						vo.setTerminalImei(good.getTerminalImei());
+						vo.setUserDef1(good.getUserDef1());
+						vo.setUserDef2(good.getUserDef2());
+						goodInfoVo.add(vo);
+					}
+				}
+				orderInfoVo.setGoodInfo(goodInfoVo);
+				req.setOrderInfo(orderInfoVo);
+				
+				String source_from = ManagerUtils.getSourceFrom();
+				HashMap param = new HashMap();
+				param.put("source_from", source_from);
+				param.put("order_id", orderInfo.getOrderId());
+				param.put("op_code", "syncTerminalImei");
+				param.put("out_tid", CommonDataFactory.getInstance().getAttrFieldValue(orderInfo.getOrderId(), AttrConsts.OUT_TID));
+				param.put("zb_inf_id", CommonDataFactory.getInstance().getAttrFieldValue(orderInfo.getOrderId(), AttrConsts.ZB_INF_ID));
+				BeanUtils.ordBindEvnLog(param);
+			}
+			ZteClient client = ClientFactory
+					.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ESC);
+			resp = client.execute(req, SynSerialNumWMSResp.class);
+		}
+		webResp.setActiveNo(resp.getActiveNo());
+		webResp.setErrorCode(resp.getErrorCode());
+		webResp.setErrorMessage(resp.getErrorMessage());
+		return webResp;
+	}
+
+	/**
+	 * 接受写卡机编号 同：SynCardInfoWMSReq
+	 * 
+	 * @param syncWriteCardInfo
+	 * @return
+	 */
+	public CommonResponse syncWriteCardInfo(
+			SyncWriteCardRequest syncWriteCardInfo) {
+		SynCardInfoWMSReq req = new SynCardInfoWMSReq();
+		SynCardInfoWMSResp resp = new SynCardInfoWMSResp();
+		CommonResponse webResp = new CommonResponse();
+		if (syncWriteCardInfo != null) {
+			req.setActiveNo(syncWriteCardInfo.getActiveNo());
+			req.setReqId(syncWriteCardInfo.getReqId());
+			req.setReqType(syncWriteCardInfo.getReqType());
+			req.setReqTime(syncWriteCardInfo.getReqTime() != null ? syncWriteCardInfo
+					.getReqTime().toString() : getTime());
+			SynCardInfoOrderInfoVo vo = new SynCardInfoOrderInfoVo();
+			SyncWriteCardRequest.OrderInfo orderInfo = syncWriteCardInfo
+					.getOrderInfo();
+			List<SyncWriteCardRequest.GoodInfo> goodInfoList = orderInfo
+					.getGoodInfo();
+			List<SynCardInfoGoodInfoVo> goodInfoVoList = new ArrayList<SynCardInfoGoodInfoVo>();
+			if (goodInfoList != null && goodInfoList.size() > 0) {
+				for (SyncWriteCardRequest.GoodInfo good : goodInfoList) {
+					SynCardInfoGoodInfoVo info = new SynCardInfoGoodInfoVo();
+					info.setIndexNum(good.getIndexNum() != null ? Integer
+							.valueOf(good.getIndexNum()) : 0);
+					info.setMobileTel(good.getMobileTel());
+					info.setOrderProductId(good.getOrderProductId());
+					info.setPackageId(good.getPackageId());
+					info.setReadId(good.getReadId());
+					info.setUserDef1(good.getUserDef1());
+					info.setUserDef2(good.getUserDef2());
+					goodInfoVoList.add(info);
+				}
+			}
+
+			vo.setOrderId(orderInfo != null ? orderInfo.getOrderId() : "");
+			vo.setGoodInfo(goodInfoVoList);
+			req.setOrderInfo(vo); // SynCardInfoOrderInfoVo
+			
+			String source_from = ManagerUtils.getSourceFrom();
+			HashMap param = new HashMap();
+			param.put("source_from", source_from);
+			param.put("order_id", orderInfo.getOrderId());
+			param.put("op_code", "syncWriteCardInfo");
+			param.put("out_tid", CommonDataFactory.getInstance().getAttrFieldValue(orderInfo.getOrderId(), AttrConsts.OUT_TID));
+			param.put("zb_inf_id", CommonDataFactory.getInstance().getAttrFieldValue(orderInfo.getOrderId(), AttrConsts.ZB_INF_ID));
+			BeanUtils.ordBindEvnLog(param);
+		}
+		ZteClient client = ClientFactory
+				.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ESC);
+		resp = client.execute(req, SynCardInfoWMSResp.class);
+		webResp.setActiveNo(resp.getActiveNo());
+		webResp.setErrorCode(resp.getErrorCode());
+		webResp.setErrorMessage(resp.getErrorMessage());
+		return webResp;
+	}
+	
+	private String getTime() {
+		String time2 = "";
+		try {
+			time2 = DateUtil.getTime2();
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+		return time2;
+	}
+}

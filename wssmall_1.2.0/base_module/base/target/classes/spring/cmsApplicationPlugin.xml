@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	<bean id="articlePluginBundle" class="com.ztesoft.net.cms.core.plugin.ArticlePluginBundle"></bean>
+	<bean id="inputFieldPlugin" class="com.ztesoft.net.cms.plugin.InputFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>
+	<bean id="radioFieldPlugin" class="com.ztesoft.net.cms.plugin.RadioFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>	
+	<bean id="checkboxFieldPlugin" class="com.ztesoft.net.cms.plugin.CheckboxFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>	 		
+	<bean id="selectFieldPlugin" class="com.ztesoft.net.cms.plugin.SelectFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean> 
+	<bean id="textareaFieldPlugin" class="com.ztesoft.net.cms.plugin.TextareaFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean> 
+	<bean id="richEditFieldPlugin" class="com.ztesoft.net.cms.plugin.RichEditFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean> 	
+	<bean id="imageFieldPlugin" class="com.ztesoft.net.cms.plugin.ImageFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>
+	<bean id="dateFieldPlugin" class="com.ztesoft.net.cms.plugin.DateFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>	
+	<bean id="cmsDataLogPlugin" class="com.ztesoft.net.cms.plugin.CmsDataLogPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>
+	<bean id="cmsSitemapPlugin" class="com.ztesoft.net.cms.plugin.CmsSitemapPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+				<ref bean="sitemapPluginBundle" />
+			</list>
+		</property>
+	</bean>
+	<bean id="attachmentFieldPlugin" class="com.ztesoft.net.cms.plugin.AttachmentFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>	
+	<bean id="relatedFieldPlugin" class="com.ztesoft.net.cms.plugin.RelatedFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>	
+	<bean id="multikImageFieldPlugin" class="com.ztesoft.net.cms.plugin.MultiImageFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>	
+	<bean id="videoFieldPlugin" class="com.ztesoft.net.cms.plugin.video.VideoFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>		
+	<bean id="paramsFieldPlugin" class="com.ztesoft.net.cms.plugin.params.ParamsFieldPlugin">
+		<property name="bundleList">
+			<list>
+				<ref bean="articlePluginBundle" />
+			</list>
+		</property>
+	</bean>		
+</beans>

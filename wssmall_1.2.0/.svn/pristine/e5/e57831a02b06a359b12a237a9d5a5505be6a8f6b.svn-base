@@ -1,0 +1,157 @@
+package com.ztesoft.net.mall.core.model;
+
+import java.io.Serializable;
+import java.util.List;
+
+import com.ztesoft.net.framework.database.NotDbField;
+
+public class ImportTemplate implements Serializable {
+
+	private String template_id;
+	private String template_type;
+	private String type_id;
+	private String type_name;
+	private String sub_type_id;
+	private String sub_type_name;
+	private String template_name;
+	private String oper_id;
+	private String created_time;
+	private String rule_java;
+	private Integer thread_num;
+	private Integer max_num;
+	private String rule_desc;
+	private String status;
+	private String template_columns;
+	
+	private TemplateColumn column;
+
+	public String getTemplate_id() {
+		return template_id;
+	}
+
+	public void setTemplate_id(String template_id) {
+		this.template_id = template_id;
+	}
+
+	public String getTemplate_type() {
+		return template_type;
+	}
+
+	public void setTemplate_type(String template_type) {
+		this.template_type = template_type;
+	}
+
+	public String getType_id() {
+		return type_id;
+	}
+
+	public void setType_id(String type_id) {
+		this.type_id = type_id;
+	}
+
+	public String getSub_type_id() {
+		return sub_type_id;
+	}
+
+	public void setSub_type_id(String sub_type_id) {
+		this.sub_type_id = sub_type_id;
+	}
+
+	public String getTemplate_name() {
+		return template_name;
+	}
+
+	public void setTemplate_name(String template_name) {
+		this.template_name = template_name;
+	}
+
+	public String getOper_id() {
+		return oper_id;
+	}
+
+	public void setOper_id(String oper_id) {
+		this.oper_id = oper_id;
+	}
+
+	public String getCreated_time() {
+		return created_time;
+	}
+
+	public void setCreated_time(String created_time) {
+		this.created_time = created_time;
+	}
+
+	public Integer getThread_num() {
+		return thread_num;
+	}
+
+	public void setThread_num(Integer thread_num) {
+		this.thread_num = thread_num;
+	}
+
+	public Integer getMax_num() {
+		return max_num;
+	}
+
+	public void setMax_num(Integer max_num) {
+		this.max_num = max_num;
+	}
+
+	public String getRule_desc() {
+		return rule_desc;
+	}
+
+	public void setRule_desc(String rule_desc) {
+		this.rule_desc = rule_desc;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	
+	public String getTemplate_columns() {
+		return template_columns;
+	}
+
+	public TemplateColumn getColumn() {
+		return column;
+	}
+
+	public void setColumn(TemplateColumn column) {
+		this.column = column;
+	}
+
+	public void setTemplate_columns(String template_columns) {
+		this.template_columns = template_columns;
+	}
+	@NotDbField
+	public String getType_name() {
+		return type_name;
+	}
+
+	public void setType_name(String type_name) {
+		this.type_name = type_name;
+	}
+	@NotDbField
+	public String getSub_type_name() {
+		return sub_type_name;
+	}
+
+	public void setSub_type_name(String sub_type_name) {
+		this.sub_type_name = sub_type_name;
+	}
+
+	public String getRule_java() {
+		return rule_java;
+	}
+
+	public void setRule_java(String rule_java) {
+		this.rule_java = rule_java;
+	}
+
+	
+}

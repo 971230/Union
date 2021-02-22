@@ -1,0 +1,84 @@
+package com.ztesoft.net.attr.hander;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+import zte.net.ecsord.params.busi.req.OrderSubProdInfoBusiRequest;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.model.AttrDef;
+
+import consts.ConstsCore;
+
+public class OrderSubProdInfoHandler extends BaseSupport implements IAttrHandler{
+
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo) throws ApiBusiException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+		String order_id = params.getOrder_id();// 订单ID
+		String inst_id = params.getInst_id(); // 数据实列ID（如订单扩展表ID、子订单扩展表ID、货品扩展表ID、物流ID、支付记录ID）
+		String goods_id = params.getGoods_id(); // 商品ID 只有子订单或货品单才有值
+		String pro_goods_id = params.getPro_goods_id(); // 货品ID 只有货品单才有值
+		String order_from = params.getOrder_from(); // 订单来源
+		String value = params.getValue(); // 原始值
+		AttrDef attrDef = params.getAttrDef(); // 属性定议配置信息
+		Map orderAttrValues = params.getOrderAttrValues();// 订单所有属性值
+		
+		OrderSubProdInfoBusiRequest orderSubProdInfoBusiRequest = new OrderSubProdInfoBusiRequest();
+		String subprodinfo = orderAttrValues.get(AttrConsts.SUBPROD_INFO)==null?"":orderAttrValues.get(AttrConsts.SUBPROD_INFO).toString();
+		if (!StringUtils.isEmpty(subprodinfo) && !"null".equals(subprodinfo) && !EcsOrderConsts.ATTR_DEFAULT_VALUE.equals(subprodinfo)) {
+			JSONArray jsonArray = JSONArray.fromObject(subprodinfo);
+			for (int i = 0; i < jsonArray.size(); i++) {
+				JSONObject jsonObject = JSONObject.fromObject(jsonArray.get(i));
+				String sub_prod_name = jsonObject.get("sub_prod_name")==null?"":jsonObject.getString("sub_prod_name");
+				String sub_prod_code = jsonObject.get("sub_prod_code")==null?"":jsonObject.getString("sub_prod_code");
+				Map mapValue = new HashMap();
+				mapValue.put("sub_prod_info_id",this.baseDaoSupport.getSequences("seq_sub_prod_info"));
+				mapValue.put("order_id", order_id);
+				mapValue.put("sub_prod_name", sub_prod_name);
+				mapValue.put("sub_prod_code", sub_prod_code);
+                
+				try {
+					BeanUtils.copyProperties(orderSubProdInfoBusiRequest, mapValue);
+					orderSubProdInfoBusiRequest.setDb_action(ConstsCore.DB_ACTION_INSERT);
+					orderSubProdInfoBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+					orderSubProdInfoBusiRequest.store();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+				
+				
+		}
+		AttrInstLoadResp resp = new AttrInstLoadResp();
+		resp.setField_value(null);
+		return resp;
+	}
+	
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+}

@@ -1,0 +1,311 @@
+<#assign brand_id=goods.brand_id!0 />
+<script type="text/javascript" src="js/input_handlers_ecs.js"></script>
+<script LANGUAGE="JavaScript">
+
+
+$(function() {
+	
+  	TypeCat.addBrand();
+	var brand_id = '${brand_id}';
+	if(!brand_id)
+		brand_id ='0';
+	TypeCat.init();
+	
+	<#if is_edit>
+	
+	 var type_value = '${goods.type_id}';
+	 var stype_value = '${goods.stype_id}';
+	 var sn = '${goods.sn}';
+	 var model_code = '${goods.model_code}'
+	 $("#type_id").val(type_value);
+	 $("#typeName").val(type_value);
+	 $("#stype_id").val(stype_value);
+	 $("#cat_id").val('${goods.cat_id}');
+	 TypeCat.type_change_event1(type_value,TypeCat.getJoinBrand(type_value),brand_id);
+	 TypeCat.loadBrandModel(brand_id,model_code);
+	<#else>
+	    <#if catid?exists >
+		</#if>
+		
+	</#if>
+	
+	var stype_code = $("#stype_id").find("option:selected").attr("stype_code");
+	var tab_div = $("div[style_code='"+stype_code+"']");
+	tab_div.length>0 && tab_div.show();
+});
+</script>
+<style>
+.form-table .groupname {
+	font-weight: bold;
+	font-size: 14px;
+	padding-left: 35px;
+}
+</style>
+<div tabid="tab_0" class="tab-panel" style="width: 60%; float: left">
+	<table class="form-table">
+		
+		<tr>
+			<th class="label">
+				<#if type=='product'>
+					<span class="red">*</span>货品分类：
+				<#else>
+					<span class="red">*</span>商品分类：
+				</#if>
+			</th>
+			<td>
+				<select name="goods.cat_id" id="cat_id" style="width:200px;" class="ipttxt1" required="true"  onchange="cambios(this);">
+					<option value="">
+						<#if type=='product'>
+							请选择货品分类
+						<#else>
+							请选择商品分类
+						</#if>
+					</option>
+					<#assign children=catList /> <#assign level=1 /> 
+					<#include 'select_children.html' />
+				</select>
+				&nbsp;&nbsp;
+				<span class="help_icon" helpid="goods_cat"></span>&nbsp;&nbsp;
+				<!-- <a href="javascript:void(0)" style="margin-right:10px;width: 30px;" class="graybtn1"  id="goodsTypeQuickBtn"><span>选择</span></a> -->
+			</td>
+		</tr>
+		<tr>	
+			<th id="type_tip">
+				<#if type=='product'>
+					<span class="red">*</span>货品类型：
+				<#else>
+					<span class="red">*</span>商品类型：
+				</#if>
+			</th>
+			<td>
+				<input type="hidden" name="goods.type_id" id="typeName">
+				<select name="goods.type_id" id="type_id" style="width:200px;" class="ipttxt1" required="true"  disabled=true>
+					<option value="">
+						<#if type=='product'>
+							请选择货品类型
+						<#else>
+							请选择商品类型
+						</#if>
+					</option>
+					<#list typeList as typeObj>
+						<#assign goodstype=typeObj.type!"other">
+						<#if goodstype==type>
+						<option  name = "tipo" join_brand="${typeObj.join_brand}" value="${typeObj.type_id }">
+							${typeObj.name }
+						</option>
+						</#if>
+					</#list>
+					
+
+				</select>
+				&nbsp;&nbsp;
+				<span class="help_icon" helpid="goods_type"></span>
+
+			</td>
+		</tr>
+		<tr id="brand_tr" >
+			<th>
+				<span class="red">*</span>品牌：
+			</th>
+			<td id="brand_id_td">
+				<select name="goods.brand_id" style="width:200px;" class="ipttxt1" id="brand_id" required="true">
+					<option value="">
+						请选择
+					</option>
+						
+			
+				</select>
+				&nbsp;&nbsp;
+				<span class="help_icon" helpid="goods_brand"></span>&nbsp;&nbsp;
+				
+			</td>
+		</tr>
+		
+		<tr style="display:none;" >
+			<th >
+				服务类型：
+			</th>
+			<td>
+				<select name="goods.stype_id" id="stype_id" style="width:200px;" class="ipttxt1" >
+					<option value="">
+						请选择服务类型
+					</option>
+					<#list stypeList as stype>
+					<option value="${stype.stype_id }" stype_code="<#if stype.stype_code??>${stype.stype_code}</#if>">
+						${stype.name }
+					</option>
+					</#list>
+
+				</select>
+				&nbsp;&nbsp;
+				<span class="help_icon" helpid="goods_type"></span>
+			</td>
+		</tr>
+		<tr style="display:none;" >
+			<th>
+				子服务类型：
+			</th>
+			<td>
+				<select name="goods.sub_stype_id" class="ipttxt1" style="width:200px;" id="sub_stype_id">
+					<option value="">
+						请选择子服务类型
+					</option>
+                    <#if childListStype??>
+                    <#list childListStype as stype>
+                        <option value="${stype.stype_id }">
+                            ${stype.name }
+                        </option>
+                    </#list>
+                   </#if>
+				</select>
+				&nbsp;&nbsp;
+				<span class="help_icon" helpid="goods_type"></span>
+			</td>
+		</tr>
+	</table>
+</div>
+<div id="tab_props" tabid="tab_2" class="tab-panel"
+	style="display: none;">
+	<#if is_edit> <#include "props_input.html" > </#if>
+</div>
+
+<div id="tab_params" tabid="tab_3" class="tab-panel"
+	style="display: none;">
+	<#if is_edit> <#include "params_input.html" > </#if>
+</div>
+<div id="add_brand_dialog"></div>
+
+<div id="goodsTypeQuickBtn_dialog"></div>
+
+<script>	
+var addBrand={
+	conid:undefined,
+	init:function(conid,onConfirm)	{
+		this.conid = conid;
+		var self  = this;
+		$("#brandInfo .submitBtn").click(function() {
+		   var url_validate =  $("#url").val().substring(0,7);
+		    if(url_validate!="http://"){
+		     alert("品牌网址格式不正确");
+		     return false;
+		    }
+		   
+			var url = ctx+ "/shop/admin/brand!save.do?ajax=yes";
+			
+			Cmp.ajaxSubmit('brandForm', '', url, {}, self.jsonBack,'json');
+			
+		});
+		
+		$(".closeBtn").bind("click",function(){
+			Eop.Dialog.close(conid);
+			$('#up').parent().show();
+		});
+	},
+	jsonBack : function(responseText) { // json回调函数
+		if (responseText.result == 1) {
+			alert(responseText.message);
+		}else{
+			Eop.Dialog.close("add_brand_dialog");
+			$("[name='goods.brand_id']").append("<option value='"+responseText.brandid+"'>"+responseText.name+"</option>")	
+		}
+		
+	},
+	open:function(conid,onConfirm){
+	  
+	  	var self= this;
+	  	$("form.validate").validate();
+	  	 var type_id = $("#type_id").val();
+	  	if(type_id.length == 0){
+	  	   alert("请先选择货品类型");
+	  	   return false;
+	  	 }
+	    var url=app_path+"/shop/admin/brand!add.do?selfProdType=F&type_id="+type_id+"&ajax=yes";
+		
+		// alert(url)
+		$("#add_brand_dialog").load(url,function(){
+		   self.init(conid,onConfirm);
+		  
+		});
+		Eop.Dialog.open(conid);		
+	}
+	
+};
+
+$(function(){
+	$("#goodsTypeQuickBtn").bind("click",function(){
+		var url = "cat!showCatListEcs.do?ajax=yes&type=${type}";
+		$("#goodsTypeQuickBtn_dialog").load(url, function (responseText) {
+				Eop.Dialog.open("goodsTypeQuickBtn_dialog");
+				$("#up").hide();
+		});
+	});
+	Eop.Dialog.init({id:"goodsTypeQuickBtn_dialog",modal:true,title:"商品分类",width:"1000px"});
+	
+	$("#stype_id").bind("change",function(){
+		var url="goods!listTypeChildrens.do?ajax=yes&parent_id="+$(this).val();
+		$("#sub_stype_id").empty().load(url);
+	});
+	
+	
+	//品牌变更-货品型号
+	$("#brand_id").change(function(){
+		var brand_id = $(this).val();
+		var model_code = "";
+		var sn = "";
+		if(brand_id){
+			TypeCat.loadBrandModel(brand_id,model_code);
+			//TypeCat.loadMachineType(brand_id,sn)
+		}
+		
+	});
+	
+	//品牌变更-机型编码
+});
+
+function loadBrandsInput(type_id,brand_id){
+	$.ajax({
+	type: "get",
+	url:app_path+"/shop/admin/type!listBrand.do?ajax=yes",
+	data:"type_id=" + type_id +"&m=" + new Date().getTime(),
+	dataType:"html",
+	success:function(result){
+		   $("#brand_id").empty().append(result);
+		   if(brand_id){
+		   	   $("#brand_id").val(brand_id);
+		   }
+	  
+	},
+	 error :function(res){alert("异步读取失败:" + res);}
+	});
+}
+
+function cambios(ck){
+	var child = ck.value;
+	var v = $("#cat_id").find("option:selected").attr("typeid");
+	
+	$("option[name=tipo]").each(function() {
+		if(this.value==child || this.value == v){
+			this.selected = 'selected';
+		}
+	});
+
+	var $gs = $("#goods_sn");
+	var $color = $("#color");
+	var $mc =$("#model_code");
+	
+	
+	if(v =="10000"){
+		$color.attr("required","true");
+		$gs.attr("required","true");
+		$mc.attr("required","true");
+	}else{
+		$color.removeAttr("required");
+		$gs.removeAttr("required");
+		$mc.removeAttr("required");
+	}
+	$("#typeName").val(v);
+	TypeCat.type_change_event1(v,$("#type_id").find("option:selected").attr("join_brand"));
+	TypeCat.changeType($("#cat_id").val(),v);
+}
+
+</script>

@@ -1,0 +1,73 @@
+package zte.params.orderctn.req;
+
+import java.util.Map;
+
+import params.ZteRequest;
+import zte.params.orderctn.resp.OrderXmlToMapResp;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+
+public class OrderXmlToMapReq extends ZteRequest<OrderXmlToMapResp>{
+
+	@ZteSoftCommentAnnotationParam(name="请求报文",type="String",isNecessary="Y",desc="请求报文")
+	private String inReq;
+	
+	@ZteSoftCommentAnnotationParam(name="请求报文版本",type="String",isNecessary="Y",desc="请求报文版本")
+	private String version;
+	
+	@ZteSoftCommentAnnotationParam(name="请求Map",type="Map",isNecessary="Y",desc="请求Map")
+	private Map<String, Object> inParams;
+	
+	@ZteSoftCommentAnnotationParam(name="ip",type="String",isNecessary="Y",desc="ip")
+	private String ip;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "zte.service.orderqueue.orderXmlToMap";
+	}
+
+	public String getInReq() {
+		return inReq;
+	}
+
+	public void setInReq(String inReq) {
+		this.inReq = inReq;
+	}
+
+	public String getVersion() {
+		return version;
+	}
+
+	public void setVersion(String version) {
+		this.version = version;
+	}
+
+	public Map<String, Object> getInParams() {
+		return inParams;
+	}
+
+	public void setInParams(Map<String, Object> inParams) {
+		this.inParams = inParams;
+	}
+
+	public String getIp() {
+		return ip;
+	}
+
+	public void setIp(String ip) {
+		this.ip = ip;
+	}
+ 
+}

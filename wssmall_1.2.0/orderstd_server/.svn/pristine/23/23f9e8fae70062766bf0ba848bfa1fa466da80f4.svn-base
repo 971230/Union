@@ -1,0 +1,79 @@
+package com.ztesoft.newstd.handler;
+
+import java.util.Map;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.net.attr.hander.AttrSwitchParams;
+import com.ztesoft.net.attr.hander.IAttrHandler;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.newstd.common.CommonData;
+
+import consts.ConstsCore;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+import zte.net.ecsord.params.busi.req.AttrTmResourceInfoBusiRequest;
+
+public class AttrTerminalExtHandler extends BaseSupport implements IAttrHandler {
+
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo) throws ApiBusiException {
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+		String order_id = params.getOrder_id();// 订单ID
+		Map orderAttrValues = params.getOrderAttrValues();// 订单所有属性值
+
+		CommHandler commHandler = new CommHandler();
+		String source_from = commHandler.getSourceFrom();
+
+		Object terinfo = orderAttrValues.get(AttrConsts.TERMINALINFO);
+
+		if (terinfo != null) {
+
+			String terinfoStr = String.valueOf(terinfo);
+			// Class<?> clazz =
+			// Class.forName("zte.net.ecsord.params.busi.req.AttrTmResourceInfoBusiRequest");
+			AttrTmResourceInfoBusiRequest oldvo = (AttrTmResourceInfoBusiRequest) JsonUtil.fromJson(terinfoStr,
+					AttrTmResourceInfoBusiRequest.class);
+			if (oldvo != null) {
+				oldvo.setTm_resource_id(this.daoSupport.getSequences("ES_ATTR_TERMINAL_EXT_SEQ", "1", 18));
+				oldvo.setSource_from(source_from);
+				oldvo.setOrder_id(order_id);
+				oldvo.setDb_action(ConstsCore.DB_ACTION_INSERT);
+				oldvo.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+				CommonData.getData().getOrderTreeBusiRequest().getTmResourceInfoBusiRequests().add(oldvo);
+			}
+		} else {
+			AttrTmResourceInfoBusiRequest attrTmResourceInfoBusiRequest = new AttrTmResourceInfoBusiRequest();
+			attrTmResourceInfoBusiRequest
+					.setTm_resource_id(this.daoSupport.getSequences("ES_ATTR_TERMINAL_EXT_SEQ", "1", 18));
+			attrTmResourceInfoBusiRequest.setOrder_id(order_id);
+			attrTmResourceInfoBusiRequest.setSource_from(source_from);
+			attrTmResourceInfoBusiRequest.setOperation_status(EcsOrderConsts.OCCUPIEDFLAG_0);
+			attrTmResourceInfoBusiRequest.setDb_action(ConstsCore.DB_ACTION_INSERT);
+			attrTmResourceInfoBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+			CommonData.getData().getOrderTreeBusiRequest().getTmResourceInfoBusiRequests()
+					.add(attrTmResourceInfoBusiRequest);
+			// vo.store();
+		}
+
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		return null;
+	}
+}

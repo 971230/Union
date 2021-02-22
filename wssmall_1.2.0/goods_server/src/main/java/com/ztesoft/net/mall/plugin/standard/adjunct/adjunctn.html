@@ -1,0 +1,175 @@
+<div id="adjunct_tab" class="grid_n_cont" style="display: block;">
+	<div class="btn_box">
+		<a href="javascript:void(0);" class="blue_b" style="margin-right:5px;" id="adjunctAddDialog">新增配件组</a>
+		<a href="javascript:void(0);" class="blue_b" style="margin-right:5px;display:none;">修改</a>
+		<a href="javascript:void(0);" class="blue_b" style="display:none;">删除</a>
+	</div>
+	<div id="adjunct_remind_div" class="remind_n_div"><span><img src="${ctx}/shop/admin/goodsN/images/ic_remind.png" width="16" height="16" /></span><p>您还没有添加任何配件，请添加！</p></div>
+	<div id="adjunct_content" class="btn_box" style="display:none;">
+	<#if listGoodsAdjunct?exists>
+	<script type="text/javascript">
+		$("#adjunct_content").show();
+		$("#adjunct_remind_div").hide();
+	</script>
+	<#list listGoodsAdjunct as adjunct>
+		<#include "adjunct_PanelN.html">
+	</#list>
+	</#if>
+	</div>
+	<div id="adj_temp" val="0" style='display:none;'>
+		<#include "adjunct_PanelN.html">
+	</div>
+
+	<div id="pro_selector"></div>
+</div>
+<div id="adjunctInputDialog"></div>
+<div style="display:none;">
+<div id="adjunct_input">
+	<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_b_su">
+		<tr>
+			<td class="label" style="width:100px">配件组名称</td>
+			<td><input type="text" name="adjunct_name" class="ipttxt1" id="adjunct_name" /></td>
+		</tr>
+	</table>
+	<table style="margin: 0pt auto; width: auto;">
+		<tbody>
+			<tr>
+				<td><b class="save">
+				<div style="display:none"><button class="adjunctSubmitBtn">确定</button></div>
+				<input name="btn" type="button" value="确定" style="margin-right:10px;" class="submitBtn comBtn" onclick="adjunctSubmitBtn()"/>
+				</b></td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+</div>
+<script>
+	var currentTable = null ;
+	var selTable  = null;
+	var Adjunct={
+			init:function(){
+				$.getScript(basePath+"js/Selector.js");
+				// this.bindEvent();
+				this.bindDelEvent();
+				var self= this;
+				$(".adjunctSubmitBtn").unbind("click");
+				$(".adjunctSubmitBtn").bind("click",function(){
+					
+					var adj_temp_table = $("#adj_temp>table").clone();
+					//$('input[name=pid_index]' , adj_temp_table).val(pSize++) ;
+					adj_temp_table.find("input").attr("disabled", false);
+					adj_temp_table.find("input[name=goodsExtData.adjunct_name]").val($("#adjunct_name").val());
+					adj_temp_table.appendTo($("#adjunct_content"));
+					$("#adjunct_content").show();
+					$("#adjunct_tab .remind_n_div").hide();
+					Eop.Dialog.close("adjunct_input");
+					//self.bindEvent();
+					
+					adj_temp_table.find(".delete").unbind("click").bind("click", function () {
+	     				$(this).parent().parent().parent().parent().parent().remove();
+	     				var adj_group_num = $("#adjunct_content .grid_b_su").size();
+	     				if(adj_group_num == 0){
+	     					$("#adjunct_content").hide();
+	     					$("#adjunct_tab .remind_n_div").show();
+	     				}
+	     			});
+	     			
+				});
+		 
+			},
+			bindDelEvent:function(){
+				$(".adj .delete").unbind("click");
+				$(".adj .delete").bind("click",function(){
+					$(this).parent().parent().parent().parent().parent().remove();
+				});
+				$(".adjunctitem_body .delete").unbind("click");
+				$(".adjunctitem_body .delete").bind("click",function(){
+					$(this).parent().parent().parent().remove();
+				});
+				
+			},
+			bindEvent:function(currJq){
+				var that = this;
+				
+				function disProList(plist){
+					that.appendProduct(plist);
+				}
+				//打开货品选择对话框
+				
+				if(currJq != "undefined"){
+					selTable = currJq.closest("table");
+				}
+				
+				ProductSelector.open('pro_selector',disProList);
+				return false;
+			},
+			appendProduct:function(productList){
+				for(var i=0;i<productList.length;i++){
+					var pro= productList[i];
+					if(!pro.specs || pro.specs=='null') pro.specs='';
+					if(selTable != null){
+						if($("#adj_item_" + pro.product_id, selTable).length ==1){
+							continue;
+						}
+						var html = "<tr id='adj_item_"+pro.product_id+"' class='adj_item_" + pro.product_id + "'><td style='display:none;'>";
+						html += "<a href='javascript:void(0);'><img style='display:none;' class=\"delete\" src=\"${ctx}/shop/admin/images/transparent.gif\" > </a></td>";
+						html += "<td style='text-align:center;'>"+pro.name+"<input type='hidden' name='productid_0' p_attr='ad_product_id' value='"+pro.product_id+"' /></td>";//name='productid_"+i+"'
+						html += "<td style='text-align:center;'>";
+						html += "<a href='javascript:void(0)' class='dele'><img src='"+ctx+"/shop/admin/goodsN/images/ico_close.png' width='16' height='16' />删除</a>";
+						html += "</td></tr>";
+						$(html).appendTo(selTable.find(".adjunctitem_body"));
+					}
+				}
+				 selTable = null;
+				 $("#adjunctitem_body .dele").unbind("click").bind("click", function () {
+	     			$(this).closest("tr").remove();
+	     		});
+				//this.bindDelEvent();
+			} 
+	};
+	//
+	function popAdjust(currJq){
+		Adjunct.bindEvent(currJq);
+	}
+	
+		Eop.Dialog.init({id:"adjunct_input",modal:false,title:"添加配件组", height:"100px",width:"600px"});
+		$("#adjunctAddDialog").click(function(){
+			//alert(22)
+			Eop.Dialog.open("adjunct_input");
+		});
+		//是否展示配件导入按钮
+		if($("#theForm").attr("action")=="goods!saveEdit.do"){
+			$("#adjunctInputBtn").show();
+		}else{
+			$("#adjunctInputBtn").remove();
+		}
+		if($("#adjunct_goods_type_input").val()!="normal"){
+			$("#adjunctInputBtn").remove();
+		}
+		Eop.Dialog.init({id:"adjunctInputDialog",modal:false,title:"配件导入", height:"100px",width:"700px"});
+		$("#adjunctInputBtn").bind("click",function(){
+			Eop.Dialog.open("adjunctInputDialog");
+			var url =ctx + "/shop/admin/goods!importAdjunct.do?ajax=yes";
+			$("#adjunctInputDialog").load(url,function(){
+			});
+		});
+		Eop.Dialog.init({id:"pro_selector",modal:false,title:"添加配件商品", width:"650px",height:"320px"});
+		
+		 $("#adjunctitem_body .dele").unbind("click").bind("click", function () {
+	     	$(this).closest("tr").remove();
+	     });
+		 
+		$("#adj_temp input").attr("disabled",true);
+		Adjunct.init();
+		$("form").submit(function(){
+			$("#adjunct_content .adjunct_grid").each(function(i){
+				if($(this).find("input[name=productid_]").size()<=0){
+					alert("请至少添加一个配件商品");
+					$("form").attr("validate", false);
+				 };
+				 $(this).find("input[name=productid_]").attr("name","productid_"+i);
+			});
+			return true;
+		});
+	
+</script>

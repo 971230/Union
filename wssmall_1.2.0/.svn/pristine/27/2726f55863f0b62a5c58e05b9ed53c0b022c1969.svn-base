@@ -1,0 +1,200 @@
+package com.ztesoft.rop.webservice.processor;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.security.MessageDigest;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+
+import org.dom4j.DocumentHelper;
+import org.jdom.Document;
+import org.jdom.Element;
+import org.jdom.input.SAXBuilder;
+
+import params.ZteRequest;
+import params.ZteResponse;
+import sun.misc.BASE64Encoder;
+
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.XmlUtils;
+import com.ztesoft.rop.webservice.IWSProcess;
+/**
+ * @author Rapon
+ * @version 创建时间：2016-7-22
+ */
+public class WSXMLHSProcessor  extends IWSProcess {
+
+	public String XML_TEMPLATE=//"<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+			"<root><code>replace_code</code><msg>replace_msg</msg></root>";
+	
+	// 华盛接口响应模版
+	public String XML_TEMPLATE_HS="<O_RETURN><TYPE>replace_code</TYPE><MESSAGE>replace_msg</MESSAGE></O_RETURN>";
+	
+	@Override
+	public String getMsg(String code,String msg) {
+		return XML_TEMPLATE.replaceAll("replace_code", code).replaceAll("replace_msg", msg);
+	}
+	@Override
+	public String getMsgToHs(String code,String msg) {
+		return XML_TEMPLATE_HS.replaceAll("replace_code", code).replaceAll("replace_msg", msg);
+	}
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public ZteRequest getZteRequest(String req, Class zteReqClass) {
+		try{
+			//xml转json
+			/**
+			 * 本方法隐患：1.节点下存在子节点，认为该节点为list；2.节点下不存在子节点，认为该节点为单节点；3.多个同名单节点放一起，仅转义出最后一个节点。
+			 * 不能正确根据协议转化对象
+			 * 需写一个方法，可根据对象定义决定节点是否为list
+			 * 此问题影响串码号的转义，因退货接口串码号不做处理，此问题放在后续优化
+			 */
+			String json = xml2JSON(req);
+			//json转bean
+			ZteRequest<ZteResponse> obj = (ZteRequest<ZteResponse>)com.alibaba.fastjson.JSONObject.parseObject(json,zteReqClass);
+			return obj;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	@Override
+	public String getZteResponse(ZteResponse res) {
+		Map<String,Object> map = new LinkedHashMap<String,Object>();
+		String xmlStr = "";
+		try {
+			BeanUtils.beanToMap(map, res);
+
+			Map<String,Object> mapReturn = new LinkedHashMap<String,Object>();
+			Field[] fields = res.getClass().getDeclaredFields();
+			for(int i=0;i<fields.length;i++){//按类定义的属性顺序获取属性(不含父类属性)
+				mapReturn.put(fields[i].getName(), map.get(fields[i].getName()));
+			}
+//			BeanInfo beanInfoR = Introspector.getBeanInfo(OrderCancelReceiveResp.class); // 获取父类属性
+//			BeanInfo beanInfo = Introspector.getBeanInfo(ZteResponse.class); // 获取父类属性
+//			PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+//			for (int i = 0; i < propertyDescriptors.length; i++) {//父类属性不返回
+//				PropertyDescriptor descriptor = propertyDescriptors[i];
+//				map.remove(descriptor.getName());
+//			}
+			org.dom4j.Document document = DocumentHelper.createDocument();
+			org.dom4j.Element root = null;
+			root = document.addElement(res.getBody());//根节点通过覆写getBody方法实现动态变化
+			root = XmlUtils.getXmlFromMap(root, mapReturn);
+			xmlStr = root.asXML();
+			xmlStr = XmlUtils.formatXML(xmlStr);
+		} catch (Exception e) {
+			e.printStackTrace();
+			xmlStr = getMsgToHs(IWSProcess.MSG_CODE_ERROR_HS, e.getMessage());
+		}
+		return xmlStr;
+	}
+
+	@Override
+	public String getVerifyCode(String str) {
+		return encodeBase64(md5_Hs(str));
+	}
+
+	private static  String xml2JSON(String xml) {
+		JSONObject obj = new JSONObject();
+		try {
+			String code = "gb2312";//默认gb2312(华盛接口采用gb2312)
+			
+			xml = xml.replace("&", "&amp;");
+			InputStream is = new ByteArrayInputStream(xml.getBytes("utf-8"));//编码方式需通过xml内容确定，暂时写死gb2312
+			SAXBuilder sb = new SAXBuilder();
+			Document doc = sb.build(is);
+			Element root = doc.getRootElement();
+			obj.put(root.getName(), iterateElement(root));
+			return obj.getString(root.getName());
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	private static Map  iterateElement(Element element) {
+		List jiedian = element.getChildren();
+		Element et = null;
+		Map obj = new HashMap();
+		List list = null;
+		for (int i = 0; i < jiedian.size(); i++) {
+			list = new LinkedList();
+			et = (Element) jiedian.get(i);
+			if (et.getTextTrim().equals("")) {
+				if (et.getChildren().size() == 0)
+					continue;
+				if (obj.containsKey(et.getName())) {
+					list = (List) obj.get(et.getName());
+				}
+				list.add(iterateElement(et));
+				obj.put(et.getName(), list);
+			} else {
+//				if (obj.containsKey(et.getName())) {
+//					list = (List) obj.get(et.getName());
+//				}
+//				list.add(et.getTextTrim());
+				obj.put(et.getName(), et.getTextTrim());
+			}
+		}
+		return obj;
+	}
+
+	private static String encodeBase64(byte[] b) {
+		sun.misc.BASE64Encoder base64Encode = new BASE64Encoder();
+		String str = base64Encode.encode(b);
+		return str;
+	}
+
+	/**
+	 * MD5加密方法
+	 * 
+	 * @param str
+	 *            String
+	 * @return String
+	 */
+	public static byte[] md5_Hs(String str) {
+		byte[] b = null;
+		try {
+			MessageDigest md5 = MessageDigest.getInstance("MD5");
+			md5.update(str.getBytes("utf8"));
+			b = md5.digest();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		return b;
+	}
+	
+	public static void main(String[] args) {
+
+//		String xml = "<root><a><aa><aaa>aaa</aaa></aa><ab>ab</ab></a><a><aa>aa</aa></a></root>";
+//		logger.info("xml:");
+//		logger.info(xml);
+//		String json = xml2JSON(xml);
+//		logger.info("json:");
+//		System.out.print(json);
+		
+
+		try {
+//			Field[] fields = OrderCancelReceiveResp.class.getDeclaredFields();
+//			for(int i=0;i<fields.length;i++){
+//				logger.info(fields[i].getName());
+//			}
+//			BeanInfo bi = Introspector.getBeanInfo(TEST.class);
+//            PropertyDescriptor[] pds = bi.getPropertyDescriptors();
+//            for (int i = 0; i < pds.length; i++) {
+//
+//                String propName = pds[i].getName();
+//                logger.info(propName);
+//            }
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} // 获取父类属性
+	}
+}

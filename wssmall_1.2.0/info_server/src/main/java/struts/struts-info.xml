@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<!-- 后台action -->
+	
+	<package name="struts-info" namespace="/core/admin" extends="eop_default">
+	    	<!-- 公告 -->
+		<action name="noticeAction" class="noticeAction">
+		   <result name="notice_add">notice/notice_add.jsp</result>
+		   <result name="list">notice/list.jsp</result>
+		   <result name="edit">notice/notice_edit.jsp</result>
+		   <result name="show_detail">notice/notice_detail.jsp</result>
+		   <result name="more_notice">notice/newNoticeList.jsp</result>
+		</action>
+		<action name="news" class="newsAction">
+		    <result name="list">news/news_list.jsp</result>
+			<result name="add">news/news_input.jsp</result>
+			<result name="edit">news/news_edit.jsp</result>
+			
+		</action>
+		
+		<action name="adv" class="advAction">
+			<result name="list">adv/adv_list.jsp</result>
+			<result name="add">adv/adv_input.jsp</result>
+			<result name="edit">adv/adv_edit.jsp</result>
+			<result name="getAdvById">adv/adv_dialog.jsp</result>
+			<result name="audit">adv/audit_adv_list.jsp</result>
+		</action>
+			<action name="adColumn" class="adColumnAction">
+			<result name="list">adv/adc_list.jsp</result>
+			<result name="add">adv/adc_input.jsp</result>
+			<result name="edit">adv/adc_edit.jsp</result>
+		</action>
+	</package>
+	
+	<package name="basefacade" namespace="/core" extends="eop_default">
+		<action name="adv" class="advAction">
+			<result name="go">adv/go.jsp</result>
+		</action>
+	   <action name="poster" class="advAction">
+			<result name="go">adv/go.jsp</result>
+	   </action>
+
+	</package>
+	
+	<package name="basetpl" namespace="/shop/admin" extends="eop_default">
+	   <action name="ordTplAction" class="ordTemplateAction">
+			<result name="tpl_index">template/tpl_index.jsp</result>
+			<result name="template_tree">template/templateTree.jsp</result>
+			<result name="add_template_node">template/add_template_node.jsp</result>
+			<result name="tpl_main">template/tpl_main.jsp</result>
+
+			<result name="tpl_config">template/tpl_config.jsp</result>
+			<result name="catalogue_tree">template/catalogueTree.jsp</result>
+			<result name="add_catalogue">template/add_catalogue.jsp</result>
+			<result name="node_tree">template/node_tree.jsp</result>
+			<result name="json_format">template/json/json_format.jsp</result>
+			<result name="setup_tree">template/tpl_akeyset.jsp</result>
+	   </action>
+	   <!--刷新组件action  -->
+		<action name="ordTemplateAction" class="ordTemplateAction">
+			<result name="refrushTempleteComp"></result>
+		</action>
+		<!-- 查询模板列表 -->
+		<action name="selectTemplateAction" class="ordTemplateAction">
+			<result name="selectTempleteComp">template/tpl_show.jsp</result>
+			<result name="selectAttrDef">template/tpl_akeyset.jsp</result>
+			<result name="saveAKeySet"></result>
+		</action>
+	   
+	</package>	
+
+	
+	<package name="nodeTableAction" namespace="/shop/admin" extends="eop_default">
+	   <!--搜索组件action  -->
+		<action name="lucenceAttrTableAction" class="lucenceAttrTableAction">
+		</action>
+		<action name="lucenceTableSearchAction" class="lucenceTableSearchAction">
+		</action>
+	</package>	
+</struts>

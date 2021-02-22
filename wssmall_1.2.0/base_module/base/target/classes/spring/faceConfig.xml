@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:context="http://www.springframework.org/schema/context"
+          xmlns:aop="http://www.springframework.org/schema/aop"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+            http://www.springframework.org/schema/aop
+         http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+         http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+                     
+
+	<!-- 使用 annotation 自动注册bean,并检查@Controller, @Service, @Repository注解已被注入 -->
+	<context:component-scan base-package="com.ztesoft.face" />
+	
+	<!-- 使用 annotation 自动注册bean,并检查@Controller, @Service, @Repository注解已被注入 -->
+    <context:component-scan base-package="com.ztesoft.net.aspect"/>
+    
+    <!-- ① 扫描Spring Bean  zte.net.iservice.impl--><!-- zte.net.iservice.impl add by wui此包文件扫描不允许添加，解决分布式启动通过dubbo调用，不走本地的问题 -->
+    <context:component-scan base-package="com.ztesoft.services,com.ztesoft.remote.service"/>
+    	
+    <!-- 激活自动代理功能 -->
+	<!-- <aop:aspectj-autoproxy proxy-target-class="false"/>-->
+	<aop:aspectj-autoproxy />
+<!--    <context:annotation-config/>-->
+
+</beans>

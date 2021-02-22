@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+
+    <!-- ********************定时任务-订单同步开始******************** -->
+    <bean id="coDingDanTimer" class="com.ztesoft.net.mall.core.timer.CoDingDanTimer"/>
+    <bean id="coDingDanJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+     <!-- 先结束当前任务再会执行新的任务 -->
+        <property name="concurrent" value="false" />
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="coDingDanTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coDingDanTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coDingDanJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/30 * * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-订单同步结束******************** -->
+    
+    
+    <!-- ********************定时任务-商品同步开始******************** -->
+    <bean id="coGoodsTimer" class="com.ztesoft.net.mall.core.timer.CoGoodsTimer"/>
+    <bean id="coGoodsJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+     <!-- 先结束当前任务再会执行新的任务 -->
+        <property name="concurrent" value="false" />
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="coGoodsTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coGoodsTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coGoodsJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/30 * * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-商品同步结束******************** -->
+    
+    <!-- ********************定时任务-产（货）品同步开始******************** -->
+    <bean id="coProductTimer" class="com.ztesoft.net.mall.core.timer.CoProductTimer"/>
+    <bean id="coProductJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="coProductTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coProductTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coProductJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/30 * * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-产（货）品同步结束******************** -->
+    
+    <!-- ********************定时任务-货品库存同步开始********************  -->
+    <bean id="coHuoPinTimer" class="com.ztesoft.net.mall.core.timer.CoHuoPinTimer"/>
+    <bean id="coHuoPinJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="coHuoPinTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coHuoPinTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coHuoPinJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>* 0/5 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-货品库存同步结束******************** -->
+
+    <!-- ********************定时任务-商品库存同步开始********************  -->
+    <bean id="coShangPinTimer" class="com.ztesoft.net.mall.core.timer.CoShangPinTimer"/>
+    <bean id="coShangPinJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="coShangPinTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coShangPinTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coShangPinJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>* 0/10 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-商品库存同步结束******************** -->
+    
+    <!-- ********************定时任务-号码同步开始********************  -->
+    <bean id="coHaoMaTimer" class="com.ztesoft.net.mall.core.timer.CoHaoMaTimer"/>
+    <bean id="coHaoMaJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="coHaoMaTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coHaoMaTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coHaoMaJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>* 0/5 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-号码同步结束******************** -->
+    
+    <!-- ********************定时任务-活动同步开始********************  -->
+    <bean id="coHuoDongTimer" class="com.ztesoft.net.mall.core.timer.CoHuoDongTimer"/>
+    <bean id="coHuoDongJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="coHuoDongTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coHuoDongTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coHuoDongJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/30 * * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-活动同步结束******************** -->
+    
+    
+    <!-- ********************订单归集扫描开始******************** -->
+    <bean id="outerInfJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+     <!-- 先结束当前任务再会执行新的任务 -->
+        <property name="concurrent" value="false" />
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="outerInfTimerService"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>exeOrderSync</value>
+        </property>
+    </bean>
+
+    <!-- 订单归集扫描时间   0 0 3 * * ? 每天3点  0 0/1 * * * ? 每分钟-->
+    <bean id="outerInfTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="outerInfJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/10 * * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************取消订单扫描结束******************** -->
+    
+    <!-- ********************定时任务-手机货品导入开始******************** -->
+    <bean id="terminalImportTimer" class="com.ztesoft.net.mall.core.timer.TerminalImportTimer"/>
+    <bean id="terminalImportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref bean="terminalImportTimer"/>
+        </property>
+        
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <bean id="terminalImportTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="terminalImportJob"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/10 * * * ?</value>
+        </property>
+    </bean>
+    
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="triggers">
+            <list>
+                 <ref bean="terminalImportTime"/>
+            </list>
+        </property>
+    </bean>
+    
+    <!-- ********************定时任务-手机货品导入开始******************** -->
+    
+    <!-- ********************定时任务-商品批量导入开始******************** -->
+    <bean id="goodsImportTimer" class="com.ztesoft.net.mall.core.timer.GoodsImportTimer"/>
+    <bean id="goodsImportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+         <!-- 先结束当前任务再会执行新的任务 -->
+        <property name="concurrent" value="false" />
+        <property name="targetObject">
+            <ref bean="goodsImportTimer"/>
+        </property>
+        
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <bean id="goodsImportTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="goodsImportJob"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/1 * * * ?</value>
+        </property>
+    </bean>
+    
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="triggers">
+            <list>
+                 <ref bean="goodsImportTime"/>
+            </list>
+        </property>
+    </bean>
+    
+    <!-- ********************定时任务-商品批量导入结束******************** -->
+    
+    <!-- ********************定时任务-活动批量导入开始******************** -->
+    <bean id="activityTimer" class="com.ztesoft.net.mall.core.timer.ActivityImportTimer"/>
+    <bean id="activityImportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+       
+        <property name="targetObject">
+            <ref bean="activityTimer"/>
+        </property>
+        
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <bean id="activityImportTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="activityImportJob"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/10 * * * ?</value>
+        </property>
+    </bean>
+    
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="triggers">
+            <list>
+                 <ref bean="activityImportTime"/>
+            </list>
+        </property>
+    </bean>
+    
+    <!-- ********************定时任务-活动批量导入结束******************** -->
+    
+    <!-- ********************定时任务-类型同步开始********************  -->
+    <bean id="CoLeiXingTimer" class="com.ztesoft.net.mall.core.timer.CoLeiXingTimer"/>
+    <bean id="coLeiXingJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="CoLeiXingTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coLeiXingTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coLeiXingJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>* 0/10 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-类型同步结束******************** -->
+    
+    <!-- ********************定时任务-分类同步开始********************  -->
+    <bean id="CoFenLeiTimer" class="com.ztesoft.net.mall.core.timer.CoFenLeiTimer"/>
+    <bean id="coFenLeiJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="CoFenLeiTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coFenLeiTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coFenLeiJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>* 0/10 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-分类同步结束******************** -->
+    
+    <!-- ********************定时任务-品牌同步开始********************  -->
+    <bean id="CoPinPaiTimer" class="com.ztesoft.net.mall.core.timer.CoPinPaiTimer"/>
+    <bean id="coPinPaiJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="CoPinPaiTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coPinPaiTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coPinPaiJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>* 0/10 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-品牌同步结束******************** -->
+    
+    
+    <!-- ********************定时任务-型号同步开始********************  -->
+    <bean id="CoXingHaoTimer" class="com.ztesoft.net.mall.core.timer.CoXingHaoTimer"/>
+    <bean id="coXingHaoJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="CoXingHaoTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="coXingHaoTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="coXingHaoJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>* 0/10 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************定时任务-型号同步结束******************** -->
+    
+    <!-- ********************定时任务-订单monitor定时任务******************** -->
+    <bean id="orderMonitorTimer" class="com.ztesoft.net.mall.core.timer.OrderMonitorSmsTimer"/>
+    <bean id="orderMonitorJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 先结束当前任务再会执行新的任务 -->
+        <property name="concurrent" value="false" />
+        <property name="targetObject">
+            <ref bean="orderMonitorTimer"/>
+        </property>
+        
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <bean id="orderMonitorTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="orderMonitorJob"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/1 * * * ?</value>
+        </property>
+    </bean>
+    
+    <!-- ********************定时任务-monitor同步结束******************** -->
+    
+    <!-- ********************定时任务-商品数据解析定时任务******************** -->
+    <bean id="goodsXmlParseTimer" class="com.ztesoft.net.mall.core.timer.GoodsXmlParseTimer"/>
+    <bean id="goodsXmlJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+       
+        <property name="targetObject">
+            <ref bean="goodsXmlParseTimer"/>
+        </property>
+        
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <bean id="goodsXmlTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="goodsXmlJob"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/2 * * * ?</value>
+        </property>
+    </bean>
+    
+    <!-- ********************新订单标准化归集定时任务处理逻辑开始******************** -->
+    <bean id="newOrderStandardizingTimer" class="com.ztesoft.net.mall.core.timer.NewOrderStandardizingTimer"/>
+    <bean id="newOrderStandardizingJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+     <!-- 先结束当前任务再会执行新的任务 -->
+        <property name="concurrent" value="false" />
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="newOrderStandardizingTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>standardize</value>
+        </property>
+    </bean>
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="newOrderStandardizingTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="newOrderStandardizingJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/20 * * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************新订单标准化归集定时任务处理逻辑结束******************** -->
+    
+    <!--  -->
+    <bean id="huashengGoodsInfTimer" class="com.ztesoft.net.mall.core.timer.HuashengGoodsInfTimerService"/>
+    <bean id="huashengGoodsInf" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+     <!-- 先结束当前任务再会执行新的任务 -->
+        <property name="concurrent" value="false" />
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="huashengGoodsInfTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>exeGoodsSync</value>
+        </property>
+    </bean>
+    <bean id="huashengGoods" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="huashengGoodsInf"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0/10 * * * * ?</value>
+        </property>
+    </bean>
+    <!--  -->
+     
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                 <ref bean="huashengGoods"/>
+                 <ref bean="coDingDanTime"/>
+                 <ref bean="coGoodsTime"/>
+                 <ref bean="coProductTime"/> 
+                 <ref bean="outerInfTime"/>  
+                 <ref bean="coHuoDongTime"/> 
+                 <ref bean="coHuoPinTime"/>             
+                 <ref bean="coHaoMaTime"/> 
+                 <ref bean="coShangPinTime"/>            
+                 <ref bean="coXingHaoTime"/> 
+                 <ref bean="coPinPaiTime"/>
+                 <ref bean="coLeiXingTime"/>
+                 <ref bean="coFenLeiTime"/>
+                 <ref bean="orderMonitorTime"/>
+                 <ref bean="goodsXmlTime"/>
+                 <ref bean="newOrderStandardizingTime"/>
+            </list>
+        </property>
+    </bean>
+    
+    
+</beans>

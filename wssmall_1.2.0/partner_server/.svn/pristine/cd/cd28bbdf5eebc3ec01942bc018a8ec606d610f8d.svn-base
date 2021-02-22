@@ -1,0 +1,271 @@
+package com.ztesoft.net.mall.core.action.desposit;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import params.org.req.OrgReq;
+import services.AdminUserInf;
+
+import com.ztesoft.net.app.base.core.model.Partner;
+import com.ztesoft.net.app.base.core.model.PartnerAccount;
+import com.ztesoft.net.app.base.core.model.PartnerFreezeLog;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.desposit.model.OperDetail;
+import com.ztesoft.common.util.BeanUtils;
+
+public class PartnerFreezeLogAction extends WWAction {
+	
+	private String beginTime ;
+	private String endTime;
+	private String opType;
+	private String partnerId ;
+	private String userid;
+	private List freezeLogList;
+	private List depostLogList;
+	
+	private Partner partner;
+	private PartnerAccount partnerAccount;
+	private PartnerFreezeLog partnerFreezeLog;
+	
+	/*protected IPartnerFreezeLogManager freezeLogManager;
+	protected IPartnerAccountManager accountManager;
+	protected IPartnerManager partnerManager;*/
+	protected IDespostHander despostHander;
+	protected String json ;
+	private AdminUserInf adminUserServ;
+	/*
+	 * @funciton 获取分销商预存金解冻、冻结记录
+	 * 
+	 */
+	public String list(){
+		
+		partner = this.despostHander.queryPartnerByID(partnerId);
+		
+		partnerAccount = this.despostHander.getAccountById(partnerId);
+		
+		this.webpage = this.despostHander.qyFreezeLogList(partnerId, beginTime, endTime, opType, this.getPage(), this.getPageSize());
+		return "list";
+	}
+	
+	/*
+	 * @function 冻结解冻分销商预存金
+	 * 
+	 */
+	public String actChange(){
+		
+		try {
+			
+			this.json = despostHander.frostAccount(partnerId, partnerFreezeLog);
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:0,message:'" + e.getMessage() + "'}";	
+		}
+		
+		return this.JSON_MESSAGE;
+	}
+	
+	public String changeLog(){
+		
+		freezeLogList = this.despostHander.queryfreezeLogList(partnerId);
+		depostLogList = this.despostHander.queryDespostLogList(partnerId);
+		return "changeLog";
+	}
+	
+	@SuppressWarnings("unchecked")
+	public String changeLogF(){
+		List<OperDetail> list = new ArrayList<OperDetail>();
+		Map retMap = new HashMap();
+		try {
+			Map req = new HashMap();
+			req.put("requestId", StringUtil.getTransDate() + (int) (Math.random() * 10000));
+			if (beginTime == null || "".equals(beginTime)) {
+				beginTime = StringUtil.getCurrentTime().substring(0, 8) + "01";
+			}
+			req.put("beginTime", beginTime + " 00:00:00");
+			if (null == endTime || "".equals(endTime)) {
+				endTime = StringUtil.getCurrentTime().substring(0, 10);
+			}
+			req.put("endTime", endTime + " 23:59:59");
+			req.put("pageNo", this.getPage());
+			req.put("pageSize", 10);
+			//Map agenInfo = orderUtils.getAgentOrgInfo(userid.split(",")[0]); // userid = 1234, 1234 特殊处理
+			
+			OrgReq orgReq = new OrgReq();
+			orgReq.setStaff_code(userid.split(",")[0]);
+			Map agenInfo = adminUserServ.getAgentOrgInfo(orgReq).getOrgInfo();
+			
+			req.put("unionOrgCode", agenInfo.get("union_org_code").toString());
+			retMap = null;
+			List operDetailList = (List)retMap.get("operDetail");
+			for(int i = 0; i < operDetailList.size(); i++){
+				OperDetail operDetail = new OperDetail();
+				BeanUtils.copyProperties(operDetail, operDetailList.get(i));
+				operDetail.setAmout(Integer.parseInt(operDetail.getAmout())/100 + "");
+				operDetail.setBeAmount(Integer.parseInt(operDetail.getBeAmount())/100 + "");
+				operDetail.setAfAmount(Integer.parseInt(operDetail.getAfAmount())/100 + "");
+				operDetail.setOperDate(StringUtil.transToDate(operDetail.getOperDate()));
+				if(Integer.valueOf(operDetail.getBeAmount()) == Integer.valueOf(operDetail.getAfAmount())){
+					operDetail.setOperate("未操作");
+				}else if(Integer.valueOf(operDetail.getBeAmount()) > Integer.valueOf(operDetail.getAfAmount())){
+					operDetail.setOperate("支出");
+				}else{
+					operDetail.setOperate("存入");
+				}
+				list.add(operDetail);
+			}
+		} catch (Exception e) {
+			
+			e.printStackTrace();
+		}
+		//add by wui空数据处理
+		String totalPage = (String)retMap.get("totalPage");
+		if(StringUtil.isEmpty(totalPage))
+			totalPage ="0";
+		this.webpage = new Page(0, Integer.parseInt(totalPage)*10, 10, list);
+		return "changeLogF";
+	}
+	
+	@SuppressWarnings("unchecked")
+	public String changeLogList(){
+		HttpServletRequest request = (HttpServletRequest)ThreadContextHolder.getHttpRequest();
+		List<OperDetail> list = new ArrayList<OperDetail>();
+		Map retMap = new HashMap();
+		try {
+			Map req = new HashMap();
+			req.put("requestId", StringUtil.getTransDate() + (int) (Math.random() * 10000));
+			if (beginTime == null || "".equals(beginTime)) {
+				beginTime = StringUtil.getCurrentTime().substring(0, 10);
+			}
+			req.put("beginTime", beginTime + " 00:00:00");
+			if (null == endTime || "".equals(endTime)) {
+				endTime = StringUtil.getCurrentTime().substring(0, 10);
+			}
+			req.put("endTime", endTime + " 23:59:59");
+			req.put("pageNo", this.getPage());
+			req.put("pageSize", 10);
+			
+			OrgReq orgReq = new OrgReq();
+			orgReq.setStaff_code(userid.split(",")[0]);
+			Map agenInfo = adminUserServ.getAgentOrgInfo(orgReq).getOrgInfo(); // userid = 1234, 1234 特殊处理
+			req.put("unionOrgCode", agenInfo.get("union_org_code").toString());
+			retMap = null;
+			List operDetailList = (List)retMap.get("operDetail");
+			for(int i = 0; i < operDetailList.size(); i++){
+				OperDetail operDetail = new OperDetail();
+				BeanUtils.copyProperties(operDetail, operDetailList.get(i));
+				operDetail.setAmout(Integer.parseInt(operDetail.getAmout())/100 + "");
+				operDetail.setBeAmount(Integer.parseInt(operDetail.getBeAmount())/100 + "");
+				operDetail.setAfAmount(Integer.parseInt(operDetail.getAfAmount())/100 + "");
+				operDetail.setOperDate(StringUtil.transToDate(operDetail.getOperDate()));
+				list.add(operDetail);
+			}
+		} catch (Exception e) {
+			
+			e.printStackTrace();
+		}
+		this.webpage = new Page(0, Integer.parseInt(retMap.get("totalPage").toString())*10, 10, list);
+		return "changeLogList";
+	}
+	
+	public String getBeginTime() {
+		return beginTime;
+	}
+	public void setBeginTime(String beginTime) {
+		this.beginTime = beginTime;
+	}
+	public String getEndTime() {
+		return endTime;
+	}
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
+	}
+	public String getOpType() {
+		return opType;
+	}
+	public void setOpType(String opType) {
+		this.opType = opType;
+	}
+	
+	public Partner getPartner() {
+		return partner;
+	}
+	public void setPartner(Partner partner) {
+		this.partner = partner;
+	}
+	public String getPartnerId() {
+		return partnerId;
+	}
+	public void setPartnerId(String partnerId) {
+		this.partnerId = partnerId;
+	}
+	public PartnerAccount getPartnerAccount() {
+		return partnerAccount;
+	}
+	public void setPartnerAccount(PartnerAccount partnerAccount) {
+		this.partnerAccount = partnerAccount;
+	}
+	public PartnerFreezeLog getPartnerFreezeLog() {
+		return partnerFreezeLog;
+	}
+	public void setPartnerFreezeLog(PartnerFreezeLog partnerFreezeLog) {
+		this.partnerFreezeLog = partnerFreezeLog;
+	}
+	
+	public IDespostHander getDespostHander() {
+		return despostHander;
+	}
+
+	public void setDespostHander(IDespostHander despostHander) {
+		this.despostHander = despostHander;
+	}
+
+	public String getJson() {
+		return json;
+	}
+
+	public void setJson(String json) {
+		this.json = json;
+	}
+
+	public List getFreezeLogList() {
+		return freezeLogList;
+	}
+
+	public void setFreezeLogList(List freezeLogList) {
+		this.freezeLogList = freezeLogList;
+	}
+
+	public List getDepostLogList() {
+		return depostLogList;
+	}
+
+	public void setDepostLogList(List depostLogList) {
+		this.depostLogList = depostLogList;
+	}
+
+
+	public String getUserid() {
+		return userid;
+	}
+
+	public void setUserid(String userid) {
+		this.userid = userid;
+	}
+
+
+	public AdminUserInf getAdminUserServ() {
+		return adminUserServ;
+	}
+
+	public void setAdminUserServ(AdminUserInf adminUserServ) {
+		this.adminUserServ = adminUserServ;
+	}
+
+}

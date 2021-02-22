@@ -1,0 +1,132 @@
+package zte.net.iservice.impl;
+
+import params.adminuser.resp.UserWdLoginResp;
+import params.req.PartnerByIdReq;
+import params.req.PartnerLogOffReq;
+import params.req.PartnerSSOReq;
+import params.req.PartnerShopListReq;
+import params.req.PartnerWdAddReq;
+import params.req.PartnerWdEditReq;
+import params.resp.PartnerByIdResp;
+import params.resp.PartnerLogOffResp;
+import params.resp.PartnerShopListResp;
+import params.resp.PartnerWdAddResp;
+import params.resp.PartnerWdEditResp;
+import zte.net.iservice.IPartnerService;
+import zte.params.req.GetPartnerReq;
+import zte.params.resp.GetPartnerResp;
+
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+@ServiceMethodBean(version = "1.0")
+public class ZtePartnerOpenService implements IPartnerService {
+
+	private IPartnerService partnerService;
+
+	private void init() {
+		partnerService = ApiContextHolder.getBean("partnerService");
+	}
+
+	@Override
+	@ServiceMethod(method = "zte.partnerService.partner.list", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public GetPartnerResp getPartnerList(GetPartnerReq req) {
+
+		return partnerService.getPartnerList(req);
+	}
+
+	@Override
+	@ServiceMethod(method = "zte.service.addPartnerWd", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PartnerWdAddResp addPartnerWd(PartnerWdAddReq req) {
+		this.init();
+		return partnerService.addPartnerWd(req);
+	}
+
+	@Override
+	@ServiceMethod(method = "zte.service.editPartnerWd", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PartnerWdEditResp editPartnerWd(PartnerWdEditReq req) {
+		this.init();
+		return partnerService.editPartnerWd(req);
+	}
+
+	@Override
+	@ServiceMethod(method = "zte.service.getPartnerById", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PartnerByIdResp getPartnerById(PartnerByIdReq req) {
+		this.init();
+		return partnerService.getPartnerById(req);
+	}
+
+	@Override
+	@ServiceMethod(method = "zte.service.getPartnerShopPage", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PartnerShopListResp getPartnerShopPage(PartnerShopListReq req) {
+		this.init();
+		return partnerService.getPartnerShopPage(req);
+	}
+
+	@Override
+	@ServiceMethod(method = "zte.service.partnersso", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public UserWdLoginResp partnerSSO(PartnerSSOReq req) {
+		this.init();
+		return partnerService.partnerSSO(req);
+	}
+
+	@Override
+	@ServiceMethod(method = "zte.service.partnerLogoff", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public PartnerLogOffResp partnerLogoff(PartnerLogOffReq req) {
+		this.init();
+		return partnerService.partnerLogoff(req);
+	}
+	
+	public static void main(String[] str) {
+		/*
+		 * //代理商注册 PartnerWdAddReq req = new PartnerWdAddReq();
+		 * req.setUsername("testWD"); req.setPassword("123");
+		 * req.setPartner_image(
+		 * "http://10.123.99.69/group1/M00/27/3D/CntjRVTJ69-AYo-EAAKo5CfRT9M668.jpg"
+		 * ); req.setPartner_ship_image(
+		 * "http://10.123.99.69/group1/M00/27/3D/CntjRVTJ69-AYo-EAAKo5CfRT9M668.jpg"
+		 * ); req.setPartner_shop_name("我的小店");
+		 * req.setPartner_shop_address("中国"); ZteClient client =
+		 * ClientFactory.getZteRopClient(AppKeyEnum.APP_KEY_WSSMALL_SHP);
+		 * PartnerWdAddResp resp = client.execute(req,PartnerWdAddResp.class);
+		 */
+
+		// 代理商店铺信息修改
+		/*
+		 * PartnerWdEditReq req = new PartnerWdEditReq(); PartnerShop
+		 * partnerShop = new PartnerShop();
+		 * partnerShop.setPartner_id("201502046824000307");
+		 * partnerShop.setName("我的小店修改111"); req.setPartnerShop(partnerShop);
+		 * ZteClient client =
+		 * ClientFactory.getZteRopClient(AppKeyEnum.APP_KEY_WSSMALL_SHP);
+		 * PartnerWdEditResp resp = client.execute(req,PartnerWdEditResp.class);
+		 * partnerShop = resp.getPartnerShop();
+		 * System.out.print("==========="+partnerShop.getName());
+		 */
+
+		// 获取分销商信息
+		/*
+		 * PartnerByIdReq req = new PartnerByIdReq();
+		 * req.setPartnerId("201502063694000309"); ZteClient client =
+		 * ClientFactory.getZteRopClient(AppKeyEnum.APP_KEY_WSSMALL_SHP);
+		 * PartnerByIdResp resp = client.execute(req,PartnerByIdResp.class);
+		 * System.out.print("==========="+resp.getError_code());
+		 */
+		// 获取分销商店铺列表
+		PartnerShopListReq req = new PartnerShopListReq();
+		req.setPageNo(1);
+		req.setPageSize(10);
+		ZteClient client = ClientFactory
+				.getZteRopClient(AppKeyEnum.APP_KEY_WSSMALL_SHP);
+		PartnerShopListResp resp = client.execute(req,
+				PartnerShopListResp.class);
+
+	}
+
+
+}

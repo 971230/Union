@@ -1,0 +1,780 @@
+package test;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import net.sf.json.JSONObject;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+
+import com.tangosol.dev.assembler.Switch;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+
+import zte.net.ecsord.common.CommonDataFactory;
+
+/**
+ * aop接口连通测试
+ * @author chenjl
+ *
+ */
+@SuppressWarnings("all")
+public class testAopCunFei{
+	public static String appkey = "cmall.sub";
+	public static String bizkey = "SS-GG-001";//SS-CS-001 套餐变更 SS-GG-001老用户优惠购机一键开户、老用户优惠购机补换卡 TS-4G-001 23转4
+	public static String url = "http://127.0.0.1:10080/aop/test";
+	//员工信息查询
+	public static String method0 = "ecaop.trades.check.staff.check";	
+	public static String bizkey0 = "CS-001";	
+	//发展人查询
+	public static String method1 = "ecaop.trades.query.comm.devr.qry";	
+	public static String bizkey1 = "TS-3G-012";	
+	//终端状态查询变更
+	public static String method2 = "ecaop.trades.query.resi.term.autochg";	
+	public static String bizkey2 = "CS-011";		
+	//老用户业务校验（3G）
+	public static String method3 = "ecaop.trades.check.oldu.check";	
+	public static String bizkey3 = "CS-003";			
+	//老用户优惠购机处理申请
+	public static String method4 = "ecaop.trades.sell.mob.oldu.activity.app";	
+	public static String bizkey4 = "SS-GG-001";		 		
+	//老用户优惠购机处理提交
+	public static String method5 = "ecaop.trades.sell.mob.oldu.activity.sub";
+	public static String bizkey5 = "SS-GG-001";			 
+	//23转4校验
+	public static String method6 = "ecaop.trades.query.comm.23to4.check";	
+	public static String bizkey6 = "CS-015";		 
+	//23转4开户处理申请
+	public static String method7 = "ecaop.trades.sell.mob.newu.23to4open.app";	
+	public static String bizkey7 = "TS-4G-001";		
+	//23转4开户提交
+	public static String method8 = "ecaop.trades.sell.mob.newu.open.sub";	
+	public static String bizkey8 = "TS-4G-001";		
+	//23转4撤单
+	public static String method9 = "ecaop.trades.serv.curt.23to4cannel.sub";	
+	public static String bizkey9 = "SS-CS-006";	 		
+	//订单返销
+	public static String method10 = "ecaop.trades.serv.curt.cannel.sub";		
+	public static String bizkey10 = "SS-CS-002";			
+	//套餐变更
+	public static String method11 = "ecaop.trades.sell.mob.oldu.product.chg";	
+	public static String bizkey11 = "SS-CS-001";		 		
+	//套餐变更撤单
+	public static String method12 = "ecaop.trades.serv.curt.prochgcannel.sub";	
+	public static String bizkey12 = "SS-CS-005";		 		
+	//流量包订购
+	public static String method13 = "ecaop.trades.sell.mob.comm.traffic.order";	
+	public static String bizkey13 = "CS-018";		 		
+	//用户资料校验三户返回 ecaop.trades.query.comm.user.threepart.check
+	public static String method14 = "ecaop.trades.query.comm.user.threepart.check";	
+	public static String bizkey14 = "CS-012";		 
+	//换机 
+	public static String method15 = "ecaop.trades.serv.curt.changeph.sub";	
+	public static String bizkey15 = "SS-CS-003";				
+	//退机处理申请
+	public static String method16 = "ecaop.trades.serv.curt.cannelph.app";	
+	public static String bizkey16 = "SS-CS-004";		 
+	//退机提交
+	public static String method17 = "ecaop.trades.serv.curt.cannelph.sub";	
+	public static String bizkey17 = "SS-CS-004";		 
+	//订单查询
+	public static String method18 = "ecaop.trades.query.ordi.ordilist.qry";	
+	public static String bizkey18 = "QS-014";	
+	
+	public static String method;
+	public static String jsonStr;
+	
+	public static void getMethodAndJsonStr(int num,String[] jsonStrs){
+		switch (num) {
+			case 0:
+				method = method0;
+				bizkey = bizkey0;
+				jsonStr = jsonStrs[0];
+				break;
+			case 1:
+				method = method1;
+				bizkey = bizkey1;
+				jsonStr = jsonStrs[1];
+				break;
+			case 2:
+				method = method2;
+				bizkey = bizkey2;
+				jsonStr = jsonStrs[2];
+				break;
+			case 3:
+				method = method3;
+				bizkey = bizkey3;
+				jsonStr = jsonStrs[3];
+				break;
+			case 4:
+				method = method4;
+				bizkey = bizkey4;
+				jsonStr = jsonStrs[4];
+				break;
+			case 5:
+				method = method5;
+				bizkey = bizkey5;
+				jsonStr = jsonStrs[5];
+				break;
+			case 6:
+				method = method6;
+				bizkey = bizkey6;
+				jsonStr = jsonStrs[6];
+				break;
+			case 7:
+				method = method7;
+				bizkey = bizkey7;
+				jsonStr = jsonStrs[7];
+				break;
+			case 8:
+				method = method8;
+				bizkey = bizkey8;
+				jsonStr = jsonStrs[8];
+				break;
+			case 9:
+				method = method9;
+				bizkey = bizkey9;
+				jsonStr = jsonStrs[9];
+				break;
+			case 10:
+				method = method10;
+				bizkey = bizkey10;
+				jsonStr = jsonStrs[10];
+				break;
+			case 11:
+				method = method11;
+				bizkey = bizkey11;
+				jsonStr = jsonStrs[11];
+				break;
+			case 12:
+				method = method12;
+				bizkey = bizkey12;
+				jsonStr = jsonStrs[12];
+				break;
+			case 13:
+				method = method13;
+				bizkey = bizkey13;
+				jsonStr = jsonStrs[13];
+				break;
+			case 14:
+				method = method14;
+				bizkey = bizkey14;
+				jsonStr = jsonStrs[14];
+				break;
+			case 15:
+				method = method15;
+				bizkey = bizkey15;
+				jsonStr = jsonStrs[15];
+				break;
+			case 16:
+				method = method16;
+				bizkey = bizkey16;
+				jsonStr = jsonStrs[16];
+				break;
+			case 17:
+				method = method17;
+				bizkey = bizkey17;
+				jsonStr = jsonStrs[17];
+				break;
+			case 18:
+				method = method18;
+				bizkey = bizkey18;
+				jsonStr = jsonStrs[18];
+				break;
+			default:
+				method = method0;
+				bizkey = bizkey0;
+				jsonStr = jsonStrs[0];
+				break;
+		}
+	}
+	public static String post(String url,String reqEncoding,String respEncoding,List<NameValuePair> param) {
+		HttpClient httpclient=new DefaultHttpClient();
+        String resStr = "";
+        // 创建httppost
+        HttpPost httppost = new HttpPost(url);
+        httppost.setHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+        httppost.setHeader("Accept-Language", "us");
+        httppost.setHeader("CONN_type", "SSL");
+        // 创建参数队列
+        List<NameValuePair> formparams = param;
+        UrlEncodedFormEntity uefEntity;
+        try {
+            uefEntity = new UrlEncodedFormEntity(formparams, reqEncoding);
+            httppost.setEntity(uefEntity);
+            HttpResponse response;
+            //System.out.println("什么什么头"+httppost.getEntity().toString());
+            response = httpclient.execute(httppost);
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                resStr = EntityUtils.toString(entity,respEncoding);
+            }
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e1) {
+            e1.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            // 关闭连接,释放资源
+           // httpclient.getConnectionManager().shutdown();
+        }
+        return resStr;
+    }
+	
+	public static String request(String apptx,String phoneBssOccupyRequestBean){
+		List<NameValuePair> list =new ArrayList<NameValuePair>();
+	    list.add(new BasicNameValuePair("appkey", appkey));//
+	    list.add(new BasicNameValuePair("method", method));//
+	    list.add(new BasicNameValuePair("apptx", apptx));
+	    list.add(new BasicNameValuePair("bizkey", bizkey));
+	    
+       	DateFormat tempDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");   
+        list.add(new BasicNameValuePair("timestamp", tempDF.format(new Date())));
+        
+        list.add(new BasicNameValuePair("msg",phoneBssOccupyRequestBean));
+        System.out.println("完整请求："+list.toString());
+		String content = post(url,"UTF-8", "UTF-8",list);
+        System.out.println("响应报文："+content);    
+        return content;
+	}
+	
+	public static String makeJsonStr(int num, String proKey)
+			throws Exception {
+		
+		//员工信息查询ecaop.trades.check.staff.check
+		String jsonStr0 = 
+				"{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"checkMode\":\"2\"}";
+
+		//发展人查询ecaop.trades.query.comm.devr.qry
+		String jsonStr1 = "{" +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"developerId\":\""+developerId+"\"" +
+				"}";
+		
+		//终端状态查询变更
+		String jsonStr2 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"resourcesInfo\":[{" +
+					"\"resourcesType\":\"01\"," +//资源类型：01  移动电话 IMEI	02  上网卡 ICCID	03  上网本 IMEI
+					"\"resCodeType\":\"01\"," +//编码类型：01 IMEI 02 ICCID	03 SN手机号码
+					"\"resourcesCode\":\""+resourcesCodeMobile+"\"," +//资源唯一标识
+					"\"occupiedFlag\":\""+occupiedFlag+"\"," +//预占标识：0 不预占1 预占2 预订3 释放
+					"\"allocationFlag\":\"1\"," +//调拨标识：0 不调拨	1 调拨，默认写死
+					"\"occupiedTime\":\""+occupiedTime+"\"," +
+					"\"custName\":\""+custName+"\"," +
+					"\"certType\":\""+certType+"\"," +
+					"\"certNum\":\""+certNum+"\"}]" +
+			"}";
+	
+		//老用户业务校验（3G）
+		String jsonStr3 ="{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"opeSysType\":\"1\"," +//办理业务系统：1：CBSS	2：不限制 只有沃享选1
+				"\"bipType\":\"2\"," +//业务类型：1-号卡类业务 2-合约类业务 3-上网卡4-上网本5-其它配件类	6-沃享
+				"\"numId\":\""+resourcesCode+"\"," +
+				"\"productInfo\":[{\"productId\":\""+productId+"\"}]," +//产品Id（客户选定）
+				"\"activityInfo\":[{" +
+					"\"actPlanId\":\""+actPlanId+"\"," +//活动方案ID（客户选定）
+					"\"actProtPer\":\""+actProtPer+"\"," +//活动协议期限，单位：月
+					"\"resourcesModel\":\""+resourcesModel+"\"," +//终端型号（购机必传），来自终端查询？
+					"\"resourcesBrand\":\""+resourcesBrand+"\"," +//终端品牌（购机必传），来自终端查询？
+					"\"extensionTag\":\""+extensionTag+"\"" +//续约标记：0：不续约1：续约 如果是有合约的老用户，它办的就是续约
+				"}]" +
+			"}";
+		
+		//老用户优惠购机处理申请
+		String jsonStr4 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID
+				"\"bipCode\":\""+bipCode+"\"," +//老用户优惠购机业务编码，参照附录北六需要转化成为trade_type_code
+				"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+				"\"serialNumber\":\""+resourcesCode+"\"," +//手机号码	
+					
+				"\"productInfo\":[{" +
+					"\"productId\":\""+productId+"\"," +//产品标识
+					"\"productMode\":\"1\"," +//产品模式 0：可选产品；1：主产品
+					"\"optType\":\""+optType+"\"" +//产品操作标示（待用）。00：订购；01：退订；02：变更
+				"}]," +
+					
+				"\"activityInfo\":[{" +
+					"\"actPlanId\":\""+actPlanId+"\","  +//活动ID（总部活动ID）
+					"\"resourcesType\":\""+resourcesType+"\"," +//资源类型 03：移动电话04：上网卡05：上网本
+//					"\"resProcId\":\"\"," +//预占流水，保持前后多次资源操作的内容一致，保证多次操作是同一订单的前后关联
+					"\"resourcesCode\":\""+resourcesCodeMobile+"\"" +//终端资源编码，一般是IMEI码
+//					",\"resourcesFee\":\""+resourcesFee+"\"," +//资源费用
+//					"\"activityFee\":\""+activityFee+"\"" +//活动预存费用
+				"}]," +
+					
+			    "\"recomPersonId\":\""+developerId+"\","+//发展员工
+				"\"recomPersonName\":\""+developerName+"\","+//发展人名称
+					 
+				"\"groupFlag\":\"0\"" +//集团标识 0：非集团用户1：集团用户
+//				",\"groupId\":\"VP455942598\"," +//集团ID
+//				"\"appType\":\"\"," +//应用类别，当加入具体集团时为必填 0：行业应用1：非行业应用
+//				"\"subAppType\":\"\"," +//应用子类别 参考附录应用子类别说明
+//				"\"guarantorType\":\"\"," +//担保方式 参见附录
+//				"\"guaratorID\":\"\"," +//担保信息参数
+//				"\"guCertType\":\"\"," +//被担保人证件类型
+//				"\"guCertNum\":\"\"" +//被担保人证件号码
+						
+//				",\"resourcesInfo\":[{" +
+//					"\"salePrice\":\"5880000\"," +//销售价格（单位：厘）
+//					"\"cost\":\"5280000\"," +//成本价格（单位：厘）
+////					"\"cardPrice\":\"\"," +//卡费（单位：厘）
+////					"\"reservaPrice\":\"\"," +//预存话费金额（单位：厘）
+////					"\"productActivityInfo\":[{" +
+////						"\"productId\":\"99999823\"," +//资源可选产品ID
+////						"\"resourcesActivityCode\":\"89000561\"," +//已打包终端套餐对应活动编码。
+//						"\"resourcesActivityPer\":\"24\"}]," +//活动协议期限，单位：月，正整数
+//					"\"resourcesBrandCode\":\"AP\"," +//品牌
+//					"\"orgDeviceBrandCode\":\"AP\"," +//3GESS维护品牌，当iphone时品牌与上面的一致
+//					"\"resourcesBrandName\":\"Apple\"," +//终端品牌名称
+//					"\"resourcesModelCode\":\"AP091001\"," +//型号
+//					"\"resourcesModelName\":\"3G iPhone 16G版\"," +//终端型号名称
+//					"\"resourcesSrcCode\":\"1\"," +//终端来源编码
+////					"\"resourcesSupplyCorp\":\"\"," +//终端供货商名称
+////					"\"resourcesServiceCorp\":\"\"," +//终端服务商名称
+//					"\"resourcesColor\":\"白\"," +//终端颜色
+//					"\"machineTypeCode\":\"MC179CH/A\"," +//终端机型编码
+//					"\"machineTypeName\":\"iPhone 3GS 16GB - White\"," +//终端机型名称
+//					"\"distributionTag\":\"0\"," +//铺货标志
+//					"\"resRele\":\"01\"" +//资源归属
+//					",\"terminalType\":\"01\"" +//终端类别编码
+//					",\"terminalTSubType\":\"\"" +//终端子类别编码
+//					",\"serviceNumber\":\"\"" + //终端绑定的服务号码
+//				"}]" +
+			"}";
+		
+		//老用户优惠购机处理提交
+		String jsonStr5 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID
+				"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+				"\"essSubscribeId\":\""+essSubscribeId+"\","  +//协议流水，保证商城和ESS发起的单笔订单的一致性		
+				
+				"\"feeInfo\":[{\"feeId\":\"YC99\"," +//收费项编码，以省分现有编码为准
+					"\"feeCategory\":\"2\"," +//收费项科目
+					"\"feeDes\":\"[预存]用户活动预存)\"," +//收费项描述
+					"\"origFee\":\"1981000\"," +//应收费用正整数，单位：厘
+					"\"reliefFee\":\"0\"," +//减免金额，单位：厘
+					"\"reliefResult\":\"[预存]\"," +//减免原因
+					"\"realFee\":\"1981000\"" +//实收金额，单位：厘	
+					
+					"},{\"feeId\":\"ZD99\"," +//收费项编码，以省分现有编码为准
+					"\"feeCategory\":\"3\"," +//收费项科目
+					"\"feeDes\":\"[营业费用]终端差额费用\"," +//收费项描述
+					"\"origFee\":\"3899000\"," +//应收费用正整数，单位：厘
+					"\"reliefFee\":\"0\"," +//减免金额，单位：厘
+					"\"reliefResult\":\"[预存]\"," +//减免原因
+					"\"realFee\":\"3899000\"" +//实收金额，单位：厘	
+					
+//					"},{\"feeId\":\"5581\"," +//收费项编码，以省分现有编码为准
+//					"\"feeCategory\":\"1\"," +//收费项科目
+//					"\"feeDes\":\"[押金]担保押金\"," +//收费项描述
+//					"\"origFee\":\"4081000\"," +//应收费用正整数，单位：厘
+//					"\"reliefFee\":\"4081000\"," +//减免金额，单位：厘
+//					"\"reliefResult\":\"[预存]\"," +//减免原因
+//					"\"realFee\":\"0\"" +//实收金额，单位：厘	
+				 "}]," +
+//				"\"invoiceNo\":\"\" }]," +  //支付账号+ //发票号码
+				"\"origTotalFee\":\"5880000\"," +//总费用正整数，单位：厘	
+			 	"\"acceptanceReqTag\":\"0\"" + //受理单要求标记0：不要求受理单，1：要求受理单，4G的打不了，3G可以
+			 	",\"payInfo\":{\"payType\":\"15\"," +//支付方式参考附录支付方式说明现金，不填写支付机构和支付账号
+					"\"payOrg\":\"工商银行\"," +//支付机构名称
+					"\"payNum\":\"62229878765738\"}" +
+			"}";
+		
+		//23转4校验
+		String jsonStr6 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"serClassCode\":\"0033\"," +//网别：0010 GSM移动业务、 0016 OCS业务(2G)、0017 OCS业务(3G)、0033 WCDMA
+				"\"numId\":\""+resourcesCode+"\"," +//服务号码
+				"\"userPasswd\":\""+userPasswd+"\"" +//用户密码
+				"}";
+		
+		//23转4开户处理申请
+		String jsonStr7 = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"xmlns:ser=\"http://service.ws.aop.hgeagle.com/\">"+
+							   "<soapenv:Header/>"+
+							   "<soapenv:Body>"+
+							      "<ser:broadPackOrder>"+
+							"<arg0>"+
+							"<![CDATA[<USERINFOREQUEST>"+
+								"<AOPHEAD>"+
+									"<accessID>00000001</accessID>"+
+									"<accessPlatformID>000001</accessPlatformID>"+
+									"<accessPlatformType>00</accessPlatformType>"+
+									"<accessPwd>8b4e6cd61d0850fd72ae0f8ca48e2fef</accessPwd>"+
+									"<accessSEQ>0000012014072116375800000010</accessSEQ>"+
+									"<operatorID>aopAdmin</operatorID>"+
+									"<operatorType>admin</operatorType>"+
+									"<version>V1.0</version>"+
+								"</AOPHEAD>"+
+								"<AOPBODY>"+
+								"<MSGHEADER>"+
+									"<SESSIONID>9029003202020202222</SESSIONID>"+
+									"<SERIAL_NUMBER>18688207487</SERIAL_NUMBER>"+
+									"<CERTIFICATE_NO>7775552862</CERTIFICATE_NO>"+
+									"<BUSINESS_TYPE>1</BUSINESS_TYPE>"+
+									"<EPARCHY_CODE>GDCU</EPARCHY_CODE>"+
+									"<CHANNEL_ID>F010ZB</CHANNEL_ID>"+
+									"<OPER_ID>FSWSCD03</OPER_ID>"+
+								"</MSGHEADER>"+
+								"<MSGBODY>"+
+										"<ORDERPARAMETERS>"+
+											"<TRADE_DEPART_PASSWD>CH00000003</TRADE_DEPART_PASSWD>"+
+											"<ELEMENT_ID>60361</ELEMENT_ID>"+
+											"<ORDER_ITEMS>1</ORDER_ITEMS>"+
+											"<ACTIVITIES_FORM>1</ACTIVITIES_FORM>"+
+										"</ORDERPARAMETERS>"+
+								"</MSGBODY>"+
+								"<AOPBODY >"+
+							"</USERINFOREQUEST>]]>"+
+							"</arg0>"+
+							     " </ser:broadPackOrder>"+
+							   "</soapenv:Body>"+
+							"</soapenv:Envelope>";
+
+		
+			//开户处理提交
+			String jsonStr8 = "{\"operatorId\":\""+operatorId+"\"," +
+					"\"province\":\""+province+"\"," +
+					"\"city\":\""+city+"\"," +
+					"\"district\":\""+district+"\"," +
+					"\"channelId\":\""+channelId+"\"," +
+					"\"channelType\":\""+channelType+"\"," +
+					"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID
+					"\"provOrderId\":\""+provOrderId+"\"," +//ESS订单交易流水为正式提交时使用
+					"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+								
+					"\"feeInfo\":[{\"feeId\":\"100005\"," +//收费项编码，以省分现有编码为准
+						"\"feeCategory\":\"2\"," +//收费项科目
+						"\"feeDes\":\"[预存]营业厅收入(营业缴费)_普通预存款(不可清退))\"," +//收费项描述
+						"\"origFee\":\"120000\"," +//应收费用正整数，单位：厘
+						"\"reliefFee\":\"0\"," +//减免金额，单位：厘
+						",\"reliefResult\":\"[预存]\"," +//减免原因
+						",\"realFee\":\"120000\"" +//实收金额，单位：厘					 	
+					 "}]," +
+					"\"invoiceNo\":\"3\" }]," +  //支付账号+ //发票号码
+					"\"origTotalFee\":\"0\"," +//总费用正整数，单位：厘	
+				 	"\"acceptanceReqTag\":\"1\"," + 
+				 	"\"payInfo\":{\"payType\":\"15\"," +//支付方式参考附录支付方式说明现金，不填写支付机构和支付账号
+					"\"payOrg\":\"工商银行\"," +//支付机构名称
+					"\"payNum\":\"62229878765738\"}" +
+				"}";
+				
+		//23转4撤单
+		String jsonStr9 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"tradeTypeCode\":\""+tradeTypeCode+"\"," +//业务编码，办理业务的代码标识（业务参数编码表）
+				"\"serviceClassCode\":\""+serviceClassCode+"\"," +//电信业务类别（电信业务类别）
+				"\"areaCode\":\""+areaCode+"\"," +//区号
+				"\"serialNumber\":\""+resourcesCode+"\"," +//服务号码
+			 	"\"infoList\":\""+infoList+"\"," + //CUST|USER|ACCT，这个给什么?
+				"\"soNbr\":\""+soNbr+"\"," +//需要撤单的ess订单号
+				"\"cancelReason\":\"\"," +//撤单原因
+//				"\"forceCancel\":\"\"" +//强制撤单标识	可空非必传。	1：强制撤单	不传：非强制撤单	这两个值有什么区别？是否应该默认强制撤单？强制会有什么问题？
+				"}" +
+			"}";
+		
+		//订单返销
+		String jsonStr10 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID
+				"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+				"\"serialNumber\":\""+resourcesCode+"\"," +//服务号码
+				"\"essOrigOrderId\":\""+essOrigOrderId+"\"," +//需要返销的总部原订单ID
+				"\"cardType\":\"1\"," +//开户卡类型：	1：白卡，2：成卡
+				"\"imei\":\""+resourcesCodeMobile+"\"" +//终端串码
+			"}";
+		
+		//套餐变更
+		String jsonStr11 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID。
+//				"\"eModeCode\":\"\"," +//渠道标示
+				"\"serialNumber\":\""+resourcesCode+"\"," +//服务号码
+				"\"opeSysType\":\"2\"," +//办理业务系统：1：ESS2：CBSS
+				"\"changeType\":\"0\"," +//变更类型：0：套餐间变更，如A主套餐变更为B主套餐	1：套餐内变更，如取消流量封顶	不传默认套餐间变更
+				"\"productInfo\":[{" +
+					"\"productId\":\""+productId+"\"," +//产品标识
+					"\"productMode\":\"1\"" +//产品模式 1：主产品2：附加产品
+					",\"optType\":\""+optType+"\"" +//00：订购；01：退订；02：变更
+//					",\"packageElement\":[" +
+//						"{\"packageId\":\"51002515\"" +//包编号
+//							",\"elementId\":\"5535000\"" +//元素编号
+//							",\"elementType\":\"D\"" +//元素类型
+//							",\"modType\":\"1\"" +//0：订购；1：退订；
+//						"}" +
+//						",{\"packageId\":\"51002514\"" +//包编号
+//							",\"elementId\":\"5501000\"" +//元素编号
+//							",\"elementType\":\"D\"" +//元素类型
+//							",\"modType\":\"1\"" +//0：订购；1：退订；
+//						"}" + 
+//						",{\"packageId\":\"51002531\"" +//包编号
+//							",\"elementId\":\"5557000\"" +//元素编号
+//							",\"elementType\":\"D\"" +//元素类型
+//							",\"modType\":\"1\"" +//0：订购；1：退订；
+//						"}" +
+//					"]" +
+				"}]," +
+			    "\"recomPersonId\":\""+developerId+"\","+//发展员工
+				"\"recomPersonName\":\""+developerName+"\""+//发展人名称
+			"}";
+		
+		//变更撤单
+		String jsonStr12 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID。
+				"\"tradeTypeCode\":\""+tradeTypeCode+"\"," +//业务编码，办理业务的代码标识（业务参数编码表）
+				"\"serviceClassCode\":\""+serviceClassCode+"\"," +//电信业务类别（电信业务类别）
+				"\"areaCode\":\""+areaCode+"\"," +//区号
+				"\"infoList\":\""+infoList+"\"," +//CUST|USER|ACCT
+				"\"serialNumber\":\""+resourcesCode+"\"," +//服务号码
+				"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+				
+				"\"productInfo\":[{" +
+					"\"productId\":\""+productId+"\"," +//产品标识
+					"\"productMode\":\"1\"," +//产品模式 1：主产品2：附加产品
+					"\"optType\":\""+optType+"\"" +//00：订购；01：退订；02：变更
+				"}]" +
+//				",\"soNbr\":\"\"," +//服务定单编码
+//				"\"cancelReason\":\"\"," +//撤单原因
+//				"\"forceCancel\":\"\"" +//强制撤单标识	可空非必传。	1：强制撤单	不传：非强制撤单
+			"}";
+		
+		//流量包订购
+		String jsonStr13 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID
+				"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+				"\"numId\":\""+resourcesCode+"\"," +//服务号码
+				"\"serviceClassCode\":\""+serviceClassCode+"\"," +//电信业务类别
+				"\"resType\":\"1\"," +//资源类型0：全国流量	1：全国语音	2：全国短信 3: 省内流量
+				"\"money\":\"\"," +//金额，单位是？
+				"\"count\":\"\"," +//资源量，如何理解？
+				"\"validTime\":\"\"," +//当前资源有效时间，生效时间？格式是？
+				"\"validCalculateType\":\"\"," +//有效期计算方式	0：日期顺延	1：截止日月底（暂不需支撑）
+				"\"payType\":\"0\"" +//付费方式0：未付费（例如：通过现金账本扣费方式）	1：已付费（例如：已通过ECS支付费用）（暂不需支撑）
+			"}";
+		
+		//用户资料校验三户返回
+		String jsonStr14 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"tradeTypeCode\":\""+tradeTypeCode+"\"," +//业务编码，办理业务的代码标识（业务参数编码表）
+				"\"serviceClassCode\":\""+serviceClassCode+"\"," +//电信业务类别（电信业务类别）
+				"\"serialNumber\":\""+resourcesCode+"\"," +//服务号码
+				//"\"areaCode\":\""+areaCode+"\"," +//区号
+				"\"infoList\":\""+infoList+"\"" +//CUST|USER|ACCT：对应客户、用户和账户
+			"}";
+		
+		//换机
+		String jsonStr15 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID
+				"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+				"\"number\":\""+resourcesCode+"\"," +//服务号码
+				"\"newResourcesCode\":\""+resourcesCodeMobileNew+"\"," +//新资源标识（串号）
+				"\"oldResourcesCode\":\""+resourcesCodeMobile+"\"" +//旧资源标识（串号）
+//				",\"checkId\":\"\"," +//故障单号
+//				"\"brokenRe\":\"\"" +//故障原因
+			"}";
+		
+		//退机处理申请
+		String jsonStr16 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID
+				"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+				"\"oldResourcesCode\":\""+resourcesCodeMobile+"\"" +//旧资源标识（串号）
+//				",\"checkId\":\"\"," +//故障单号
+//				"\"brokenRe\":\"\"" +//故障原因
+			"}";
+		
+		//退机提交
+		String jsonStr17 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				"\"ordersId\":\""+orderId+"\"," +//外围系统订单ID
+				"\"opeSysType\":\""+opeSysType+"\"," +//办理业务系统：1：ESS2：CBSS
+				"\"provOrdersId\":\""+provOrderId+"\"," +//落地系统订单号
+				"\"oldResourcesCode\":\""+resourcesCodeMobile+"\"" +//旧资源标识（串号）
+//				",\"checkId\":\"\"," +//故障单号
+//				"\"brokenRe\":\"\"" +//故障原因
+			"}";
+		
+		//订单查询
+		String jsonStr18 = "{\"operatorId\":\""+operatorId+"\"," +
+				"\"province\":\""+province+"\"," +
+				"\"city\":\""+city+"\"," +
+				"\"district\":\""+district+"\"," +
+				"\"channelId\":\""+channelId+"\"," +
+				"\"channelType\":\""+channelType+"\"," +
+				//"\"ordersId\":\""+provOrderId+"\"," +//订单编号，业务受理系统订单ID
+				"\"opeSysType\":\""+opeSysTypeQry+"\"," +
+				"\"certNum\":\""+certNum+"\"" +//身份证号码，订单编码和身份证号码必须有一项为必填
+			"}";
+		
+		String[] jsonStrs = new String[]{jsonStr0,jsonStr1,jsonStr2,jsonStr3,jsonStr4,jsonStr5,jsonStr6,jsonStr7,jsonStr8,jsonStr9,jsonStr10,jsonStr11,jsonStr12,jsonStr13,jsonStr14,jsonStr15,jsonStr16,jsonStr17};
+		
+		getMethodAndJsonStr(num,jsonStrs);
+		
+		return jsonStr;
+	}
+	
+	public static String getTime(){
+		DateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");  
+ 	    Date date = new Date();
+   	    Calendar c = Calendar.getInstance();
+   	    c.setTime(date);
+   	    c.add(Calendar.MINUTE, EcsOrderConsts.AOP_TERMINAL_OCCUPIED_TIME);
+	    String str = sdf.format(c.getTime());
+	    return str;
+	}
+
+	public static String operatorId = "GZLT0051";//GZLT0051
+	public static String province = "51";
+	public static String city = "510";//广州510	
+	public static String district = "0";
+	public static String channelId = "51a1625";//51a1625
+	public static String channelType = "1020200";//1020200
+	public static String developerId= "5102942675";//5102942675
+	public static String developerName= "W增城中小企源浚公司";		
+
+	public static String opeSysType = "1";//办理业务系统：1：ESS2：CBSS
+	public static String opeSysTypeQry = "2";//
+	
+	public static String custName = "OCS体验卡";
+	public static String certType = "99";
+	public static String certNum = "tyk20110818";
+	public static String contactNum = "18664212687";
+
+	public static String custId="2012090234715017";
+	public static String userId="2012090237445153";
+	public static String userPasswd="";
+
+	public static String orderId = "1415001548024001";
+
+	public static String productId = "99003572";//99002308
+	public static String actPlanId = "20100422040511000171";//总部活动编码 20100422100507000124
+	
+	public static String resourcesType = "03"; //资源类型 03：移动电话04：上网卡05：上网本
+	public static String resourcesCodeMobile = "51AP091001144254000";
+	public static String resourcesCodeMobileNew = "517401401602171258000";
+	public static String occupiedFlag="1";
+	public static String occupiedTime = getTime();	
+	
+	public static String bipType = "1";//业务类型：1：号卡类业务2：合约类业务3：上网卡4：上网本5：其它配件类6：自备机合约类业务
+	public static String bipCode = "BIP2F008";//老用户优惠购机业务编码，参照附录北六需要转化成为trade_type_code
+	 
+	public static String provOrderId = "CMSB5115080500801314";
+	public static String essOrigOrderId = "";
+	public static String essSubscribeId = "CMSB5115080500801314";
+	public static String soNbr = "";
+	
+	public static String actProtPer = "24";
+	public static String resourcesModel = "AP091001";
+	public static String resourcesBrand = "AP";
+	public static String extensionTag = "0";
+	public static String optType = "00";//产品操作标示（待用）。00：订购；01：退订；02：变更
+	public static String tradeTypeCode = "9999";//业务编码，办理业务的代码标识（业务参数编码表）0093，好像是变更类业务   9999是个通用的
+	public static String serviceClassCode = "0000";//电信业务类别（电信业务类别）0000是移网   0100是固网
+	public static String areaCode = "";
+	public static String infoList = "CUST|USER|ACCT";//CUST|USER|ACCT：对应客户、用户和账户
+	
+	public static String resourcesCode = "18520258663";
+	
+	public static void main(String[] args) throws Exception {
+		
+		DateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+		Date date = new Date();
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		c.add(Calendar.MINUTE, 270);
+		String str = sdf.format(c.getTime());	 
+		
+		String proKeyTmp = CommonDataFactory.getInstance().getActiveNo(false);
+		System.out.println("proKeyTmp："+proKeyTmp);		
+		String apptx = CommonDataFactory.getInstance().getActiveNo(true);
+		//System.out.println("apptx："+apptx);
+		
+		//老用户优惠购机
+		//0、员工信息查询 1、发展人查询 2、终端状态查询变更 3、老用户业务校验（3G） 4、老用户优惠购机处理申请 
+		//5、老用户优惠购机处理提交 6、23转4校验 7、23转4开户处理申请 8、23转4开户处理提交 9、23转4撤单 10、订单返销 11、套餐变更 
+		//12、套餐变更撤单 13、流量包订购 14、用户资料校验三户返回 15、换机 16、退机处理申请 17、退机提交 18、订单查询
+		request(apptx,
+				makeJsonStr(5,"P512015427942379056"));
+	}
+}

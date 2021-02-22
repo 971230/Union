@@ -1,0 +1,876 @@
+package com.ztesoft.net.server;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+//import org.joda.time.LocalDate;
+//import org.joda.time.format.DateTimeFormat;
+//import org.joda.time.format.DateTimeFormatter;
+
+import net.sf.json.JSONObject;
+import params.req.HBBroadbandOrderReq;
+import params.req.HBBroadbandOrderStandardReq;
+import params.req.NetworkHandMicroStandardReq;
+import params.resp.HBBroadbandOrderStandardResp;
+import params.resp.NetworkHandMicroStandardResp;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ord.params.busi.req.OrderQueueBusiRequest;
+import zte.params.goods.req.CacheGoodsDataReq;
+import zte.params.goods.req.GoodsGetReq;
+import zte.params.goods.resp.GoodsGetResp;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.Outer;
+import com.ztesoft.net.model.OuterItem;
+import com.ztesoft.net.outter.inf.model.LocalOrderAttr;
+import com.ztesoft.net.server.jsonserver.wcfpojo.MallUtils;
+
+import consts.ConstsCore;
+
+public class HBOrderUtil {
+	
+	public static final String PROVINCE_CODE_HB = "130000";
+	public static final String PROVINCE_NAME_HB = "河北省";
+	public static final String HB_LOCAL_MALL_CHANNEL_MARK = "13";
+	public static final String HB_RECEIVE_SYSTEM = "10011";
+	//订单来源数据字典映射
+	public static final Map<String,String> ORDERSRC = new HashMap<String, String>(9);
+	//城市编码
+	public static final Map<String,String> AREAID = new HashMap<String, String>(12);
+	//支付类型
+	public static final Map<String,String> PAYTYPE = new HashMap<String, String>(2);
+	//支付状态
+	public static final Map<String, String> PAYSTATUS = new HashMap<String, String>(2);
+	//配送方式
+	public static final Map<String, String> DELIVERYTYPE = new HashMap<String, String>(2);
+	//订单类型
+	public static final Map<String, String> ORDERTYPE = new HashMap<String, String>(19);
+	//卡类型
+	public static final Map<String, String> CARDTYPE = new HashMap<String, String>(3);
+	//活动类型
+	public static final Map<String, String> ACTIVITYTYPE = new HashMap<String, String>(7);
+	//证件类型
+	public static final Map<String, String> CUSTCARDTYPE = new HashMap<String, String>(25);
+	static{
+		//订单来源数据字典映射     key 订单中心编码 value 为订单中心中文名称
+		ORDERSRC.put("10001","淘宝商城/淘宝网厅");//淘宝商城/淘宝网厅
+		ORDERSRC.put("10005","拍拍");//拍拍
+		ORDERSRC.put("10002","联通商城");//联通商城
+		ORDERSRC.put("10035","电子沃店");//电子沃店
+		ORDERSRC.put("10063","微信接口");//微信接口
+		ORDERSRC.put("10064","手机商城");//手机商城
+		ORDERSRC.put("10065","推广联盟");//推广联盟
+		ORDERSRC.put("10066","挑号网");//挑号网
+		ORDERSRC.put("10067","外围接入");//外围接入
+		//城市编码数据字典     key 地市编码 value 地市名称
+		AREAID.put("130100","石家庄市");
+		AREAID.put("130200","唐山市");
+		AREAID.put("130500","邢台市");
+		AREAID.put("130700","张家口市");
+		AREAID.put("130600","保定市");
+		AREAID.put("130900","沧州市");
+		AREAID.put("130800","承德市");
+		AREAID.put("130400","邯郸市");
+		AREAID.put("131100","衡水市");
+		AREAID.put("131000","廊坊市");
+		AREAID.put("130300","秦皇岛市");
+		AREAID.put("130000", "河北");
+		//支付类型 key 订单中心编码  value 订单中心中文名称
+		PAYTYPE.put("ZXZF","在线支付");//在线支付
+		PAYTYPE.put("HDFK","货到付款");//货到付款
+		//支付状态 key 订单中心编码 value 订单中心中文名称
+		PAYSTATUS.put("0","未支付");//未支付
+		PAYSTATUS.put("1","已支付");//已支付
+		//配送方式 key 订单中心编码 value 订单中心中文名称
+		DELIVERYTYPE.put("KD","宽带");//宽带
+		DELIVERYTYPE.put("ZT","自提");//自提
+		//订单类型 key 订单中心编码 value 订单中心中文名称
+		ORDERTYPE.put("Z0","合约购机");//合约购机
+		ORDERTYPE.put("Z1","套餐3G手机卡");//套餐3G手机卡
+		ORDERTYPE.put("Z8","3G无线上网卡");//3G无线上网卡
+		ORDERTYPE.put("Z23","流量充值卡");//流量充值卡
+		ORDERTYPE.put("Z24","话费充值");//话费充值
+		ORDERTYPE.put("Z25","天猫券");//天猫券
+		ORDERTYPE.put("Z19","余额宝购机");//余额宝购机
+		ORDERTYPE.put("Z21","全国预付费上网卡");//全国预付费上网卡
+		ORDERTYPE.put("Z22","省份预付费上网卡");//省份预付费上网卡
+		ORDERTYPE.put("Z26","配件");//配件
+		ORDERTYPE.put("Z5","2G号码");//2G号码
+		ORDERTYPE.put("Z15","3G预付费号码");//3G预付费号码
+		ORDERTYPE.put("Z16","3G后付费号码");//3G后付费号码
+		ORDERTYPE.put("Z11","预付费合约购机");//预付费合约购机
+		ORDERTYPE.put("Z12","后付费合约购机");//后付费合约购机
+		ORDERTYPE.put("Z27","裸机");//裸机
+		ORDERTYPE.put("Z13","非定制机合约购机");//非定制机合约购机
+		ORDERTYPE.put("Z6","4G号码");//4G号码
+		ORDERTYPE.put("Z28","存量用户活动受理订单");//存量用户活动受理订单
+		//卡类型 key 订单中心编码  value 订单中心中文名称
+		CARDTYPE.put("NM","普卡");//普卡
+		CARDTYPE.put("MC","微卡");//微卡
+		CARDTYPE.put("NN","纳诺卡");//纳诺卡
+		//活动类型 key 订单中心编码 value 订单中心中文名称
+		ACTIVITYTYPE.put("690301000","购手机入网送话费");//购手机入网送话费
+		ACTIVITYTYPE.put("690302000","预存话费送手机");//预存话费送手机
+		ACTIVITYTYPE.put("690303000","存费送费");//存费送费
+		ACTIVITYTYPE.put("690310000","存费送短信");//存费送短信
+		ACTIVITYTYPE.put("690306000","存费送流量");//存费送流量
+		ACTIVITYTYPE.put("690310000","存费送语音");//存费送语音
+		//ACTIVITYTYPE.put("999", "");//其他
+		//证件类型 key 订单中心编码 value 订单中心中文名称
+		CUSTCARDTYPE.put("SFZ15","15位身份证");//15位身份证
+		CUSTCARDTYPE.put("SFZ18","18位身份证");//18位身份证
+		CUSTCARDTYPE.put("HZB","护照");//护照
+		CUSTCARDTYPE.put("HKB","户口本");//户口本
+		CUSTCARDTYPE.put("JUZ","军官证");//军官证
+		CUSTCARDTYPE.put("JGZ","警官证");//警官证
+		CUSTCARDTYPE.put("GOT","港澳居民来往内地通行证");//港澳居民来往内地通行证
+		CUSTCARDTYPE.put("TWT","台湾居民来往大陆通行证");//台湾居民来往大陆通行证
+		CUSTCARDTYPE.put("JSZ","驾驶证");//驾驶证
+		CUSTCARDTYPE.put("GZZ","工作证");//工作证
+		CUSTCARDTYPE.put("XSZ","学生证");//学生证
+		CUSTCARDTYPE.put("ZZZ","暂住证");//暂住证
+		CUSTCARDTYPE.put("JSX","单位介绍信");//单位介绍信
+		CUSTCARDTYPE.put("YYZ","营业执照");//营业执照
+		CUSTCARDTYPE.put("QT","其它");//其它
+		CUSTCARDTYPE.put("XWQY","小微企业客户证件");//小微企业客户证件
+		CUSTCARDTYPE.put("JTBH","集团编号");//集团编号
+		CUSTCARDTYPE.put("GSDJ","工商注册登记证");//工商注册登记证
+		CUSTCARDTYPE.put("ZZJG","组织机构代码证");//组织机构代码证
+		CUSTCARDTYPE.put("YKH","预开户编号");//预开户编号
+		CUSTCARDTYPE.put("WJSFZ","武警身份证");//武警身份证
+		CUSTCARDTYPE.put("SYDW","事业单位法人代表证");//事业单位法人代表证
+		CUSTCARDTYPE.put("ZH","照会");//照会
+		CUSTCARDTYPE.put("SHTT","社会团体法人证书");//社会团体法人证书
+		CUSTCARDTYPE.put("DWS","待完善资料");//待完善资料
+	}
+	
+	public static HBBroadbandOrderStandardResp  orderStandardValidate(HBBroadbandOrderStandardReq req) throws Exception{
+		HBBroadbandOrderStandardResp resp = new HBBroadbandOrderStandardResp();
+		HBBroadbandOrderReq hbBroadbandOrder = new HBBroadbandOrderReq();//json转map的实体对象
+		Map extMap = new HashMap<String, String>();
+        List<Outer> out_order_List = new ArrayList<Outer>();
+        Outer out_order = new Outer();
+        String returnValue = "";
+        String inJson = getReqContent(req.getBase_co_id(), req.isIs_exception());
+        if(StringUtil.isEmpty(inJson)){
+        	resp.setError_msg("未获取到请求报文");
+        	resp.setError_code(ConstsCore.ERROR_FAIL);
+        	return resp;
+        }
+		//json转化为javaBean
+        hbBroadbandOrder = MallUtils.jsonToHBBroadbandOrder(inJson);
+        //自动扩展表配置数据入库数据封装
+    	if(hbBroadbandOrder.getExt_params()!=null){
+    		extMap = hbBroadbandOrder.getExt_params();
+    	}
+    	// 检查必填项
+	    String checkResult = "";//checkHBBroadbandOrder(hbBroadbandOrder);
+		if(!StringUtil.isEmpty(checkResult)){
+			resp.setError_msg(checkResult);
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+		    return resp;
+		}
+		//设置订单入库值
+		String result_msg = setOrderValue(out_order,hbBroadbandOrder,extMap);
+		if(!StringUtil.isEmpty(result_msg)){
+			resp.setError_msg(result_msg);
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+			return resp;
+		}
+	    out_order_List.add(out_order);
+	    resp.setOut_order_List(out_order_List);
+	    resp.setError_code(ConstsCore.ERROR_SUCC);
+	    return resp;
+	}
+	
+	/**
+	 * 手网微单宽带标准化校验
+	 * @param req
+	 * @return
+	 * @throws Exception
+	 */
+	public static NetworkHandMicroStandardResp  orderStandardValidate(NetworkHandMicroStandardReq req) throws Exception{
+		NetworkHandMicroStandardResp resp = new NetworkHandMicroStandardResp();
+		HBBroadbandOrderReq hbBroadbandOrder = new HBBroadbandOrderReq();//json转map的实体对象
+		Map extMap = new HashMap<String, String>();
+        List<Outer> out_order_List = new ArrayList<Outer>();
+        Outer out_order = new Outer();
+        String returnValue = "";
+        String inJson = getReqContent(req.getBase_co_id(), req.isIs_exception());
+        if(StringUtil.isEmpty(inJson)){
+        	resp.setError_msg("未获取到请求报文");
+        	resp.setError_code(ConstsCore.ERROR_FAIL);
+        	return resp;
+        }
+        
+        //报文转换======================================================
+        JSONObject inJsonObj = new JSONObject();
+        JSONObject paramJsonObj = JSONObject.fromObject(inJson);
+
+        inJsonObj.put("ORDER_ID", paramJsonObj.getString("SHCID"));//接口流水ID
+        inJsonObj.put("TRADE_TYPE_CODE", "10");//业务类型 -10 开户业务
+        inJsonObj.put("IN_MODE_CODE", "");//预受理接入方式
+        inJsonObj.put("USER_ID", "");//目标系统用户ID
+        inJsonObj.put("CUST_ID", "");//目标系统客户ID
+        inJsonObj.put("PSPT_TYPE_CODE", CUSTCARDTYPE.get("SFZ18"));//客户证件类型
+        inJsonObj.put("PSPT_ID", paramJsonObj.getString("PSPTNO"));//客户证件号码
+        inJsonObj.put("SERIAL_NUMBER", "");//号码，宽带业务号
+        inJsonObj.put("CUST_NAME", paramJsonObj.getString("CUSTNAME"));//客户名称
+        inJsonObj.put("USER_NAME", paramJsonObj.getString("USER_NAME"));//用户名称
+        inJsonObj.put("INSTALL_ADDRESS", paramJsonObj.getString("DETAILINSADDR"));//装机地址
+        String acceptDateStr = "";
+        String acceptMonth = "";
+        try {
+        	/*DateTimeFormatter formatter = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss");
+        	LocalDate localDate = formatter.parseLocalDate(paramJsonObj.getString("CJTIME"));
+        	acceptDateStr = localDate.toString();
+        	acceptMonth = String.valueOf(localDate.getMonthOfYear());*/
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        inJsonObj.put("ACCEPT_DATE", acceptDateStr);//业务受理时间
+        
+        inJsonObj.put("ACCEPT_MONTH", acceptMonth);//业务受理月份
+        inJsonObj.put("DEVELOP_DEPART_ID", paramJsonObj.getString("DEVELOP_DEPART_ID"));//业务发展渠道ID
+        inJsonObj.put("DEVELOP_STAFF_ID", paramJsonObj.getString("RECOM_PERSON_ID"));//业务发展人ID
+        inJsonObj.put("DEVELOP_STAFF_NAME", paramJsonObj.getString("RECOM_PERSON_NAME"));//业务发展人名称
+        inJsonObj.put("DEVELOP_EPARCHY_CODE", paramJsonObj.getString("EPARCHY_CODE"));//业务发展地市
+        inJsonObj.put("DEVELOP_CITY_CODE", paramJsonObj.getString("RECOM_CITY"));//业务发展区县
+        inJsonObj.put("CUST_NAME", paramJsonObj.getString("CUSTNAME"));//客户姓名
+        inJsonObj.put("DEVELOP_DATE", acceptDateStr);//业务发展日期
+        inJsonObj.put("TRADE_STAFF_ID", paramJsonObj.getString("TRADE_STAFF_ID"));//业务受理员工ID
+        inJsonObj.put("TRADE_DEPART_ID", paramJsonObj.getString("DEVELOP_DEPART_ID"));//业务受理部门
+        inJsonObj.put("TRADE_CITY_CODE", paramJsonObj.getString("DEVELOP_CITY_CODE"));//业务受理区县
+        inJsonObj.put("TRADE_EPARCHY_CODE", paramJsonObj.getString("DEVELOP_EPARCHY_CODE"));//业务受理地市
+        inJsonObj.put("EPARCHY_CODE", paramJsonObj.get("EPARCHY_CODE") );//用户所属地市
+        inJsonObj.put("CITY_CODE", paramJsonObj.getString("CITYCODE"));//用户所属区县
+        inJsonObj.put("OPER_FEE", paramJsonObj.getString("ORIGINALPRICE"));//预受理工单总费用 -费用都是0
+        inJsonObj.put("FEE_STATE", "0");//是否已收费-0未收费
+        inJsonObj.put("FEE_TIME", "");//收费时间
+        inJsonObj.put("FEE_STAFF_ID", "");//收费员工ID
+        inJsonObj.put("CANCEL_TAG", "0");//返销标志 -0未返销
+        inJsonObj.put("CANCEL_DATE", "");//返销时间
+        inJsonObj.put("FEE_STAFF_ID", "");//返销员工
+        inJsonObj.put("CANCEL_DEPART_ID", "");//返销部门
+        inJsonObj.put("CANCEL_CITY_CODE", "");//返销区县
+        inJsonObj.put("CANCEL_EPARCHY_CODE", "");//返销地市
+        inJsonObj.put("CHK_TAG", "0");//预受理工单状态
+        inJsonObj.put("CONTACT", paramJsonObj.getString("CUSTNAME"));//联系人
+        inJsonObj.put("CONTACT_PHONE", paramJsonObj.getString("USER_PHONE"));//联系电话
+        inJsonObj.put("REMARK", paramJsonObj.getString("REMARK"));//工单备注
+        inJsonObj.put("RSRV_STR5", "N");//是否CBSS业务工单
+        inJsonObj.put("RSRV_STR6", paramJsonObj.getString("SHCID"));//外围系统工单ID
+        inJsonObj.put("RSRV_STR3", "");//对应的后台工号
+        inJsonObj.put("RSRV_STR1", "");//主产品ID
+        inJsonObj.put("RSRV_STR2", "");//住套餐资费ID
+        inJsonObj.put("NET_TYPE_CODE", "40");//网别编码
+        inJsonObj.put("BRAND_CODE", "");//品牌编码
+        inJsonObj.put("EXCH_CODE", "");//局向编码
+        inJsonObj.put("GRID_MANAGER_STAFF", "");//网格经理工号
+        inJsonObj.put("GRID_MANAGER_DEPART", "");//网格经理部门
+        inJsonObj.put("PRE_ONU_TYPE", "KD");//预受理-终端设备类型
+        inJsonObj.put("ONU_IN_MODE", "");//终端提供方式
+        inJsonObj.put("ONU_TYPE", "");//终端类型
+        inJsonObj.put("ONU_BRAND", "");//终端品牌
+        inJsonObj.put("ONU_MODEL", "");//终端型号
+        inJsonObj.put("ONU_ID", "");//终端串号
+        inJsonObj.put("ONU_MAC", "");//终端MAC地址
+        inJsonObj.put("YIFEN_TAG", "");//一分卡工单标示
+        
+        inJsonObj.put("PSPT_ADDR", paramJsonObj.getString("PSPTADDR"));//证件地址
+        inJsonObj.put("USER_PHONE", paramJsonObj.getString("USER_PHONE"));//卖家电话
+        inJsonObj.put("PRODUCT_NAME", paramJsonObj.getString("PRODUCTNAME"));//产品名称
+        inJsonObj.put("BROADBAND_SPEED", paramJsonObj.getString("BROADBANDSPEED"));//宽带速率
+        
+        String sysTag = paramJsonObj.getString("SYS_TAG");
+        String orderSource = "";
+        if("1".equals(sysTag)){//网上商城
+        	orderSource = "10083";
+        }else if("2".equals(sysTag)){//手机商城
+        	orderSource = "10062";
+        }else if("3".equals(sysTag)){//微信商城
+        	orderSource = "10061";
+        }else{//未知来源
+        	orderSource = sysTag;
+        }
+        inJsonObj.put("ORDER_SOURCE", paramJsonObj.getString("SYS_TAG"));//订单来源
+       
+        //inJsonObj.put("EPARCHY_CODE", paramJsonObj.get("EPARCHY_CODE"));//用户所属地市
+        //inJsonObj.put("TRADE_STAFF_ID", paramJsonObj.getString("TRADE_STAFF_ID"));//受理工号
+        //inJsonObj.put("RSRV_STR6", paramJsonObj.getString("SHCID"));//外围系统工单ID
+        //inJsonObj.put("PSPT_ID", paramJsonObj.getString("PSPTNO"));//客户证件号码
+        //inJsonObj.put("CUST_NAME", paramJsonObj.getString("CUSTNAME"));//客户姓名
+        //inJsonObj.put("INSTALL_ADDRESS", paramJsonObj.getString("DETAILINSADDR"));//装机地址
+        //inJsonObj.put("CITY_CODE", paramJsonObj.getString("CITYCODE"));//用户所属地市
+        //inJsonObj.put("ACCEPT_DATE", paramJsonObj.getString("CJTIME"));//业务受理时间
+        //inJsonObj.put("USER_NAME", paramJsonObj.getString("USER_NAME"));//用户名称
+        //inJsonObj.put("CONTACT_PHONE", paramJsonObj.getString("USER_PHONE"));//联系电话
+        //inJsonObj.put("PSPT_ADDR", paramJsonObj.getString("PSPTADDR"));//证件地址
+        //inJsonObj.put("OPER_FEE", paramJsonObj.getString("ORIGINALPRICE"));//预受理工单总费用
+        //inJsonObj.put("PRODUCT_NAME", paramJsonObj.getString("PRODUCTNAME"));//产品名称
+        //inJsonObj.put("BROADBAND_SPEED", paramJsonObj.getString("BROADBANDSPEED"));//宽带速率
+        //inJsonObj.put("REMARK", paramJsonObj.getString("REMARK"));//工单备注
+        //inJsonObj.put("ORDER_SOURCE", paramJsonObj.getString("SYS_TAG"));//订单来源
+        
+        
+        
+       /* EPARCHY_CODE	String	　	所属地市------------------
+        TRADE_STAFF_ID	String	　	受理工号------------------
+        SHCID	String	　	外围系统订单编号---------------------
+        CUST_ID	　	　	客户ID-------------------------------
+        PSPTNO	String	　	证件号码 18位身份证-------------------
+        CUSTNAME	String	　	机主姓名-----------------------
+        DETAILINSADDR	String	　	装机详细地址----------------
+        CITYCODE	String	　	地市编码----------------------
+        CJTIME	String	　	外围系统提交时间 YYYYMMDDHH24MISS-----
+        USER_NAME	String	　	买家姓名-----------------------
+        USER_PHONE	String	　	买家电话-----------------------
+        PSPTADDR	String	　	证件地址-----------------------
+        ORIGINALPRICE	String	　	商品金额总计----------------
+        PRODUCTNAME	String	　	产品名称-----------------------
+        BROADBANDSPEED	String	　	宽带速率-------------------
+        REMARK	String	　	备注（包含联系人、联系电话等）------------
+        SYS_TAG	String(1)	　	1、网上商城 2、 手机商城 3、微信商城----*/
+
+        
+        //报文转换======================================================
+		
+        //json转化为javaBean
+        hbBroadbandOrder = MallUtils.jsonToHBBroadbandOrder(inJsonObj.toString());
+        //自动扩展表配置数据入库数据封装
+    	if(hbBroadbandOrder.getExt_params()!=null){
+    		extMap = hbBroadbandOrder.getExt_params();
+    	}
+    	// 检查必填项
+	    String checkResult = "";//checkHBBroadbandOrder(hbBroadbandOrder);
+		if(!StringUtil.isEmpty(checkResult)){
+			resp.setError_msg(checkResult);
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+		    return resp;
+		}
+		//设置订单入库值
+		String result_msg = setOrderValue(out_order,hbBroadbandOrder,extMap);
+		if(!StringUtil.isEmpty(result_msg)){
+			resp.setError_msg(result_msg);
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+			return resp;
+		}
+	    out_order_List.add(out_order);
+	    resp.setOut_order_List(out_order_List);
+	    resp.setError_code(ConstsCore.ERROR_SUCC);
+	    return resp;
+	}
+	
+	//获取归集系统请求报文
+	private static  String getReqContent(String co_id,boolean is_exception){
+		String content = "";
+		OrderQueueBusiRequest orderQueue = new OrderQueueBusiRequest();
+		if(is_exception){
+			orderQueue = CommonDataFactory.getInstance().getOrderQueueFor(null, co_id);
+		}else{
+			orderQueue = CommonDataFactory.getInstance().getOrderQueue(null, co_id);
+		}
+		if(orderQueue!=null){
+			content = orderQueue.getContents();
+		}
+		return content;
+	}
+	/**
+	 * 把json参数值存入outer对象中
+	 * @param outer
+	 * @param mallOrder
+	 * @throws Exception 
+	 */
+	private static String setOrderValue(Outer outer , HBBroadbandOrderReq hbBroadbandOrder , Map extMap) {
+		
+		//Item item = zjLocalMallOrder.getOrderItem().get(0);
+		//序列号  serial_no
+		outer.setPayplatformorderid(MallUtils.getSeqNo());
+		//时间  time
+		outer.setGet_time(MallUtils.strFormatDate(MallUtils.strToDate(hbBroadbandOrder.getAccept_date())));
+//		发起方系统标识  source_system
+		outer.setOrder_channel(hbBroadbandOrder.getOrder_source());
+//		订单编号  order_id
+		outer.setOut_tid(MallUtils.getValues(hbBroadbandOrder.getRsrv_str6()));
+//		订单类型  order_type
+		outer.setType(MallUtils.getValues(hbBroadbandOrder.getTrade_type_code()));
+		if("4".equals(hbBroadbandOrder.getTrade_type_code())){//预约单设置值
+			outer.setWm_isreservation_from("1");
+		}else{
+			outer.setWm_isreservation_from("0");
+		}
+//		订单状态  status
+		outer.setStatus(MallUtils.getValues("1"));
+//		订单来源系统  source_from_system
+		outer.setPlat_type(hbBroadbandOrder.getOrder_source());
+//		订单来源  source_from
+		outer.setOrder_from(hbBroadbandOrder.getOrder_source());
+//		TODO 归属地市  order_city
+		outer.setOrder_city_code(MallUtils.getValues(hbBroadbandOrder.getDevelop_eparchy_code()));
+//		发展人编码  development_code
+		outer.setDevelopment_code(MallUtils.getValues(hbBroadbandOrder.getDevelop_staff_id()));;
+		//DevelopName  发展人名称
+		outer.setDevelopment_name(MallUtils.getValues(hbBroadbandOrder.getDevelop_staff_id()));
+//		TODO 推荐人名称  reference_name
+		outer.setRecommended_name(MallUtils.getValues(""));
+//		下单时间  create_time
+		if (MallUtils.isNotEmpty(hbBroadbandOrder.getAccept_date())) {
+			outer.setTid_time(MallUtils.strFormatDate(MallUtils.strToDate(hbBroadbandOrder.getAccept_date(),"yyyy-MM-dd HH:mm:ss")));
+		}
+//		支付时间  pay_time
+		outer.setPay_time(MallUtils.getValues(hbBroadbandOrder.getFee_time()));
+//		支付类型  pay_type
+		outer.setPaytype(MallUtils.getValues("XZHS"));
+		
+//		支付状态
+		if ("HDFK".equalsIgnoreCase(hbBroadbandOrder.getFee_state())) {
+			outer.setPay_status("0");
+		}else {
+			outer.setPay_status("1");
+		}
+		
+//		TODO 支付方式  payment_type  默认值处理
+		outer.setPay_method("QEZF");
+	
+//		TODO 支付流水号  payment_serial_no
+		outer.setPayplatformorderid(MallUtils.getValues(""));
+//		TODO 支付机构编码  payment_code
+		outer.setPayproviderid(MallUtils.getValues(""));
+//		TODO 支付机构名称  payment_name
+		outer.setPayprovidername(MallUtils.getValues(""));
+//		TODO 支付渠道编码  payment_channel_code
+		outer.setPaychannelid(MallUtils.getValues(""));
+//		TODO 支付渠道名称  payment_channel_name
+		outer.setPaychannelname(MallUtils.getValues(""));	
+//		TODO 外部支付账号  alipay_id
+		outer.setAlipay_id(MallUtils.getValues(""));
+		
+//		买家名称  name
+		outer.setBuyer_name(MallUtils.getValues(hbBroadbandOrder.getCust_name()));
+//		买家昵称  uname
+		outer.setBuyer_id(MallUtils.getValues(hbBroadbandOrder.getCust_name()));
+//		TODO 发货状态  delivery_status
+		outer.setDelivery_status(MallUtils.getValues(""));
+//		TODO 异常状态  abnormal_status
+		outer.setAbnormal_status(MallUtils.getValues(""));
+//		TODO 外部平台状态  platform_status
+		outer.setPlatform_status(MallUtils.getValues(""));
+//		订单总价  order_amount
+		outer.setOrder_totalfee(hbBroadbandOrder.getOper_fee());
+//		优惠金额  order_disacount
+		outer.setDiscountValue(MallUtils.getValues("0"));
+//		实收金额  pay_money
+		outer.setOrder_realfee(MallUtils.getValues(hbBroadbandOrder.getOper_fee()));
+//		应收运费  shipping_amount
+		outer.setPost_fee(MallUtils.getValues("0"));
+//		接收是否作废单标识,用来区分能否重复入库
+		outer.setOrder_if_cancel("0");
+//		配送方式  shipping_type
+		outer.setSending_type("SMFW");
+//		收货人姓名  ship_name
+		outer.setReceiver_name(MallUtils.getValues(hbBroadbandOrder.getContact()));
+//		TODO 地址地市  ship_city
+		outer.setCity_code(MallUtils.getValues(hbBroadbandOrder.getEparchy_code()));
+//		TODO 地址区县  ship_country
+		outer.setArea_code(MallUtils.getValues(hbBroadbandOrder.getCity_code()));
+//		outer.setDistrict(localGoodServices.getCityname(mallOrder.getShip_country()));
+//		outer.setCity(localGoodServices.getCityname(mallOrder.getShip_city()));  //收件人地市中文
+		outer.setProvinc_code(PROVINCE_CODE_HB);  //收件人省份编码
+		outer.setProvince(PROVINCE_NAME_HB);  //收件人省份中文
+//		订单归属省份编码  order_provinc_code
+		outer.setOrder_provinc_code(PROVINCE_CODE_HB);
+//		订单归属地市编码  order_city_code
+		outer.setOrder_city_code(MallUtils.getValues(hbBroadbandOrder.getDevelop_eparchy_code()));
+//		地址  ship_addr
+		outer.setAddress(MallUtils.getValues(hbBroadbandOrder.getDevelop_city_code()));
+//		邮件编码  postcode
+		outer.setPost(MallUtils.getValues("300000"));
+//		固定电话  ship_tel
+		outer.setPhone(MallUtils.getValues(""));
+//		手机号码  ship_phone
+		outer.setReceiver_mobile(MallUtils.getValues(hbBroadbandOrder.getContact_phone()));
+//		TODO 百度账号  baidu_account
+//		outer.setBaidu_id(MallUtils.getValues(""));
+//		TODO 百度冻结流水号  baidu_no
+//		outer.setFreeze_tran_no(MallUtils.getValues(""));
+//		TODO 百度冻结款  baidu_money
+//		outer.setFreeze_free(MallUtils.getValues(""));
+//		TODO 买家留言  buyer_message
+		outer.setBuyer_message("");
+//		TODO 订单备注  order_comment
+		outer.setService_remarks(hbBroadbandOrder.getRemark());
+		//冻结金额
+		outer.setFreeze_free("0");
+		//活动时赠送的金额
+		outer.setGift_money("0");
+//		库中无对应字段存储的数据
+//		接收方系统标识  receive_system  Reserve0
+		outer.setReserve0(HB_RECEIVE_SYSTEM);
+//		是否2G、3G升4G  is_to4g  Reserve1
+		//outer.setReserve1(MallUtils.getValues(mallOrder.getIs_to4g()));
+//		渠道类型  channel_mark  Reserve2
+		outer.setReserve2(HB_LOCAL_MALL_CHANNEL_MARK);
+//		TODO 渠道标识  channel_id  Reserve3
+		outer.setReserve3(MallUtils.getValues(""));
+//		TODO 渠道名称  chanel_name  Reserve4
+		outer.setReserve4(MallUtils.getValues(""));
+		
+//		设置扩展信息
+//		是否已办理完成  is_deal
+		//extMap.put("is_deal", "0");
+//		配送时间  shipping_time
+		//extMap.put("shipping_time", "NOLIMIT");
+//		电子邮件  ship_email
+		/*if (MallUtils.isNotEmpty(zjLocalMallOrder.getReceiveMail())) {
+			extMap.put("ship_email", zjLocalMallOrder.getReceiveMail());
+		}*/
+		//渠道类型
+		/*if(MallUtils.isNotEmpty(zjLocalMallOrder.getChannel())){
+			extMap.put("channel_type",zjLocalMallOrder.getChannel());
+		}*/
+		//extMap.put("out_office", zjLocalMallOrder.getDevelopCode());
+		//extMap.put("out_operator", zjLocalMallOrder.getDevelopCustid());
+		//extMap.put("is_change", "0");
+		//是否需要审核证件照
+//		if(MallUtils.isNotEmpty(mallOrder.getIs_examine_card())){
+//			extMap.put("is_examine_card",mallOrder.getIs_examine_card());
+//		}
+		//销售商品名称
+		/*if(MallUtils.isNotEmpty(item.getGoodsName())){
+			extMap.put("sales_name",item.getGoodsName());
+		}*/
+		//GoodsName 商品名称
+		//extMap.put("GoodsName", item.getGoodsName());
+		
+		JSONObject json = new JSONObject();
+		json.put("trade_type_code", hbBroadbandOrder.getTrade_type_code());//业务类型
+		json.put("in_mode_code", hbBroadbandOrder.getIn_mode_code());//预受理接入方式
+		json.put("serial_number", hbBroadbandOrder.getSerial_number());//号码
+		json.put("user_name", hbBroadbandOrder.getUser_name());//用户名称
+		json.put("install_address", hbBroadbandOrder.getInstall_address());//装机地址
+		json.put("accept_date", hbBroadbandOrder.getAccept_date());//业务受理时间
+		json.put("accept_month", hbBroadbandOrder.getAccept_month());//业务受理月份
+		json.put("develop_depart_id", hbBroadbandOrder.getDevelop_depart_id());//业务发展渠道id
+		json.put("develop_staff_id", hbBroadbandOrder.getDevelop_staff_id());//业务发展人id
+		json.put("develop_staff_name", hbBroadbandOrder.getDevelop_staff_name());//业务发展人名称
+		json.put("develop_eparchy_code", hbBroadbandOrder.getDevelop_eparchy_code());//业务发展地市
+		json.put("develop_city_code", hbBroadbandOrder.getDevelop_city_code());//业务发展区县
+		json.put("develop_date", hbBroadbandOrder.getDevelop_date());//业务发展日期
+		json.put("trade_staff_id", hbBroadbandOrder.getTrade_staff_id());//业务受理员工ID
+		json.put("trade_depart_id", hbBroadbandOrder.getTrade_depart_id());//业务受理部门
+		json.put("trade_city_code", hbBroadbandOrder.getTrade_city_code());//业务受理区县
+		json.put("trade_eparchy_code", hbBroadbandOrder.getTrade_eparchy_code());//业务受理地市
+		json.put("remark", hbBroadbandOrder.getRemark());//业务受理地市
+		json.put("eparchy_code", hbBroadbandOrder.getEparchy_code());//用户所属地市
+		json.put("city_code", hbBroadbandOrder.getCity_code());//用户所属区县
+		json.put("oper_fee", hbBroadbandOrder.getOper_fee());//预受理工单费用
+		json.put("fee_time", hbBroadbandOrder.getFee_time());//收费时间
+		json.put("fee_state", hbBroadbandOrder.getFee_state());//支付状态
+		json.put("fee_staff_id", hbBroadbandOrder.getFee_staff_id());//收费员工id
+		json.put("cancel_tag", hbBroadbandOrder.getCancel_tag());//返销标志
+		json.put("cancel_date", hbBroadbandOrder.getCancel_date());//返销时间
+		json.put("cancel_staff_id", hbBroadbandOrder.getCancel_staff_id());//返销员工
+		json.put("cancel_depart_id", hbBroadbandOrder.getCancel_depart_id());//返销部门
+		json.put("cancel_city_code", hbBroadbandOrder.getCancel_city_code());//返销区县
+		json.put("cancel_eparchy_code", hbBroadbandOrder.getCancel_eparchy_code());//返销地市
+		json.put("chk_tag", hbBroadbandOrder.getChk_tag());//预受理工单状态
+		json.put("rsrv_str3", hbBroadbandOrder.getRsrv_str3());//对应的后台工号
+		json.put("rsrv_str5", hbBroadbandOrder.getRsrv_str5());//是否CBSS业务工单
+		json.put("rsrv_str1", hbBroadbandOrder.getRsrv_str5());//主产品id
+		json.put("rsrv_str2", hbBroadbandOrder.getRsrv_str5());//主产品id
+		json.put("net_type_code", hbBroadbandOrder.getNet_type_code());//网别编码
+		json.put("brand_code", hbBroadbandOrder.getBrand_code());//品牌编码
+		json.put("exch_code", hbBroadbandOrder.getExch_code());//局向编码
+		json.put("grid_manager_staff", hbBroadbandOrder.getGrid_manager_staff());//网格经理工号
+		json.put("grid_manager_depart", hbBroadbandOrder.getGrid_manager_depart());//网格经理部门
+		json.put("pre_onu_type", hbBroadbandOrder.getPre_onu_type());//预受理-终端类型
+		json.put("onu_in_mode", hbBroadbandOrder.getOnu_in_mode());//终端提供方式
+		json.put("contact", hbBroadbandOrder.getContact());//联系人
+		json.put("contact_phone", hbBroadbandOrder.getContact());//联系地址
+		json.put("onu_type", hbBroadbandOrder.getOnu_type());//终端类型
+		json.put("onu_brand", hbBroadbandOrder.getOnu_brand());//终端品牌
+		json.put("onu_model", hbBroadbandOrder.getOnu_model());//终端型号
+		json.put("onu_id", hbBroadbandOrder.getOnu_id());//终端串码
+		json.put("onu_mac", hbBroadbandOrder.getOnu_mac());//终端mac地址
+		json.put("yifen_tag", hbBroadbandOrder.getYifen_tag());//一卡分工但标示
+		json.put("broadband_type", "HB_SINGLE_BROADBAND");
+		extMap.put("broadband", json.toString());
+		
+		outer.setExtMap(extMap);
+		//设置orderItem的值
+		String resultMessage = null;
+		try {
+			resultMessage = setOrderListValue(outer, hbBroadbandOrder, extMap);
+		} catch (Exception e) {
+			e.printStackTrace();
+			resultMessage = e.getLocalizedMessage();
+		}
+		
+		return resultMessage;
+		
+	}
+	
+	/**
+	 * 把orderItem参数值set到OuterItem中
+	 * @param outer
+	 * @param mallOrder
+	 * @throws Exception 
+	 */
+	private static String setOrderListValue(Outer outer , HBBroadbandOrderReq hbBroadbandOrder , Map extMap) throws Exception{	
+
+		List<OuterItem> itemList  = new ArrayList<OuterItem>();
+
+			OuterItem item = new OuterItem();
+			//本地表对象,存放货品参数
+			LocalOrderAttr orderAttr = new LocalOrderAttr();
+			//设置orderItem对象的值
+			item.setSell_price(Double.parseDouble(hbBroadbandOrder.getOper_fee()));//商品价格   offer_price
+			item.setPro_origfee(Double.parseDouble(hbBroadbandOrder.getOper_fee()));//实收价格（厘）  offer_coupon_price
+			item.setPro_num(Integer.parseInt("1"));//商品数量  prod_offer_num
+			//item.setPlan_title(ordItem.getGoodsRemark());//商品备注  offer_comment
+			item.setCert_type(hbBroadbandOrder.getPspt_type_code());//证件类型  certi_type
+			item.setCert_card_num(MallUtils.getValues(hbBroadbandOrder.getPspt_id()));//证件号码  certi_num
+//			item.setCert_failure_time(ordList.getCerti_valid_date());//证件失效时间
+			item.setCert_address(MallUtils.getValues(hbBroadbandOrder.getPspt_addr()));//证件地址  certi_address
+			item.setPhone_owner_name(hbBroadbandOrder.getCust_name());//客户名称  cust_name
+			item.setFirst_payment("ALLM");//首月资费方式  offer_eff_type
+			item.setModel_code(hbBroadbandOrder.getOnu_model());//机型编码  resourcestypeid
+			item.setReliefpres_flag("NO");//减免预存标记
+			//卡类型 
+			//item.setWhite_cart_type(ordItem.getCardType());
+			item.setPhone_num(hbBroadbandOrder.getSerial_number());  //用户号码
+			//item.setPro_type("69010213");//商品小类   //TODO 暂时写死
+			//item.setType_id("20000");//商品大类   //TODO 暂时写死
+			//item.setAct_protper(ordItem.getTerm());//合约期限 12月、18月、24月、36月、48月
+			//item.setAtive_type(ordItem.getActivityType());//字典：5购机送费、4存费送机、3存费送费 --合约类型
+			item.setBrand_name(hbBroadbandOrder.getOnu_brand());//品牌
+			//item.setColor_name(ordItem.getGoodsColor());//商品颜色
+			//item.setPlan_title(ordItem.getMainProdName());//套餐名称
+			//item.setPro_name(ordItem.getMainProdName());
+			//item.setIs_iphone_plan("0");//模式不是iPhone套餐
+			//设置商品相关信息 TODO 需要修改
+			CacheGoodsDataReq req = new CacheGoodsDataReq();
+
+			ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+			
+			GoodsGetReq goodsGetReq = new GoodsGetReq();
+			goodsGetReq.setGoods_id("171611105520000144");
+			GoodsGetResp goodsGetResp = client.execute(goodsGetReq, GoodsGetResp.class);
+			if ("0".equals(goodsGetResp.getError_code())) {
+				Map param = goodsGetResp.getData();
+				setPackageGoodsParam(item,param);
+				itemList.add(item);
+			}
+			else{
+				throw new Exception("根据商品名称未获取到商品信息，请确认商品中心是否配置该商品");
+			}
+			//设置货品参数
+			//orderAttr.setSim_type(EcsOrderConsts.SIM_TYPE_BK);//浙江为白卡
+			//新老用户设置
+			//if("1".equals(ordItem.getIsNewUser())){//新用户
+				orderAttr.setIs_old("0");
+			/*}else{
+				orderAttr.setIs_old("1");
+			}*/
+			//outer.setLocalObject(orderAttr);
+			
+		outer.setItemList(itemList);
+		return "";
+	}
+	
+	/**
+	 * 把产品参数添加在OuterItem对象中
+	 * @param item
+	 * @param param
+	 */
+	private static void setPackageGoodsParam(OuterItem item , Map<String, String> param){
+		
+//		活动预存款 单位元
+		if (MallUtils.isEmpty(param.get("deposit_fee"))) {
+			item.setPhone_deposit("0");
+		} else {
+			item.setPhone_deposit(param.get("deposit_fee"));
+		}
+//		产品ID
+		item.setProduct_id(param.get("product_id"));
+		item.setGoods_id(param.get("goods_id"));
+		
+//		合约期限 12月、18月、24月、36月、48月
+		if (MallUtils.isEmpty(param.get("package_limit"))) {
+			item.setAct_protper("0");
+		} else {
+			item.setAct_protper(param.get("package_limit"));
+		}
+		
+//		字典：5购机送费、4存费送机、3存费送费 --合约类型
+		if (MallUtils.isNotEmpty(param.get("ative_type"))) {
+			item.setAtive_type(param.get("ative_type"));
+		}
+		
+//		品牌
+		if (MallUtils.isNotEmpty(param.get("brand_name"))) {
+			item.setBrand_name(param.get("brand_name"));
+		}
+		
+//		品牌编码
+		if (MallUtils.isNotEmpty(param.get("brand_number"))) {
+			item.setBrand_number(param.get("brand_number"));
+		}
+//		颜色编码
+		if (MallUtils.isNotEmpty(param.get("color_code"))) {
+			item.setColor_code(param.get("color_code"));
+		}
+		if (MallUtils.isNotEmpty(param.get("color_name"))) {
+			item.setColor_name(param.get("color_name"));
+		}
+//		是否iphone套餐 字典：0否，1是
+		if (MallUtils.isNotEmpty(param.get("is_iphone_plan"))) {
+			item.setIs_iphone_plan(param.get("is_iphone_plan"));
+		}
+//		是否靓号 字典：0否，1是
+		if (MallUtils.isNotEmpty(param.get("is_liang"))) {
+			item.setIs_liang(param.get("is_liang"));
+		}
+//		是否情侣号码 字典：0否，1是 --默认0
+		if (MallUtils.isNotEmpty(param.get("is_loves_phone"))) {
+			item.setIs_loves_phone(param.get("is_loves_phone"));
+		}
+//		是否库存机 字典：0否，1是 --终端属性
+		if (MallUtils.isNotEmpty(param.get("is_stock_phone"))) {
+			item.setIs_stock_phone(param.get("is_stock_phone"));
+		}
+//		是否赠品 字典：0否，1是
+		if (MallUtils.isNotEmpty(param.get("isgifts"))) {
+			item.setIsgifts(param.get("isgifts"));
+		}
+//		机型编码
+		if (MallUtils.isNotEmpty(param.get("model_code"))) {
+			item.setModel_code(param.get("model_code"));
+		}
+//		机型名称
+		if (MallUtils.isNotEmpty(param.get("model_name"))) {
+			item.setModel_name(param.get("model_name"));
+		}
+//		BSS套餐编码 BSS套餐编码
+		if (MallUtils.isNotEmpty(param.get("out_plan_id_bss"))) {
+			item.setOut_plan_id_bss(param.get("out_plan_id_bss"));
+		}
+//		总部套餐编码 总部套餐编码
+		if (MallUtils.isNotEmpty(param.get("out_plan_id_ess"))) {
+			item.setOut_plan_id_ess(param.get("out_plan_id_ess"));
+		}
+//		套餐名称
+		if (MallUtils.isNotEmpty(param.get("goods_name"))) {
+			item.setPlan_title(param.get("goods_name"));
+			item.setPro_name(param.get("goods_name"));
+		}
+//		产品类型
+		if (MallUtils.isNotEmpty(param.get("product_type"))) {
+			item.setPro_type(param.get("product_type"));
+		}
+//		产品网别
+		if (MallUtils.isNotEmpty(param.get("product_net"))) {
+			item.setProduct_net(param.get("product_net"));
+		}
+//		型号名称
+		if (MallUtils.isNotEmpty(param.get("specification_name"))) {
+			item.setSpecificatio_nname(param.get("specification_name"));
+		}
+//		型号编码
+		if (MallUtils.isNotEmpty(param.get("specification_code"))) {
+			item.setSpecification_code(param.get("specification_code"));
+		}
+		if (MallUtils.isNotEmpty(param.get("type_id"))) {
+			item.setType_id(param.get("type_id"));
+		}
+		
+	}
+
+	/**
+	 * 商城json参数中必填项校验
+	 * @param mallOrder
+	 * @return
+	 */
+	private static String checkHBBroadbandOrder(HBBroadbandOrderReq hbBroadbandOrder) throws Exception{
+		StringBuffer stringBuffer = new StringBuffer();
+		//外部订单号
+		if(StringUtil.isEmpty(hbBroadbandOrder.getRsrv_str6())){
+			return "缺少必填字段:Rsrv_str6.";
+		}
+		
+		//地市
+		if(StringUtil.isEmpty(hbBroadbandOrder.getTrade_eparchy_code())){
+			return "缺少必填字段:areaId.";
+		}else{
+			//校验地市数据是否正确
+			String areaName = AREAID.get(hbBroadbandOrder.getTrade_eparchy_code());
+			if(StringUtil.isEmpty(areaName)){
+				return "字段:Trade_eparchy_code,在订单系统没有匹配到值.";
+			}
+		}
+		//下单时间
+		if(StringUtil.isEmpty(hbBroadbandOrder.getAccept_date())){
+			return "缺少必填字段:Accept_date.";
+		}
+
+		//支付状态
+		if(StringUtil.isEmpty(hbBroadbandOrder.getFee_state())){
+			return "缺少必填字段:Fee_state."; 
+		}else{
+			String payStatus = PAYSTATUS.get(hbBroadbandOrder.getFee_state());
+			if(StringUtil.isEmpty(payStatus)){
+				return "字段:Fee_state,在订单系统没有匹配到值.";
+			}
+		}
+		//买家姓名
+		if(StringUtil.isEmpty(hbBroadbandOrder.getCust_name())){
+			return "缺少必填字段:Cust_name."; 
+		}
+		//买家电话
+		if(StringUtil.isEmpty(hbBroadbandOrder.getContact_phone())){
+			return "缺少必填字段:Contact_phone."; 
+		}
+		//订单实收总价
+		if (MallUtils.isEmpty(hbBroadbandOrder.getOper_fee())) {
+			return "缺少必填字段:Oper_fee.";
+		}else {
+			try {
+				//单位转换为元
+				Integer t = Integer.parseInt(hbBroadbandOrder.getOper_fee());
+				hbBroadbandOrder.setOper_fee(MallUtils.parseMoney(t));
+			} catch (Exception e) {
+				return "Oper_fee值不正确.";
+			}
+		}
+		//收货人地址
+		if(StringUtil.isEmpty(hbBroadbandOrder.getInstall_address())){
+			return "缺少必填字段:receiveAddr.";
+		}
+		//收货人电话
+		if(StringUtil.isEmpty(hbBroadbandOrder.getContact_phone())){
+			return "缺少必填字段:receiveTel.";
+		}
+
+		if(StringUtil.isEmpty(hbBroadbandOrder.getPspt_type_code())){
+			return "缺少必填项:Contact_phone";
+		}else{
+			String custCardType = CUSTCARDTYPE.get(hbBroadbandOrder.getPspt_type_code());
+			if(StringUtil.isEmpty(custCardType)){
+				return "字段:Pspt_type_code,在订单系统匹配不到值.";
+			}
+		}
+		//证件号码
+		if(StringUtil.isEmpty(hbBroadbandOrder.getPspt_id())){
+			return "缺少必填项:Pspt_id";
+		}
+		
+		return "";
+	}
+
+}

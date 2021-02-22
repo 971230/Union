@@ -1,0 +1,431 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import com.alibaba.fastjson.JSON;
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Brand;
+import com.ztesoft.net.mall.core.model.BrandModel;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.GoodsPackage;
+import com.ztesoft.net.mall.core.model.GoodsParam;
+import com.ztesoft.net.mall.core.model.TerminalImportLog;
+import com.ztesoft.net.mall.core.model.support.GoodsTypeDTO;
+import com.ztesoft.net.mall.core.model.support.ParamGroup;
+import com.ztesoft.net.mall.core.service.IBrandManager;
+import com.ztesoft.net.mall.core.service.IBrandModelManager;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.net.mall.core.service.IGoodsTypeManager;
+import com.ztesoft.net.mall.core.service.ITerminalImportHandler;
+import com.ztesoft.net.mall.plugin.standard.type.GoodsTypeUtil;
+import com.ztesoft.net.sqls.SF;
+
+public class TerminalImportHandler extends BaseSupport implements ITerminalImportHandler {
+	private JdbcTemplate jdbcTemplate;
+	protected IGoodsManager goodsManager;
+	protected IBrandModelManager brandModelManager;
+	protected IBrandManager brandManager;
+	protected IGoodsTypeManager goodsTypeManager;
+	public JdbcTemplate getJdbcTemplate() {
+		return jdbcTemplate;
+	}
+	public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
+	}
+	public IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+	public void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+	public IBrandModelManager getBrandModelManager() {
+		return brandModelManager;
+	}
+	public void setBrandModelManager(IBrandModelManager brandModelManager) {
+		this.brandModelManager = brandModelManager;
+	}
+	public IBrandManager getBrandManager() {
+		return brandManager;
+	}
+	public void setBrandManager(IBrandManager brandManager) {
+		this.brandManager = brandManager;
+	}
+	public IGoodsTypeManager getGoodsTypeManager() {
+		return goodsTypeManager;
+	}
+	public void setGoodsTypeManager(IGoodsTypeManager goodsTypeManager) {
+		this.goodsTypeManager = goodsTypeManager;
+	}
+	
+	@Override
+	public boolean importTerminals() {
+		try{
+			String sql = SF.goodsSql("PHONE_IMPORT_LOGS")+" and deal_flag=0 ";
+			List<TerminalImportLog> logs = this.baseDaoSupport.queryForList(sql, TerminalImportLog.class, null);
+			if(logs==null || logs.size()==0)
+				return true;
+			for(TerminalImportLog log : logs){
+				if(!validateData(log))
+					continue;
+				if(updateExistsTerminal(log))
+					continue;
+				
+				String sku = goodsManager.createSKU("product", log.getCat_id());
+				String sn = log.getSn();
+				String type_id = Consts.GOODS_TYPE_TERMINAL;
+				String oper_id = log.getOper_id();
+				String cat_id = log.getCat_id();
+				String name = log.getBrand_name()+log.getModel_name()+log.getColor_name();
+				String model_code = log.getModel_code();
+				String brand_code = log.getBrand_code();
+				String brand_name = log.getBrand_name();
+				String color_code = log.getColor_code();
+				String color_name = log.getColor_name();
+				
+				String brand_id = checkBrand(brand_code,brand_name,type_id);
+				checkModel(model_code,brand_code,brand_name);
+				checkColor(color_code,color_name);
+				
+				Goods good = new Goods();
+				setGoodsValues(good,oper_id);
+				good.setSku(sku);
+				good.setSn(sn);
+				good.setType("product");
+				good.setName(name);
+				good.setType_id(type_id);
+				good.setModel_code(model_code);
+				good.setCat_id(cat_id);
+				good.setBrand_id(brand_id);
+				good.setWeight(0d);
+				good.setMarket_enable(1);
+				good.setCreate_time(DBTUtil.current());
+				good.setLast_modify(DBTUtil.current());
+				//处理参数
+				String params = getTerminalJsonParams(log);
+				good.setParams(params);
+				
+				goodsManager.importAdd(good);
+				good.setColor(color_code);
+				goodsManager.insertProduct(good);
+				
+				int deal_flag = 1;
+				int deal_num = log.getDeal_num()+1;
+				String deal_desc = "新增成功";
+				String log_id = log.getLog_id();
+				updateImportLogStatus(deal_flag,deal_num,deal_desc,log_id);
+			}
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+	
+	public void setGoodsValues(Goods good,String oper_id){
+		List adminUsers = this.baseDaoSupport.queryForList(SF.goodsSql("ADMINUSER"), oper_id);
+		Map adminUser = adminUsers.size()>0?(Map) adminUsers.get(0):new HashMap();
+		String paruserid = Const.getStrValue(adminUser, "paruserid");
+		String founder = Const.getStrValue(adminUser, "founder");
+		String userId = null;
+		if(Consts.CURR_FOUNDER_0.equals(founder) || Consts.CURR_FOUNDER_1.equals(founder)){
+			userId = "-1" ;
+			good.setAudit_state(Consts.GOODS_AUDIT_SUC);
+		}
+		else{
+			if(Consts.CURR_FOUNDER_4.equals(founder)){//供货商
+				userId = oper_id;
+			}
+			else{
+				userId = paruserid;
+			}
+			good.setAudit_state(Consts.GOODS_AUDIT_NOT) ; //待审核商品
+		}
+		good.setCreate_time(DBTUtil.getDBCurrentTime());
+		good.setStaff_no(userId);
+		good.setCreator_user(oper_id);
+		good.setGoods_type("normal");
+		good.setLast_modify(DBTUtil.current());
+		
+		if(good.getType_id()!=null){
+			GoodsTypeDTO goodsType=goodsTypeManager.get(good.getType_id());
+			good.setType_code(goodsType.getType_code());
+		}
+	}
+	
+	/**
+	 * 组装手机参数，返回json串
+	 * @param log
+	 * @return
+	 */
+	public String getTerminalJsonParams(TerminalImportLog log){
+
+		Map paramValues = new HashMap();
+		getTerminalParamsMap(paramValues,log);
+		String sql = SF.goodsSql("GOODS_TYPE_PARAMS");
+		//获取手机类型规格参数
+		String typeParams = this.baseDaoSupport.queryForString(sql,"product","10000");
+		//需要导入的手机货品参数
+
+		ParamGroup[] typeParamsAr = GoodsTypeUtil.converFormString( typeParams);// 处理参数
+		for(ParamGroup typeParamGrp:typeParamsAr){
+			List<GoodsParam> typeparams = typeParamGrp.getParamList();
+			for(GoodsParam typeparam : typeparams){
+				typeparam.setValue(Const.getStrValue(paramValues, typeparam.getEname()));
+			}
+		}
+		
+		String[] groupnames = new String[10];
+		String[] paramnums = new String[10];
+		String[] paramnames = new String[100];
+		String[] paramvalues = new String[100];
+		String[] enames = new String[100];
+		String[] attrCodes = new String[100];
+		String[] attrvaltypes = new String[100];
+		String[] attrtypes = new String[100];
+		String[] required = new String[100];
+		
+		int c = 0;
+		for(int i=0;i<typeParamsAr.length;i++){
+			ParamGroup typeParamGrp = typeParamsAr[i];
+			groupnames[i] = typeParamGrp.getName();
+			List<GoodsParam> typeparams = typeParamGrp.getParamList();
+			paramnums[i] = typeparams.size()+"";
+			for(int j=0;j<typeparams.size();j++){
+				GoodsParam typeparam = typeparams.get(j);
+				paramnames[c] = typeparam.getName();
+				paramvalues[c] = typeparam.getValue();
+				enames[c] = typeparam.getEname();
+				attrCodes[c] = typeparam.getAttrcode();
+				attrvaltypes[c] = typeparam.getAttrvaltype();
+				attrtypes[c] = typeparam.getAttrtype();
+				required[c] = typeparam.getRequired();
+				c++;
+			}
+		}
+		IGoodsTypeManager goodsTypeManager = SpringContextHolder.getBean("goodsTypeManager");
+		String params = goodsTypeManager.getParamString(paramnums, groupnames,
+				paramnames, paramvalues, enames, attrvaltypes, attrtypes,attrCodes,required);
+		return params;
+	}
+	
+	/**
+	 * 从日志中获取手机终端的参数，放到HashMap中
+	 * HashMap的key取参数的ename
+	 * @param paramValues
+	 * @param log
+	 */
+	public void getTerminalParamsMap(Map paramValues,TerminalImportLog log){
+		paramValues.put("color", log.getColor_code());
+		paramValues.put("size", log.getTerminal_memory());
+		paramValues.put("param1", log.getSystem_type_name());
+		paramValues.put("param2", log.getNetwork());
+		paramValues.put("param3", log.getData_transfer());
+		paramValues.put("param4", log.getBrowser());
+		paramValues.put("param5", log.getEx_memory());
+		paramValues.put("param6", log.getScreen_size());
+		paramValues.put("param7", log.getIs_widescreen());
+		paramValues.put("param8", log.getScreen_type());
+		paramValues.put("param9", log.getScreen_ratio());
+		paramValues.put("param10", log.getTouch_screen());
+		paramValues.put("param11", log.getScreen_color());
+		paramValues.put("param12", log.getMusic_play());
+		paramValues.put("param13", log.getVideo_play());
+		paramValues.put("param14", log.getFront_camera());
+		paramValues.put("param15", log.getBack_camera());
+		paramValues.put("param18", log.getVideo_record());
+		paramValues.put("param19", log.getSensor_type());
+		paramValues.put("param20", log.getZoom_model());
+		paramValues.put("param24", log.getWeight());
+		paramValues.put("param25", log.getIs_gprs());
+		paramValues.put("param26", log.getIs_bluetooth());
+		paramValues.put("param27", log.getBattery());
+		paramValues.put("param28", log.getBattery_type());
+		paramValues.put("param29", log.getBattery_capacity());
+		paramValues.put("param30", log.getTalk_time());
+		paramValues.put("param31", log.getStandby_time());
+		paramValues.put("param32", log.getLong_standby());
+		paramValues.put("param33", log.getSpecial_feature());
+		paramValues.put("param34", log.getVa_business());
+		paramValues.put("param35", log.getSystem_version());
+		paramValues.put("param36", log.getCpu_desc());
+		paramValues.put("param37", log.getRam_desc());
+		paramValues.put("param38", log.getRun_memory());
+		paramValues.put("param39", log.getIs_double_card());
+		paramValues.put("param40", log.getTerminal_size());
+	}
+	
+	/**
+	 * 如果手机终端颜色在系统中不存在，还需要新增终端颜色，颜色编码取“手机终端颜色”，颜色名称取“颜色”
+	 * @param color_code 颜色编码
+	 * @param color_name 颜色名称
+	 */
+	public void checkColor(String color_code,String color_name){
+		String sql = SF.goodsSql("COLOR_COUNT");
+		String count = this.jdbcTemplate.queryForObject(sql, String.class,color_code);
+		if("0".equals(count)){
+			Map data = new HashMap();
+			data.put("stype", "10002");
+			data.put("pkey", color_code);
+			data.put("pname", color_name);
+			data.put("comments", "颜色");
+			
+			this.baseDaoSupport.insert("es_dc_public", data);
+		}
+	}
+	
+	/**
+	 * 如果手机终端型号在系统中不存在，还需要新增终端型号，型号编码取“手机终端型号”，型号名称则取“型号”
+	 * @param model_code 型号编码
+	 * @param brand_code 品牌编码
+	 * @param brand_name 品牌名称
+	 */
+	public void checkModel(String model_code,String brand_code,String brand_name){
+		String sql = SF.goodsSql("MODEL_COUNT");
+		String count = this.baseDaoSupport.queryForString(sql, model_code);
+		if("0".equals(count)){
+			BrandModel brandModel = new BrandModel();
+			brandModel.setBrand_code(brand_code);
+			brandModel.setBrand_name(brand_name);
+			brandModel.setModel_code(model_code);
+			brandModel.setModel_name(model_code);
+			brandModel.setCreate_date(DBTUtil.current());
+			brandModelManager.saveOrUpdateBrandMode(brandModel);
+		}
+	}
+	
+	/**
+	 * 如果手机终端型号在系统中不存在，还需要新增终端品牌，品牌编码取“手机终端品牌”，品牌名称则取“品牌”
+	 * @param brand_code 品牌编码
+	 * @param brand_name 品牌名称
+	 */
+	public String checkBrand(String brand_code,String brand_name,String type_id){
+		String sql = SF.goodsSql("BRAND_COUNT");
+		String brand_id = "";
+		List<Brand> brands = this.baseDaoSupport.queryForList(sql, Brand.class, brand_code);
+		if(brands==null || brands.size()==0){
+			Brand brand = new Brand();
+			brand_id = this.baseDaoSupport.getSequences("s_es_brand");
+			brand.setBrand_id(brand_id);
+			brand.setBrand_code(brand_code);
+			brand.setName(brand_name);
+			brand.setDisabled(0);
+			brandManager.add(brand);
+			
+			Map typeBrand = new HashMap();
+			typeBrand.put("brand_id", brand_id);
+			typeBrand.put("type_id", type_id);
+			this.baseDaoSupport.insert("es_type_brand", typeBrand);
+		}
+		else{
+			Brand brand = brands.get(0);
+			brand_id = brand.getBrand_id();
+		}
+		return brand_id;
+	}
+	
+	/**
+	 * 根据手机终端编码（SN）查找货品，找到则更新货品，返回true，否则返回false
+	 * @param log
+	 * @return
+	 */
+	public boolean updateExistsTerminal(TerminalImportLog log){
+		String cond = log.getSn();
+		String oper_id = log.getOper_id();
+		String cat_id = log.getCat_id();
+		String sql = SF.goodsSql("TERMINAL_GET_BY_SN");
+		if(!Consts.GOODS_CAT_CUSTOM_MACHINE.equals(cat_id)){
+			sql = SF.goodsSql("TERMINAL_GET_BY_NAME");
+			cond = log.getBrand_name()+log.getModel_name()+log.getColor_name();
+		}
+		List<Goods> goodsList = this.baseDaoSupport.queryForList(sql,Goods.class, cond);
+		if(goodsList!=null && goodsList.size()>0){
+			//修改手机货品逻辑
+			Goods good = goodsList.get(0);
+			String goods_id = good.getGoods_id();
+			String product_id = good.getProduct_id();
+			
+			String params = getTerminalJsonParams(log);
+			Goods updateFields = new Goods();
+			updateFields.setGoods_id(goods_id);
+			updateFields.setParams(params);
+			updateFields.setBrand_id(good.getBrand_id());
+			updateFields.setLast_modify(DBTUtil.current());
+			Map whereMap = new HashMap();
+			whereMap.put("goods_id", goods_id);
+			
+			this.baseDaoSupport.update("es_goods", updateFields, whereMap);
+			goodsManager.insertCoQueue("product",oper_id,product_id,2);
+			
+			int deal_flag = 1;
+			int deal_num = log.getDeal_num()+1;
+			String deal_desc = "修改成功";
+			String log_id = log.getLog_id();
+			updateImportLogStatus(deal_flag,deal_num,deal_desc,log_id);
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * 数据校验，校验必要的数据是否存在，校验通过返回true，校验不通过返回false
+	 * @param log
+	 * @return
+	 */
+	public boolean validateData(TerminalImportLog log){
+		String brand_code = log.getBrand_code();
+		String model_code = log.getModel_code();
+		String color_code = log.getColor_code();
+		//判断品牌、型号或颜色是否为空
+		if(StringUtils.isEmpty(brand_code) || StringUtils.isEmpty(model_code) || StringUtils.isEmpty(color_code)){
+			
+			int deal_flag = 2;
+			int deal_num = log.getDeal_num()+1;
+			String deal_desc = "失败：手机终端品牌、手机终端型号或手机终端颜色为空";
+			String log_id = log.getLog_id();
+			updateImportLogStatus(deal_flag,deal_num,deal_desc,log_id);
+			return false;
+		}
+		//判断导入的手机分类
+		String cat_id = log.getCat_id();
+		String sn = log.getSn();
+		if(Consts.GOODS_CAT_CUSTOM_MACHINE.equals(cat_id)){//定制机
+			if(StringUtils.isEmpty(sn)){
+				int deal_flag = 2;
+				int deal_num = log.getDeal_num()+1;
+				String deal_desc = "失败：手机分类为定制机，手机终端编码不能为空";
+				String log_id = log.getLog_id();
+				updateImportLogStatus(deal_flag,deal_num,deal_desc,log_id);
+				return false;
+			}
+		}
+		else{//社会机，sn自动生成
+			sn = goodsManager.createSN(null, null, null);
+			log.setSn(sn);
+		}
+		return true;
+	}
+	
+	public void updateImportLogStatus(int deal_flag,int deal_num,String deal_desc,String log_id){
+		TerminalImportLog log = new TerminalImportLog();
+		log.setDeal_flag(deal_flag);
+		log.setDeal_num(deal_num);
+		log.setDeal_desc(deal_desc);
+		log.setStatus_date(DBTUtil.current());
+		
+		Map whereMap = new HashMap();
+		whereMap.put("log_id", log_id);
+		this.baseDaoSupport.update("es_terminal_import_logs", log, whereMap);
+	}
+
+}

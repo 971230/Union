@@ -1,0 +1,63 @@
+package rule.params.userstaff.req;
+
+import java.util.Map;
+
+import params.ZteRequest;
+import params.ZteResponse;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.framework.database.NotDbField;
+import com.ztesoft.net.mall.core.model.OrderItem;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+
+/**
+ * 
+ * @author wui
+ * 
+ * 订单工号信息设置入参数
+ */
+public class OrdUserRuleReq extends ZteRequest<ZteResponse>{
+	private OrderItem orderItem;
+	private Map params =null;
+	private String service_code;
+	public OrderItem getOrderItem() {
+		return orderItem;
+	}
+
+	public void setOrderItem(OrderItem orderItem) {
+		this.orderItem = orderItem;
+	}
+
+	@Override
+	@NotDbField
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	@NotDbField
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public Map getParams() {
+		return params;
+	}
+
+	public void setParams(Map params) {
+		this.params = params;
+	}
+
+	public String getService_code() {
+		return service_code;
+	}
+
+	public void setService_code(String service_code) {
+		this.service_code = service_code;
+	}
+
+	
+	
+}

@@ -1,0 +1,52 @@
+
+
+.jiathis_style {margin-top:-132px; margin-left:-252px;}
+.tools {background:url(http://img02.taobaocdn.com/tps/i2/T1SFPUXahdXXa9K86B-32-100.png) no-repeat;}
+.tools {position:fixed; _position:absolute; top:250px; _top:expression(documentElement.scrollTop + 250); left:50%; z-index:9997; width:32px; height:100px; margin-left:495px;}
+.tools .btn-issue, .tools .btn-share, .tools .btn-return {display:block; overflow:hidden; width:32px; text-indent:-9999px;}
+.tools .btn-issue {height:33px;}
+.tools .btn-share {height:34px;}
+.tools .btn-return {height:33px;}
+
+
+.pop-dialog {
+   z-index: 19998;
+}
+.pop-dialog .ks-stdmod-body {
+   padding: 0;
+}
+.pop-dialog .ks-ext-close {
+   top: 8px;
+   right: 9px;
+   height: 12px;
+   width: 12px;
+}
+.pop-dialog .ks-stdmod-footer {
+   display:none;
+}
+.pop-dialog .ks-ext-close .ks-ext-close-x {
+   margin: 1px;
+   width: 10px;
+   height: 10px;
+}
+.pop-dialog input.error {
+border: 1px solid #F60;
+}
+
+
+/*文档反馈编辑框*/
+#loginDiv {}
+#loginDiv .loginFm {
+	margin-top: 0;
+	height: 240px;
+}
+#loginDiv .ks-ext-close {
+	position:absolute; 
+	top: 11px;
+	right:14px; 
+	cursor:pointer;
+}
+#loginDiv .ks-contentbox {
+	background: none;
+	border: none;
+}

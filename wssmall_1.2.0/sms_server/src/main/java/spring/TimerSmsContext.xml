@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd"
+       default-autowire="byName" default-lazy-init="false">
+
+
+    <!--定时任务刷新短信模板-->
+    <bean id="smsTempleteFlush" class="com.ztesoft.net.init.SmsTempleteFlush"/>
+    <bean id="smsTempleteFlushJobTask" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="smsTempleteFlush"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod" value="execute"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="smsTempleteFlushTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="smsTempleteFlushJobTask"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 */10 * * * ?</value>
+        </property>
+    </bean>
+    <bean id="smsQuertz" lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="startupDelay" value="30"/>
+        <property name="triggers">
+            <list>
+                <ref bean="smsTempleteFlushTrigger"/>
+            </list>
+        </property>
+    </bean>
+
+   
+     <!--定时任务发送短信-->
+    <bean id="smsSendService" class="com.ztesoft.net.services.SmsServices"/>
+    <bean id="smsSendServiceJobTask" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="smsSendService"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod" value="sendSms"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="smsSendServiceTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="smsSendServiceJobTask"/>
+        </property>
+        <property name="cronExpression">
+            <value>*/3 * * * * ?</value>
+        </property>
+    </bean>
+    <bean id="smsSendQuertz" lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="startupDelay" value="30"/>
+        <property name="triggers">
+            <list>
+                <ref bean="smsSendServiceTrigger"/>
+            </list>
+        </property>
+    </bean>
+   
+</beans>

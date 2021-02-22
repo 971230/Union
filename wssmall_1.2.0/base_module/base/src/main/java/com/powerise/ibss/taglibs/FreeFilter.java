@@ -1,0 +1,76 @@
+package com.powerise.ibss.taglibs;
+
+import com.powerise.ibss.framework.DynamicDict;
+
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.util.Enumeration;
+
+public class FreeFilter implements Filter {
+	private FilterConfig       _filterConfig = null;
+	private HttpServletRequest _httpRequest  = null;
+	HttpServletResponse        _httpResponse = null;
+	HttpSession                _httpSession  = null;
+	public static  int         _filter_num   = 0;
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+		this._filterConfig = filterConfig;
+	}
+	
+	@Override
+	public void destroy() {
+		this._filterConfig = null;
+	}
+	
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response,FilterChain chain) throws IOException,ServletException {
+		String  strURI      = null;
+		String  server_name = null;
+		String  strURL      = null;
+		if(request!=null){
+			request.setCharacterEncoding("GBK");
+		}
+		if (_filterConfig == null) return;
+		_httpRequest  = (HttpServletRequest) request;
+        _httpResponse = (HttpServletResponse) response;
+        strURI        = _httpRequest.getRequestURI();
+        if(strURI==null) strURI = "";
+        
+        
+        //setHeader();
+        chain.doFilter(request, response);
+        if(strURI.endsWith(".js") || strURI.endsWith(".css") ) return ;	
+        if(strURI.indexOf("/images/")>-1) return ;
+        if(strURI.indexOf("/res/")>-1) return ;
+        
+        
+        String attr_name = null;
+        String class_name = null;
+        Object attr_obj  = null;
+		Enumeration enumer=_httpRequest.getAttributeNames(); 
+		while(enumer.hasMoreElements()){ 
+			attr_name =(String)enumer.nextElement(); 
+			attr_obj  = _httpRequest.getAttribute(attr_name);
+			if(attr_obj==null) continue;
+			
+			if(attr_obj instanceof DynamicDict){
+				DynamicDict aDict = (DynamicDict)attr_obj;
+				aDict.destroy();
+				aDict.clear();
+				aDict = null;
+			}
+			attr_obj = null;
+			_httpRequest.removeAttribute(attr_name);
+		} 
+        _filter_num ++;
+        if(_filter_num>1000 ){
+        	_filter_num = 0;
+        	System.gc();
+        	System.runFinalization();
+        	
+        }
+	}
+}

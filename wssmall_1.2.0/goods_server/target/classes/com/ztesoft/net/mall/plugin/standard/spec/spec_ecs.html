@@ -1,0 +1,165 @@
+<div id="spec_div"  tabid="tab_6" >
+
+<script type="text/javascript" src="js/memberprice.js"></script>
+<script type="text/javascript" src="js/spec_ecs.js"></script>
+<style>
+.select-spec-value {
+	background: none repeat scroll 0 0 #FFFFFF;
+	border: 2px solid #FFFFFF;
+	display: block;
+}
+
+div.spec_selected {
+	width: 50px
+}
+
+.select-spec-unselect span,.select-spec-unselect img {
+	background: none repeat scroll 0 0 #FFFFFF;
+	border: 1px dotted #3366CC;
+	color: #333333;
+	cursor: pointer;
+	display: block;
+	padding: 1px;
+	font-size: 14px;
+	text-align: center;
+	line-height: 150%;
+}
+
+.spec_selected span,.spec_selected img {
+	background: none repeat scroll 0 0 #FFFFCC;
+	border-style: solid;
+}
+
+table.finderInform {
+border:1px solid #EFEFEF;
+margin:0;
+width:100%;
+}
+.division td .finderInform {
+width:auto;
+}
+.finderInform thead th {
+
+border-color:#FFFFFF #DBE2E7 #CCCCCC #FFFFFF;
+border-style:solid;
+border-width:1px;
+font-size:12px;
+font-weight:700;
+padding:1px 3px;
+text-align:center;
+white-space:nowrap;
+width:auto;
+}
+.finderInform td {
+text-align:center;
+}
+.finderInform tbody td, .finderInform tbody th {
+border-color:#FFFFFF #DBE2E7 #DDDDDD #FFFFFF;
+border-left:1px solid #FFFFFF;
+border-right:1px solid #DBE2E7;
+border-style:solid;
+border-width:1px;
+}
+.finderInform tbody td {
+white-space:normal;
+}
+.finderInform.tabledata th, .finderInform.tabledata td {
+text-align:left;
+}
+</style>
+<input type="hidden" name="haveSpec" id="haveSpec" value="${goods.have_spec!0}" />
+
+
+
+<div class="grid" id="specbody2" style="display:none;width:65%;">
+
+<table cellspacing="0" cellpadding="0" border="0">
+	<thead id="productNodeTitle">
+		<tr>
+			<th style="width: 120px;">SKU</th>
+			<th style="width: auto;">货品名称</th>
+			<th style="width: auto;">货品规格</th>
+			<th style="width: 100px;">规格</th>
+			<th style="width: auto;">操作</th>
+		</tr>
+	</thead>
+	<tbody id="specNode">
+		<#if goods.have_spec?exists && goods.have_spec==1 && productList?exists  >
+		<script>
+			$("#commonPriceTd").hide();
+			$("#storeTr").hide();
+		</script>
+		<#list productList as product>
+		<#assign specids=''>
+		<#assign specvids=''>
+		<tr style="height:20px;">
+			<td>
+				<input type="text" size="15" name="skus" value="${product.sku}" autocomplete="off" readonly>
+				<input type="hidden" name="productids" value="${product.product_id}" />
+			</td>
+			<td>
+ 				<input type="text" size="15" name="names" value="${product.name}">
+ 			</td>
+ 			<td>
+ 				<input type="text" size="15" name="sns" value="${product.sn}">
+ 			</td>
+			<td>
+			<#list product.specList as spec>
+				<#if product_index==0 ><script>$("#storeTh").before("<th>${spec.spec_value}</th>");</script></#if>
+				<#if spec_index!=0 >
+					<#assign specids=specids+','>
+					<#assign specvids=specvids+','>
+				</#if>
+				<#assign specids=specids+spec.spec_id>
+				<#assign specvids=specvids+spec.spec_value_id>		
+						
+				<#if spec.spec_type==1>
+				
+				<div style="float:left" class="select-spec-unselect spec_selected">
+				<center><img height="20" width="40" src="${spec.spec_image}"
+					alt="${spec.spec_value}" title="${spec.spec_value}"></center>
+				</div>
+				<input type="hidden" name="specvalue_${product_index}" value="${spec.spec_value}" />
+				
+				</#if>
+				
+				<#if spec.spec_type==0>
+				
+				<div style="float:left" class="select-spec-unselect spec_selected"><span>${spec.spec_value}</span></div>
+				<input type="hidden" name="specvalue_${product_index}" value="${spec.spec_value}" />
+				
+				</#if>
+ 			</#list>
+ 			</td>
+ 			
+			<td style="display:none;">
+				<input type="hidden" value="${specids}" name="specids">
+				<input type="hidden" value="${specvids}" name="specvids">
+				<input type="text" size="4" name="stores" autocomplete="off" value="${product.store}">
+			</td>
+			<td style="display:none;">
+				<input type="text" size="8" name="prices" class="price" value="${(product.price!0)?c}" autocomplete="off">
+				<input type="button" class="mempriceBtn" pid="${product.product_id}" gid="${goods.goods_id}" hasConfirm="0" value="会员价" />
+				<div class="member_price_box" index="${product_index}"><!-- 声明控件，稍后初始化 -->
+					<#if lvList?exists>
+					<#list lvList as lv>
+					<input type="hidden" class="lvid" productid="${product.product_id}" value="${lv.lv_id}" name="lvid_${product_index}">
+					<input type="hidden" class="lvPrice" productid="${product.product_id}" lvid="${lv.lv_id}" name="lvPrice_${product_index}">
+					</#list>
+					</#if>
+				</div>
+			</td>
+			<td style="display:none;"><input type="text" size="10" name="weights" value="${(product.weight!0)?c}" autocomplete="off"></td>
+			<td><a  href="javascript:;"><img  class="delete" src="${ctx}/shop/admin/images/transparent.gif" > </a></td>
+		</tr>
+		</#list>
+		
+		</#if>
+	</tbody>
+</table>
+<input type="hidden" name="spec_imgs" id="spec_imgs" /></div>
+<div id="specdlg">
+<div id="spec_dialog"></div>
+</div>
+<div id="memberpricedlg"></div>
+</div>

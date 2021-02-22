@@ -1,0 +1,45 @@
+package com.ztesoft.net.framework.taglib;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+
+import org.apache.commons.lang.StringUtils;
+import services.GoodsInf;
+import vo.GoodsPlugin;
+
+import javax.servlet.jsp.JspException;
+import javax.servlet.jsp.tagext.Tag;
+
+import java.util.List;
+
+@SuppressWarnings("serial")
+public class GoodsPluginTaglib extends EnationTagSupport {
+
+
+    @Override
+	@SuppressWarnings("static-access")
+    public int doEndTag() throws JspException { //
+        //logger.info("标签信息：===========================================================================================");
+        /*IGoodsManager goodsManager = SpringContextHolder.getBean("goodsManager");
+		List<GoodsPlugin> goodsPlugins = goodsManager.getGoodsPlugin();*/
+        GoodsInf goodsManager = SpringContextHolder.getBean("goodsServ");
+        List<GoodsPlugin> goodsPlugins = goodsManager.getGoodsPlugin();
+        StringBuffer contextSqlBuffer = new StringBuffer();
+        //logger.info(goodsPlugins.size()+"标签信息：===========================================================================================");
+        for (int i = 0; i < goodsPlugins.size(); i++) {
+            GoodsPlugin goodsPlugin = goodsPlugins.get(i);
+            if (!StringUtils.isEmpty(goodsPlugin.getTag_num()))
+                contextSqlBuffer.append("<div id='" + goodsPlugin.getPage_name() + "_tab' style_code='" + goodsPlugin.getStype_code() + "' tabid='tab_" + goodsPlugin.getTag_num() + "'  class='form-table tab-panel' style='display: none;'>");
+            else
+                contextSqlBuffer.append("<div id='" + goodsPlugin.getPage_name() + "_tab' style_code='" + goodsPlugin.getStype_code() + "' tabid='no' style='display: none;'>");
+            contextSqlBuffer.append(pageContext.getRequest().getAttribute(goodsPlugins.get(i).getPage_name()));
+            //if(!StringUtils.isEmpty(goodsPlugin.getTag_num()))
+            contextSqlBuffer.append("</div>");
+        }
+        logger.info("标签信息" + contextSqlBuffer.toString());
+
+        this.print(contextSqlBuffer.toString());
+        return Tag.EVAL_BODY_INCLUDE;
+    }
+
+
+}

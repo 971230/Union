@@ -1,0 +1,335 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import params.coqueue.req.CoQueueAddReq;
+import params.coqueue.resp.CoQueueAddResp;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.cache.common.GoodsNetCacheRead;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.eop.sdk.utils.UploadUtil;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.database.StringMapper;
+import com.ztesoft.net.framework.util.FileBaseUtil;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Brand;
+import com.ztesoft.net.mall.core.model.mapper.BrandMapper;
+import com.ztesoft.net.mall.core.service.IBrandManager;
+import com.ztesoft.net.mall.core.service.IGoodsCatManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+public class BrandManager extends BaseSupport<Brand> implements IBrandManager {
+ 
+	private IGoodsCatManager goodsCatManager;
+	private GoodsNetCacheRead read = new GoodsNetCacheRead();
+	/**
+	 * 分页读取品牌
+	 * 
+	 * @param order
+	 * @param page
+	 * @param pageSize
+	 * @return
+	 */
+	
+	public Page list(String order, int page, int pageSize) {
+		order = order == null ? " brand_id desc" : order;
+		String sql = SF.goodsSql("GOODS_GET_BRAND_LIST_0");
+		sql += " order by  " + order;
+		Page webpage = this.baseDaoSupport.queryForPage(sql, page, pageSize);
+		return webpage;
+	}
+
+	/**
+	 * 分页读取回收站列表
+	 * 
+	 * @param order
+	 * @param page
+	 * @param pageSize
+	 * @return
+	 */
+	
+	public Page listTrash(String order, int page, int pageSize) {
+		order = order == null ? " brand_id desc" : order;
+		String sql = SF.goodsSql("GOODS_GET_BRAND_LIST_1");
+		sql += " order by  " + order;
+		Page webpage = this.baseDaoSupport.queryForPage(sql, page, pageSize);
+		return webpage;
+	}
+
+	/**
+	 * 将回收站中的品牌还原
+	 * 
+	 * @param bid
+	 */
+	
+	public void revert(String bid) {
+		if (bid == null || bid.equals(""))
+			return;
+
+		String sql = SF.goodsSql("GOODS_BRAND_REVERT") + " and brand_id in (" + bid + ")";
+		this.baseDaoSupport.execute(sql);
+	}
+
+	public boolean checkUsed(String ids){
+		if (ids == null || ids.equals("")) return false;
+		String sql  = SF.goodsSql("GOODS_BRAND_CHECK_USED") + " and brand_id in (" + ids + ")";
+		int count  = this.baseDaoSupport.queryForInt(sql);
+		if(count>0)
+			return true;
+		else
+			return false;
+	}
+	
+	
+	/**
+	 * 将品牌放入回收站
+	 * 
+	 * @param bid
+	 */
+	
+	public void delete(String bid) {
+		if (bid == null || bid.equals(""))
+			return;
+		String sql = SF.goodsSql("GOODS_BRAND_UPDATE_DISABLE") + " and brand_id in (" + bid + ")";
+		this.baseDaoSupport.execute(sql);
+	}
+
+	/**
+	 * 品牌删除,真正的删除。
+	 * 
+	 * @param bid
+	 * @param files
+	 */
+	
+	public void clean(String bid) {
+		if (bid == null || bid.equals(""))
+			return;
+		String[] bids = bid.split(",");
+		// 删除附件
+		for (int i = 0; i < bids.length; i++) {
+			String brand_id = bids[i].trim();
+			Brand brand = this.get(brand_id);
+			if (brand != null) {
+				String f = brand.getLogo();
+				if (f != null && !f.trim().equals("")) {
+					File file = new File(StringUtil.getRootPath() + "/" + f);
+					file.delete();
+				}
+			}
+		}
+
+		String sql = SF.goodsSql("GOODS_BRAND_DELETE") + " and brand_id in ('" + bid.replace(",", "','") + "')";
+		this.baseDaoSupport.execute(sql);
+	}
+
+	private String getThumbpath(String file) {
+		String fStr = "";
+		if (!file.trim().equals("")) {
+			String[] arr = file.split("/");
+			fStr = "/" + arr[0] + "/" + arr[1] + "/thumb/" + arr[2];
+		}
+		return fStr;
+	}
+
+	/**
+	 * 读取所有品牌
+	 * 
+	 * @return
+	 */
+	
+	public List<Brand> list() {
+		String sql = SF.goodsSql("GOODS_GET_BRAND_LIST_0");
+		List list = this.baseDaoSupport.queryForList(sql,new BrandMapper());
+		return list;
+	}
+
+	
+	public List<Brand> listByTypeId(String typeid){
+		String sql = SF.goodsSql("GOODS_LIST_BY_TYPE_ID");
+		List list = this.daoSupport.queryForList(sql,new BrandMapper(),typeid);
+		return list;
+	}
+
+	/**
+	 * 读取品牌详细
+	 * 会将本地文件存储的图片地址前缀替换为静态资源服务器地址。
+	 * @param brand_id
+	 * @return
+	 */
+	
+	public Brand get(String brand_id) {
+		String sql = SF.goodsSql("GOODS_BRAND_BY_ID");
+		Brand brand = this.baseDaoSupport.queryForObject(sql, Brand.class,
+				brand_id);// .queryForMap(sql, brand_id);
+		if(brand!=null){
+			String logo = brand.getLogo();
+			if(logo!=null){
+				logo  =UploadUtil.replacePath(logo);
+			}
+			brand.setLogo(logo);
+		}
+		return brand;
+	}
+
+	/**
+	 * 分页读取某个品牌下的商品
+	 * 
+	 * @param brand_id
+	 * @return
+	 */
+	
+	public Page getGoods(String brand_id, int pageNo, int pageSize) {
+		String sql = SF.goodsSql("GOODS_GET_BY_BRAND");
+		Page page = this.baseDaoSupport.queryForPage(sql, pageNo, pageSize,
+				brand_id);
+		return page;
+
+	}
+
+	
+	public void add(Brand brand) {		
+/*		if(brand.getFile()!=null && brand.getFileFileName()!=null){
+			brand.setLogo( UploadUtil.upload(brand.getFile(), brand.getFileFileName(), "es_brand") );
+		}*/
+		this.baseDaoSupport.insert("es_brand", brand);
+
+	}
+	
+ 
+	
+	private void deleteOldLogo(String logo){
+		if(!logo.equals("http://static.enationsfot.com")){
+			logo  =UploadUtil.replacePath(logo);
+			FileBaseUtil.delete(logo);
+		}
+		
+	}  
+	
+	
+	public void update(Brand brand) {
+		
+		if(brand.getLogo()!=null && "".equals(brand.getLogo())){
+			this.deleteOldLogo(brand.getLogo());
+		} 
+		if(brand.getFile()!=null && brand.getFileFileName()!=null){
+			brand.setLogo( UploadUtil.upload(brand.getFile(), brand.getFileFileName(), "es_brand") );
+		}
+		this.baseDaoSupport.update("es_brand", brand, "brand_id="
+				+ brand.getBrand_id());
+	}
+	
+	@Override
+	public List<Brand> listCacheBrandByTypeId(String type_id){
+		List<Brand> brands = read.getTypeRelBrands(type_id);
+		return brands;
+	}
+
+	
+	public List listByCatId(Integer catid) {
+		String sql = SF.goodsSql("GOODS_LIST_BY_CATID");
+		return this.baseDaoSupport.queryForList(sql, Brand.class, catid);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public List listByGoodsId(String  goodsid) {
+		String sql = SF.goodsSql("GOODS_LIST_BY_GOODS_ID");
+		return this.baseDaoSupport.queryForList(sql, Brand.class, goodsid);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public List groupByCat(){
+		//取得商品分类的第一级列表
+		List<Map> listCat = this.baseDaoSupport.queryForList(SF.goodsSql("GET_GOODS_CAT"));
+		for(Map map:listCat){
+			String sql = SF.goodsSql("GET_GOODS_CAT_BY_PATH");
+			List list = this.baseDaoSupport.queryForList(sql, new StringMapper(), map.get("cat_path").toString() + "%");
+			
+			if(ListUtil.isEmpty(list)){
+				map.put("listBrand", new ArrayList());
+				continue;
+			}
+			
+			String types = StringUtil.listToString(list, ",");
+			List listid = this.baseDaoSupport.queryForList(SF.goodsSql("GOODS_TYPE_BRAND") + " and type_id in (" + types + ")", new StringMapper());
+			if(ListUtil.isEmpty(listid)){
+				map.put("listBrand", new ArrayList());
+				continue;
+			}
+			String ids = StringUtil.listToString(listid, ",");
+			List<Brand> listBrand = this.baseDaoSupport.queryForList(SF.goodsSql("GET_GOODS_BRAND_BY_IDS") + " and brand_id in (" + ids + ") and rownum<=20", Brand.class);
+			map.put("listBrand", listBrand);
+		}
+		return listCat;
+	}
+
+	public boolean checkname(String name,String brandid) {
+		if(name!=null)name=name.trim();
+		String sql = SF.goodsSql("GET_GOODS_BRAND_COUNT");
+		if(brandid==null) brandid="0";
+		
+		int count =this.baseDaoSupport.queryForInt(sql, name,brandid);
+		if(count>0)
+			return true;
+		else
+			return false;
+	}
+	
+	public void insertBrandType(String brand_id,String type_id){
+	    String sql = SF.goodsSql("GOODS_TYPE_BRAND_INSERT");
+	    this.baseDaoSupport.execute(sql, type_id,brand_id);
+	}
+    public void updateBrandJoin(String type_id){
+       String sql = SF.goodsSql("GOODS_TYPE_UPDATE");
+       this.baseDaoSupport.execute(sql, type_id);
+    }
+	public IGoodsCatManager getGoodsCatManager() {
+		return goodsCatManager;
+	}
+
+	public void setGoodsCatManager(IGoodsCatManager goodsCatManager) {
+		this.goodsCatManager = goodsCatManager;
+	}
+	
+	/**
+	 * 品牌发布
+	 * @param params
+	 */
+	@Override
+	public void doPublish(Map params) {
+
+		String org_id_str = ManagerUtils.getStrValue(params, "orgIds");
+		this.doCoQueue(org_id_str);  //全量发布
+	}
+
+	/**
+	 * 写同步消息队列
+	 * @param org_id_str  销售组织标识串
+	 */
+	private void doCoQueue(String org_id_str) {
+		
+		//写消息队列
+		CoQueueAddReq coQueueAddReq = new CoQueueAddReq();
+		coQueueAddReq.setCo_name("品牌同步");
+		coQueueAddReq.setBatch_id("-1");
+		coQueueAddReq.setService_code(Consts.SERVICE_CODE_CO_PINPAI);
+		coQueueAddReq.setAction_code(Consts.ACTION_CODE_A);
+		coQueueAddReq.setObject_id("-1");
+		coQueueAddReq.setObject_type("PINPAI");
+		coQueueAddReq.setContents("-1");
+		coQueueAddReq.setOrg_id_str("10008");
+		coQueueAddReq.setOrg_id_belong("10008");  //新商城
+		coQueueAddReq.setSourceFrom(ManagerUtils.getSourceFrom());
+		coQueueAddReq.setOper_id(ManagerUtils.getAdminUser().getUserid());
+		
+		ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+		client.execute(coQueueAddReq, CoQueueAddResp.class);
+	}
+}

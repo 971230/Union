@@ -1,0 +1,31 @@
+<tr>
+	<th>
+		商品标签：
+	</th>
+	<td colspan="5">
+		<div class="check_cont">
+		<#if tagList??>
+		<#list tagList as tag>
+		<label>
+			<input type="checkbox" style="outline-style: none;" name="goodsExtData.tag_id"
+				value="${tag.tag_id }" id="tag_${tag.tag_id }" />
+			${tag.tag_name!'' }&nbsp;&nbsp;
+			<span class="help_icon" helpid="goods_tag"></span>
+
+		</label>
+		</#list>
+		</#if>
+		</div>
+	</td>
+</tr>
+
+<script type="text/javascript">
+<#if tagRelList?exists >
+<#list 	tagRelList as tr>
+	<#if tr??>
+		$("#tag_${tr}").attr("checked",true);
+	</#if> 
+</#list>
+</#if> 
+
+</script>

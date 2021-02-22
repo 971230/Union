@@ -1,0 +1,650 @@
+package com.ztesoft.orderstd.service.impl;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.base.req.GroupAttrInstLoadReq;
+import zte.net.ecsord.params.base.resp.GroupAttrInstLoadResp;
+import zte.net.ecsord.params.busi.req.AttrInstBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderDeliveryBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemProdBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemProdExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderPayBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.iservice.IEcsOrdServices;
+import zte.net.iservice.ILogsServices;
+import zte.params.order.req.OrderAttrHanderReq;
+import zte.params.order.resp.OrderAttrHanderResp;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.cache.CacheList;
+import com.ztesoft.common.util.DataUtil;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.attr.hander.AttrSwitchParams;
+import com.ztesoft.net.cache.common.CacheFactory;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.service.ITplInstSManager;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicSQLInfoCacheProxy;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.AttrDef;
+import com.ztesoft.net.model.AttrInst;
+import com.ztesoft.net.model.AttrTable;
+import com.ztesoft.net.sqls.SF;
+import com.ztesoft.orderstd.service.IAttrDefSManager;
+import com.ztesoft.util.CacheUtils;
+import com.ztesoft.util.OrderThreadLocalHolder;
+
+import commons.CommonTools;
+import consts.ConstsCore;
+
+public class AttrDefSManager extends BaseSupport implements IAttrDefSManager{
+
+	private ILogsServices logsServices;
+	public static final ThreadLocal<Boolean> CACHE_LOCAL = new ThreadLocal<Boolean>();
+	public static final ThreadLocal<Integer> INDX_LOCAL = new ThreadLocal<Integer>();
+	public DecimalFormat df=new DecimalFormat("0000");
+	public void insertTable(String tableName,Map<String,String> keyValues)throws Exception{
+		if(keyValues==null || keyValues.size()==0)return ;
+		String pk = getTablePKName(tableName);
+		if(StringUtil.isEmpty(pk))throw new Exception("请在es_table_manage 表配置"+tableName+"表主键");
+		pk = pk.toLowerCase();
+		String pkValue = (String) keyValues.get(pk);
+		if(StringUtil.isEmpty(pkValue))throw new Exception(tableName+"表主键"+pk+"值为空,请传值");
+		String sql = "select count(*) from "+tableName+" where "+pk+"=?";
+		int count =0;
+//		count = this.baseDaoSupport.queryForInt(sql, pkValue);
+		String order_id =(String)keyValues.get("order_id");
+		count = this.baseDaoSupport.queryForInt(sql, pkValue);
+		Map tempKeyMap = new HashMap();
+		//如果在存在更新数据，如果不存在新增数据
+		if(count>0){
+			if("es_order_items_prod_ext".equalsIgnoreCase(tableName)){//防止报 违反唯一约束条件 异常
+				tempKeyMap.put("item_prod_inst_id", keyValues.get("item_prod_inst_id"));
+				tempKeyMap.put("item_id", keyValues.get("item_id"));
+				keyValues.remove("item_prod_inst_id");
+				//keyValues.remove("item_id");
+			}
+			
+			//add by wui修改为设置主键
+			Map where = new HashMap(); //pk+"='"+pkValue+"'")
+			where.put(pk, pkValue);
+			keyValues.remove(pk);//删除主键，主键不需要更新
+			tempKeyMap.put(pk, pkValue);
+			
+			//add by wui ,更新去除空值，空值不需要更新，优化性能
+			fiterNUllFromMap(keyValues); 
+			
+			if("es_order_items_prod_ext".equalsIgnoreCase(tableName)){
+				where = new HashMap();
+				where.put("order_id", keyValues.get("order_id"));
+				where.put("item_id", keyValues.get("item_id"));
+				this.baseDaoSupport.update(tableName, keyValues, where);
+			}else{
+				this.baseDaoSupport.update(tableName, keyValues, where);//(tableName, keyValues, ;
+		    }
+		}else{
+			this.baseDaoSupport.insert(tableName, keyValues, keyValues);
+		}
+		
+		keyValues.putAll(tempKeyMap);
+		if(tableName.equalsIgnoreCase("es_order_ext"))
+		{
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(keyValues.get("order_id"));
+			OrderExtBusiRequest orderExtBusiRequest = orderTree.getOrderExtBusiRequest();
+			com.ztesoft.common.util.BeanUtils.copyProperties(orderExtBusiRequest, keyValues);
+			logsServices.cacheOrderTree(orderTree);
+		}else if(tableName.equalsIgnoreCase("es_order"))
+		{
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(keyValues.get("order_id"));
+			OrderBusiRequest orderBusiRequest = orderTree.getOrderBusiRequest();
+			com.ztesoft.common.util.BeanUtils.copyProperties(orderBusiRequest, keyValues);
+			logsServices.cacheOrderTree(orderTree);
+		}else if(tableName.equalsIgnoreCase("es_order_items_ext")){
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(keyValues.get("order_id"));
+			OrderItemExtBusiRequest orderItemExtBusiRequest = orderTree.getOrderItemBusiRequests().get(0).getOrderItemExtBusiRequest();
+			com.ztesoft.common.util.BeanUtils.copyProperties(orderItemExtBusiRequest, keyValues);
+			orderTree.getOrderItemBusiRequests().get(0).setOrderItemExtBusiRequest(orderItemExtBusiRequest);
+			logsServices.cacheOrderTree(orderTree);
+		}else if(tableName.equalsIgnoreCase("es_order_items_prod_ext")){
+			keyValues.putAll(tempKeyMap);
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(keyValues.get("order_id"));
+			List<OrderItemProdBusiRequest> orderItemProdBusiRequests = orderTree.getOrderItemBusiRequests().get(0).getOrderItemProdBusiRequests();
+			for (OrderItemProdBusiRequest orderItemProdBusiRequest:orderItemProdBusiRequests) {
+				if(orderItemProdBusiRequest.getItem_prod_inst_id().equals(keyValues.get("item_prod_inst_id"))){
+					OrderItemProdExtBusiRequest orderItemProdExtBusiRequest = new OrderItemProdExtBusiRequest();
+					com.ztesoft.common.util.BeanUtils.copyProperties(orderItemProdExtBusiRequest, keyValues);
+					orderItemProdBusiRequest.setOrderItemProdExtBusiRequest(orderItemProdExtBusiRequest);
+				}
+			}
+			logsServices.cacheOrderTree(orderTree);
+		}else if(tableName.equalsIgnoreCase("es_payment_logs")){
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(keyValues.get("order_id"));
+			OrderPayBusiRequest orderPayBusiRequest =new OrderPayBusiRequest();
+			com.ztesoft.common.util.BeanUtils.copyProperties(orderPayBusiRequest, keyValues);
+			orderTree.getOrderPayBusiRequests().add(orderPayBusiRequest);
+			logsServices.cacheOrderTree(orderTree);
+		}else if(tableName.equalsIgnoreCase("es_delivery")){
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(keyValues.get("order_id"));
+			OrderDeliveryBusiRequest orderDeliveryBusiRequest =new OrderDeliveryBusiRequest();
+			com.ztesoft.common.util.BeanUtils.copyProperties(orderDeliveryBusiRequest, keyValues);
+			orderDeliveryBusiRequest.setDelivery_type("0");
+//			orderDeliveryBusiRequest.setMember_id(member_id);
+			orderTree.getOrderDeliveryBusiRequests().add(orderDeliveryBusiRequest);
+			logsServices.cacheOrderTree(orderTree);
+		}
+	}
+	
+	public List<AttrInstBusiRequest> insertAttrTable(String attr_space_type,String attr_sub_space_type, Map values,Map extMap,String order_id,String inst_id,String goods_id,String pro_goods_id,String goods_pro_id,String product_pro_id,int index) throws Exception{
+		INDX_LOCAL.set(index);
+		//先插入扩展表
+		long start = System.currentTimeMillis();
+			if("ECS".equalsIgnoreCase(ManagerUtils.getSourceFrom()) || "SHP".equalsIgnoreCase(ManagerUtils.getSourceFrom())){
+				String o_id = (String)extMap.get("order_id");
+				if(Const.ATTR_DEF_SPACE_TYPE_ORDER_EXT.equals(attr_space_type)){
+					//订单表
+					OrderExtBusiRequest req = new OrderExtBusiRequest();
+					String simple_order_id = this.baseDaoSupport.getSequences("s_es_order");
+					req.setSimple_order_id(simple_order_id);
+					req.setOrder_id(o_id);
+					req.setReceive_num(this.createRevceiveNum());
+					req.setVisible_status(EcsOrderConsts.VISIBLE_STATUS_0);
+					req.setRefund_deal_type(EcsOrderConsts.REFUND_DEAL_TYPE_01);
+					req.setAbnormal_type(EcsOrderConsts.ORDER_ABNORMAL_TYPE_0);
+					//req.setLock_status(EcsOrderConsts.UNLOCK_STATUS);
+					req.setLast_deal_time("sysdate");
+					req.setTid_time("sysdate");
+					req.setOut_tid(values.get("out_tid").toString());
+					req.setShipping_quick(EcsOrderConsts.SHIPPING_QUICK_02);
+					req.setDb_action(ConstsCore.DB_ACTION_INSERT);
+					req.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+					req.store();
+				}else if(Const.ATTR_DEF_SPACE_TYPE_ORDER_ITEM_EXT.equals(attr_space_type)){
+					//子订单表
+					String o_item_id = (String)extMap.get("item_id");
+					OrderItemExtBusiRequest req = new OrderItemExtBusiRequest();
+					req.setOrder_id(o_id);
+					req.setItem_id(o_item_id);
+					req.setDb_action(ConstsCore.DB_ACTION_INSERT);
+					req.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+					req.store();
+				}
+			}
+			long end1 = System.currentTimeMillis();
+			logger.info("订单："+order_id+"插入扩展表用时："+(end1-start));
+		//add by wui属性处理器处理,dubbo路由到本地执行
+		GroupAttrInstLoadResp  handlerResp = execOrderAttrHanders(index,attr_space_type,values,inst_id,attr_sub_space_type,order_id,goods_id,pro_goods_id,goods_pro_id,product_pro_id );
+		values = handlerResp.getValues();//values调用属性处理器进行设值,这边要获取最新的values
+		long end2 = System.currentTimeMillis();
+		logger.info("订单："+order_id+"调用属性处理器用时："+(end2-end1));
+		Map<String,List<AttrDef>> tableMap = handlerResp.getAttrDefTable();
+		//插入属性实例表
+		String order_from = (String)values.get("c_order_from");
+		if(StringUtil.isEmpty(order_from))order_from = (String)values.get("order_from");
+		Iterator it = tableMap.keySet().iterator();
+		while(it.hasNext()){
+			long t1 = System.currentTimeMillis();
+			String tableName = (String) it.next();
+			List<AttrDef> tableAttrList = tableMap.get(tableName);
+			Map<String,String> tableValues = packTableMap(order_id,inst_id,goods_id,pro_goods_id,order_from,tableAttrList, values);
+			if(extMap!=null && extMap.size()>0){
+				tableValues.putAll(extMap);
+			}
+			if(tableValues.size()>0){
+				tableValues.put("order_id", order_id);
+				insertTable(tableName, tableValues);
+				long t2 = System.currentTimeMillis();
+				logger.info("订单："+order_id+"插入表"+tableName+"用时："+(t2-t1));
+			}
+		}
+		long end3 = System.currentTimeMillis();
+		logger.info("订单："+order_id+"插入库表总用时："+(end3-end2));
+		//增量
+		logsServices.cacheAttrInstToRedis(handlerResp.getAttInstList());
+		long end4 = System.currentTimeMillis();
+		logger.info("订单："+order_id+"插入缓存用时："+(end4-end3));
+		return handlerResp.getAttInstList();
+	}
+	
+	/**
+	 * add by wui
+	 * @param attr_space_type
+	 * @param values
+	 * @param inst_id
+	 * @param attr_sub_space_type
+	 * @param order_id
+	 * @param goods_id
+	 * @param pro_goods_id
+	 * @param goods_pro_id
+	 * @param product_pro_id
+	 * @return
+	 */
+	public GroupAttrInstLoadResp execOrderAttrHanders(Integer index,String attr_space_type,Map values,String inst_id,String attr_sub_space_type,String order_id,String goods_id,String pro_goods_id,String goods_pro_id,String product_pro_id ) throws Exception{
+		OrderAttrHanderReq req = new OrderAttrHanderReq();
+		req.setAttr_space_type(attr_space_type);
+		req.setValues(values);
+		req.setInst_id(inst_id);
+		req.setAttr_sub_space_type(attr_sub_space_type);
+		req.setOrder_id(order_id);
+		req.setGoods_id(goods_id);
+		req.setPro_goods_id(pro_goods_id);
+		req.setGoods_pro_id(goods_pro_id);
+		req.setProduct_pro_id(product_pro_id);
+		req.setIndex(index);
+		
+		String order_from = (String)req.getValues().get("c_order_from");
+		if(StringUtil.isEmpty(order_from))order_from = (String)req.getValues().get("order_from");
+		List<AttrDef> list = queryAttrDef(req.getAttr_space_type(), req.getAttr_sub_space_type(),Const.COMM_SPACE_ID,order_from,goods_id);
+		List<AttrTable> tbList = queryAttrTable(req.getAttr_space_type(), req.getAttr_sub_space_type(), Const.COMM_SPACE_ID,order_from,goods_id);
+		//插入属性实例表
+		
+		GroupAttrInstLoadReq groupreq = new GroupAttrInstLoadReq();
+		groupreq.setValues(values);
+		groupreq.setInst_id(inst_id);
+		groupreq.setOrder_id(order_id);
+		groupreq.setGoods_id(goods_id);
+		groupreq.setPro_goods_id(pro_goods_id);
+		groupreq.setGoods_pro_id(goods_pro_id);
+		groupreq.setProduct_pro_id(product_pro_id);
+		groupreq.setIndex(index);
+		groupreq.setAttrs(list);
+		groupreq.setTbList(tbList);
+		groupreq.setOrder_from(order_from);
+		ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+		GroupAttrInstLoadResp handlerResp = client.execute(groupreq, GroupAttrInstLoadResp.class);
+		//OrderAttrHanderResp handlerResp = groupAndInsertAttrByTable(req.getIndex(),list, req.getValues(), req.getOrder_id(), req.getInst_id(), req.getGoods_id(), req.getPro_goods_id(), order_from,tbList,req.getGoods_pro_id(),req.getProduct_pro_id());
+        return handlerResp;
+	}
+	
+	/**
+	 * 封装属性对应横表的数据
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-22 
+	 * @param tableAttrList
+	 * @param values
+	 * @return
+	 */
+	private Map<String,String> packTableMap(String order_id,String inst_id,String goods_id,String pro_goods_id,String order_from,List<AttrDef> tableAttrList,Map values){
+		Map<String,String> tableValues = new HashMap<String,String>();
+		if(tableAttrList!=null && tableAttrList.size()>0 && values!=null && values.size()>0){
+			for(AttrDef ad:tableAttrList){
+				String key = ad.getField_name();
+				Object obj = values.get(key);
+				if(obj!=null){
+					String value = String.valueOf(obj);
+					if(!StringUtil.isEmpty(value) && !StringUtil.isEmpty(ad.getTable_field_name())){
+						tableValues.put(ad.getTable_field_name(), value);
+					}
+				}
+			}
+		}
+		return tableValues;
+	}
+	
+	public static boolean _CACHE_FLAG = true;
+	//public static final ThreadLocal<Boolean> CACHE_LOCAL = new ThreadLocal<Boolean>();
+	private INetCache cache = CacheFactory.getCacheByType("");
+	public static int space = Const.CACHE_SPACE;
+	
+	public List<AttrDef> queryAttrDef(String space_type,String sub_space_type, String attr_space_id, String order_from, String goods_id) throws Exception{
+		List<AttrDef> list = null;
+		String CACHE_KEY = CacheUtils.ATTR_SPACE_TYPE+space_type+"_"+attr_space_id;
+		if(!StringUtil.isEmpty(sub_space_type))CACHE_KEY += "_"+sub_space_type;
+		Boolean tFlag = CACHE_LOCAL.get();
+		if(tFlag==null)tFlag = false;
+		String sql = SF.orderSql("QUERY_ATTE_DEF_COM");
+		//公共属性与自定议属性
+		if(!StringUtil.isEmpty(sub_space_type))sql += " and (t.sub_attr_spec_type='"+sub_space_type+"' or t.sub_attr_spec_type='"+Const.COMM_SUB_SPACE_ID+"')";
+		 String check_sql = " select 1 from es_attr_order_from a,es_goods g where a.order_from = ? and a.type_id=g.type_id and g.goods_id = ? and a.source_from = '"+CommonTools.getSourceForm()+"'";
+		    List check_list = this.baseDaoSupport.queryForList(check_sql, new String[] { order_from, goods_id });
+		    if (check_list.size() > 0){
+		    	sql = sql + " and t.field_name in (select a.field_name from es_attr_order_from a,es_goods g where a.order_from = '" + order_from + "' and a.type_id=g.type_id and g.goods_id = '" + goods_id + "' ) ";
+		    }else{
+		    	if(_CACHE_FLAG && !tFlag){
+					list =(List<AttrDef>)cache.get(space, CACHE_KEY);
+					if(list!=null)return list;
+				}
+		    }
+		      
+
+		
+		
+		sql += " order by t.sort asc";
+		list = this.baseDaoSupport.queryForList(sql, AttrDef.class, space_type,attr_space_id,ManagerUtils.getSourceFrom());
+		if (check_list.size() <= 0){
+			if(list!=null && _CACHE_FLAG){
+				CacheList<AttrDef> clist = new CacheList<AttrDef>();
+				clist.addAll(list);
+				cache.set(space, CACHE_KEY,clist);
+			}
+		}
+		
+		return list;
+	}
+	
+	public List<AttrTable> queryAttrTable(String space_type,String sub_space_type,String attr_space_id, String order_from, String goods_id){
+		List<AttrTable> list = null;
+		String CACHE_KEY = CacheUtils.ATTR_TABLE_SPACE_TYPE+space_type+"_"+attr_space_id;
+		if(!StringUtil.isEmpty(sub_space_type))CACHE_KEY += "_"+sub_space_type;
+		Boolean tFlag = CACHE_LOCAL.get();
+		if(tFlag==null)tFlag = false;
+		String sql = SF.orderSql("QUERY_ATTR_TABLE");
+		//公共属性与自定议属性
+		if(!StringUtil.isEmpty(sub_space_type))sql += " and (d.sub_attr_spec_type='"+sub_space_type+"' or d.sub_attr_spec_type='"+Const.COMM_SUB_SPACE_ID+"')";
+		String check_sql = " select 1 from es_attr_order_from a,es_goods g where a.order_from = ? and a.type_id=g.type_id and g.goods_id = ? and a.source_from = '"+CommonTools.getSourceForm()+"'";
+	    List check_list = this.baseDaoSupport.queryForList(check_sql, new String[] { order_from, goods_id });
+	    if (check_list.size() > 0){
+	    	sql = sql + " and t.field_name in (select a.field_name from es_attr_order_from a,es_goods g where a.order_from = '" + order_from + "' and a.type_id=g.type_id and g.goods_id = '" + goods_id + "' )  ";
+	    }else{
+	    	if(_CACHE_FLAG && !tFlag){
+				list =(List<AttrTable>)cache.get(space, CACHE_KEY);
+				if(list!=null)return list;
+			}
+	    }
+
+		
+		
+		list = this.baseDaoSupport.queryForList(sql, AttrTable.class, space_type,attr_space_id,ManagerUtils.getSourceFrom());
+		if (check_list.size() <= 0){
+			if(list!=null && _CACHE_FLAG){
+				CacheList<AttrTable> clist = new CacheList<AttrTable>();
+				clist.addAll(list);
+				cache.set(space, CACHE_KEY,clist);
+			}
+		}
+		
+		return list;
+	}
+	
+	/**
+	 * 按表名分组属性数据并插入attr_inst表
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-22 
+	 * @param attrs
+	 * @return
+	 */
+	public OrderAttrHanderResp groupAndInsertAttrByTable(int index,List<AttrDef> attrs,Map values,String order_id,String inst_id,String goods_id,String pro_goods_id,String order_from,List<AttrTable> tbList,String goods_pro_id,String product_pro_id){
+		OrderAttrHanderResp handlerResp = new OrderAttrHanderResp();
+		Map<String,List<AttrDef>> map = new HashMap<String,List<AttrDef>>();
+		Map<String,List<AttrTable>> atbMap = groupAttrTable(tbList);
+		
+		List<AttrInstBusiRequest> attrInstList = new ArrayList<AttrInstBusiRequest>();
+		if(attrs!=null && attrs.size()>0){
+			//long start0 = System.currentTimeMillis();
+			for(AttrDef ad:attrs){
+				long start = System.currentTimeMillis();
+				String key = ad.getField_name();
+				Object obj = values.get(key);
+				String value = obj==null?null:String.valueOf(obj);
+				String i_value = null;
+				String value_desc = null;
+				if(index==0){
+					if(!StringUtil.isEmpty(ad.getHandler_class())){
+						try{
+							AttrSwitchParams params = new AttrSwitchParams();
+							params.setHander_class(ad.getHandler_class());
+							params.setOrder_id(order_id);
+							params.setGoods_id(goods_id);
+							params.setInst_id(inst_id);
+							params.setOrder_from(order_from);
+							params.setOrderAttrValues(values);
+							params.setPro_goods_id(pro_goods_id);
+							params.setValue(value);
+							params.setAttrDef(ad);
+							
+							//IAttrHandler handler = SpringContextHolder.getBean(ad.getHandler_class());
+						    IEcsOrdServices ecsOrdServices = SpringContextHolder.getBean("ecsOrdServices");
+							AttrInstLoadResp resp = ecsOrdServices.handler(params);
+							long end = System.currentTimeMillis();
+//							logger.info("订单属性转换["+ad.getHandler_class()+"]扩展属性==========>："+(end-start));
+							if(resp ==null)
+								continue;
+							i_value = resp.getField_value();
+							value_desc = resp.getField_value_desc();
+							values.put(ad.getField_name(), i_value);
+						}catch(Exception ex){ //业务异常
+							ex.printStackTrace();
+							i_value=value;
+						}
+					}else{
+						i_value=value;
+					}
+				}else{
+					i_value=value;
+				}
+				
+				
+				if(StringUtil.isEmpty(value_desc)){
+					String attr_code = ad.getAttr_code();
+					if(!StringUtil.isEmpty(i_value) && !StringUtil.isEmpty(attr_code)){
+						List<Map> list = getConsts(attr_code);
+						if(list!=null && list.size()>0){
+							for(Map am:list){
+								String a_value = (String) am.get("value");
+								if(i_value.equals(a_value)){
+									value_desc = (String) am.get("value_desc");
+									break ;
+								}
+							}
+						}
+					}
+				}
+				
+				if(StringUtil.isEmpty(i_value) && (StringUtil.isEmpty(ad.getHandler_class()) || "commonHander".equals(ad.getHandler_class())))
+					continue;
+				String attr_inst_from_redis ="yes";//cacheUtil.getConfigInfo(EcsOrderConsts.ATTR_INST_FROM_REDIS);
+				//add by wuiredis执行
+				//为空的数据也插到数据实例表
+				if(index==0 && "-1".equals(ad.getSub_attr_spec_type())){
+					//如果是货品，侧只插第一个公共的属性 inst_id改为order_id
+					attrInstList.add(this.packageAttrInst(ad, i_value, value, order_id, order_id,value_desc));
+				}else if(!"-1".equals(ad.getSub_attr_spec_type())){
+					attrInstList.add(this.packageAttrInst(ad, i_value, value, order_id, inst_id,value_desc));
+				}
+				if(!StringUtil.isEmpty(i_value))values.put(key, i_value);
+				
+				if(atbMap==null)continue ;
+				List<AttrTable> list = atbMap.get(ad.getField_attr_id());
+				if(list==null || list.size()==0)continue ;
+				if(StringUtil.isEmpty(i_value))continue;//如果值为空不加到扩展表
+				
+				for(AttrTable atb:list){
+					String tableName = atb.getTable_name();
+					if(!StringUtil.isEmpty(tableName)){
+						List<AttrDef> alist = map.get(tableName);
+						if(alist==null){
+							alist = new ArrayList<AttrDef>();
+							map.put(tableName, alist);
+						}
+						ad.setTable_field_name(atb.getField_name());
+						alist.add(ad);
+					}
+				}
+				
+			}
+			//批量插入
+			handlerResp.setAttInstList(attrInstList);
+			
+		}
+		handlerResp.setAttrDefTable(map);
+		//return map;
+		return handlerResp;
+	}
+	
+	private Map<String,List<AttrTable>> groupAttrTable(List<AttrTable> list){
+		if(list!=null && list.size()>0){
+			Map<String,List<AttrTable>> map = new HashMap<String,List<AttrTable>>();
+			for(AttrTable at:list){
+				List<AttrTable> ats = map.get(at.getAttr_def_id());
+				if(ats==null){
+					ats = new ArrayList<AttrTable>();
+					map.put(at.getAttr_def_id(), ats);
+				}
+				ats.add(at);
+			}
+			return map;	
+		}else{
+			return null;
+		}
+	}
+	public List<Map> getConsts(String key){
+		DcPublicSQLInfoCacheProxy dcPublicSqlCache = new DcPublicSQLInfoCacheProxy();
+        List<Map> list = dcPublicSqlCache.getDropdownData(key);
+        return list;
+	}
+	/**
+	 * 插入订单属性实例表
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-28 
+	 * @param attrDef
+	 * @param i_value
+	 * @param o_value
+	 * @param order_id
+	 * @param inst_id
+	 */
+	static AtomicInteger icInt = new AtomicInteger();
+	private AttrInstBusiRequest packageAttrInst(AttrDef attrDef,String i_value,String o_value,String order_id,String inst_id,String value_desc){
+		int curValue =icInt.incrementAndGet();
+		AttrInstBusiRequest attrInst = new AttrInstBusiRequest();
+		attrInst.setAttr_inst_id(attrDef.getField_attr_id());
+		attrInst.setOrder_id(order_id);
+		attrInst.setInst_id(inst_id);
+		attrInst.setAttr_spec_id(attrDef.getAttr_spec_id());
+		attrInst.setField_attr_id(attrDef.getField_attr_id());
+		attrInst.setField_name(attrDef.getField_name());
+		attrInst.setFiled_desc(attrDef.getField_desc());
+		attrInst.setField_value(i_value);
+		attrInst.setSec_field_value(o_value);
+		attrInst.setField_value_desc(value_desc);
+		attrInst.setCreate_date(DBTUtil.current());
+		//add by wui首次规格数据填充
+		attrInst.setSpec_is_null(attrDef.getIs_null());
+		attrInst.setSpec_is_edit(attrDef.getIs_edit());
+		return attrInst;
+	}
+	private String getTablePKName(String tableName){
+		String tbSql = "select * from es_table_manage t where upper(t.table_name)=? ";
+		List<Map> list = this.baseDaoSupport.queryForList(tbSql, tableName.trim().toUpperCase());
+		if(list==null || list.size()==0)return null;
+		Map map = list.get(0);
+		String pk = (String) map.get("pk_name");
+		return pk;
+	}
+	/**
+	 * 空值过滤处理
+	 * @param keyValues
+	 * @return
+	 */
+	private Map fiterNUllFromMap(Map keyValues){
+		Iterator it = keyValues.keySet().iterator();
+		Map filterMap = new HashMap();
+//		StringBuffer keys = new StringBuffer("=======================================属性输出：：：：：：：：：：");
+		while (it.hasNext()) {
+			String key = (String)it.next();
+			String value = (String) keyValues.get(key);
+			if(!StringUtil.isEmpty(value))
+				filterMap.put(key, value);
+			
+//			keys.append(key).append(value).append(",");
+		}
+//		logger.info(keys.toString());
+		return filterMap;
+	}
+	
+	public void updateOrderStatus(int status,String order_id){
+		this.baseDaoSupport.execute(SF.orderSql("SERVICE_ORDER_STATUS_UPDATE"),status,order_id);
+	}
+	
+	public String getGoodsTypeCode(String goods_id){
+		String sql = SF.orderSql("QUERYGOODSTYPECODE");
+		List<Map> list = this.baseDaoSupport.queryForList(sql, goods_id,ManagerUtils.getSourceFrom());
+		if(list!=null && list.size()>0){
+			Map map = list.get(0);
+			Object obj = map.get("type_code");
+			if(obj!=null){
+				return String.valueOf(obj);
+			}else{
+				return null;
+			}
+		}else{
+			return null;
+		}
+	}
+	
+	private synchronized String createRevceiveNum(){
+		String today = DataUtil.formatDate(new Date());
+		String sql = "select a.cf_value from es_config_info a where a.cf_id='ORDER_RECEIVE_NUMBER'";
+		String revceiveNum = this.baseDaoSupport.queryForString(sql);
+		String[] strs = revceiveNum.split("---");
+		String numStr = strs[1];
+		if(!today.equals(strs[0])){
+			numStr = "0001";
+			String update = "update es_config_info a set a.cf_value='"+today+"---0001' where a.cf_id='ORDER_RECEIVE_NUMBER'";
+			this.baseDaoSupport.execute(update);
+		}
+		int newNum = Integer.valueOf(numStr)+1;
+		String newReceiveNum = today.concat("---").concat(df.format(newNum));
+		String update = "update es_config_info a set a.cf_value='"+newReceiveNum+"' where a.cf_id='ORDER_RECEIVE_NUMBER'";
+		this.baseDaoSupport.execute(update);
+		return newReceiveNum;
+	}
+	
+	private ITplInstSManager tplInstSManager; 
+	public ITplInstSManager getTplInstSManager(){
+		return tplInstSManager;
+	}
+	public void setTplInstSManager(ITplInstSManager tplInstSManager){
+		this.tplInstSManager = tplInstSManager;
+	}
+	@Override
+	public List<AttrInst> getOuterAttrInst(OrderOuter orderOuter) {
+		if(OrderThreadLocalHolder.getInstance().getOrderCommonData().isOuterOrder(orderOuter)){
+			return tplInstSManager.getOuterAttrInst(orderOuter.getOrder_id());
+		}else{
+			return orderOuter.getOuterAttrInsts();
+		}
+	}
+	
+	public OrderOuter getOrderOuterByGoodsId(String product_id ,List<OrderOuter> orderOuters){
+		for (OrderOuter orderOuter:orderOuters) {
+			if(product_id.equals(orderOuter.getProduct_id()))
+				return orderOuter;
+		}
+		return null;
+	}
+	public Order getOrder(String orderId) {
+		String sql  = SF.orderSql("SERVICE_ORDER_SELECT_BY_ID")+" and source_from is not null ";
+		//String source_from = ManagerUtils.getSourceFrom();
+		//List<Order> list = this.baseDaoSupport.queryForList(sql,Order.class, orderId.trim(),source_from.trim());
+		List<Order> list = this.baseDaoSupport.queryForList(sql,Order.class, orderId.trim());
+	
+		
+		return list.size()>0?list.get(0):null;
+	}
+	public ILogsServices getLogsServices() {
+		return logsServices;
+	}
+
+	public void setLogsServices(ILogsServices logsServices) {
+		this.logsServices = logsServices;
+	}
+}

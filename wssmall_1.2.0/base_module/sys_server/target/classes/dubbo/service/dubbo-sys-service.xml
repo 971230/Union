@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://code.alibabatech.com/schema/dubbo
+        http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-autowire="byName" default-lazy-init="true">
+
+
+    <dubbo:service interface="services.LanInf" ref="lanServ"/>
+	<dubbo:service interface="services.SiteMenuInf" ref="siteMenuServ"/>
+	<dubbo:service interface="services.AdminUserInf" ref="adminUserServ"/>
+	<dubbo:service interface="services.OrgAdminInf" ref="orgAdminServ"/>
+	<dubbo:service interface="zte.net.iservice.ISysService" ref="sysService"/>
+	
+	<dubbo:service interface="zte.net.iservice.ISysBaseService" ref="sysBaseService"/>
+		
+</beans>

@@ -1,0 +1,14 @@
+<#list children as cat> 
+<tr>
+	<td ><input type='checkbox' name='chk_cat' cat_id=${cat.cat_id} cat_name=${cat.name}/></td>
+    
+    <td style="padding-left:${(level+1)*20}px;font-weight: bold;">${cat.name}</td>
+    <td>${cat.type_name}</td>
+</tr>
+	<#if cat.hasChildren>
+		<#assign level=level+1 />
+	  	<#assign children=cat.children />
+		<#include 'staff_list_children.html' />
+  		<#assign level=level-1/>
+	</#if>
+</#list>

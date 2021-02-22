@@ -1,0 +1,164 @@
+package params.req;
+
+import java.util.List;
+import com.ztesoft.api.ApiRuleException;
+
+import params.ZteRequest;
+import zte.net.model.CrawlerUrlConfig;
+
+public class UpdateCrawlerSettingReq extends ZteRequest {
+
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "zte.net.iservice.impl.ZteCrawlerOpenService.updateCrawlerSetting";
+	}
+	
+	private String ip;//运行经常所在的机器ip
+	
+	private String port;//运行的经常对应的端口
+	
+	private String threadName;//线程名称
+	
+	private String threadStatus;//0：禁用，1：启用
+	
+	private List<CrawlerProcCondSettingReq> crawlerProcCond;//查询条件
+	
+	private String crawlerAddress;//爬虫目标地址
+	
+	private String crawlerPort;//爬虫目标端口
+	
+	private String crawlerProxyType;//是否走代理
+	
+	private String crawlerProxyAddress;//代理地址
+	
+	private String crawlerProxyPort;//代理端口
+	
+	private String crawlerProxyUser;//代理用户名
+	
+	private String crawlerProxyPwd;//代理密码
+	
+	private String crawlerIsOutIdCheck;//是否开启单号匹配校验
+	
+	private List<CrawlerUrlConfig> urlList;
+
+	public String getIp() {
+		return ip;
+	}
+
+	public void setIp(String ip) {
+		this.ip = ip;
+	}
+
+	public String getPort() {
+		return port;
+	}
+
+	public void setPort(String port) {
+		this.port = port;
+	}
+
+	public String getThreadName() {
+		return threadName;
+	}
+
+	public void setThreadName(String threadName) {
+		this.threadName = threadName;
+	}
+
+	public String getCrawlerAddress() {
+		return crawlerAddress;
+	}
+
+	public void setCrawlerAddress(String crawlerAddress) {
+		this.crawlerAddress = crawlerAddress;
+	}
+
+	public String getCrawlerPort() {
+		return crawlerPort;
+	}
+
+	public void setCrawlerPort(String crawlerPort) {
+		this.crawlerPort = crawlerPort;
+	}
+
+	public String getCrawlerProxyType() {
+		return crawlerProxyType;
+	}
+
+	public void setCrawlerProxyType(String crawlerProxyType) {
+		this.crawlerProxyType = crawlerProxyType;
+	}
+
+	public String getCrawlerProxyAddress() {
+		return crawlerProxyAddress;
+	}
+
+	public void setCrawlerProxyAddress(String crawlerProxyAddress) {
+		this.crawlerProxyAddress = crawlerProxyAddress;
+	}
+
+	public String getCrawlerProxyPort() {
+		return crawlerProxyPort;
+	}
+
+	public void setCrawlerProxyPort(String crawlerProxyPort) {
+		this.crawlerProxyPort = crawlerProxyPort;
+	}
+
+	public String getCrawlerProxyUser() {
+		return crawlerProxyUser;
+	}
+
+	public void setCrawlerProxyUser(String crawlerProxyUser) {
+		this.crawlerProxyUser = crawlerProxyUser;
+	}
+
+	public String getCrawlerProxyPwd() {
+		return crawlerProxyPwd;
+	}
+
+	public void setCrawlerProxyPwd(String crawlerProxyPwd) {
+		this.crawlerProxyPwd = crawlerProxyPwd;
+	}
+
+	public String getCrawlerIsOutIdCheck() {
+		return crawlerIsOutIdCheck;
+	}
+
+	public void setCrawlerIsOutIdCheck(String crawlerIsOutIdCheck) {
+		this.crawlerIsOutIdCheck = crawlerIsOutIdCheck;
+	}
+
+	public List<CrawlerProcCondSettingReq> getCrawlerProcCond() {
+		return crawlerProcCond;
+	}
+
+	public void setCrawlerProcCond(List<CrawlerProcCondSettingReq> crawlerProcCond) {
+		this.crawlerProcCond = crawlerProcCond;
+	}
+
+	public String getThreadStatus() {
+		return threadStatus;
+	}
+
+	public void setThreadStatus(String threadStatus) {
+		this.threadStatus = threadStatus;
+	}
+
+	public List<CrawlerUrlConfig> getUrlList() {
+		return urlList;
+	}
+
+	public void setUrlList(List<CrawlerUrlConfig> urlList) {
+		this.urlList = urlList;
+	}
+
+	
+}

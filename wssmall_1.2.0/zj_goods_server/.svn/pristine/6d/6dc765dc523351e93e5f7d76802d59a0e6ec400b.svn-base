@@ -1,0 +1,134 @@
+package com.ztesoft.net.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.consts.EcsConsts;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.GoodsParam;
+import com.ztesoft.net.mall.core.model.support.ParamGroup;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.service.IOrderEcsManager;
+import com.ztesoft.net.sqls.SF;
+import com.ztesoft.net.sqls.SqlsFactory;
+
+
+/**
+ * 合约机配置Manager
+ * @author Administrator
+ *
+ */
+public class OrderEcsManager extends BaseSupport implements IOrderEcsManager {
+	
+
+	@Override
+	public Page getOrderList(Map map) {
+		
+		String date_type = (String)map.get("date_type");
+		String begin_time = (String)map.get("begin_time");
+		String end_time = (String)map.get("end_time");
+		int pageNo = Integer.parseInt((String)map.get("page_no"));
+		int pageSize = Integer.parseInt((String)map.get("page_size"));
+		StringBuffer bufferSql = new StringBuffer();
+		List<String> params = new ArrayList<String>();
+		String sql =  "	select a.order_id as tid,	"+
+				"	       a.old_sec_order_id as out_tid,	"+
+				"	       a.order_channel,	"+
+				"	       a.order_from,	"+
+				"	       a.order_type as type,	"+
+				"	       a.status,	"+
+				"	       a.merge_status,	"+
+				"	       a.plat_type,	"+
+				"	       a.pro_totalfee,	"+
+				"	       a.order_amount as order_totalfee,	"+
+				"	       a.tid_time,	"+
+				"	       a.create_time as get_time,	"+
+				"	       a.remark as buyer_message,	"+
+				"	       a.is_adv_sale,	"+
+				"	       a.pay_status,	"+
+				"	       a.order_amount as order_origfee,	"+
+				"	       a.uname as buyer_id,	"+
+				"	       a.name as buyer_name, 	"+
+				"	       a.ship_name as receiver_name,	"+
+				"	       a.ship_mobile as receiver_mobile,	"+
+				"	       a.ship_tel as  phone,	"+
+				"	       a.province,	"+
+				"	       a.city,	"+
+				"	       a.region as district,	"+
+				"	       a.ship_addr as address,	"+
+				"	       a.ship_zip as post,	"+
+				"	       a.invoice_title,	"+
+				"	       a.spread_name as recommended_name,	"+
+				"	       a.spread_code as recommended_code,	"+
+				"	       a.spread_phone as recommended_phone,	"+
+				"	       (select r.name from es_goods s ,es_goods_cat r where s.source_from = '"+ManagerUtils.getSourceFrom()+"' " +
+				"                  and  s.cat_id=r.cat_id and s.goods_id= a.goods_id) tid_category,	"+
+				"	       a.development_code,	"+
+				"	       a.development_name,	"+
+				"	       a.wm_isreservation_from,	"+
+				"	       a.product_id as pro_detail_code, 	"+
+				"	       a.goods_num as pro_num, 	"+
+				"	       a.certi_type as cert_type,	"+
+				"	       a.certi_number as cert_card_num,	"+
+				"	       a.order_attrs,	"+
+				"	       a.goods_attrs	"+
+				"	from es_order_outer a where 1=1	";
+		Page webpage = new Page();
+		if(EcsConsts.ORDER_GET_DATE_TYPE_1.endsWith(date_type)  && StringUtils.isNotEmpty(begin_time)
+				&& StringUtils.isNotEmpty(end_time)){
+			sql += " and  a.create_time >= "+DBTUtil.to_date(begin_time);
+			sql += " and  a.create_time <= "+DBTUtil.to_date(end_time);
+			webpage = this.baseDaoSupport.queryForPage(sql, pageNo, pageSize,true,params.toArray(new String[]{}));
+		}
+	    
+		List list = webpage.getResult();
+		for(int i=0;i<list.size();i++){
+			Map order = (Map)list.get(i);
+			String order_attrs = (String)order.get("order_attrs");
+			String goods_attrs = (String)order.get("goods_attrs");
+			order.putAll(getOrderAttrs(order_attrs));
+			order.putAll(getGoodsAttrs(goods_attrs));
+		}
+		
+		return webpage;
+	}
+	
+	public Map getOrderAttrs(String order_attrs){
+		Map result = new HashMap();
+		if(order_attrs != null && !"".equals(order_attrs) && !"{}".equals(order_attrs) && !"null".equals(order_attrs)){
+			JSONObject jsonObject =  JSONObject.fromObject(order_attrs);
+			Iterator it = jsonObject.keySet().iterator();
+			while(it.hasNext()){
+				String key = (String)it.next();
+				result.put(key, jsonObject.get(key));
+			}
+		}
+		return result;
+	}
+	
+	public Map getGoodsAttrs(String goods_attrs){
+		Map result = new HashMap();
+		if(goods_attrs != null && !"".equals(goods_attrs) && !"[]".equals(goods_attrs) && !"null".equals(goods_attrs)){
+			JSONArray jsonArray = JSONArray.fromObject(goods_attrs);
+			JSONObject jsonObject = (JSONObject)jsonArray.get(0);
+			Iterator it = jsonObject.keySet().iterator();
+			while(it.hasNext()){
+				String key = (String)it.next();
+				result.put(key, jsonObject.get(key));
+			}
+		}
+		return result;
+	}
+
+
+}

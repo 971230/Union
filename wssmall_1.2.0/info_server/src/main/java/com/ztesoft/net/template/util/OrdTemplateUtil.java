@@ -1,0 +1,294 @@
+package com.ztesoft.net.template.util;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.transaction.annotation.Transactional;
+
+import zte.net.common.annontion.context.request.RequestBeanAnnontion;
+import zte.net.common.annontion.context.request.RequestFieldAnnontion;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.AttrDef;
+import com.ztesoft.net.model.AttrTable;
+import com.ztesoft.net.template.model.EsAttrDef;
+import com.ztesoft.net.template.service.IOrdTemplateManager;
+import com.ztesoft.net.util.ClassUtil;
+/**
+ * 模板配置工具类 Copyright (c) 2015, 南京中兴软创科技股份有限公司 All rights reserved
+ * 
+ * @author :  
+ * @createTime : 2015-3-3
+ * @version : 1.0
+ */
+public class OrdTemplateUtil {
+	
+	@Transactional
+	@SuppressWarnings("rawtypes")
+	public static int scanTemplete(String pack){
+		IOrdTemplateManager manager = SpringContextHolder.getBean("ordTemplateManager");
+		Set<Class> set = ClassUtil.getClasses(pack, RequestBeanAnnontion.class, true);
+		for(Class clazz:set){
+			String clazzName = clazz.getSimpleName();
+			String tableName=ClassUtil.getTableName(clazzName);
+			AttrDef vo=new AttrDef();
+			vo.setRel_table_name(tableName);
+			//获取数据库中业务对象
+			List<AttrDef> objList = manager.selectEsAttrDefVO(vo);
+			AttrTable attrTable=new AttrTable();
+			attrTable.setTable_name(tableName);
+//			//获取数据库中业务对象
+			List<AttrTable> attrList = manager.selectEsAttrTableVO(attrTable);
+			
+			//从业务组件中获取对象
+			List<String> fileNameList=ClassUtil.getFieldName(clazzName);
+			List<AttrDef> result=new ArrayList<AttrDef>(8);
+			List<AttrTable> resultTable=new ArrayList<AttrTable>(8);
+			//如果第一次加载 则objList为空 直接加载到数据库
+			if(objList==null||objList.size()==0){
+				if(fileNameList!=null&&fileNameList.size()>0){
+					for(String filedName:fileNameList){
+						//直接插入数据库
+						AttrDef obj = packAttrDefObj(clazz,tableName,filedName);
+						//设置序列
+						String sequence= manager.getEsAttrDefSequence();
+						obj.setAttr_spec_id(sequence);
+						obj.setField_attr_id(sequence);
+						manager.insertEsAttrDef(obj);
+						//插入附属表数据
+						AttrTable attrVo=new AttrTable();
+						attrVo.setAttr_def_id(obj.getField_attr_id());
+						attrVo.setTable_name(tableName);
+						attrVo.setSource_from(ManagerUtils.getSourceFrom());
+						attrVo.setField_name(filedName);
+						//获取表描述
+						RequestBeanAnnontion annontion = (RequestBeanAnnontion) clazz.getAnnotation(RequestBeanAnnontion.class);
+//						attrVo.setTable_desc(annontion.service_desc());
+						manager.insertEsAttrTable(attrVo);
+					}
+				}
+			}else{
+				//处理是否修改 
+				if(fileNameList!=null&&fileNameList.size()>0){
+					for(String s:fileNameList){
+						//获取主表
+						for(AttrDef defVo:objList){
+							if(s.equalsIgnoreCase(defVo.getField_name())){
+								AttrDef tempVo=new AttrDef();
+								tempVo.setAttr_spec_id(defVo.getAttr_spec_id());
+								tempVo.setAttr_spec_type(defVo.getAttr_spec_type());
+								tempVo.setSub_attr_spec_type(defVo.getSub_attr_spec_type());
+								tempVo.setField_name(s);
+								//设置描述 此处从组件中读取
+								String desc= getDeclare(clazz, s);
+								tempVo.setField_desc(desc);
+								tempVo.setField_attr_id(defVo.getField_attr_id());
+								tempVo.setField_type(defVo.getField_type());
+								tempVo.setSource_from(ManagerUtils.getSourceFrom());
+								tempVo.setRel_table_name(defVo.getRel_table_name());
+								tempVo.setOwner_table_fields(defVo.getOwner_table_fields());
+								result.add(tempVo);
+								
+								//从附属表中获取数据
+								AttrTable tableVo=new AttrTable();
+								tableVo.setAttr_def_id(defVo.getAttr_spec_id());
+								List<AttrTable> listTableVo=manager.selectEsAttrTableVO(tableVo);
+								if(listTableVo!=null&&listTableVo.size()>0){
+									AttrTable attTable=listTableVo.get(0);
+									AttrTable table=new AttrTable();
+									table.setAttr_def_id(attTable.getAttr_def_id());
+									table.setField_name(attTable.getField_name());
+									table.setHint(attTable.getHint());
+									table.setSource_from(attrTable.getSource_from());
+//									table.setTable_desc(attTable.getTable_desc());
+									table.setTable_name(attrTable.getTable_name());
+									resultTable.add(table);
+								}
+							}
+						}
+					}
+				}
+				//处理是否新增情况
+				if(fileNameList!=null&&fileNameList.size()>0){
+					Map<String, String> voResult=new HashMap<String, String>();
+					for(AttrDef defVo:objList){
+						voResult.put(defVo.getField_name(), defVo.getField_name());
+					}
+					for(String s:fileNameList){
+						if(!voResult.containsKey(s)){
+							AttrDef obj=new AttrDef();
+							String sequence= manager.getEsAttrDefSequence();
+							obj.setAttr_spec_id(sequence);
+							obj.setAttr_spec_type("goodstype");
+							obj.setSub_attr_spec_type("accept");
+							obj.setField_name(s);
+							String desc= getDeclare(clazz, s);
+							obj.setField_desc(desc);
+							obj.setField_attr_id(sequence);
+							obj.setField_type("1");
+							obj.setSource_from(ManagerUtils.getSourceFrom());
+							obj.setRel_table_name(tableName);
+							obj.setOwner_table_fields("yes");
+							result.add(obj);
+						}
+					}
+					Map<String, String> tableResult=new HashMap<String, String>();
+					for(AttrTable defVo:attrList){
+						tableResult.put(defVo.getField_name(), defVo.getField_name());
+					}
+					for(String s:fileNameList){
+						if(!voResult.containsKey(s)){
+							//从别的表名中获取当前序列
+							for(AttrDef def:result){
+								if(def.getField_name().equals(s)){
+									AttrTable obj=new AttrTable();
+									obj.setField_name(s);
+									RequestBeanAnnontion annontion = (RequestBeanAnnontion) clazz.getAnnotation(RequestBeanAnnontion.class);
+									obj.setSource_from(ManagerUtils.getSourceFrom());
+									if(annontion!=null){
+//										obj.setTable_desc(annontion.service_desc());
+									}
+									obj.setAttr_def_id(def.getAttr_spec_id());
+									obj.setTable_name(tableName);
+									resultTable.add(obj);
+								}
+							}
+							
+						}
+					}
+				}
+			}
+			
+			//删除从表
+			
+			
+			if(result.size()>0){
+				//删除表中数据
+				for(AttrDef voDelete:objList){
+					manager.deleteEsAttrDef(voDelete);
+				}
+				
+				//添加表中数据
+				for(AttrDef voAdd:result){
+					manager.insertEsAttrDef(voAdd);
+				}
+			}
+			
+			//删除数据
+			if(attrList!=null&&attrList.size()>0){
+				for(AttrTable table:attrList){
+					manager.deleteEsAttrTable(table);
+				}
+			}
+			
+			//添加数据
+			if(resultTable!=null&&resultTable.size()>0){
+				for(AttrTable table:resultTable){
+					manager.insertEsAttrTable(table);
+				}
+			}
+		}
+		return set.size();
+	}
+	
+	public static String getDeclare(Class<?> clazz,String s){
+		Field [] fs = clazz.getDeclaredFields();
+		for(Field field:fs){
+			RequestFieldAnnontion df = field.getAnnotation(RequestFieldAnnontion.class);
+			if(s.equalsIgnoreCase(field.getName())){
+				return df.desc();
+			}
+		}
+		return "";
+	}
+	
+
+	/**
+	 * 封装对象属性
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-4 
+	 * @param clazz
+	 * @param obj_id
+	 * @return
+	 */
+	public static List<EsAttrDef> packObjAttrList(Class<?> clazz,String obj_id,String tableName){
+		Field [] fs = clazz.getDeclaredFields();
+		List<EsAttrDef> list = new ArrayList<EsAttrDef>();
+		for(Field f:fs){
+			RequestFieldAnnontion df = f.getAnnotation(RequestFieldAnnontion.class);
+			if(df!=null){
+				EsAttrDef obj = new EsAttrDef();
+				obj.setAttr_spec_type("goodstype");
+				obj.setSub_attr_spec_type("accept");
+				obj.setField_name(f.getName());
+				obj.setField_desc(df.desc());
+				obj.setField_attr_id("20019");
+				obj.setField_type("1");
+				obj.setSource_from(ManagerUtils.getSourceFrom());
+				obj.setRel_table_name(tableName);
+				obj.setOwner_table_fields("yes");
+				list.add(obj);
+			}
+		}
+		return list;
+	}
+	
+	/**
+	 * 封装fact对象
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-4 
+	 * @param clazz
+	 * @return
+	 */
+	public static AttrDef packAttrDefObj(Class<?> clazz,String tableName,String filedName){
+		RequestBeanAnnontion annontion = clazz.getAnnotation(RequestBeanAnnontion.class);
+		if(annontion!=null){
+			AttrDef obj = new AttrDef();
+			obj.setAttr_spec_type("goodstype");
+			obj.setSub_attr_spec_type("accept");
+			obj.setField_name(filedName);
+			//obj.setClass_field_name(filedName);
+			obj.setField_attr_id("20019");
+			obj.setField_type("1");
+			obj.setSource_from(ManagerUtils.getSourceFrom());
+			obj.setRel_table_name(tableName);
+			obj.setOwner_table_fields("yes");
+			//获取字段名
+			Field [] fs = clazz.getDeclaredFields();
+			if(fs!=null&&fs.length>0){
+				for(Field f:fs){
+					if(f.getName().equals(filedName)){
+						RequestFieldAnnontion df = f.getAnnotation(RequestFieldAnnontion.class);
+					    if(df!=null){
+					    	obj.setField_desc(df.dname());
+					    }
+					}
+				}
+			}
+			return obj;
+		}
+		return null;
+	}
+	 
+	
+	public static AttrTable packAttrTableObj(Class<?> clazz,String tableName,String filedName){
+		RequestBeanAnnontion annontion = clazz.getAnnotation(RequestBeanAnnontion.class);
+		if(annontion!=null){
+			AttrTable obj = new AttrTable();
+			obj.setAttr_def_id("");
+			obj.setField_name(filedName);
+			//obj.setClass_field_name(filedName);
+			obj.setSource_from(ManagerUtils.getSourceFrom());
+			//获取字段名
+			obj.setTable_name(tableName);
+//			obj.setTable_desc(annontion.service_desc());
+			return obj;
+		}
+		return null;
+	}
+}

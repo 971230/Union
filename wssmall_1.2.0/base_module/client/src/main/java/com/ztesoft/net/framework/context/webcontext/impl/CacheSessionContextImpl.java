@@ -1,0 +1,133 @@
+package com.ztesoft.net.framework.context.webcontext.impl;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Set;
+
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.ztesoft.net.cache.common.CacheException;
+import com.ztesoft.net.cache.common.CacheFactory;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.cache.conf.CacheValues;
+import com.ztesoft.net.framework.context.webcontext.WebSessionContext;
+
+/**
+ * @author Reason.Yea
+ * @version 创建时间：2014-2-11
+ */
+public class CacheSessionContextImpl implements WebSessionContext,Externalizable {
+	
+	//专用于存放用户session的命名空间
+	private int sessionNameSpace=CacheValues.CORE_CACHE_DEFAULT_SESSION_NAMESPACE;
+	
+	private INetCache cache  = CacheFactory.getCache();;
+	private String userKey ="";
+	
+
+	private final Log logger = LogFactory.getLog(getClass());
+
+	private HashMap attributes;
+	
+	/**
+	 * 返回分布式缓存的session对象<br>
+	 * @param sessionId
+	 */
+	public CacheSessionContextImpl(String sessionId){
+		userKey = sessionId;
+		Object attr =  cache.get(sessionNameSpace, userKey);
+		if(attr==null){
+			attributes = new HashMap();
+		}else{
+			attributes = (HashMap) attr;
+		}
+	}
+
+	@Override
+	public void invalidateSession() {
+		cache.delete(sessionNameSpace,userKey);
+	}
+
+	private void onSaveCache() {
+		cache.set(sessionNameSpace,userKey, attributes,60*1*60);//缺省缓存1天
+	}
+
+	@Override
+	public void setAttribute(String name, Object value) {
+		try {
+			setAttributeCache(name,(Serializable) value);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.info("set cache value must implements Serializable");
+		}
+		
+	}
+	public void setAttributeCache(String name, Serializable value) {
+		attributes.put(name, value);
+		onSaveCache();
+	}
+
+	@Override
+	public Object getAttribute(String name) {
+		if (attributes != null){
+			return attributes.get(name);
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public Set getAttributeNames() {
+		return attributes.keySet();
+	}
+
+	@Override
+	public void removeAttribute(String name) {
+		attributes.remove(name);
+		onSaveCache();
+	}
+
+	@Override
+	public void readExternal(ObjectInput input) throws IOException,
+			ClassNotFoundException {
+		attributes = (HashMap) input.readObject();
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput output) throws IOException {
+		output.writeObject(attributes);
+	}
+
+	@Override
+	public void destory() {
+		attributes = null;
+		cache.close();
+	}
+
+	@Override
+	public HttpSession getSession() {
+		throw new CacheException("Cache Session not support HttpSession");
+	}
+
+	@Override
+	public void setSession(HttpSession session) {
+		//? 为什么要 throws exception 2014-3-2 mochunrun  已经注析
+		//throw new CacheException("Cache Session not support HttpSession");
+	}
+
+	public String getUserKey() {
+		return userKey;
+	}
+
+	public void setUserKey(String userKey) {
+		this.userKey = userKey;
+	}
+
+}

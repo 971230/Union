@@ -1,0 +1,30 @@
+/*    */ package org.springframework.web.util;
+/*    */ 
+/*    */
+
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import java.beans.Introspector;
+
+/*    */
+/*    */
+/*    */ 
+/*    */ public class IntrospectorCleanupListener
+/*    */   implements ServletContextListener
+/*    */ {
+/*    */   @Override
+public void contextInitialized(ServletContextEvent paramServletContextEvent)
+/*    */   {
+/*    */   }
+/*    */ 
+/*    */   @Override
+public void contextDestroyed(ServletContextEvent paramServletContextEvent)
+/*    */   {
+/* 63 */     Introspector.flushCaches();
+/*    */   }
+/*    */ }
+
+/* Location:           C:\Users\Administrator\Desktop\spring-1.2.6.jar
+ * Qualified Name:     org.springframework.web.util.IntrospectorCleanupListener
+ * JD-Core Version:    0.6.0
+ */

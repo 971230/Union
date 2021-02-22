@@ -1,0 +1,160 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.collections.MapUtils;
+import org.apache.log4j.Logger;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.Task;
+import com.ztesoft.api.TaskThreadPool;
+import com.ztesoft.api.ThreadPoolFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.service.IEcsOrdManager;
+import com.ztesoft.remote.inf.IRemoteSmsService;
+
+import params.ZteRequest;
+import params.ZteResponse;
+import zte.net.ecsord.params.ecaop.req.AopSmsSendReq;
+import zte.net.ecsord.params.ecaop.resp.AopSmsSendResp;
+
+public class OrderReminderMessageTimer {
+
+	private IEcsOrdManager ecsOrdManager;
+
+	// Logger日志打印
+	private Logger logger = Logger.getLogger(OrderReminderMessageTimer.class);
+
+	public void run() {
+		
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "doTask")) {
+  			return;
+		}
+		
+		logger.info("短信催单");
+		init();
+		ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		// 获取县中台时间段配置
+		String middleground_time = cacheUtil.getConfigInfo("REMINDER_MIDDLEGROUND_NOTE_TIME_QUANTUM");
+
+		// 县中台时间点
+		String middleground_time_dian = cacheUtil.getConfigInfo("REMINDER_WOEK_NOTE_TIME_DIAN");
+		String[] middlegroundStr = middleground_time_dian.split(",");
+
+		// 县中台分
+		String middleground_minute = cacheUtil.getConfigInfo("REMINDER_WOEK_NOTE_TIME_MINUTE");
+		String[] middMinute = middleground_minute.split(",");
+
+		// 获取当前系统时间
+		Calendar c = Calendar.getInstance();
+		// 时
+		int hour = c.get(Calendar.HOUR_OF_DAY);
+		// 分
+		int minute = c.get(Calendar.MINUTE);
+
+		logger.info("时:" + hour);
+		logger.info("分:" + minute);
+
+		String[] middleground = middleground_time.split(",");
+		logger.info("middleground_time:" + middleground_time);
+		if (!StringUtil.isEmpty(middleground[0]) && !StringUtil.isEmpty(middleground[1])) {
+			int end_time = Integer.parseInt(middleground[1]);
+			int begin_tiem = Integer.parseInt(middleground[0]);
+
+			if (hour >= end_time) {
+				logger.info("短信催单结束:县分中台:" + "end_time:" + end_time);
+			} else {
+				logger.info("end_time:" + end_time);
+				logger.info("begin_tiem:" + begin_tiem);
+				// 时间段 比如上午8点 到下午6点
+				if (hour >= begin_tiem && hour <= end_time) {
+					logger.info("上午8点 到下午6点");
+					// 时间 比如是 10点 14点 17点
+					for (int i = 0; i < middlegroundStr.length; i++) {
+						int midd = Integer.parseInt(middlegroundStr[i]);
+						logger.info("midd:"+midd);
+						// 系统时间点和配置时间点 做比较
+						if (hour == midd) {
+							// 分 00,00,00
+							for (int j = 0; j < middMinute.length; j++) {
+								int m = Integer.parseInt(middMinute[j]);
+								logger.info("middMinute" + m);
+								// 系统时间分和配置时间分
+								if (minute == m) {
+									logger.info("催单开始县分中台");
+									middleground();
+
+									logger.info("催单开始 装维人员");
+									admin();
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private void init() {
+		// TODO Auto-generated method stub
+		if (ecsOrdManager == null)
+			ecsOrdManager = SpringContextHolder.getBean("ecsOrdManager");
+	}
+
+	public void middleground() {
+		logger.info("短信催单功能 middleground：催县分中台：分10:00, 14:00，17;00---两个小时执行一次");
+		List<Map> listMap = ecsOrdManager.queryMessageOitaReminder();
+		// 短信模板 SMS_OITA_CODE
+		if (listMap != null && listMap.size() > 0) {
+			sendMessage(listMap, "SMS_OITA_CODE");
+		} else {
+			logger.info("短信催单功能：暂时没有需要催县分中台的订单");
+		}
+	}
+
+	public void admin() {
+		logger.info("催装维人员 6个小时催单一次 admin");
+		List<Map> listMap = ecsOrdManager.queryMessageAdminReminder();
+		// 短信模板 SMS_ADMIN_CODE
+		if (listMap != null && listMap.size() > 0) {
+			sendMessage(listMap, "SMS_ADMIN_CODE");
+		} else {
+			logger.info("短信催单功能:暂时没有装维的订单需要催单");
+		}
+	}
+
+	// 短信发送
+	public void sendMessage(List<Map> gonghaoInfos, String SmsType) {
+		for (Map map : gonghaoInfos) {
+			Map data = new HashMap<String, String>();
+			data.put("orderid", MapUtils.getString(map, "orderid"));
+			// 您的【${orgname}订单池】收到待处理订单${orderid}（订单编号），可用工号【${userid}】登录订单中心领取处理。
+			IRemoteSmsService localRemoteSmsService = ApiContextHolder.getBean("localRemoteSmsService");
+			String smsContent = localRemoteSmsService.getSMSTemplate(SmsType, data);
+			AopSmsSendReq smsSendReq = new AopSmsSendReq();
+			smsSendReq.setBill_num("10010");// 短信发送号码
+			smsSendReq.setService_num(MapUtils.getString(map, "phone_num"));// 接受号码--省内联通号码
+			smsSendReq.setSms_data(smsContent);
+			TaskThreadPool taskPool = new TaskThreadPool(new Task(smsSendReq) {
+				@Override
+				public ZteResponse execute(ZteRequest zteRequest) throws Exception {
+					// TODO Auto-generated method stub
+					AopSmsSendReq smsSendReq = (AopSmsSendReq) zteRequest;
+					ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+					AopSmsSendResp resp = client.execute(smsSendReq, AopSmsSendResp.class);
+					return resp;
+				}
+			});
+			ThreadPoolFactory.orderExecute(taskPool);
+		}
+	}
+}

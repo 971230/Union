@@ -1,0 +1,126 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.GoodsAdjunct;
+import com.ztesoft.net.mall.core.service.IGoodsAdjunctManager;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.net.sqls.SF;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Map;
+
+public class GoodsAdjunctManager extends BaseSupport implements
+		IGoodsAdjunctManager {
+	private IGoodsManager goodsManager;
+	
+	@Override
+	public List<Map> list(String goods_id) {
+		String sql = SF.goodsSql("GET_GOODS_ADJUNCT_BY_GOODS_ID");
+		List<Map> list = this.baseDaoSupport.queryForList(sql, goods_id);
+		return list;
+	}
+
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void save(String goods_id, List<GoodsAdjunct> list) {
+		//查询出原有的配件
+		String sql = SF.goodsSql("GET_GOODS_ADJUNCT_BY_GOODS_ID");
+		List<GoodsAdjunct> oldlist = this.baseDaoSupport.queryForList(sql,GoodsAdjunct.class, goods_id);
+//		StringBuffer sBuffer = new StringBuffer();
+//		for(GoodsAdjunct oldAdj:oldlist){
+//			if(oldAdj.getItems()!=null){
+//				if(oldAdj.getItems().toString()!="[]"){
+//					sBuffer.append(oldAdj.getItems());
+//				}
+//			}
+//		}
+//		for(GoodsAdjunct nowAdj:list){
+//			if(nowAdj.getItems()!=null){
+//				if(nowAdj.getItems().toString()!="[]"){
+//					sBuffer.append(nowAdj.getItems());
+//				}
+//			}
+//		}
+		
+		//删除原有
+		String deleteSql = SF.goodsSql("GOODS_ADJUNCT_DELETE");
+		this.baseDaoSupport.execute(deleteSql, goods_id);
+		
+		HttpServletRequest request=ThreadContextHolder.getHttpRequest(); 
+		String isUploadExcel=request.getParameter("nowIsUploadExcel");
+		//依次加入
+		for(GoodsAdjunct adjunct:list){
+			this.add(adjunct);
+		}
+		
+		//如果是excel导入,excel导入传入了nowIsUploadExcel=100这个标识
+		if("100".equals(isUploadExcel)){
+//			adjunct.setItems(sBuffer.toString().replace("][", ","));
+//			String adjunctName= request.getParameter("group").toString();
+//			try {
+//				adjunctName=URLDecoder.decode(adjunctName,"utf-8");
+//			} catch (UnsupportedEncodingException e) {
+//				e.printStackTrace();
+//			}
+//			this.baseDaoSupport.update("goods_adjunct", adjunct, "adjunct_id="+adjunct.getAdjunct_id());
+			for(GoodsAdjunct adjunct:oldlist){
+				this.add(adjunct);
+			}
+		}
+	}
+	
+	private void add(GoodsAdjunct adjunct) {
+		this.baseDaoSupport.insert("goods_adjunct", adjunct);
+	}
+
+
+	@Override
+	public int isExistsAjdunct(List list) {
+		int count = 0;
+		
+		if(list != null && !list.isEmpty()){
+			for(int i=1;i<list.size();i++){
+				Map<String, Object> map = (Map<String, Object>) list.get(i);
+				
+				String sql = SF.goodsSql("GET_GOODS_COUNT");
+				String item = this.baseDaoSupport.queryForString(sql, map.get("sn"));
+				if(!StringUtil.isEmpty(item)){
+					count = count + Integer.valueOf(item);
+				}
+			}
+		}
+		return count;
+	}
+
+//
+//	public void insert(List<Object[]> list){
+//		this.baseDaoSupport.batchExecute("insert into es_goods (name,sn,image_default,mktprice,price,taxes_ratio,unit,intro,cat_id,goods_type,market_enable,disabled,have_spec,type_state) values " +
+//				"(? ,? ,? ,? ,?, ?, ?,?,'1000961090','adjunct',1,1,0,1)", list);
+//	}
+
+
+	public IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+
+
+	public void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+
+
+	@Override
+	public List<GoodsAdjunct> listAdjunct(String goods_id) {
+		String sql = SF.goodsSql("GET_GOODS_ADJUNCT_BY_GOODS_ID");
+		List<GoodsAdjunct> list = this.baseDaoSupport.queryForList(sql, GoodsAdjunct.class,goods_id);
+		return list;
+	}
+	
+	
+}

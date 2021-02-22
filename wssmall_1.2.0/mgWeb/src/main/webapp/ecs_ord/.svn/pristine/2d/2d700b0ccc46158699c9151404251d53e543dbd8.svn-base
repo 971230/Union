@@ -1,0 +1,134 @@
+.table_td_width{
+	width: 12.5%;
+}
+
+.table_select{
+	width: 162px;
+	height: 24px;
+}
+
+.red_mark {
+    color: red;
+}
+
+.page-container {
+    display: flex;
+    width: 100vw;
+    justify-content: center;
+    flex: 1;
+}
+
+.left-container {
+    width: 20%;
+    border: 1px solid #CCC;
+}
+
+.right-container {
+    width: 80%;
+}
+
+.canvas-main {
+    position: relative;
+    margin-top: 98px;
+}
+
+.canvas {
+    height: 550px;
+    max-height: 700px;
+    border: 1px solid #CCC;
+    background-color: white;
+    display: flex;
+}
+
+.lib_title{
+	width: 170px;
+	height: 50px;
+	border: 1px solid #CCC;
+	text-align: center;
+	background-color: #bfc1ba;
+	font-size: 140%;
+	line-height: 50px;
+}
+
+.diamond{   
+	width: 50px;   
+	height: 50px;   
+	transform:rotate(45deg);   
+	-ms-transform:rotate(45deg); /* Internet Explorer */   
+	-moz-transform:rotate(45deg); /* Firefox */   
+	-webkit-transform:rotate(45deg); /* Safari 和 Chrome */   
+	-o-transform:rotate(45deg); /* Opera */   
+	margin:50px auto;/*让菱形浏览器上居中*/  
+	text-align: center;
+	cursor: pointer;
+	position: absolute;
+	border: 1px solid black;
+}
+
+.circle {
+	width: 100px;
+	height: 40px;
+	text-align: center;
+	border-radius: 50%;
+	cursor: pointer;
+	position: absolute;
+	border: 1px solid black;
+}
+
+.rectangle {
+	width:100px; 
+	height:40px; 
+	text-align: center;
+	cursor: pointer;
+	position: absolute;
+	border: 1px solid black;
+}
+
+.rectangle_radius {
+	width:100px; 
+	height:40px; 
+	text-align: center;
+	cursor: pointer;
+	position: absolute;
+	border: 1px solid black;
+	border-radius: 20px;
+}
+
+.aLabel {
+    background-color: white;
+    padding: 0.4em;
+    font: 12px sans-serif;
+    color: #444;
+    z-index: 21;
+    border: 1px dotted gray;
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.color_green	{
+	background-color: #70e77f;
+}
+
+.color_yellow	{
+	background-color: yellow;
+}
+
+.color_cyan	{
+	background-color: cyan;
+}
+
+.color_orange{
+	background-color: orange;
+}
+
+.color_gray{
+	background-color: #CCC;
+}
+
+.node_curr{
+	border: 3px solid orchid;
+}
+
+.node_error{
+	border: 3px solid red;
+}

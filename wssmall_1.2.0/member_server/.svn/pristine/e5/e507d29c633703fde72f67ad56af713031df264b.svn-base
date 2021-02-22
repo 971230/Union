@@ -1,0 +1,85 @@
+package services;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import params.guest.req.GuestBookReq;
+import params.guest.resp.GuestBookResp;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.DataLog;
+import com.ztesoft.net.app.base.core.model.GuestBook;
+import com.ztesoft.net.eop.resource.IDataLogManager;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+
+public class GuestBookServ extends ServiceBase implements GuestBookInf{
+
+	@Resource
+	private IDataLogManager dataLogManager;
+	
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void add(GuestBookReq guestBookReq) {
+		GuestBook guestbook = guestBookReq.getGuestbook();
+		if(guestbook== null ) throw new  IllegalArgumentException("param guestbook is NULL");
+		guestbook.setDateline(DBTUtil.current());
+		guestbook.setIssubject(1);
+		this.baseDaoSupport.insert("guestbook", guestbook);
+		DataLog datalog = new DataLog();
+		datalog.setContent("标题:"+guestbook.getTitle()+"<br>内容："+guestbook.getContent());
+		datalog.setLogtype("留言");
+		datalog.setOptype("添加");
+		this.dataLogManager.add(datalog);
+	}
+	
+	public GuestBookResp list(GuestBookReq guestBookReq) {
+		
+		GuestBookResp guestBookResp = new GuestBookResp();
+		//首先查询出符合条件的主题
+		String sql ="select * from guestbook where issubject=1";
+		StringBuffer term  = new StringBuffer();
+		
+		//构造查询条件
+		if(!StringUtil.isEmpty(guestBookReq.getKeyword())){
+			term.append(" and  (");
+			term.append(" title like'%"+guestBookReq.getKeyword()+"%'");
+			term.append(" or content like'%"+guestBookReq.getKeyword()+"%'");
+			term.append(" or username like'%"+guestBookReq.getKeyword()+"%'");
+			term.append(")");
+		}
+		
+		sql= sql+term +" order by dateline desc";
+		Page page = this.baseDaoSupport.queryForPage(sql, guestBookReq.getPageNo(), guestBookReq.getPageSize(),GuestBook.class);
+		List<GuestBook> subjectList  = (List<GuestBook>)page.getResult();
+		
+		//其次查询出这些主题的所有回复
+		sql ="select * from guestbook where issubject=0 and parentid in (select id from "+this.getTableName("guestbook")+" where issubject =1    "+term+") order by dateline asc ";
+		List<GuestBook> replyList  = this.baseDaoSupport.queryForList(sql,GuestBook.class);
+		
+		//对应主题和回复的关系
+		for(GuestBook reply : replyList){
+			this.addtoSubject(subjectList, reply);
+		}
+		guestBookResp.setPage(page);
+		return guestBookResp;
+	}
+
+	
+	/**
+	 * 将某个回复对应到相应的主题中
+	 * @param subjectList
+	 * @param reply
+	 */
+	private void addtoSubject(List<GuestBook> subjectList, GuestBook reply){
+		for(GuestBook subject: subjectList){
+			if(subject.getId() ==  reply.getParentid()){ // 比对是否是此主题的回复
+				subject.addReply(reply);
+				break;
+			}
+		}
+	}
+}

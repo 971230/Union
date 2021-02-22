@@ -1,0 +1,187 @@
+package com.powerise.ibss.framework.servlet;
+
+import com.powerise.ibss.framework.upload.SmartUpload;
+import com.powerise.ibss.util.SysSet;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+
+
+
+public class UploadServ extends HttpServlet {
+    /**
+     * Comment for <code>serialVersionUID</code>
+     */
+    private static final long serialVersionUID = -8688890680395130760L;
+
+    private static String CONTENT_TYPE = "text/html;charset=GBK";
+
+	private ServletConfig svcconfig;
+	private final String CLASS_ROOT = "CLASS_ROOT";
+	/**
+	* Init the servlet
+	*/
+	@Override
+	final public void init(ServletConfig config) throws ServletException {
+		this.svcconfig = config;
+	}
+
+	@Override
+	final public ServletConfig getServletConfig() {
+		return svcconfig;
+	}
+	/**
+	* Handles GET requests
+	*/
+	@Override
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+		PrintWriter out = response.getWriter();
+		out.println("<HTML>");
+		out.println("<BODY BGCOLOR='white'>");
+		out.println("<HR><BR>");
+		out.println("The method of the HTML form must be POST.");
+		out.println("</BODY>");
+		out.println("</HTML>");
+	}
+
+	/**
+	* Handles POST requests
+	*/
+	@Override
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		String strRoot = null;
+		int count = 0;
+		int fileCnt = 0, iStart = 0, iSize = 0;
+		String strFileName = null;
+		String newFileName = null;
+		String strExt = null;
+		ByteArrayInputStream bis = null; // read data from bytes to parse class info
+
+		String strPath = null;
+		boolean bChgPath = false;
+		  response.setContentType(CONTENT_TYPE);
+	       response.setHeader("pragma", "no-cache");
+		PrintWriter out = response.getWriter();
+		out.println("<HTML>");
+		out.println("<head>");
+		out.println("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=gbk\">");
+		out.println("</head>");
+		out.println("<BODY BGCOLOR='white'>");
+
+		SmartUpload mySmartUpload = new SmartUpload();
+		try {
+			//strRoot = System.getProperty(CLASS_ROOT);
+			strRoot = SysSet.getSystemSet("UploadFilePath"); //上载文件的存放目录
+			if (strRoot == null)
+			{
+			   
+				throw new Exception("没有设置文件存放的目录");
+			}
+			// Initialization
+			mySmartUpload.initialize(svcconfig, request, response);
+
+			// Upload
+			mySmartUpload.upload();
+
+			//获取upload的文件个数
+			fileCnt = mySmartUpload.getFileTotal();
+			int curPos = 0, lastPos = 0;
+			String strSeparator = System.getProperty("file.separator");
+
+			for (int i = 0; i < fileCnt; i++) {
+				strFileName = mySmartUpload.getFileName(i);
+				//有可能是空文件，即在浏览器中没有设置文件
+				if (strFileName == null || strFileName.equals(""))
+					continue;
+				strFileName=strFileName.toLowerCase(); //小写，确保unix系统大小写敏感
+				bChgPath = false;
+				strPath = null;
+				strExt = mySmartUpload.getFileExt(i);
+				iStart = mySmartUpload.getFileStart(i);
+				iSize = mySmartUpload.getFileSize(i);
+
+
+//					bis = new ByteArrayInputStream(mySmartUpload.m_binArray, iStart, iSize);
+//					try {
+//						//clsParser = new ClassParser(bis, strFileName);
+//					//	jCls = clsParser.parse();
+//					//	strFileName = jCls.getClassName();
+//					} catch (Exception ie) {
+//						out.println("<p>");
+//						out.println("1.更新文件 " + strFileName + " 出错。错误原因：" + ie.getMessage());
+//						out.println("</p>");
+//						ie.printStackTrace();
+//						continue;
+//					} catch (ClassFormatError ce) {
+//						out.println("<p>");
+//						out.println("2.更新文件 " + strFileName + " 出错。错误原因：" + ce.getMessage());
+//						out.println("</p>");
+//						ce.printStackTrace();
+//						continue;
+//					}
+
+//				newFileName = strRoot;
+//				lastPos = 0;
+//				curPos = 0;
+//				while (curPos >= 0) {
+//					curPos = strFileName.indexOf(".", lastPos);
+//					if (curPos == -1) {
+//						newFileName = newFileName + strSeparator + strFileName.substring(lastPos);
+//						break;
+//					} else {
+//						newFileName = newFileName + strSeparator + strFileName.substring(lastPos, curPos);
+//						lastPos = curPos + 1;
+//					}
+//					bChgPath = true;
+//				}
+				newFileName = strRoot + strSeparator + strFileName;
+				//if no path ,then create it.
+//				if (bChgPath) {
+//					curPos = newFileName.lastIndexOf(strSeparator);
+//					if (curPos > -1) {
+//						strPath = newFileName.substring(0, curPos);
+//						// logger.info("path is :"+strPath);
+//						File pathFile = new File(strPath);
+//						pathFile.mkdirs();
+//					}
+//				}
+
+				//            logger.info("文件名称: "+strFileName);
+				//          logger.info("new file name :"+newFileName);
+				java.io.File file = new java.io.File(newFileName);
+				FileOutputStream fileOut = new FileOutputStream(file);
+				fileOut.write(mySmartUpload.m_binArray, iStart, iSize);
+				fileOut.close();
+				out.println("<p>");
+				out.println("上载 " + strFileName + " 文件成功!");
+				out.println("</p>");
+			}
+		} catch (Exception e) {
+			out.println("<p>");
+			out.println("更新文件出错");
+			out.println("</p><p>");
+			e.printStackTrace();
+			out.println("错误原因 : " + e.toString());
+			out.println("</p>");
+		}
+
+		out.println("</BODY>");
+		out.println("</HTML>");
+	}
+	/**
+	* Destroy the servlet
+	*/
+	@Override
+	public void destroy() {
+	}
+
+}

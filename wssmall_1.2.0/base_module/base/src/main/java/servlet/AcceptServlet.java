@@ -1,0 +1,168 @@
+package servlet;
+
+import java.io.IOException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.ezmorph.bean.MorphDynaBean;
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.directwebremoting.WebContextFactory;
+import org.directwebremoting.WebContextFactory.WebContextBuilder;
+import org.directwebremoting.impl.DefaultContainer;
+import org.directwebremoting.impl.DefaultWebContextBuilder;
+
+import com.ztesoft.ibss.common.service.CommonService;
+
+/**
+ * 后台统一入口接口
+ * @author mochunrun
+ */
+public class AcceptServlet extends HttpServlet{
+	private static Logger logger = Logger.getLogger(AcceptServlet.class);
+	private static final long serialVersionUID = 1L;
+	
+	private static final String ACTIONID = "COMMON_ACCEPT";
+	private static final boolean SQL_SERVICE = false;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+			throws ServletException, IOException {
+		this.doPost(req, resp);
+	}
+	
+	@Override
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		
+		request.setCharacterEncoding("UTF-8");
+		//response.setCharacterEncoding("UTF-8");
+		
+		response.setContentType("text/plain; charset=UTF-8");
+		response.setHeader("Pragma", "No-cache");
+		response.setHeader("Cache-Control", "no-cache");
+		response.setDateHeader("Expires", 0);
+		
+//		String test1 = (String)request.getSession().getAttribute("test11");
+//		if(StringUtils.isEmpty(test1))
+//		{
+//			
+//			request.getSession().setAttribute("test11", "111111111111111111");
+//			logger.info(request.getSession().getAttribute("test11")+"========================================================");
+//		}else{
+//			logger.info(request.getSession().getAttribute("test11")+"========3333333333333333333333333333================================================");
+//		}
+		String reqJson = request.getParameter("map");
+		try{
+			setRequestContext(request,response);
+			HashMap map = null;
+			if(reqJson==null || "".equals(reqJson)){
+				//请求数据为空
+				/*map = new HashMap();
+				CommonService cs = new CommonService();
+				HashMap resultMap = cs.excute(ACTIONID, SQL_SERVICE, map);
+				logger.info("返回：="+JSONObject.fromObject(resultMap));
+				response.getWriter().print(JSONObject.fromObject(resultMap));*/
+				response.getWriter().print(JSONObject.fromObject("{DEAL_FLAG:0,DEAL_MSG:'请求数据有误'}"));
+			}else{
+				reqJson = URLDecoder.decode(reqJson, "utf-8");
+				reqJson = reqJson.replaceAll("\\$", "\'");
+				logger.info("请求：="+reqJson);
+				try{
+					map = jsonToMap(reqJson);
+				}catch(Exception ex){
+					ex.printStackTrace();
+					//json数据有——转换出错
+					response.getWriter().print(JSONObject.fromObject("{DEAL_FLAG:0,DEAL_MSG:'请求数据有误'}"));
+				}
+				if(map!=null){
+					try{
+						CommonService cs = new CommonService();
+						HashMap resultMap = cs.excute(ACTIONID, SQL_SERVICE, map);
+						logger.info("返回：="+JSONObject.fromObject(resultMap));
+						response.getWriter().print(JSONObject.fromObject(resultMap));
+					}catch(Exception ex){
+						ex.printStackTrace();
+					}
+				}else{
+					response.getWriter().print(JSONObject.fromObject("{DEAL_FLAG:0,DEAL_MSG:'系统繁忙，请稍后重试'}"));
+				}
+			}
+		}catch(Exception ex){
+			ex.printStackTrace();
+			response.getWriter().print(JSONObject.fromObject("{DEAL_FLAG:0,DEAL_MSG:'系统繁忙，请稍后重试'}"));
+		}
+	}
+	
+	/**
+	 * 把json自动bean net.sf.ezmorph.bean.MorphDynaBean转换为HashMap
+	 * @author mochunrun
+	 * @param map
+	 * @return
+	 */
+	public static void parseJsonBojToMap(HashMap map){
+		Iterator it = map.entrySet().iterator();
+		while(it.hasNext()){
+			Entry entry = (Entry) it.next();
+			String name = (String)entry.getKey();
+			Object obj = entry.getValue();
+			if(obj instanceof MorphDynaBean){
+				HashMap tmp = new HashMap(); 
+				MorphDynaBean mb = (MorphDynaBean) obj;
+				//tmp.putAll(mb.getHashMap()); //TODO add by wyu
+				map.put(name, tmp);
+				parseJsonBojToMap(tmp);
+			}else if(obj instanceof ArrayList){
+				List list = (ArrayList) obj;
+				List tmpList = new ArrayList();
+				for(int i=0;i<list.size();i++){
+					Object listObj = list.get(i);
+					if(listObj instanceof MorphDynaBean){
+						HashMap mapTmp = new HashMap(); 
+						MorphDynaBean mb = (MorphDynaBean) listObj;
+						//mapTmp.putAll(mb.getHashMap());//TODO add by wui
+						map.put(name, mapTmp);
+						tmpList.add(mapTmp);
+						parseJsonBojToMap(mapTmp);
+					}else{
+						tmpList.add(listObj);
+					}
+				}
+				map.put(name, tmpList);
+			}
+		}
+	}
+	
+	/**
+	 * json字符串转换为HashMap
+	 * @author mochunrun
+	 * @param json
+	 * @return
+	 */
+	public static HashMap jsonToMap(String json){
+		HashMap map = (HashMap) JSONObject.toBean(JSONObject.fromObject(json), HashMap.class);
+		parseJsonBojToMap(map);
+		return map;
+	}
+	
+	private void setRequestContext(HttpServletRequest httpRequest,HttpServletResponse httpResponse) {
+		ServletContext servletContext = this.getServletContext();
+		ServletConfig servletConfig = this.getServletConfig();
+		WebContextBuilder contextBuilder=new DefaultWebContextBuilder();
+		contextBuilder.set(httpRequest, httpResponse, servletConfig, servletContext, new DefaultContainer());
+		WebContextFactory.setWebContextBuilder(contextBuilder);
+	}
+	
+}

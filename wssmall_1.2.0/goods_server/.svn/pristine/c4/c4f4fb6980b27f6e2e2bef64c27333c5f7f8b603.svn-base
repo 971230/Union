@@ -1,0 +1,329 @@
+package com.ztesoft.mall.core.action.backend;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.alibaba.dubbo.common.json.JSON;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.Brand;
+import com.ztesoft.net.mall.core.model.BrandModel;
+import com.ztesoft.net.mall.core.service.IBrandModelManager;
+import com.ztesoft.net.sqls.SF;
+
+
+public class BrandModelAction extends WWAction {
+
+	IBrandModelManager brandModelManager;
+	private List<BrandModel> modelList;
+	private String brand_name;//品牌名
+	private String machine_name;//机型名
+	private String model_name;//型号
+	private BrandModel brandModel;
+	private Brand brand;
+	private String action;
+	private String id; 
+	private String ids;
+	private String names;
+	private Map<String, String> params = new HashMap<String, String>(0);
+	
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+	
+	public Map<String, String> getParams() {
+		return params;
+	}
+
+	public void setParams(Map<String, String> params) {
+		this.params = params;
+	}
+
+	public String brandModelList(){
+		try {
+			if(brand_name!=null){
+				brand_name = URLDecoder.decode(brand_name,"utf-8");
+			}
+			if(machine_name!=null){
+				machine_name = URLDecoder.decode(machine_name,"utf-8");
+			}
+			if(model_name!=null){
+				model_name = URLDecoder.decode(model_name,"utf-8");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		this.webpage=this.brandModelManager.getBrandModelList(this.getPage(), this.getPageSize(),brand_name,machine_name,model_name);
+		return "brandModelList";
+	}
+	
+	/**
+	 * 品牌终端列表
+	 * @return
+	 */
+	public String brandModelListECS(){
+		try {
+			if(brandModel == null){
+				brandModel = new BrandModel();
+			}
+			this.webpage=this.brandModelManager.getBrandModelListECS(this.getPage(), this.getPageSize(), brandModel);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return "brandModelListECS";
+	}
+	
+	/**
+	 * 品牌终端列表弹出页
+	 * @return
+	 */
+	public String brandModelListECSDialog(){
+		try {
+			if(brandModel == null){
+				brandModel = new BrandModel();
+			}else{
+				String brand_name = brandModel.getBrand_name();
+				String model_name = brandModel.getModel_name();
+				
+				if(StringUtils.isNotEmpty(brand_name)){
+					brand_name=URLDecoder.decode(brand_name,"utf-8");
+					brandModel.setBrand_name(brand_name);
+				}
+				
+				if(StringUtils.isNotEmpty(model_name)){
+					model_name=URLDecoder.decode(model_name,"utf-8");
+					brandModel.setModel_name(model_name);
+				}
+			}
+			this.webpage=this.brandModelManager.getBrandModelListECS(this.getPage(), this.getPageSize(), brandModel);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return "brandModelListECSDialog";
+	}
+	
+	/**
+	 * 品牌列表
+	 * @return
+	 */
+	public String brandList(){
+		if(brand == null ){
+			brand = new Brand();
+		}
+		this.webpage = this.brandModelManager.getBrandList(brand, this.getPage(), this.getPageSize());
+		return "brandList";
+	}
+	
+	/**
+	 * 品牌终端详情
+	 * @return
+	 */
+	public String brandModelDetailECS(){
+		String brand_model_id = "";
+		if(brandModel != null){
+			brand_model_id = brandModel.getBrand_model_id();
+			if(StringUtils.isNotBlank(brand_model_id)){
+				brandModel = this.brandModelManager.getbrandModelDetail(brand_model_id);
+			}
+		}
+		
+		return "brand_model_edit_ecs";
+	}
+	
+	public String checkModelCode(){
+			
+		boolean isExist = this.brandModelManager.checkModelName(brandModel.getModel_name());
+		if(isExist){
+			this.json = "{result:true}";
+		}else{
+			this.json = "{result:false}";
+		}
+		
+		return  this.JSON_MESSAGE;
+	}
+
+
+	/**
+	 * 保存品牌终端
+	 * @return
+	 */
+	public String saveOrUpdateBrandMode(){
+		try {
+			if(StringUtils.isEmpty(brandModel.getBrand_model_id())&&brandModelManager.checkIsExistsModelCode(brandModel.getModel_code())){
+				this.json = "{result:false,'msg':'已存在相同型号编码!\'}";
+			}else{
+				this.brandModelManager.saveOrUpdateBrandMode(brandModel);
+				this.json = "{result:true}";
+			}
+		} catch (Exception e) {
+			this.json = "{result:false}";
+			e.printStackTrace();
+		}
+		
+		return this.JSON_MESSAGE;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public String checkUsed(){
+		 if(this.brandModelManager.checkUsed(this.getId()) ){
+			 this.json="{result:1}"; 
+		 }else{
+			 this.json="{result:0}";
+		 }
+		 return this.JSON_MESSAGE;
+	}
+	
+	/**
+	 * 将品牌放入回收站
+	 * 
+	 * @return
+	 */
+	public String doDelete() {
+		try {
+			this.brandModelManager.doDelete(this.getId());
+			this.json = "{'result':0,'message':'删除成功'}";
+		} catch (RuntimeException e) {
+			this.json = "{'result':1,'message':'删除失败'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	/**
+	 * 品牌型号发布
+	 * @return
+	 */
+	public String doPublish() {
+		
+		try {
+			
+			this.brandModelManager.doPublish(this.params);
+			this.json = "{'result':0,'message':'发布成功!'}";
+			
+		} catch (Exception e) {
+			this.json = "{'result':1,'message':'发布失败!'}";
+		}
+		
+		return this.JSON_MESSAGE;
+	}
+	
+	/**
+	 * @author zengxianlian
+	 * 品牌型号批量发布
+	 * @return
+	 */
+	public void doBatchPublish() {
+		
+		try {
+			this.brandModelManager.doBatchPublish(this.params);
+			render("发布成功!","text/html;charset=UTF-8");
+		} catch (Exception e) {
+			e.printStackTrace();
+			render("发布失败!","text/html;charset=UTF-8");
+		}
+	}
+	
+	
+	public BrandModel getBrandModel() {
+		return brandModel;
+	}
+
+	public void setBrandModel(BrandModel brandModel) {
+		this.brandModel = brandModel;
+	}
+	
+	public List<BrandModel> getModelList() {
+		return modelList;
+	}
+
+	public void setModelList(List<BrandModel> modelList) {
+		this.modelList = modelList;
+	}
+
+	public String getBrand_name() {
+		return brand_name;
+	}
+
+	public void setBrand_name(String brand_name) {
+		this.brand_name = brand_name;
+	}
+
+	public String getMachine_name() {
+		return machine_name;
+	}
+
+	public void setMachine_name(String machine_name) {
+		this.machine_name = machine_name;
+	}
+
+	public String getModel_name() {
+		return model_name;
+	}
+
+	public void setModel_name(String model_name) {
+		this.model_name = model_name;
+	}
+
+
+	public IBrandModelManager getBrandModelManager() {
+		return brandModelManager;
+	}
+
+
+	public void setBrandModelManager(IBrandModelManager brandModelManager) {
+		this.brandModelManager = brandModelManager;
+	}
+
+	public Brand getBrand() {
+		return brand;
+	}
+
+	public void setBrand(Brand brand) {
+		this.brand = brand;
+	}
+
+	public String getAction() {
+		return action;
+	}
+
+	public void setAction(String action) {
+		this.action = action;
+	}
+
+	public String getIds() {
+		return ids;
+	}
+
+	public void setIds(String ids) {
+		this.ids = ids;
+	}
+
+	public String getNames() {
+		return names;
+	}
+
+	public void setNames(String names) {
+		this.names = names;
+	}
+
+ 
+	
+
+}

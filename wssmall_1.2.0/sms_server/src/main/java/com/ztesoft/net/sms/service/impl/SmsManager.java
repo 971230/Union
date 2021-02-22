@@ -1,0 +1,329 @@
+package com.ztesoft.net.sms.service.impl;
+
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.ibss.common.util.StringUtils;
+import com.ztesoft.ibss.ct.config.CTConfig;
+import com.ztesoft.net.config.SmsTempleteConfig;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.utils.CacheUtil;
+import com.ztesoft.net.model.SendSms;
+import com.ztesoft.net.model.SmsUser;
+import com.ztesoft.net.sms.service.ISmsManager;
+
+import freemarker.cache.StringTemplateLoader;
+import freemarker.template.Configuration;
+
+
+public class SmsManager extends BaseSupport implements ISmsManager {
+
+
+    @Override
+    public String getSMSTemplate(String key, Map param) {
+        return this.getSmsContent(key, param);
+    }
+
+    private String getSmsContent(String key, Map param) {
+        String templete = SmsTempleteConfig.instance().getTemplete(key);
+        if (StringUtils.isEmpty(templete)) {
+            String sql = "select * from es_sms_templete where sms_key=?"; 
+            try {
+                Map map = daoSupport.queryForMap(sql, key);
+                String value = Const.getStrValue(map, "sms_value");
+                templete = value;
+                SmsTempleteConfig.instance().setTemplete(key, value);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;//To change body of catch statement use File | Settings | File Templates.
+            }
+        }
+
+        Configuration cfg = new Configuration();
+        StringTemplateLoader loader = new StringTemplateLoader();
+        cfg.setTemplateLoader(loader);
+        cfg.setDefaultEncoding("UTF-8");
+
+        loader.putTemplate(key, templete);
+        StringWriter writer = new StringWriter(4000);
+        try {
+            cfg.getTemplate(key).process(param, writer);
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        return writer.toString();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public String save(SendSms sms) {
+        if (sms == null || StringUtils.isEmpty(sms.getSend_content())) {
+            logger.debug("短信发送内容为空!");
+            return null;
+        }
+        String send_no = null;
+        send_no = this.getSmsNo();
+        sms.setSend_no(send_no);
+        this.daoSupport.insert("twb_send_sms", sms);
+
+        return sms.getSend_no();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public String save(String msgStr, String acc_nbr) {
+        if (StringUtil.isEmpty(msgStr) || StringUtil.isEmpty(acc_nbr)) {
+            logger.debug("==== msg: " + msgStr + " 或者 acc_nbr: " + acc_nbr + " 为空 ====");
+            return null;
+        }
+        SendSms sms = new SendSms();
+        
+        CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		String sendNum = cacheUtil.getConfigInfo(Consts.SMS_SEND_NUM);
+        
+		sms.setSend_num("10086");
+		if(StringUtils.isNotEmpty(sendNum)){
+			 sms.setSend_num(sendNum);
+		}
+       
+        sms.setRecv_num(acc_nbr);
+        sms.setSend_content(msgStr);
+        sms.setState("1");
+        sms.setSend_count(0);
+        sms.setCreate_time(DBTUtil.current());
+        return this.save(sms);
+    }
+    
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public String save(String msgStr, String acc_nbr, String code) {
+        if (StringUtil.isEmpty(msgStr) || StringUtil.isEmpty(acc_nbr)) {
+            logger.debug("==== msg: " + msgStr + " 或者 acc_nbr: " + acc_nbr + " 为空 ====" + " 或者 code: " + code + " 为空 ====");
+            return null;
+        }
+        SendSms sms = new SendSms();
+        
+        CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		String sendNum = cacheUtil.getConfigInfo(Consts.SMS_SEND_NUM);
+        
+		sms.setSend_num("10086");
+		if(StringUtils.isNotEmpty(sendNum)){
+			 sms.setSend_num(sendNum);
+		}
+       
+        sms.setRecv_num(acc_nbr);
+        sms.setSend_content(msgStr);
+        sms.setState("1");
+        sms.setSend_count(0);
+        sms.setCreate_time(DBTUtil.current());
+        sms.setAcct_num(code);
+        return this.save(sms);
+    }
+
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public boolean delete(List<String> list) {
+        if (null == list) return false;
+        String sql = "insert into twb_send_sms_his(send_no,send_num,recv_num,smgp_charge_nbr,send_content,plan_send_date,\n" +
+                "send_date,acct_num,send_count,acct_cityno,sms_opertype,state,deal_count,\n" +
+                "acct_month,notes,create_time,resend_count,feetype,area_code,resend_flag,opn_code,opn_app_code) \n" +
+                "select send_no,send_num,recv_num,smgp_charge_nbr,send_content,plan_send_date,\n" +
+                DBTUtil.current() + ",acct_num,send_count,acct_cityno,sms_opertype,state,deal_count,\n" +
+                "acct_month,notes,create_time,resend_count,feetype,area_code,resend_flag,opn_code,opn_app_code\n" +
+                "from twb_send_sms where send_no =? ";
+
+
+        String delete_sql = " delete from twb_send_sms where send_no=? ";
+
+        this.daoSupport.execute(sql, list.get(0));
+        this.daoSupport.execute(delete_sql, list.get(0));
+        return true;
+    }
+
+    @Override
+    public boolean delete(String send_no) {
+        if (StringUtils.isEmpty(send_no)) return false;
+
+        List<String> list = new ArrayList<String>();
+        list.add(send_no);
+
+        return this.delete(list);  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public List<SendSms> getSendList() {
+        String sql="SELECT * FROM \n" +
+                "(SELECT send_no,send_num,recv_num,send_content,create_time,source_from FROM twb_send_sms WHERE state='1' \n" +
+                "AND "+DBTUtil.nvl()+"(send_count,0)<5) a ORDER BY create_time ASC ";
+        Page page = this.daoSupport.queryForPageByMap(sql, 1, 20,SendSms.class,null);
+        return page.getResult();
+    }
+
+    @Override
+    public boolean updateState(String arg) {
+        // TODO Auto-generated method stub
+        if (StringUtils.isEmpty(arg)) return false;
+
+        List<String> list = new ArrayList<String>();
+        list.add(arg);
+        return this.updateState(list);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public boolean updateState(List<String> list) {
+        if (null == list || list.size() == 0) return false;
+
+        String sql = "update twb_send_sms set state='0' where state='1' and send_no in(";
+        StringBuffer buffer = new StringBuffer(500);
+        buffer.append(sql);
+        for (String key : list) {
+            buffer.append(key);
+            buffer.append(",");
+        }
+        buffer.deleteCharAt(buffer.length() - 1);
+        buffer.append(")");
+        this.daoSupport.execute(buffer.toString());
+        return true;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public boolean updateSendCount(String key) {
+        if (StringUtils.isEmpty(key)) return false;
+
+        List<String> list = new ArrayList<String>();
+        list.add(key);
+
+        return this.updateSendCount(list);  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public boolean updateSendCount(List<String> list) {
+        if (null == list || list.size() == 0) return false;
+
+        String sql = "update twb_send_sms set send_count=send_count+1 where state='1' and  send_no in ( ";
+        StringBuffer buffer = new StringBuffer(500);
+        buffer.append(sql);
+        for (String key : list) {
+            buffer.append(key);
+            buffer.append(",");
+        }
+        buffer.deleteCharAt(buffer.length() - 1);
+        buffer.append(")");
+        this.daoSupport.execute(buffer.toString());
+        return true;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+	public String getSmsNo() {
+        String smsNo = "";
+        smsNo = this.daoSupport.getSequences("ES_SEQ_INF_SHORT_MSG_ID");
+        return smsNo;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public boolean updateHisState(String arg) {
+        String sql = "update twb_send_sms_his set state='0' where send_no=? and state='1'";
+        this.daoSupport.execute(sql, arg);
+        return true;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public SendSms querySmsCodeById(String send_no) {
+        String random_time = CTConfig.getInstance().getValue(String.valueOf(RANDOM_TIME));
+        StringBuffer sql = new StringBuffer("select send_no,send_num,recv_num,smgp_charge_nbr,send_content,plan_send_date,\n" +
+                DBTUtil.current() + ",acct_num,send_count,acct_cityno,sms_opertype,state,deal_count,\n" +
+                "acct_month,notes,create_time,resend_count,feetype,area_code,resend_flag,opn_code,opn_app_code\n" +
+                "from twb_send_sms_his where send_no=? and " + DBTUtil.current() + "<=HRF_GET_TIME(send_date,?,'S') and state='1'");
+        int time = 90;
+        if (StringUtils.isNum(random_time)) {
+            time = Integer.parseInt(random_time);
+        }
+        Object obj = null;
+        try {
+            obj = this.daoSupport.queryForObject(sql.toString(), SendSms.class, send_no, time);
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        SendSms sms = null;
+        if (null != obj) {
+            sms = (SendSms) obj;
+        }
+        return sms;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public SmsUser getSmsUser() throws Exception {
+        String sql = "select * from ct_config where ct_key=?";
+
+        SmsUser user = null;
+
+        Map map = this.daoSupport.queryForMap(sql, SMS_USER_PWD);
+        String val = Const.getStrValue(map, "ct_value");
+        if (StringUtils.isNotEmpty(val)) {
+            String items[] = val.split("\\$");
+            if (null != items && items.length == 2) {
+                user = new SmsUser();
+                user.setUserName(items[0]);
+                user.setPassword(items[1]);
+            }
+        }
+        return user;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public SendSms querySmsById(String send_no) {
+        StringBuffer sql = new StringBuffer("select send_no,send_num,recv_num,smgp_charge_nbr,send_content,plan_send_date,\n" +
+                DBTUtil.current()+",acct_num,send_count,acct_cityno,sms_opertype,state,deal_count,\n" +
+                "acct_month,notes,create_time,resend_count,feetype,area_code,resend_flag,opn_code,opn_app_code\n" +
+                "from twb_send_sms where send_no=? and state='1'");
+        Object obj = null;
+        try {
+            obj = this.daoSupport.queryForObject(sql.toString(), SendSms.class, send_no);
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        SendSms sms = null;
+        if (null != obj) {
+            sms = (SendSms) obj;
+        }
+        return sms;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+	public SendSms querySmsCodeById(String send_no,int time){
+        String random_time = CTConfig.getInstance().getValue(String.valueOf(RANDOM_TIME));
+        StringBuffer sql = new StringBuffer("select send_no,send_num,recv_num,smgp_charge_nbr,send_content,plan_send_date,\n" +
+                DBTUtil.current() + ",acct_num,send_count,acct_cityno,sms_opertype,state,deal_count,\n" +
+                "acct_month,notes,create_time,resend_count,feetype,area_code,resend_flag,opn_code,opn_app_code\n" +
+                "from twb_send_sms_his where send_no=? and " + DBTUtil.current() + "<=HRF_GET_TIME(send_date,?,'S') and state='1'");
+        if(time<=0){
+            time=7200;
+        }
+        Object obj = null;
+        try {
+            obj = this.daoSupport.queryForObject(sql.toString(), SendSms.class, send_no, time);
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        SendSms sms = null;
+        if (null != obj) {
+            sms = (SendSms) obj;
+        }
+        return sms;
+    }
+}

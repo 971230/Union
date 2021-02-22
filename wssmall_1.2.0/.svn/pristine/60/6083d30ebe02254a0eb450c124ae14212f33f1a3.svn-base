@@ -1,0 +1,793 @@
+package com.ztesoft.net.scheme.action;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.drools.core.util.StringUtils;
+
+import params.adminuser.req.AdminUserByObjPageReq;
+import services.AdminUserInf;
+
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.model.MidDataObjConfig;
+import com.ztesoft.net.mall.core.model.ObjJava;
+import com.ztesoft.net.mall.core.model.ObjSql;
+import com.ztesoft.net.mall.core.model.PlanEntityRel;
+import com.ztesoft.net.mall.core.model.PlanRuleAttr;
+import com.ztesoft.net.mall.core.model.ProcessObjMid;
+import com.ztesoft.net.mall.core.model.RuleObjPlan;
+import com.ztesoft.net.mall.core.model.ServiceObjOffer;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.scheme.service.ISchemeManager;
+
+public class SchemeAction extends WWAction {
+	private ISchemeManager schemeManager;
+	private String plan_code;
+	private RuleObjPlan plan;
+	private PlanRuleAttr attr;
+	private String plan_name;
+	private String status_cd;
+	private String create_date;
+	private String plan_id;
+	private String [] ruleIdArray;
+	private String[] activation_group;
+	private String[] auto_focus;
+	private String[] plan_ids;
+	private String[] priority;
+	private String service_id;
+	private List<PlanRuleAttr> atts;
+	private ServiceObjOffer service;
+	private List offer;
+	private MidDataObjConfig mid;
+	private List midData;
+	private ObjSql sql;
+	private ObjJava java;
+	private String mid_data_id;
+	private String java_code;
+	private String sql_code;
+	private List<Map> midProcess;
+	private String mid_data_code;
+	private ProcessObjMid process;
+	private String[] dataCode;
+	private String[] caltype;
+	private String[] calLogic;
+	private String[] javaClass;
+	private String[] listCalType;
+	private String[] listCallogic;
+	private String[] detailCalType;
+	private String[] detailCalLogic;
+	private String []processData;
+	private String rule_id;
+	
+	private PlanEntityRel entity;
+	private String rel_id;
+	
+	private String action = "new";
+	
+	private String admin_name;
+	private String admin_user_id;
+	
+	@Resource
+	private AdminUserInf adminUserServ;
+	
+	public String queryAdmin(){
+		webpage = adminUserServ.queryAdminUser(admin_name,getPage(),getPageSize());
+		return "admin_user_list";
+	}
+	
+	public String deletePlanEntityRel(){
+		schemeManager.deletePlanEntityRel(rel_id);
+		json = "{status:0,msg:'成功',plan_id:'"+plan_id+"'}";
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 保存planentityrel
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-27 
+	 * @return
+	 */
+	public String savePlanEntityRel(){
+		try{
+			if("new".equals(action)){
+				entity.setCreate_date("sysdate");
+				schemeManager.insertPlanEntityRel(entity);
+			}else{
+				schemeManager.editPlanEntityRel(entity);
+			}
+			json = "{status:0,msg:'成功',plan_id:'"+entity.getPlan_id()+"'}";
+		}catch(Exception ex){
+			ex.printStackTrace();
+			json = "{status:1,msg:'成功'}";
+		}
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 显示参与者编辑窗口
+	 * @作者 MoChunrun
+	 * @创建日期 2014-2-27 
+	 * @return
+	 */
+	public String showEntityEditDialog(){
+		if("edit".equals(action)){
+			entity = schemeManager.getPlanEntityRel(rel_id);
+			if(entity!=null && entity.getEff_date()!=null)
+				entity.setEff_date(entity.getEff_date().substring(0,10));
+			if(entity!=null && entity.getExp_date()!=null)
+				entity.setExp_date(entity.getExp_date().substring(0,10));
+			ObjSql sql = schemeManager.querySql(entity.getEntity_sql());
+			if(sql!=null)
+				entity.setEntity_sql(sql.getSql_script());
+		}
+		return "edit_plan_entity";
+	}
+	
+	public String planEtList(){
+		webpage = schemeManager.queryPlanEntityRelForPage(plan_id, getPage(), getPageSize());
+		return "plan_entity_list";
+	}
+	
+	/**
+	 * 查询方案列表
+	 * @return
+	 */
+	public String schemeList(){
+		this.webpage=this.schemeManager.schemeList(status_cd,plan_code, plan_name, this.getPage(), this.getPageSize());
+		return "schemeList";
+	}
+	/**
+	 * 点击添加规则，显示规则标识列表
+	 * @return
+	 */
+	public String ruleList(){
+		this.webpage=this.schemeManager.ruleList(rule_id, this.getPage(),this.getPageSize());
+		return "ruleList";
+	}
+	/**
+	 * 查询中间数据的列表
+	 * @return
+	 */
+	public String MidDataList(){
+		this.midData=this.schemeManager.midDateList(plan_id);
+		return "MidDataList";
+	}
+	/**
+	 * 修改方案
+	 * @return
+	 */
+	public String updateSchemeRule(){
+		offer=this.schemeManager.service();
+		this.plan=this.schemeManager.qryScheme(plan_id);
+		//把时间后面的截掉
+		if(plan!=null){
+			plan.setCreate_date(plan.getCreate_date().substring(0, 10));
+			if(!StringUtils.isEmpty(plan.getExec_time()))
+				plan.setExec_time(plan.getExec_time().substring(0, 10));
+			if(!StringUtils.isEmpty(plan.getEff_date()))plan.setEff_date(plan.getEff_date().substring(0, 10));
+			if(!StringUtils.isEmpty(plan.getExp_date()))plan.setExp_date(plan.getExp_date().substring(0, 10));
+			if(!StringUtils.isEmpty(plan.getCtrl_type())){
+				if("java".equalsIgnoreCase(plan.getCtrl_type())){
+					ObjJava oj = schemeManager.queryJava(plan.getCtrl_val());
+					plan.setCtrl_val(oj==null?"":oj.getJava_bean());
+				}else{
+					ObjSql os = schemeManager.querySql(plan.getCtrl_val());
+					plan.setCtrl_val(os==null?"":os.getSql_script());
+				}
+			}
+		}
+		atts=this.schemeManager.query(plan_id);
+		midProcess=this.schemeManager.midList(plan_id);
+		if(midProcess!=null){
+			for(Map map:midProcess){
+				String cal_type = (String) map.get("cal_type");
+				String cal_logic = (String) map.get("cal_logic");
+				if("java".equalsIgnoreCase(cal_type)){
+					ObjJava oj = schemeManager.queryJava(cal_logic);
+					map.put("cal_logic", oj==null?"":oj.getJava_bean());
+				}else{
+					ObjSql os = schemeManager.querySql(cal_logic);
+					map.put("cal_logic", os==null?"":os.getSql_script());
+				}
+				
+				String list_cal_type = (String) map.get("list_cal_type");
+				String list_cal_logic = (String) map.get("list_cal_logic");
+				if("java".equalsIgnoreCase(list_cal_type)){
+					ObjJava oj = schemeManager.queryJava(list_cal_logic);
+					map.put("list_cal_logic", oj==null?"":oj.getJava_bean());
+				}else{
+					ObjSql os = schemeManager.querySql(list_cal_logic);
+					map.put("list_cal_logic", os==null?"":os.getSql_script());
+				}
+				
+				String detail_cal_type = (String) map.get("detail_cal_type");
+				String detail_cal_logic = (String) map.get("detail_cal_logic");
+				if("java".equalsIgnoreCase(detail_cal_type)){
+					ObjJava oj = schemeManager.queryJava(detail_cal_logic);
+					map.put("detail_cal_logic", oj==null?"":oj.getJava_bean());
+				}else{
+					ObjSql os = schemeManager.querySql(detail_cal_logic);
+					map.put("detail_cal_logic", os==null?"":os.getSql_script());
+				}
+				
+			}
+		}
+		return "updateSchemeRule";
+	}
+	
+    //修改保存方案
+    public String editSave(){
+	   try{
+		   if(StringUtil.isEmpty(plan.getPlan_code())){
+			   json = "{'result':0,'message':'方案编码不能为空。'}";
+			   return JSON_MESSAGE;
+		   }
+		   AdminUser user = ManagerUtils.getAdminUser();
+		   if(!"edit".equals(action)){
+			   plan.setCreate_date("sysdate");
+			   plan.setCreate_user(user.getUsername());
+			   if(schemeManager.planCodeIsExists(plan.getPlan_code())){
+				   json = "{'result':0,'message':'方案编码已存在，请重新输入。'}";
+				   return JSON_MESSAGE;
+			   }
+		   }
+		   if(!StringUtils.isEmpty(plan.getCtrl_val())){
+			   if(plan.getCtrl_type().equalsIgnoreCase("java")){
+				   java = schemeManager.queryJavaByJavaBean(plan.getCtrl_val());
+				   if(java==null){
+					   java =new ObjJava();
+					   java.setJava_bean(plan.getCtrl_val());
+					   this.schemeManager.addJava(java);
+				   }
+				   plan.setCtrl_val(java.getJava_code());
+				}else if(plan.getCtrl_type().equalsIgnoreCase("sql")){
+				   sql = schemeManager.querySqlBySql(plan.getCtrl_val());
+				   if(sql==null){
+					   sql=new ObjSql();
+					   sql.setSql_script(plan.getCtrl_val());
+					   this.schemeManager.addSql(sql);
+				   }
+				   plan.setCtrl_val(sql.getSql_code());
+				}
+		    }
+			if("edit".equals(action)){
+				this.schemeManager.updateScheme(plan);
+			}else{
+				plan.setStatus_cd("00A");
+				schemeManager.addScheme(plan);
+			}
+		   //先删除方案规则关联表====mochunrun 2014-2-25
+		   if("edit".equals(action)){
+			   schemeManager.deletePlanRuleAttr(plan.getPlan_id());
+			   //先删除方案规中间数据联表====mochunrun 2014-2-25
+			   schemeManager.deletePlanMidData(plan.getPlan_id());
+			   //先删除方案规结果处理数据====mochunrun 2014-2-25
+			   schemeManager.deletePlanDataProcess(plan.getPlan_id());
+		   }
+		   for (int i = 0; i < activation_group.length; i++) {
+				attr=new PlanRuleAttr();
+				attr.setRule_id(ruleIdArray[i]);
+				attr.setActivation_group(activation_group[i]);
+				attr.setAuto_focus(auto_focus[i]);
+				attr.setPriority(priority[i]);
+				attr.setPlan_id(plan.getPlan_id());
+				this.schemeManager.addRule(attr);
+			}
+		   
+		   for(int j=0;j<dataCode.length;j++){
+				mid=new MidDataObjConfig();
+				//mid.setMid_data_code(dataCode[j]);
+				mid.setMid_data_code(plan.getPlan_id());
+				mid.setCal_type(caltype[j]);
+				mid.setCal_logic(calLogic[j]);
+				mid.setFact_java_class(javaClass[j]);
+				mid.setNeed_process_data(processData[j]);
+				mid.setPlan_id(plan.getPlan_id());
+				mid.setStatus_cd("00A");
+				mid.setCreate_user(user.getUsername());
+				if(mid.getCal_type().equalsIgnoreCase("java")){
+					java = schemeManager.queryJavaByJavaBean(mid.getCal_logic());
+					if(java==null){
+						java =new ObjJava();
+						java.setJava_bean(mid.getCal_logic());
+					    this.schemeManager.addJava(java);
+					}
+				    mid.setCal_logic(java.getJava_code());
+				}else if(mid.getCal_type().equalsIgnoreCase("sql")){
+					sql = schemeManager.querySqlBySql(mid.getCal_logic());
+					if(sql==null){
+						sql=new ObjSql();
+						sql.setSql_script(mid.getCal_logic());
+					    this.schemeManager.addSql(sql);
+					}
+				    mid.setCal_logic(sql.getSql_code());
+				}
+				this.schemeManager.addMid(mid);
+				
+				//配置中间数据
+				process=new ProcessObjMid();
+				process.setPlan_id(plan.getPlan_id());
+				process.setMid_data_code(mid.getMid_data_id());
+				process.setDetail_cal_type(detailCalType[j]);
+				process.setDetail_cal_logic(detailCalLogic[j]);
+				process.setList_cal_type(listCalType[j]);
+				process.setList_cal_logic(listCallogic[j]);
+				process.setCreate_user(user.getUsername());
+				if(!"edit".equals(action))process.setCreate_date("sysdate");
+				process.setStatus_cd("00A");
+				if(process.getDetail_cal_type().equalsIgnoreCase("java")){
+					java = schemeManager.queryJavaByJavaBean(process.getDetail_cal_logic());
+					if(java==null){
+						java =new ObjJava();
+						java.setJava_bean(process.getDetail_cal_logic());
+					    this.schemeManager.addJava(java);
+					}
+				    process.setDetail_cal_logic(java.getJava_code());
+				}else{
+					sql = schemeManager.querySqlBySql(process.getDetail_cal_logic());
+					if(sql==null){
+						sql=new ObjSql();
+						sql.setSql_script(process.getDetail_cal_logic());
+					    this.schemeManager.addSql(sql);
+					}
+				    process.setDetail_cal_logic(sql.getSql_code());
+				}
+				if(process.getList_cal_type().equalsIgnoreCase("java")){
+					java = schemeManager.queryJavaByJavaBean(process.getList_cal_logic());
+					if(java==null){
+						java =new ObjJava();
+						java.setJava_bean(mid.getCal_logic());
+					    this.schemeManager.addJava(java);
+					}
+				    process.setList_cal_logic(java.getJava_code());
+				}else{
+					sql = schemeManager.querySqlBySql(process.getList_cal_logic());
+					if(sql==null){
+						sql=new ObjSql();
+						sql.setSql_script(process.getList_cal_logic());
+					    this.schemeManager.addSql(sql);
+					}
+				    process.setList_cal_logic(sql.getSql_code());
+				}
+				this.schemeManager.addProcess(process);
+			}
+		   
+			json = "{'result':1,'message':'操作成功！'}";
+		
+		}catch(RuntimeException e){
+//			this.logger.info(e.getMessage(), e);
+			this.json="{result:0,message:'添加失败"+e.getMessage()+"'}";
+		}
+	   return JSON_MESSAGE;
+   }
+    /*
+     * 修改中间数据
+     */
+    public String addRule(){
+    	offer=this.schemeManager.service();
+		return "addRule";
+	}
+    
+    /**
+     * 废去该方法 2014-2-25
+     * @作者 MoChunrun
+     * @创建日期 2014-2-25 
+     * @return
+     */
+    @Deprecated
+	public String saveSchemeRule(){
+		AdminUser user = ManagerUtils.getAdminUser();
+		if(user!=null){
+			plan.setCreate_user(user.getUsername());
+		}
+		plan.setCreate_date("sysdate");
+		plan.setStatus_cd(Const.RULE_STATUS_00A);
+		try {
+			if(plan.getCtrl_type().equalsIgnoreCase("java")){
+				java =new ObjJava();
+				java.setJava_bean(plan.getCtrl_val());
+			    this.schemeManager.addJava(java);
+			    plan.setCtrl_val(java.getJava_code());
+			}
+			if(plan.getCtrl_type().equalsIgnoreCase("sql")){
+				sql=new ObjSql();
+				sql.setSql_script(plan.getCtrl_val());
+			   this.schemeManager.addSql(sql);
+			   plan.setCtrl_val(sql.getSql_code());
+			}
+			schemeManager.addScheme(plan);
+			for (int i = 0; i < activation_group.length; i++) {
+				attr=new PlanRuleAttr();
+				attr.setRule_id(ruleIdArray[i]);
+				attr.setActivation_group(activation_group[i]);
+				attr.setAuto_focus(auto_focus[i]);
+				attr.setPriority(priority[i]);
+				attr.setPlan_id(plan.getPlan_id());
+				schemeManager.addRule(attr);
+			}
+			
+			for(int j=0;j<dataCode.length;j++){
+				
+				mid=new MidDataObjConfig();
+				if(user!=null){
+					mid.setCreate_user(user.getUsername());
+				}
+				mid.setMid_data_code(dataCode[j]);
+				mid.setCal_type(caltype[j]);
+				mid.setCal_logic(calLogic[j]);
+				mid.setFact_java_class(javaClass[j]);
+				mid.setNeed_process_data(processData[j]);
+				mid.setCreate_date("sysdate");
+				mid.setStatus_cd(Const.RULE_STATUS_00A);
+				mid.setPlan_id(plan.getPlan_id());
+				this.schemeManager.addMid(mid);
+			}
+			if(mid.getCal_type().equalsIgnoreCase("java")){
+				java =new ObjJava();
+				java.setJava_bean(mid.getCal_logic());
+			    this.schemeManager.addJava(java);
+			    mid.setCal_logic(java.getJava_code());
+			}
+			if(mid.getCal_type().equalsIgnoreCase("sql")){
+				sql=new ObjSql();
+				sql.setSql_script(mid.getCal_logic());
+			   this.schemeManager.addSql(sql);
+			   mid.setCal_logic(sql.getSql_code());
+			}
+			if("T".equalsIgnoreCase(mid.getNeed_process_data())){
+				for(int a=0;a<detailCalType.length;a++){
+					process=new ProcessObjMid();
+					if(user!=null){
+						process.setCreate_user(user.getUsername());
+					}
+					process.setPlan_id(plan.getPlan_id());
+					process.setMid_data_code(mid.getMid_data_code());
+					process.setDetail_cal_type(detailCalType[a]);
+					process.setDetail_cal_logic(detailCalLogic[a]);
+					process.setList_cal_type(listCalType[a]);
+					process.setCreate_date("sysdate");
+					process.setStatus_cd(Const.RULE_STATUS_00A);
+					process.setList_cal_logic(listCallogic[a]);
+					this.schemeManager.addProcess(process);
+				}
+			}
+			 json = "{'result':1,'message':'新增成功！'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			 json = "{'result':0,'message':'新增失败！'}";
+			 return this.JSON_MESSAGE;
+		}
+		 return this.JSON_MESSAGE;
+	}
+	/**
+	 * 新增中间数据
+	 * @return
+	 */
+	public String addMid(){
+		
+		return "addMid";
+	}
+	public String saveMid(){
+		AdminUser user = ManagerUtils.getAdminUser();
+		if(user!=null){
+			mid.setCreate_user(user.getUsername());
+			process.setCreate_user(user.getUsername());
+		}
+		mid.setCreate_date("sysdate");
+		mid.setStatus_cd(Const.RULE_STATUS_00A);
+		try {
+			if(mid.getCal_type().equalsIgnoreCase("java")){
+				java =new ObjJava();
+				java.setJava_bean(mid.getCal_logic());
+			    this.schemeManager.addJava(java);
+			    mid.setCal_logic(java.getJava_code());
+			}
+			if(mid.getCal_type().equalsIgnoreCase("sql")){
+				sql=new ObjSql();
+				sql.setSql_script(mid.getCal_logic());
+			   this.schemeManager.addSql(sql);
+			   mid.setCal_logic(sql.getSql_code());
+			}
+			this.schemeManager.addMid(mid);
+			process.setCreate_date("sysdate");
+			process.setStatus_cd(Const.RULE_STATUS_00A);
+			this.schemeManager.addProcess(process);
+			json = "{'result':1,'message':'新增成功！'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			 json = "{'result':0,'message':'新增失败！'}";
+			 return this.JSON_MESSAGE;
+		}
+		 return this.JSON_MESSAGE;
+	}
+	public String delProcess(){
+		try {
+			this.schemeManager.delMid(mid_data_code);
+			this.schemeManager.delProcess(mid_data_code);
+			this.json = "{result:1}";
+		} catch (RuntimeException e) {
+			this.logger.info(e.getMessage(), e);
+			this.json = "{result:0,message:'" + e.getMessage() + "'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	public String addMidPro(){
+		return "addMidPro";
+	}
+	 public String updateMid(){
+	    	this.mid=this.schemeManager.queryMid(mid_data_code);
+	    	this.process=this.schemeManager.queryProcess(mid_data_code);
+	    	return "updateMid";
+	    }
+	public List<PlanRuleAttr> getAtts() {
+		return atts;
+	}
+	public void setAtts(List<PlanRuleAttr> atts) {
+		this.atts = atts;
+	}
+	public RuleObjPlan getPlan() {
+		return plan;
+	}
+	public String getPlan_id() {
+		return plan_id;
+	}
+	public String getJava_code() {
+		return java_code;
+	}
+	public void setJava_code(String java_code) {
+		this.java_code = java_code;
+	}
+	public String getSql_code() {
+		return sql_code;
+	}
+	public void setSql_code(String sql_code) {
+		this.sql_code = sql_code;
+	}
+	public void setPlan_id(String plan_id) {
+		this.plan_id = plan_id;
+	}
+	public void setPlan(RuleObjPlan plan) {
+		this.plan = plan;
+	}
+	public PlanRuleAttr getAttr() {
+		return attr;
+	}
+	public void setAttr(PlanRuleAttr attr) {
+		this.attr = attr;
+	}
+	public ObjSql getSql() {
+		return sql;
+	}
+	public void setSql(ObjSql sql) {
+		this.sql = sql;
+	}
+	public ObjJava getJava() {
+		return java;
+	}
+	public void setJava(ObjJava java) {
+		this.java = java;
+	}
+	public MidDataObjConfig getMid() {
+		return mid;
+	}
+	public void setMid(MidDataObjConfig mid) {
+		this.mid = mid;
+	}
+	public List getMidData() {
+		return midData;
+	}
+	public void setMidData(List midData) {
+		this.midData = midData;
+	}
+	public ISchemeManager getSchemeManager() {
+		return schemeManager;
+	}
+
+	public String getService_id() {
+		return service_id;
+	}
+	public void setService_id(String service_id) {
+		this.service_id = service_id;
+	}
+	public void setSchemeManager(ISchemeManager schemeManager) {
+		this.schemeManager = schemeManager;
+	}
+
+	public ServiceObjOffer getService() {
+		return service;
+	}
+	public void setService(ServiceObjOffer service) {
+		this.service = service;
+	}
+	public String getPlan_code() {
+		return plan_code;
+	}
+
+	public String getStatus_cd() {
+		return status_cd;
+	}
+	public void setStatus_cd(String status_cd) {
+		this.status_cd = status_cd;
+	}
+	public String getCreate_date() {
+		return create_date;
+	}
+	public ProcessObjMid getProcess() {
+		return process;
+	}
+	public void setProcess(ProcessObjMid process) {
+		this.process = process;
+	}
+	public void setCreate_date(String create_date) {
+		this.create_date = create_date;
+	}
+	public List getOffer() {
+		return offer;
+	}
+	public void setOffer(List offer) {
+		this.offer = offer;
+	}
+	public void setPlan_code(String plan_code) {
+		this.plan_code = plan_code;
+	}
+
+	public String getPlan_name() {
+		return plan_name;
+	}
+
+	public void setPlan_name(String plan_name) {
+		this.plan_name = plan_name;
+	}
+	public String getRule_id() {
+		return rule_id;
+	}
+	public void setRule_id(String rule_id) {
+		this.rule_id = rule_id;
+	}
+	public String[] getActivation_group() {
+		return activation_group;
+	}
+	public void setActivation_group(String[] activation_group) {
+		this.activation_group = activation_group;
+	}
+	public String[] getAuto_focus() {
+		return auto_focus;
+	}
+	public void setAuto_focus(String[] auto_focus) {
+		this.auto_focus = auto_focus;
+	}
+	public String[] getPlan_ids() {
+		return plan_ids;
+	}
+	public void setPlan_ids(String[] plan_ids) {
+		this.plan_ids = plan_ids;
+	}
+	public String[] getPriority() {
+		return priority;
+	}
+	public void setPriority(String[] priority) {
+		this.priority = priority;
+	}
+	public String getMid_data_id() {
+		return mid_data_id;
+	}
+	public void setMid_data_id(String mid_data_id) {
+		this.mid_data_id = mid_data_id;
+	}
+	public List<Map> getMidProcess() {
+		return midProcess;
+	}
+	public void setMidProcess(List<Map> midProcess) {
+		this.midProcess = midProcess;
+	}
+	public String getMid_data_code() {
+		return mid_data_code;
+	}
+	public void setMid_data_code(String mid_data_code) {
+		this.mid_data_code = mid_data_code;
+	}
+	public String[] getDataCode() {
+		return dataCode;
+	}
+	public void setDataCode(String[] dataCode) {
+		this.dataCode = dataCode;
+	}
+	public String[] getCaltype() {
+		return caltype;
+	}
+	public void setCaltype(String[] caltype) {
+		this.caltype = caltype;
+	}
+	public String[] getCalLogic() {
+		return calLogic;
+	}
+	public void setCalLogic(String[] calLogic) {
+		this.calLogic = calLogic;
+	}
+	public String[] getJavaClass() {
+		return javaClass;
+	}
+	public void setJavaClass(String[] javaClass) {
+		this.javaClass = javaClass;
+	}
+	public String[] getListCalType() {
+		return listCalType;
+	}
+	public void setListCalType(String[] listCalType) {
+		this.listCalType = listCalType;
+	}
+	public String[] getListCallogic() {
+		return listCallogic;
+	}
+	public void setListCallogic(String[] listCallogic) {
+		this.listCallogic = listCallogic;
+	}
+	public String[] getDetailCalType() {
+		return detailCalType;
+	}
+	public void setDetailCalType(String[] detailCalType) {
+		this.detailCalType = detailCalType;
+	}
+	public String[] getDetailCalLogic() {
+		return detailCalLogic;
+	}
+	public void setDetailCalLogic(String[] detailCalLogic) {
+		this.detailCalLogic = detailCalLogic;
+	}
+	public String[] getProcessData() {
+		return processData;
+	}
+	public void setProcessData(String[] processData) {
+		this.processData = processData;
+	}
+	public String[] getRuleIdArray() {
+		return ruleIdArray;
+	}
+	public void setRuleIdArray(String[] ruleIdArray) {
+		this.ruleIdArray = ruleIdArray;
+	}
+	public String getAction() {
+		return action;
+	}
+	public void setAction(String action) {
+		this.action = action;
+	}
+
+	public PlanEntityRel getEntity() {
+		return entity;
+	}
+
+	public void setEntity(PlanEntityRel entity) {
+		this.entity = entity;
+	}
+
+	public String getRel_id() {
+		return rel_id;
+	}
+
+	public void setRel_id(String rel_id) {
+		this.rel_id = rel_id;
+	}
+
+	public String getAdmin_name() {
+		return admin_name;
+	}
+
+	public void setAdmin_name(String admin_name) {
+		this.admin_name = admin_name;
+	}
+
+	public String getAdmin_user_id() {
+		return admin_user_id;
+	}
+
+	public void setAdmin_user_id(String admin_user_id) {
+		this.admin_user_id = admin_user_id;
+	}
+	
+}

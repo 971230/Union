@@ -1,0 +1,101 @@
+package com.ztesoft.net.mall.widget.goods.list;
+
+import java.util.List;
+import java.util.Map;
+
+import com.ztesoft.remote.inf.IAdvService;
+import com.ztesoft.net.app.base.core.model.AdColumn;
+import com.ztesoft.net.app.base.core.model.Adv;
+import com.ztesoft.net.eop.sdk.widget.AbstractWidget;
+import com.ztesoft.net.mall.core.model.Cat;
+import com.ztesoft.net.mall.core.service.IGoodsCatManager;
+import com.ztesoft.net.mall.widget.goods.search.SearchUrlDirectiveModel;
+import com.ztesoft.remote.params.adv.req.AdColumnReq;
+import com.ztesoft.remote.params.adv.req.AdvReq;
+
+import javax.annotation.Resource;
+
+/**
+ * 楼层数据挂件
+ * 
+ * @author wui
+ * 
+ */
+public class LevelGoods extends AbstractWidget {
+	private GoodsDataProvider goodsDataProvider;
+	private IGoodsCatManager goodsCatManager;
+
+    @Resource
+	private IAdvService advService;
+
+	/**
+	 * 
+	 * 1、获取一级分类 2、获取一级分类的二级分类 3、获取二级分类的三级分类 4、获取一级分类的广告 5、获取二级分类的商品
+	 * 
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	protected void display(Map<String, String> params) {
+		//add by wui 性能问题暂时不开放
+//		if(true)
+//			return;
+		List<Cat> cat_tree = goodsCatManager.listAllChildren("0");
+		for (Cat cat : cat_tree) {
+			//获取楼层广告图片
+		    AdColumnReq adColumnReq = new AdColumnReq();
+		    adColumnReq.setCatid(cat.getCat_id());
+		    adColumnReq.setPosition("lc");
+		    
+		    AdColumn  adc = this.advService.getAdColumnDetail(adColumnReq).getAdColumn();
+		   
+			Adv adv=new Adv();
+			
+			if(adc!=null){
+				AdvReq advReq = new AdvReq();
+				advReq.setAcid(adc.getAcid()+"");
+				List<Adv> advList = this.advService.queryAdByAcId(advReq).getAdvList();
+				if (advList!=null&&advList.size()>0) {
+					adv=advList.get(0);
+				}
+			}
+			cat.setAdv(adv);
+			
+			//缺省展示显示楼层的数据
+			if(!"1".equals(cat.getFloor_list_show()))
+				continue;
+			
+			
+			//cat
+			for (Cat s_cat : cat.getChildren()) {
+				// 获取二级节点
+				Term term = new Term();
+				term.setCatid(s_cat.getCat_id());
+				term.setTagid("");
+				List goodsList = goodsDataProvider.list(term, new Integer(params.get("goods_num")).intValue());// 设置显示的数量
+				s_cat.setCatGoodsList(goodsList);
+			}
+			
+		}
+		this.putData("cat_tree", cat_tree);
+		this.putData("searchUrl", new SearchUrlDirectiveModel());
+	}
+
+	@Override
+	protected void config(Map<String, String> params) {
+
+	}
+
+	public IGoodsCatManager getGoodsCatManager() {
+		return goodsCatManager;
+	}
+
+	public void setGoodsCatManager(IGoodsCatManager goodsCatManager) {
+		this.goodsCatManager = goodsCatManager;
+	}
+
+	public void setGoodsDataProvider(GoodsDataProvider goodsDataProvider) {
+		this.goodsDataProvider = goodsDataProvider;
+	}
+
+
+}

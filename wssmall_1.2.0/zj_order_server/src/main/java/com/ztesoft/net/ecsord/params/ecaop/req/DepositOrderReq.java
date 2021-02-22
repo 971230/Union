@@ -1,0 +1,208 @@
+package com.ztesoft.net.ecsord.params.ecaop.req;
+
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.util.ZjCommonUtils;
+
+import params.ZteRequest;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+public class DepositOrderReq extends ZteRequest {
+
+	@ZteSoftCommentAnnotationParam(name = "订单号", type = "String", isNecessary = "Y", desc = "订单系统内部订单")
+	private String notNeedReqStrOrderId;
+	@ZteSoftCommentAnnotationParam(name = "业务号码", type = "String", isNecessary = "Y", desc = "服务号码")
+	private String service_num;
+	@ZteSoftCommentAnnotationParam(name = "押金项目", type = "String", isNecessary = "Y", desc = "押金项目")
+	private String deposit_type;	
+	@ZteSoftCommentAnnotationParam(name = "应收费用", type = "String", isNecessary = "Y", desc = "应收费用")
+	private Double deposit_value;
+	@ZteSoftCommentAnnotationParam(name = "减免费用", type = "String", isNecessary = "Y", desc = "减免费用")
+	private Double deration_value;
+	@ZteSoftCommentAnnotationParam(name = "实收费用", type = "String", isNecessary = "Y", desc = "实收费用")
+	private Double depositIncome;
+	@ZteSoftCommentAnnotationParam(name = "费用规则id", type = "String", isNecessary = "Y", desc = "费用规则id")
+	private String fee_rule_id;
+	@ZteSoftCommentAnnotationParam(name = "可退押金时间", type = "String", isNecessary = "N", desc = "可退押金时间")
+	private String canCancelDate;
+	@ZteSoftCommentAnnotationParam(name = "备注", type = "String", isNecessary = "N", desc = "备注")
+	private String remark;
+	@ZteSoftCommentAnnotationParam(name = "办理操作点", type = "String", isNecessary = "Y", desc = "办理操作点")
+	private String office_id;
+	@ZteSoftCommentAnnotationParam(name = "办理操作员", type = "String", isNecessary = "Y", desc = "办理操作员")
+	private String operator_id;
+
+	private OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId);
+	
+	public String getNotNeedReqStrOrderId() {
+		return notNeedReqStrOrderId;
+	}
+
+	public void setNotNeedReqStrOrderId(String notNeedReqStrOrderId) {
+		this.notNeedReqStrOrderId = notNeedReqStrOrderId;
+	}
+
+	public String getService_num() {
+		String service_nu = CommonDataFactory.getInstance().getAttrFieldValue(notNeedReqStrOrderId, "service_num");
+		if (!StringUtil.isEmpty(service_nu)) {
+			service_num=service_nu;
+		} else {
+			service_num="";
+		}
+		return service_num;
+	}
+
+	public void setService_num(String service_num) {
+		this.service_num = service_num;
+	}
+
+	public String getDeposit_type() {
+		String deposit_ty=CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getFeeInfoBusiRequests().get(0).getFee_type();
+		if (!StringUtil.isEmpty(deposit_ty)) {
+			deposit_type=deposit_ty;
+		} else {
+			deposit_type="";
+		}
+		return deposit_type;
+	}
+
+	public void setDeposit_type(String deposit_type) {
+		this.deposit_type = deposit_type;
+	}
+
+	public Double getDeposit_value() {
+		Double deposit_va=CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getFeeInfoBusiRequests().get(0).getO_fee_num();
+		if (deposit_va != 0 || deposit_va !=null) {
+			deposit_value=deposit_va;
+		} 
+		return deposit_value;
+	}
+
+	public void setDeposit_value(Double deposit_value) {
+		this.deposit_value = deposit_value;
+	}
+
+	public Double getDeration_value() {
+		Double deration_va=CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getFeeInfoBusiRequests().get(0).getDiscount_fee();
+		if (deration_va != 0 || deration_va !=null) {
+			deration_value=deration_va;
+		} 
+		return deration_value;
+	}
+
+	public void setDeration_value(Double deration_value) {
+		this.deration_value = deration_value;
+	}
+
+	public Double getDepositIncome() {
+		Double depositIn=CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getFeeInfoBusiRequests().get(0).getN_fee_num();
+		if (depositIn != 0 || depositIn !=null) {
+			depositIncome=depositIn;
+		} 
+		return depositIncome;
+	}
+
+	public void setDepositIncome(Double depositIncome) {
+		this.depositIncome = depositIncome;
+	}
+
+	public String getFee_rule_id() {
+		String rule_id=CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getFeeInfoBusiRequests().get(0).getFee_category();
+		if (!StringUtil.isEmpty(rule_id)) {
+			fee_rule_id=rule_id;
+		} else {
+			fee_rule_id="";
+		}
+		return fee_rule_id;
+	}
+
+	public void setFee_rule_id(String fee_rule_id) {
+		this.fee_rule_id = fee_rule_id;
+	}
+
+	public String getCanCancelDate() {
+		String canCance=CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getFeeInfoBusiRequests().get(0).getCan_cancel_date();
+		if (!StringUtil.isEmpty(canCance)) {
+			try {
+				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");  
+	    	    Date date;
+	    	    date = sdf.parse(canCance);
+	    	    SimpleDateFormat sdf2=new SimpleDateFormat("yyyyMMdd");
+	    	    String str=sdf2.format(date);
+	    	    canCancelDate =  str;
+				} catch (ParseException e) {
+					canCancelDate="";
+				} 
+		} else {
+			canCancelDate="";
+		}
+		return canCancelDate;
+	}
+
+	public void setCanCancelDate(String canCancelDate) {
+		this.canCancelDate = canCancelDate;
+	}
+
+	public String getRemark() {
+		String remark1=CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getOrderBusiRequest().getRemark();
+		if (!StringUtil.isEmpty(remark1)) {
+			remark=remark1;
+		} else {
+			remark="";
+		}
+		return remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+
+	public String getOffice_id() {
+		String source_from = CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getOrderExtBusiRequest().getOrder_from();
+		String OUT_OFFICE = CommonDataFactory.getInstance().getAttrFieldValue(notNeedReqStrOrderId, AttrConsts.OUT_OFFICE);
+		if(!StringUtil.isEmpty(OUT_OFFICE)){
+			office_id = OUT_OFFICE;
+		}else{
+			office_id = ZjCommonUtils.getGonghaoInfoByOrderId(notNeedReqStrOrderId).getDept_id();
+		}
+		return office_id;
+	}
+
+	public void setOffice_id(String office_id) {
+		this.office_id = office_id;
+	}
+
+	public String getOperator_id() {
+		String source_from = CommonDataFactory.getInstance().getOrderTree(notNeedReqStrOrderId).getOrderExtBusiRequest().getOrder_from();
+		String OUT_OPERATOR = CommonDataFactory.getInstance().getAttrFieldValue(notNeedReqStrOrderId, AttrConsts.OUT_OPERATOR);
+		if(!StringUtil.isEmpty(OUT_OPERATOR)){
+			operator_id = OUT_OPERATOR;
+		}else{
+			operator_id = ZjCommonUtils.getGonghaoInfoByOrderId(notNeedReqStrOrderId).getUser_code();
+		}
+		return operator_id;
+	}
+
+	public void setOperator_id(String operator_id) {
+		this.operator_id = operator_id;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+
+	}
+
+	@Override
+	public String getApiMethodName() {
+		return "ecaop.trades.serv.busi.deposit.sub";
+	}
+
+}

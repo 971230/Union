@@ -1,0 +1,159 @@
+package com.ztesoft.face.vo;
+
+import com.ztesoft.face.comm.FaceVO;
+
+import java.util.ArrayList;
+
+/**
+ * @author Reason.Yea
+ * @version Created Feb 18, 2013
+ */
+public class OperLog extends FaceVO{
+	private boolean log=true;
+	private String log_id="";
+	private String oper_staff_no="";
+	private String log_time="";
+	private String log_ip="";
+	private String table_name="";
+	private String rel_id="";
+	private String log_type="";
+	private String log_staff_msg="";
+	private String log_desc="";
+	private String col1="";
+	private String col2="";
+	private String col3="";
+	public boolean isLog(){
+		return log;
+	}
+	public void setLog(boolean log){
+		this.log = log;
+	}
+	public String getLog_id() {
+		return log_id;
+	}
+	public void setLog_id(String log_id) {
+		this.log_id = log_id;
+	}
+	public String getOper_staff_no() {
+		return oper_staff_no;
+	}
+	public void setOper_staff_no(String oper_staff_no) {
+		this.oper_staff_no = oper_staff_no;
+	}
+	public String getLog_time() {
+		return log_time;
+	}
+	public void setLog_time(String log_time) {
+		this.log_time = log_time;
+	}
+	public String getLog_ip() {
+		return log_ip;
+	}
+	public void setLog_ip(String log_ip) {
+		this.log_ip = log_ip;
+	}
+	public String getTable_name() {
+		return table_name;
+	}
+	public void setTable_name(String table_name) {
+		this.table_name = table_name;
+	}
+	public String getRel_id() {
+		return rel_id;
+	}
+	public void setRel_id(String rel_id) {
+		this.rel_id = rel_id;
+	}
+	public String getLog_type() {
+		return log_type;
+	}
+	public void setLog_type(String log_type) {
+		this.log_type = log_type;
+	}
+	public String getLog_staff_msg() {
+		return log_staff_msg;
+	}
+	public void setLog_staff_msg(String log_staff_msg) {
+		this.log_staff_msg = log_staff_msg;
+	}
+	public String getLog_desc() {
+		return log_desc;
+	}
+	public void setLog_desc(String log_desc) {
+		this.log_desc = log_desc;
+	}
+	public String getCol1() {
+		return col1;
+	}
+	public void setCol1(String col1) {
+		this.col1 = col1;
+	}
+	public String getCol2() {
+		return col2;
+	}
+	public void setCol2(String col2) {
+		this.col2 = col2;
+	}
+	public String getCol3() {
+		return col3;
+	}
+	public void setCol3(String col3) {
+		this.col3 = col3;
+	}
+//	
+//	public void loadFromMap(HashMap log){
+//		this.log_id       =(String) log.get("log_id");   
+//		this.oper_staff_no=(String) log.get("oper_staff_no");
+//		this.log_time     =(String) log.get("log_time");
+//		this.log_ip       =(String) log.get("log_ip");
+//		this.table_name   =(String) log.get("table_name");
+//		this.rel_id       =(String) log.get("rel_id");
+//		this.log_type     =(String) log.get("log_type");
+//		this.log_staff_msg=(String) log.get("log_staff_msg");
+//		this.log_desc     =(String) log.get("log_desc");
+//		this.col1         =(String) log.get("col1");
+//		this.col2         =(String) log.get("col2");
+//		this.col3         =(String) log.get("col3");
+//	}
+//	
+//	public HashMap toMap(){
+//		HashMap map = new HashMap();
+//		map.put("log_id",log_id);
+//		map.put("oper_staff_no",oper_staff_no);
+//		map.put("log_time",log_time);
+//		map.put("log_ip",log_ip);
+//		map.put("table_name",table_name);
+//		map.put("rel_id",rel_id);
+//		map.put("log_type",log_type);
+//		map.put("log_staff_msg",log_staff_msg);
+//		map.put("log_desc",log_desc);
+//		map.put("col1",col1);
+//		map.put("col2",col2);
+//		map.put("col3",col3);
+//		return map;
+//	}
+	
+	@Override
+	public ArrayList toList() {
+		ArrayList ls = new ArrayList();
+		ls.add(log_id);
+		ls.add(oper_staff_no);
+		ls.add(log_time);
+		ls.add(log_ip);
+		ls.add(table_name);
+		ls.add(rel_id);
+		ls.add(log_type);
+		ls.add(log_staff_msg);
+		ls.add(log_desc);
+		ls.add(col1);
+		ls.add(col2);
+		ls.add(col3);
+		return ls;
+	}
+	@Override
+	public String getInsertSql() {
+		return "insert into  tfm_oper_log(log_id,oper_staff_no,log_time,log_ip,table_name,rel_id,log_type,log_staff_msg,log_desc,col1,col2,col3)" +
+				" values(?,?,to_date(?,'yyyy-MM-dd hh24:mi:ss'),?,?,?,?,?,?,?,?,?) ";
+	}
+
+}

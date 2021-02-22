@@ -1,0 +1,170 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import services.FlowInf;
+import services.ModHandlerInf;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.SupplierAccount;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.ReflectionUtil;
+import com.ztesoft.net.mall.core.service.ISupplierAccountManager;
+import com.ztesoft.net.mall.core.service.SupplierStatus;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.core.workflow.core.FlowType;
+import com.ztesoft.net.mall.core.workflow.core.InitFlowParam;
+import com.ztesoft.net.mall.core.workflow.util.ModParams;
+import com.ztesoft.net.mall.core.workflow.util.ModVO;
+
+public class SupplierAccountManager extends BaseSupport<SupplierAccount>
+		implements ISupplierAccountManager {
+
+	private ModHandlerInf modInfoHandler ;
+	private FlowInf flowServ;
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void add(SupplierAccount supplierAccount,String state) {
+		this.daoSupport.insert("es_supplier_account", supplierAccount);
+		
+		if(StringUtils.isNotEmpty(state)){
+//			// 起流程
+			String currUserId = ManagerUtils.getUserId();
+			flowServ.startFlow(new InitFlowParam(FlowType.SUPP_ACCOUNT_APPLY,
+					currUserId, supplierAccount.getAccount_id()));
+		}
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void dataDeal(String open_bank, String address, String accoun_name,
+			String bank_account, String account_attachment, String is_default,
+			String supplier_id) {
+		this.baseDaoSupport.execute("delete from es_supplier_account where supplier_id="+supplier_id);
+		String[] sizes = open_bank.split(",");
+		for (int i = 0; i < sizes.length; i++) {
+			SupplierAccount supplierAccount = new SupplierAccount();
+			supplierAccount.setAccoun_name(accoun_name.split(",")[i]);
+			supplierAccount.setAddress(address.split(",")[i]);
+			supplierAccount.setAccount_attachment(account_attachment);
+			supplierAccount.setIs_default(is_default.split(",")[i]);
+			supplierAccount.setBank_account(bank_account.split(",")[i]);
+			supplierAccount.setOpen_bank(sizes[i]);
+			supplierAccount.setRegister_time(DBTUtil.current());
+			supplierAccount.setState(SupplierStatus.SUPPLIER_STATE_2);
+			supplierAccount.setSupplier_id(supplier_id);
+			add(supplierAccount,null);
+		}
+
+	}
+
+	public List list(String currUserId) {
+		String sql = "SELECT C.* FROM ES_SUPPLIER A, ES_ADMINUSER B, ES_SUPPLIER_ACCOUNT C WHERE A.USERID = B.USERID"
+				+ " AND C.SUPPLIER_ID = A.SUPPLIER_ID AND a.userid=? order by c.register_time asc";
+		return this.baseDaoSupport.queryForList(sql, SupplierAccount.class,
+				currUserId);
+	}
+
+	public SupplierAccount findAccountById(String account_id) {
+		String sql = "SELECT *FROM es_supplier_account WHERE account_id =? order by register_time asc";
+		return this.baseDaoSupport.queryForObject(sql, SupplierAccount.class,
+				account_id);
+	}
+	
+	@Override
+	public List<SupplierAccount> findAccountBySupplierId(String supplier_id) {
+		String sql = "SELECT * FROM es_supplier_account WHERE supplier_id =?";
+		return this.baseDaoSupport.queryForList(sql, SupplierAccount.class, supplier_id);
+	}
+	
+	// 删除
+	@Transactional(propagation = Propagation.REQUIRED)
+	public int delete(String account_id) {
+		if (account_id == null || account_id.equals("")) {
+			return 0;
+		} else {
+			String sql = "delete from es_supplier_account where account_id in ("
+					+ account_id + ") ";
+			this.baseDaoSupport.execute(sql);
+			return 1;
+		}
+	}
+	
+	/*
+	 * 修改信息
+	 */
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void edit(SupplierAccount supplierAccount,String supplier_state) {
+//		if (SupplierStatus.SUPPLIER_STATE_2
+//				.equals(supplier_state)) {// 如果是审核后修改
+//
+//		} else {
+//			//supplier.setSupplier_state(SupplierStatus.SUPPLIER_STATE_1);
+//			
+//			HashMap fields=new HashMap();
+//			fields.put("supplier_state", SupplierStatus.SUPPLIER_STATE_1);
+//			this.baseDaoSupport.update("es_supplier", fields, " supplier_id='" + supplierAccount.getSupplier_id()+"'");
+//			
+//			this.baseDaoSupport.update("es_supplier_account", supplierAccount,
+//					" account_id=" + supplierAccount.getAccount_id());
+//		}
+		
+		
+		Map supplierAccountMap = null;
+		
+		supplierAccountMap = ReflectionUtil.po2Map(supplierAccount);
+		
+		List<ModVO> modInfos = new ArrayList<ModVO>() ;
+		ModVO modVO=new ModVO();
+		
+		modVO.setTableName("ES_SUPPLIER_ACCOUNT");
+		modVO.setObj(supplierAccount);
+		
+		modInfos.add(modVO);
+		
+		ModParams param = new ModParams(FlowType.SUPP_MOD_ACCOUNT  ,
+				ManagerUtils.getAdminUser().getUserid(),supplierAccount.getAccount_id() ,modInfos ) ;
+		
+		this.modInfoHandler.checkAndStartFlow(param) ;
+		
+		if(modVO.getChangedFields()!=null){
+			for(String afield_name :modVO.getChangedFields()){
+				if(StringUtils.isNotEmpty((String)supplierAccountMap.get(afield_name))){
+					supplierAccountMap.remove(afield_name);
+				}
+			 }
+			
+			supplierAccountMap.put("STATE", 0);
+		}
+		
+		 
+		this.baseDaoSupport.update("es_supplier_account", supplierAccountMap, "account_id='"+ supplierAccountMap.get("account_id")+"'");
+		
+	}
+
+	public ModHandlerInf getModInfoHandler() {
+		return modInfoHandler;
+	}
+
+	public void setModInfoHandler(ModHandlerInf modInfoHandler) {
+		this.modInfoHandler = modInfoHandler;
+	}
+
+	public FlowInf getFlowServ() {
+		return flowServ;
+	}
+
+	public void setFlowServ(FlowInf flowServ) {
+		this.flowServ = flowServ;
+	}
+
+	
+	
+}

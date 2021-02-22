@@ -1,0 +1,41 @@
+package com.ztesoft.net.eop.sdk.context;
+
+import java.io.InputStream;
+import java.util.Properties;
+
+import com.ztesoft.net.eop.sdk.utils.UploadUtilc;
+
+public class SftpConfigSetting {
+
+	//sftp配置属性
+	
+	public static String SFTP_SERVER =""; 
+	public static String SFTP_USERNAME =""; 
+	public static String SFTP_PASSWORD =""; 
+	public static String SFTP_PATH =""; 
+	
+	
+	
+	/*
+	 * 从配置文件中读取相关配置<br/>
+	 * 如果没有相关配置则使用默认
+	 */
+	static {
+		try{
+			InputStream in  = UploadUtilc.getResourceAsStream("fileconfig.properties");
+			Properties props = new Properties();
+			props.load(in);
+			init(props);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	 
+	
+	public static void init(Properties props ){
+		SFTP_SERVER = props.getProperty("sftp_server");
+		SFTP_USERNAME = props.getProperty("sftp_username");
+		SFTP_PASSWORD = props.getProperty("sftp_password");
+		SFTP_PATH = props.getProperty("sftp_path");
+	}
+}

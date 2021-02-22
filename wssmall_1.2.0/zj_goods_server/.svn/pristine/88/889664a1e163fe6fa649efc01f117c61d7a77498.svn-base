@@ -1,0 +1,61 @@
+package com.ztesoft.zteopen.service.ecs;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import params.RuleParams;
+import params.ZteResponse;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+import zte.net.iservice.IEcsServices;
+import zte.params.order.req.EcsTestReq;
+import zte.params.order.req.SmsSendReq;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.net.model.Outer;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+/**
+ * 
+ * @author wu.i
+ * 本地dub开放服务类
+ *
+ */
+@ServiceMethodBean(version = "1.0")
+@Service
+public class ZteEcsOpenService implements IEcsServices {
+
+	private IEcsServices ecsServices;
+	
+	private void init() {
+		ecsServices = ApiContextHolder.getBean("ecsServices");
+	}
+
+	@Override
+	@ServiceMethod(method = "zte.service.ecs.process.ruleparams", version = "1.0", needInSession = NeedInSessionType.NO, timeout = 600000)
+	public ZteResponse processrule(RuleParams ruleParams) throws ApiBusiException {
+		this.init();
+		return ecsServices.processrule(ruleParams);
+	}
+	@Override
+	@ServiceMethod(method="zte.service.wssmall.ecs.ecstest",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public ZteResponse ecsTest(EcsTestReq test) throws ApiBusiException {
+		this.init();
+		return ecsServices.ecsTest(test);
+	}
+
+	@Override
+	@ServiceMethod(method="zte.service.wssmall.ecs.smsSend",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public ZteResponse smsSend(SmsSendReq req) throws ApiBusiException {
+		this.init();
+		return ecsServices.smsSend(req);
+	}
+
+	public List<Outer> executeInfService(String req_content,Map param,String order_from)throws Exception{
+		return ecsServices.executeInfService(req_content, param, order_from);
+	}
+}

@@ -1,0 +1,354 @@
+package com.ztesoft.net.mall.server.servlet;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import com.taobao.api.ApiException;
+import com.taobao.api.DefaultTaobaoClient;
+import com.taobao.api.TaobaoClient;
+import com.taobao.api.domain.Trade;
+import com.taobao.api.request.FenxiaoOrdersGetRequest;
+import com.taobao.api.request.TradesSoldGetRequest;
+import com.taobao.api.request.TradesSoldIncrementGetRequest;
+import com.taobao.api.response.FenxiaoOrdersGetResponse;
+import com.taobao.api.response.TradeGetResponse;
+import com.taobao.api.response.TradesSoldGetResponse;
+import com.taobao.api.response.TradesSoldIncrementGetResponse;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.common.util.MD5Util;
+import com.ztesoft.ibss.common.util.StringUtils;
+import com.ztesoft.net.cache.common.CacheFactory;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.consts.OrderCtnConsts;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.IJSONUtil;
+import com.ztesoft.net.mall.utils.MallUtils;
+import com.ztesoft.net.mall.utils.TaoBaoHttpClientUtils;
+import com.ztesoft.net.model.Outer;
+import com.ztesoft.net.outter.inf.model.OuterError;
+
+import consts.ConstsCore;
+import zte.net.iservice.IOrderCtnService;
+import zte.net.iservice.IOrderQueueBaseManager;
+import zte.params.orderctn.req.OrderCtnReq;
+import zte.params.orderctn.resp.OrderCtnResp;
+
+public class TaobaoCtnService extends AbsTaobao {
+	
+	private static Logger logger = Logger.getLogger(TaobaoCtnService.class);
+	
+	private IOrderCtnService orderCtnService;
+	private IOrderQueueBaseManager orderQueueBaseManager;
+	private ICacheUtil cacheUtil;
+
+	private void initBean() {
+		if(null == orderCtnService) {
+			orderCtnService = SpringContextHolder.getBean("orderCtnService");
+		}
+		if (null == orderQueueBaseManager) {
+			orderQueueBaseManager = SpringContextHolder.getBean("orderQueueBaseManager");
+		}
+		if(null == cacheUtil) {
+			cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		}
+	}
+	
+	@Override
+	public List<Outer> executeInfService(String start_time,String end_time,Map params,String order_from) throws Exception{
+		//boolean test = true;
+		/*if(test){
+			List<TaobaoOrder> list = new ArrayList<TaobaoOrder>();
+			TaobaoOrder to = TestOrderData.packageTaobaoOrder();
+			list.add(to);
+			return list;
+		}*/
+		String url = String.valueOf(params.get("url"));
+		String appkey = String.valueOf(params.get("appkey"));
+		String secret = String.valueOf(params.get("secret"));
+		String sessionKey = String.valueOf(params.get("sessionKey"));
+		String jushitaUrl = params.get("jushitaUrl")==null?"":params.get("jushitaUrl").toString();
+		String jushitaAppId = params.get("jushitaAppId")==null?"":params.get("jushitaAppId").toString();
+		String isJushita = params.get("isJushita")==null?"":params.get("isJushita").toString();
+		StringBuffer sb = new StringBuffer();
+		
+		String strParams = sb.append("{").append("appkey:'").append(appkey)
+				.append("',secret:'").append(secret)
+				.append("',sessionKey:'").append(sessionKey)
+				.append("',url:'").append(url)
+				.append("',jushitaUrl:'").append(jushitaUrl)
+				.append("',jushitaAppId:'").append(jushitaAppId)
+				.append("',isJushita:'").append(isJushita).append("'").append("}").toString();
+		long pageNo = 1;
+		long pageSize = 100;
+		boolean hasNextPage = true;
+		List<Outer> orderList = new ArrayList<Outer>();
+		//测试
+		//if(true)
+		//	return orderList;
+		while(hasNextPage){
+			/**
+			 * 全量查询
+			 */
+			/*TradesSoldGetRequest req=new TradesSoldGetRequest();
+			req.setFields(ORDER_LIST_FIELDS);
+			//req.setStatus(STATUS);
+			req.setType(ORDER_TYPE);
+			req.setUseHasNext(true);
+			req.setPageNo(pageNo);
+			req.setPageSize(pageSize);
+			//if(!StringUtils.isEmpty(start_time))
+				start_time = "2014-03-31 19:40:00";
+			req.setStartCreated(DF.parse(start_time));
+			req.setEndCreated(DF.parse(end_time));
+			TradesSoldGetResponse response = client.execute(req,sessionKey);*/
+			
+			/**
+			 * 按修改时间增量查询
+			 */
+			TradesSoldIncrementGetRequest req = new TradesSoldIncrementGetRequest();
+			req.setFields(INC_ORDER_EDITTIME_FIELDS);
+			req.setType(ORDER_TYPE);
+			req.setPageNo(pageNo);
+			req.setPageSize(pageSize);	
+			if(StringUtils.isEmpty(start_time)) 
+				start_time = DF.format(new Date(System.currentTimeMillis()-30*60*1000));//"2014-04-02 21:12:00";
+			req.setStartModified(DF.parse(DF.format((DF.parse(start_time).getTime()-3*1000*60))));
+			req.setEndModified(DF.parse(end_time));
+			req.setUseHasNext(true);
+			TradesSoldIncrementGetResponse response = 
+					(TradesSoldIncrementGetResponse)TaoBaoHttpClientUtils.execute(req, strParams);
+			logger.info(response.getBody());
+			//null 为成功
+			if(response.getErrorCode()==null){
+				List<Trade> list = response.getTrades();//testOrderList(appkey, secret, sessionKey);
+				if(list==null || list.size()==0){
+					//没有数据
+					hasNextPage = false;
+					break ;
+				}
+				
+				pageNo ++;
+				this.initBean();
+				INetCache cache = CacheFactory.getCacheByType("");
+				for(final Trade t:list){
+					/**
+					 * 交易状态。可选值: * TRADE_NO_CREATE_PAY(没有创建支付宝交易) * WAIT_BUYER_PAY(等待买家付款) * 
+					 * SELLER_CONSIGNED_PART(卖家部分发货) * WAIT_SELLER_SEND_GOODS(等待卖家发货,即:买家已付款) * 
+					 * WAIT_BUYER_CONFIRM_GOODS(等待买家确认收货,即:卖家已发货) * TRADE_BUYER_SIGNED(买家已签收,货到付款专用) * 
+					 * TRADE_FINISHED(交易成功) * TRADE_CLOSED(付款以后用户退款成功，交易自动关闭) * TRADE_CLOSED_BY_TAOBAO(付款以前，卖家或买家主动关闭交易)
+					 */
+					//同步所有订单
+					if("SELLER_CONSIGNED_PART".equals(t.getStatus())
+							|| "WAIT_SELLER_SEND_GOODS".equals(t.getStatus()) || "WAIT_BUYER_CONFIRM_GOODS".equals(t.getStatus())
+							|| "TRADE_BUYER_SIGNED".equals(t.getStatus()) || "TRADE_FINISHED".equals(t.getStatus())){
+						TradeGetResponse tradeInfo = null;
+						try{
+							tradeInfo = getTrade(t.getTid(),strParams);
+						}catch(Exception ex){
+							OuterError ng = new OuterError("", "", "", "", order_from, t.getTid()+"", "sysdate","orderinfoerror");
+							outterECSTmplCtnManager.insertOuterError(ng);
+						}
+						if(tradeInfo==null)continue ;
+						String tid = t.getTid().toString();
+						String key = MD5Util.MD5(tid);
+						String def = String.valueOf(cache.get(OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE, key));
+						if (null != def && def.equals(key)) {
+							logger.info("[TaobaoCtnService] 淘宝订单[" + tid + "]已获取");
+							continue;
+						} else {
+							cache.set(OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE,key, key,OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE_CACHE_TIMEOUT);
+							final String inJson = JsonUtil.toJson(t);
+							Map map = BeanUtils.getCurrHostEnv();
+							String env_group = (String)map.get("env_group");
+							String env_status = (String)map.get("env_status");
+							String keyWord = Consts.ZTE_GRAY;
+							if(StringUtil.isEmpty(env_group)){
+								keyWord = Consts.ZTE_CESHI;
+								if(inJson.indexOf(keyWord)==-1){
+									logger.info("[TaobaoCtnService] 淘宝订单[" + tid + "]不能抓取到测试环境,keyword:"+keyWord);
+									continue;
+								}
+							}else{
+								if(env_status.toUpperCase().equals("00A")){
+									if(inJson.indexOf(keyWord)>-1){
+										logger.info("[TaobaoCtnService] 淘宝订单[" + tid + "]不能抓取到生产环境,keyword:"+keyWord);
+										continue;
+									}
+								}else if(env_status.toUpperCase().equals("00X")){
+									if(inJson.indexOf(keyWord)==-1){
+										logger.info("[TaobaoCtnService] 淘宝订单[" + tid + "]不能抓取到灰度环境,keyword:"+keyWord);
+										continue;
+									}
+								}
+							}
+							logger.info("淘宝订单[" + tid + "]抓取到本地环境");
+							OrderCtnReq orderCtnReq  = new OrderCtnReq();
+							orderCtnReq.setOutServiceCode(OrderCtnConsts.OUT_SERVICE_CODE_TAOBAOMALLORDERSTANDARD);
+							orderCtnReq.setReqMsgStr(inJson);
+							orderCtnReq.setParams(strParams);
+							orderCtnReq.setVersion(OrderCtnConsts.VERSION);
+							orderCtnReq.setFormat(OrderCtnConsts.ORDER_QUEUE_MSG_TYPE_JSON);
+							final String out_order_id = MallUtils.searchValue(inJson, "tid");
+							orderCtnReq.setOutOrderId(out_order_id);
+							Map<String, Object> dyn_field = new HashMap<String, Object>();
+							dyn_field.put("order_from", order_from);
+							orderCtnReq.setDyn_field(dyn_field);
+							
+							//----暂时增量方法------以后需完善参数传入
+//							String server_ip = StringUtil.getLocalIpAddress();
+//							String server_port = StringUtil.getContextPort();
+//							logger.info("[TaobaoCtnService] 请求报文:" + inJson + "请求ip:["+server_ip + "] 请求端口: ["+server_port+"]");
+//							Map<String,Object> paramsMap = new HashMap<String,Object>();
+//							paramsMap.put("ip", server_ip);
+//							paramsMap.put("port", server_port);
+//							orderCtnReq.setDyn_field(paramsMap);
+							//----暂时增量方法------以后需完善参数传入
+							
+							long begin = System.currentTimeMillis();
+							OrderCtnResp resp = orderCtnService.orderCtn(orderCtnReq);
+							long end = System.currentTimeMillis();
+							logger.info("[TaobaoCtnService] 执行标准化总时间为:[" + (end-begin) +"] 返回对象: "+ IJSONUtil.beanToJson(resp));
+							if (null != resp && StringUtils.isNotEmpty(resp.getBase_co_id())) {
+								final String out_param ;
+								final String co_id = resp.getBase_co_id();
+								if (ConstsCore.ERROR_SUCC.equals(resp.getError_code())) {
+									out_param = "队列ID为[" + co_id + "]订单标准化成功。";
+								} else {
+									out_param = "队列ID为[" + co_id + "]订单标准化失败。";
+								}
+								String esearch_flag = "0";//默认关闭
+								esearch_flag = cacheUtil.getConfigInfo(EcsOrderConsts.ESEARCH_FLAG);//是否取消前置校验 0：关闭 1：开启
+								if("1".equals(esearch_flag)) {
+									Thread thread = new Thread(new Runnable() {
+										@Override
+										public void run() {
+											orderQueueBaseManager.writeEsearch(co_id, inJson, out_param,out_order_id);
+										}
+									});
+									thread.setName("TaobaoCtnWriteEsearchThread");
+									thread.start();
+								}
+							}
+							
+							
+							Outer outer = new Outer();
+							orderList.add(outer);
+						}
+						
+					}
+				}
+				if(!response.getHasNext()){
+					//没有下一页
+					hasNextPage = false;
+					break ;
+				}
+			}else{
+				hasNextPage = false;
+				throw new Exception("["+response.getErrorCode()+"]["+response.getMsg()+"]");
+			}
+		}
+		return orderList;
+	}
+	
+	public static List<Trade> testOrderList(String appkey,String secret,String sessionKey) throws ParseException, ApiException{
+		String url = "http://gw.api.taobao.com/router/rest";
+		TaobaoClient client=new DefaultTaobaoClient(url, appkey, secret,"xml");
+		TradesSoldGetRequest req=new TradesSoldGetRequest();
+		req.setFields(ORDER_LIST_FIELDS);
+		//req.setStatus(STATUS);
+		//req.setType("fixed");
+		req.setUseHasNext(true);
+		req.setPageNo(1l);
+		req.setPageSize(50l);
+		//req.setBuyerNick("梦中噬");
+		String start_time = "2014-04-11 15:55:00";
+		req.setStartCreated(DF.parse(start_time));
+		req.setEndCreated(new Date());
+		TradesSoldGetResponse response = client.execute(req,sessionKey);
+		logger.info(response.getBody());
+		for(Trade t:response.getTrades()){
+			logger.info(t.getTid()+"\t"+t.getOrders().get(0).getTitle()+"\t"+t.getType()+"\t"+t.getOrders().get(0).getStatus()+"\t"+t.getTradeSource()+"\t"+t.getReceiverState()+"\t"+t.getReceiverCity()+"\t"+t.getReceiverDistrict()+"\t"+t.getReceiverZip()+"\t"+t.getReceiverPhone()+"\t"+t.getBuyerArea()+"\t"+t.getIsWt()+"\t"+t.getStatus());
+			//TradeWtverticalGetResponse resp = getTradeWtvertical(String.valueOf(t.getTid()),appkey,secret,sessionKey);
+			//logger.info(resp.getBody());
+		}
+		return response.getTrades();
+	}
+	
+	public static void testIncOrderList(String appkey,String secret,String sessionKey) throws ParseException, ApiException{
+		String url = "http://gw.api.taobao.com/router/rest";
+		TaobaoClient client=new DefaultTaobaoClient(url, appkey, secret,"xml");
+		TradesSoldIncrementGetRequest req = new TradesSoldIncrementGetRequest();
+		req.setFields(INC_ORDER_EDITTIME_FIELDS);
+		req.setType(ORDER_TYPE);
+		req.setPageNo(1l);
+		req.setPageSize(10l);
+		String start_time = "2014-04-09 10:22:06";
+		req.setStartModified(DF.parse(start_time));
+		req.setEndModified(DF.parse("2014-04-09 18:40:06"));
+		TradesSoldIncrementGetResponse response = client.execute(req , sessionKey);
+		logger.info(response.getBody());
+		for(Trade t:response.getTrades()){
+			//t.getOrders().get(0).getOuterSkuId()+"\t"+
+			logger.info(t.getTid()+"\t"+t.getOrders().get(0).getTitle()+"\t"+t.getType()+"\t"+t.getOrders().get(0).getStatus()+"\t"+t.getTradeSource()+"\t"+t.getTradeFrom());
+			//TradeGetResponse tradeInfo = getTrade(t.getTid(),appkey,secret,sessionKey);
+			//logger.info(tradeInfo.getTrade().getSellerMemo());
+			//TradeWtverticalGetResponse resp = getTradeWtvertical(String.valueOf(t.getTid()),appkey,secret,sessionKey);
+			//logger.info(resp.getBody());
+		}
+	}
+	
+	public static void testFenXiao(String appkey,String secret,String sessionKey) throws ApiException{
+		String url = "http://gw.api.taobao.com/router/rest";
+		TaobaoClient client=new DefaultTaobaoClient(url, appkey, secret,"xml");
+		FenxiaoOrdersGetRequest req=new FenxiaoOrdersGetRequest();
+		req.setPageNo(1l);
+		req.setPageSize(50l);
+		req.setTimeType("update_time_type");
+		try {
+			req.setStartCreated(DF.parse("2014-04-6 12:40:06"));
+			req.setEndCreated(DF.parse("2014-04-12 12:40:06"));
+			//req.setEndCreated(new Date());
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		FenxiaoOrdersGetResponse response = client.execute(req , sessionKey);
+		logger.info(response.getBody());
+	}
+
+	public static void main(String[] args) throws Exception {
+		try{
+			StringBuffer sb = new StringBuffer();
+			String strParams = sb.append("{").append("appkey:'").append("12469285")
+					.append("',secret:'").append("d7f3540761ae620397baaa27afc1c035")
+					.append("',sessionKey:'").append("6100a00011dbbb3e5cb6fe62abb830bbad19b4277093977747143122")
+					.append("',url:'").append("http://gw.api.taobao.com/router/rest")
+					.append("',jushitaUrl:'").append("http://gw.api.taobao.com/router/rest")
+					.append("',jushitaAppId:'").append("ecs")
+					.append("',isJushita:'").append("1").append("'").append("}").toString();
+			logger.info(strParams);
+			TradeGetResponse tradeInfo = null;
+			tradeInfo = getTrade(111111111111l,strParams);
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}
+		}
+
+	//@Override
+	@Override
+	public void callback(List<Outer> list) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+}

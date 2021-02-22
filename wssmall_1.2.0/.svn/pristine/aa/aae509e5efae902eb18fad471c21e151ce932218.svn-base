@@ -1,0 +1,56 @@
+package zte.params.goods.req;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import commons.CommonTools;
+
+import consts.ConstsCore;
+
+import params.ZteError;
+import params.ZteRequest;
+
+public class DcPublicInfoCacheProxyReq extends ZteRequest {
+	@ZteSoftCommentAnnotationParam(name="字典编码",type="String",isNecessary="Y",desc="stype：字典编码")
+	private String stype;
+	
+	@ZteSoftCommentAnnotationParam(name="本地字典值",type="String",isNecessary="Y",desc="value：本地字典值")
+	private String value;
+	
+	@ZteSoftCommentAnnotationParam(name="原始值字段名",type="String",isNecessary="Y",desc="value_from：原始值字段名")
+	private String value_from ;
+	
+	public String getStype() {
+		return stype;
+	}
+
+	public void setStype(String stype) {
+		this.stype = stype;
+	}
+
+	public String getValue() {
+		return value;
+	}
+
+	public void setValue(String value) {
+		this.value = value;
+	}
+
+	public String getValue_from() {
+		return value_from;
+	}
+
+	public void setValue_from(String value_from) {
+		this.value_from = value_from;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		return "com.dcPublicService.DcPublicInfoCache.DictRelation";
+	}
+
+}

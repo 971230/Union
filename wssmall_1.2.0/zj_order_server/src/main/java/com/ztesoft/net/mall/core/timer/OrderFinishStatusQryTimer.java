@@ -1,0 +1,238 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.jdbc.core.RowMapper;
+
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderRealNameInfoBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.service.impl.RequestStoreManager;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+public class OrderFinishStatusQryTimer {
+
+	private String qry_sql = " select t.order_id,e.out_tid from es_order t,es_order_ext e where t.order_id=e.order_id and t.order_state='4' "
+			               + " and t.source_from=e.source_from and t.source_from='"+ManagerUtils.getSourceFrom()+"' "
+			               + " and t.order_id=? ";
+	static INetCache cache;
+	static{
+		cache = com.ztesoft.net.cache.common.CacheFactory.getCacheByType("");
+	}
+	
+	public void run(){
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "run")) {
+  			return;
+		}
+		try{
+			String active_status_sql = " select open_date from es_tf_f_user a where  remove_tag='0' and serial_number=  ";
+			String finish_status_sql1 = " SELECT a.normalize_date FROM es_Ucs_Subscription A  where a.service_type in "
+					+ " ('6115','6005','6006','6003','6009') and a.subs_status='0' and a.inactive_date>sysdate "
+					+ " and a.status_chg_type!='11' AND a.service_num= ";
+			String finish_status_sql2 = " select a.normalize_date  from es_ucs_group a "
+									  + " where  a.service_type ='106' and a.service_status='1' and a.normalize_date < sysdate  "
+									  + " and a.group_id=(select t.reserved2 from es_bms_accept t "
+									  + " where t .bms_accept_id= ";
+			String status_update_sql = " update es_order_extvtl set finish_status='1',finish_time=to_date(?,'yyyy-mm-dd hh24:mi:ss') where order_id =? ";
+			ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+			active_status_sql = cacheUtil.getConfigInfo("active_status_sql")==null?active_status_sql:cacheUtil.getConfigInfo("active_status_sql");
+			finish_status_sql1 = cacheUtil.getConfigInfo("finish_status_sql1")==null?finish_status_sql1:cacheUtil.getConfigInfo("finish_status_sql1");
+			finish_status_sql2 = cacheUtil.getConfigInfo("finish_status_sql2")==null?finish_status_sql2:cacheUtil.getConfigInfo("finish_status_sql2");
+			String card_qry_sql = cacheUtil.getConfigInfo("card_qry_sql")==null?finish_status_sql2:cacheUtil.getConfigInfo("card_qry_sql");
+								/*" select t.order_id,t.phone_num,t.bssorderid,t.active_no,t.goods_type "
+								+ " from es_order_items_ext t,es_order_extvtl e,es_order_ext oe "
+								+ " where t.order_id=e.order_id and t.order_id=oe.order_id and e.finish_status is null "
+								+ " and oe.flow_trace_id in ('L','J') and t.bssorderid is not null and oe.refund_deal_type='01'"
+								+ " and t.goods_type in ('170801434582003010','20021','170502112412000711') "
+								+ " and t.source_from = e.source_from and t.source_from = oe.source_from ";*/
+			
+			IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+			List list = baseDaoSupport.queryForList(card_qry_sql, new RowMapper() {
+				@Override
+				public Object mapRow(ResultSet rs, int c) throws SQLException {
+					Map data = new HashMap();
+					    data.put("order_id", rs.getString("order_id"));
+					    data.put("phone_num", rs.getString("phone_num"));
+					    data.put("bssorderid", rs.getString("bssorderid"));
+					    data.put("active_no", rs.getString("active_no"));
+					    data.put("goods_type", rs.getString("goods_type"));
+					return data;
+				}
+			}, null);
+			if(list.size()<1){
+				return;
+			}
+			Map map = new HashMap();
+			String order_id = "";
+			String phone_num = "";
+			String bssorderid = "";
+			String active_no = "";
+			String goods_type = "";
+			List status_list = new ArrayList();
+			String time = "";
+			for (int i = 0; i < list.size(); i++) {
+				map = (Map) list.get(i);
+				order_id = Const.getStrValue(map, "order_id");
+				goods_type = Const.getStrValue(map, "goods_type");
+				phone_num = Const.getStrValue(map, "phone_num");
+				bssorderid = Const.getStrValue(map, "bssorderid");
+				if("170801434582003010".equals(goods_type)){
+					status_list = baseDaoSupport.queryForListNoSourceFrom(active_status_sql+" '"+phone_num+"' ");
+					if(status_list.size()>0){
+						time = status_list.get(0)==null?"0":Const.getStrValue((Map)status_list.get(0), "open_date");
+						if(!"0".equals(time)){
+							time = time.replace("/", "");
+							time = time.replace("-", "");
+							time = time.replace(":", "");
+							time = time.replace(" ", "");
+							if(time.contains(".")){
+								time = time.substring(0, time.indexOf("."));
+							}
+							if(time.length()<14){
+								time = time.substring(0, 4)+"0"+time.substring(5);
+							}
+							baseDaoSupport.execute(status_update_sql, new String[]{time,order_id});
+							String set_sql = "";
+							OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+							OrderRealNameInfoBusiRequest orderRealNameInfoBusiRequest = orderTree.getOrderRealNameInfoBusiRequest();
+							set_sql = " active_flag = '3' ";
+							orderRealNameInfoBusiRequest.setActive_flag("3");
+							updateOrderTree(set_sql,"es_order_realname_info",order_id,orderTree,baseDaoSupport);
+						}else{
+							continue;
+						}
+					}else{
+						continue;
+					}
+				}else if("20021".equals(goods_type)){
+					status_list = baseDaoSupport.queryForListNoSourceFrom(finish_status_sql1+" '"+phone_num+"' ");
+					if(status_list.size()>0){
+						time = status_list.get(0)==null?"0":Const.getStrValue((Map)status_list.get(0), "normalize_date");
+						if(!"0".equals(time)){
+							time = time.replace("/", "");
+							time = time.replace("-", "");
+							time = time.replace(":", "");
+							time = time.replace(" ", "");
+							if(time.contains(".")){
+								time = time.substring(0, time.indexOf("."));
+							}
+							if(time.length()<14){
+								time = time.substring(0, 4)+"0"+time.substring(5);
+							}
+							baseDaoSupport.execute(status_update_sql, new String[]{time,order_id});
+							Page syn_page = baseDaoSupport.queryForPage(qry_sql, 1, 100, new RowMapper(){
+								@Override
+								public Object mapRow(ResultSet rs, int c) throws SQLException {
+									Map data  = new HashMap();
+									data.put("order_id",rs.getString("order_id"));
+									data.put("out_tid",rs.getString("out_tid"));
+									return data;
+								}
+							}, new String[]{order_id});
+							List list1 = syn_page.getResult();
+							if(list1.size()>0){
+								String set_sql = "";
+								OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+								OrderBusiRequest orderBusiRequest = orderTree.getOrderBusiRequest();
+								String dealstate = "";
+								set_sql = " order_state = '5' ";
+								orderBusiRequest.setOrderStatus("5");
+								dealstate = "3";
+								updateOrderTree(set_sql,"es_order",order_id,orderTree,baseDaoSupport);
+								insertSyn(map,baseDaoSupport,dealstate);
+							}
+						}else{
+							continue;
+						}
+					}else{
+						continue;
+					}
+				}else if ("170502112412000711".equals(goods_type)){
+					status_list = baseDaoSupport.queryForListNoSourceFrom(finish_status_sql2+" '"+bssorderid+"') ");
+					if(status_list.size()>0){
+						time = status_list.get(0)==null?"0":Const.getStrValue((Map)status_list.get(0), "normalize_date");
+						if(!"0".equals(time)){
+							time = time.replace("/", "");
+							time = time.replace("-", "");
+							time = time.replace(":", "");
+							time = time.replace(" ", "");
+							if(time.contains(".")){
+								time = time.substring(0, time.indexOf("."));
+							}
+							if(time.length()<14){
+								time = time.substring(0, 4)+"0"+time.substring(5);
+							}
+							baseDaoSupport.execute(status_update_sql, new String[]{time,order_id});
+							Page syn_page = baseDaoSupport.queryForPage(qry_sql, 1, 100, new RowMapper(){
+								@Override
+								public Object mapRow(ResultSet rs, int c) throws SQLException {
+									Map data  = new HashMap();
+									data.put("order_id",rs.getString("order_id"));
+									data.put("out_tid",rs.getString("out_tid"));
+									return data;
+								}
+							}, new String[]{order_id});
+							List list1 = syn_page.getResult();
+							if(list1.size()>0){
+								String set_sql = "";
+								OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+								OrderBusiRequest orderBusiRequest = orderTree.getOrderBusiRequest();
+								String dealstate = "";
+								set_sql = " order_state = '5' ";
+								orderBusiRequest.setOrderStatus("5");
+								dealstate = "3";
+								updateOrderTree(set_sql,"es_order",order_id,orderTree,baseDaoSupport);
+								insertSyn(map,baseDaoSupport,dealstate);
+							}
+						}else{
+							continue;
+						}
+					}else{
+						continue;
+					}
+				}
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public void updateOrderTree(String set_sql,String table_name,String order_id,OrderTreeBusiRequest orderTree,IDaoSupport baseDaoSupport){
+		String sql ="update "+table_name+" set "+set_sql+" where order_id=?";
+		if(baseDaoSupport==null){
+			baseDaoSupport=SpringContextHolder.getBean("baseDaoSupport");
+		}
+	        baseDaoSupport.execute(sql, order_id);
+		//更新订单树缓存
+		cache.set(RequestStoreManager.NAMESPACE, RequestStoreManager.DC_TREE_CACHE_NAME_KEY+"order_id"+ order_id,orderTree, RequestStoreManager.time);
+		
+	}
+	
+	public void insertSyn(Map map,IDaoSupport baseDaoSupport,String dealstate){
+		String qry_sql = " select id from es_kd_order_status_syn where syn_status not in ('CLZ','CLCG') and order_id=? ";
+		List list = baseDaoSupport.queryForList(qry_sql, new String[]{Const.getStrValue(map, "order_id")});
+		if(list.size()>0){
+			String update_sql = " update es_kd_order_status_syn set syn_status='WCL',syn_num=0,dealstate=?,dealtime=to_char(sysdate,'yyyy-mm-dd hh24:mi:ss') where id=? ";
+			baseDaoSupport.execute(update_sql, new String[]{dealstate,Const.getStrValue((Map)list.get(0), "id")});
+		}else{
+			String insert_sql = " insert into es_kd_order_status_syn (id,bespeakid,order_id,dealstate,dealtime,syn_status,syn_num,source_from) values (?,?,?,?,to_char(sysdate,'yyyy-mm-dd hh24:mi:ss'),'WCL','0','ECS') " ;
+			
+			baseDaoSupport.execute(insert_sql, new String[]{baseDaoSupport.getSequences("seq_kd_status_syn"),Const.getStrValue(map, "out_tid"),Const.getStrValue(map, "order_id"),dealstate});
+		}
+	}
+	
+}

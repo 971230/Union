@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="GB2312"?>
+<server>
+	<datasource-map>
+		<datasource name="jdbc/WssmallDb"
+					type="oracle"
+					jndiName="java:comp/env/jdbc/WssmallDb">
+			<![CDATA[系统用户]]>
+		</datasource>
+		<datasource name="jdbc/WssmallDb"
+					type="oracle"
+					jndiName="java:comp/env/jdbc/WssmallDb">
+			<![CDATA[数据用户]]>
+		</datasource>
+	</datasource-map>
+	<e-variables>
+		<var value="false"
+			 name="cacheReport">
+			<![CDATA[]]>
+		</var>
+		<var value="utf8"
+			 name="replyEncoding">
+			<![CDATA[]]>
+		</var>
+		<var value="GBK"
+			 name="databaseEncoding">
+			<![CDATA[]]>
+		</var>
+		<var value="GBK"
+			 name="systemEncoding">
+			<![CDATA[]]>
+		</var>
+		<var value="/reportconfig/xml"
+			 name="reportSaveDir">
+			<![CDATA[]]>
+		</var>
+		<var value="com.ztesoft.common.staticdata.StaticDataGetterImpl"
+			 name="staticDataGetter">
+			<![CDATA[]]>
+		</var>
+		<var value="true"
+			 name="enableMonitor">
+			<![CDATA[]]>
+		</var>
+		<var value="gray"
+			 name="defaultTheme">
+			<![CDATA[]]>
+		</var>
+		<var value="GBK"
+			 name="excelEncoding">
+			<![CDATA[]]>
+		</var>
+		<var name="sqlConverter"
+			 value="com.ztesoft.crm.report.interfaces.impl.SQLConverterImpl">
+			<![CDATA[]]>
+		</var>
+
+	</e-variables>
+
+
+</server>

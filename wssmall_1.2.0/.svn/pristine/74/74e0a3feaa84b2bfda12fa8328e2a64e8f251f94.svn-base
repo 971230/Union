@@ -1,0 +1,37 @@
+package com.ztesoft.net.rule.common;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.net.annotation.DroolsFact;
+import com.ztesoft.net.annotation.DroolsFactField;
+import com.ztesoft.net.auto.rule.fact.AutoFact;
+import com.ztesoft.net.auto.rule.vo.RuleConsts;
+import com.ztesoft.rule.core.module.fact.DefFact;
+import com.ztesoft.rule.core.module.fact.RuleResult;
+import com.ztesoft.rule.core.module.fact.RuleResults;
+
+//@DroolsFact(name="公共fact",code="commonFact")
+public class CommonFact extends AutoFact {
+	private static Logger logger = Logger.getLogger(CommonFact.class);
+	@Override
+	public void exeAction(AutoFact fact, List<RuleConsts> consts)
+			throws RuntimeException {
+		// TODO Auto-generated method stub
+		logger.info("===============>>>");
+	}
+
+	@Override
+	public String getObj_id() {
+		// TODO Auto-generated method stub
+		return "1";
+	}
+
+	@Override
+	public String getTrace_flow_id() {
+		
+		return "abc";
+	}
+}

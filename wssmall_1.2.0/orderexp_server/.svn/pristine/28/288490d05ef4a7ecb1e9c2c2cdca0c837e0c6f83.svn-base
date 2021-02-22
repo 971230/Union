@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<package name="struts-orderexp" extends="shop_default" namespace="">
+		<!-- 关键字抽取管理-->
+		<action name="keyrule" class="keyruleAction">
+			<result name="index">/shop/admin/orderexp/keyrule_index.jsp</result>
+			<result name="add">/shop/admin/orderexp/keyrule_add.jsp</result>
+			<result name="update">/shop/admin/orderexp/keyrule_update.jsp</result>
+			<result name="orderexpList">/shop/admin/orderexp/uncheck_orderexp_list.jsp</result>
+		</action>
+		
+		<!-- 关键字管理-->
+		<action name="specvalue" class="specvalueAction">
+			<result name="index">/shop/admin/orderexp/specvalue_index.jsp</result>
+			<result name="specvaluecatalogList">/shop/admin/orderexp/specvalue_catalog_list.jsp</result>
+			<result name="update">/shop/admin/orderexp/specvalue_update.jsp</result>
+		</action>
+	
+		<!-- 接口日志管理-->
+		<action name="infLogs" class="infLogsAction">
+			<result name="inf_logs_list">/shop/admin/orderexp/inf_logs_list.jsp</result>
+			<result name="show_esearch">/shop/admin/orderexp/show_esearch.jsp</result>
+			<result name="extract_specvalues">/shop/admin/orderexp/extract_specvalues.jsp</result>
+		</action>
+		
+		<!-- 异常单管理-->
+		<action name="orderExp" class="orderExpAction">
+			<result name="list">/shop/admin/orderexp/orderexp_list.jsp</result>
+			<result name="detail">/shop/admin/orderexp/orderexp_detail.jsp</result>
+			<result name="specList">/shop/admin/orderexp/orderexp_count.jsp</result>
+			<result name="specViewList">/shop/admin/orderexp/orderexp_count_view.jsp</result>
+			<result name="specCatalogList">/shop/admin/orderexp/exp_specCatalog_count.jsp</result>
+		</action>
+		
+		<!-- 规格定义管理-->
+		<action name="esearchSpec" class="esearchSpecAction">
+			<result name="dialog">/shop/admin/orderexp/esearch_spec_list.jsp</result>
+			<result name="index">/shop/admin/orderexp/esearch_spec_index.jsp</result>
+			<result name="add">/shop/admin/orderexp/esearch_spec_add.jsp</result>
+			<result name="update">/shop/admin/orderexp/esearch_spec_update.jsp</result>
+		</action>
+		
+		<!-- 归类管理-->
+		<action name="esearchCatalog" class="esearchCatalogAction">
+			<result name="dialog">/shop/admin/orderexp/esearch_catalog_list.jsp</result>
+			<result name="catalog_tree_list">/shop/admin/orderexp/catalog_tree_list.jsp</result>
+			<result name="catalog_tree">/shop/admin/orderexp/catalog_tree.jsp</result>
+			<result name="catalog_detail">/shop/admin/orderexp/catalog_detail.jsp</result>
+			<result name="add_catalog" type="freemarker">/shop/admin/orderexp/add_catalog.html</result>
+			<result name="edit_catalog" type="freemarker">/shop/admin/orderexp/edit_catalog.html</result>
+			<result name="platform_catalog">/shop/admin/orderexp/platform_catalog.jsp</result>
+			<result name="platform_catalog_main">/shop/admin/orderexp/platform_catalog_main.jsp</result>
+		</action>
+		
+		<!-- 解决方案管理-->
+		<action name="solutionManage" class="SolutionAction">
+			<result name="index">/shop/admin/orderexp/solution_list.jsp</result>
+			<result name="toAdd">/shop/admin/orderexp/solution_add.jsp</result>
+			<result name="update">/shop/admin/orderexp/solution_update.jsp</result>
+			<result name="toUpload">/shop/admin/orderexp/solution_add.jsp</result>
+			<result name="view">/shop/admin/orderexp/solution_view.jsp</result>
+			<result name="fileError">/shop/admin/orderexp/solution_fileError.jsp</result>
+			
+		</action>
+		
+		
+		<action name="solution" class="esearchExpinstSolutionAction">
+			<result name="catalog_solution">/shop/admin/orderexp/catalog_solution.jsp</result>
+			<result name="solution_select">/shop/admin/orderexp/solution_select.jsp</result>
+		</action>		
+	</package>
+
+</struts>

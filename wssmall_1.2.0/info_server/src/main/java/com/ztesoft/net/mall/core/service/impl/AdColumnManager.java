@@ -1,0 +1,121 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.ztesoft.net.app.base.core.model.AdColumn;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.service.IAdColumnManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 广告位管理
+ * 
+ * @author 李志富 lzf<br/>
+ *         2010-2-4 下午03:56:01<br/>
+ *         version 1.0<br/>
+ * <br/>
+ */
+public class AdColumnManager extends BaseSupport<AdColumn> implements
+		IAdColumnManager {
+
+	
+	@Override
+	public String addAdvc(AdColumn adColumn) {
+		String acid=this.baseDaoSupport.getSequences("s_es_adcolumn");
+		adColumn.setAcid(acid);
+		this.baseDaoSupport.insert("adcolumn", adColumn);
+		return acid;
+	}
+
+	@Override
+	public void addAdcolumnCat(String acid,String catid,String position){
+		Map adcolumn_cat=new HashMap();
+		adcolumn_cat.put("catid", catid);
+		adcolumn_cat.put("acid", acid);
+		adcolumn_cat.put("position", position);
+		
+		this.baseDaoSupport.insert("es_adcolumn_cat", adcolumn_cat);	
+	}
+	
+	@Override
+	public void delAdcs(String ids) {
+		if (ids == null || ids.equals(""))
+			return;
+		String sql = "delete from adcolumn where acid in (" + ids
+				+ ")";
+		this.baseDaoSupport.execute(sql);
+	}
+	
+	@Override
+	public AdColumn getADcolumnDetail(String catid,String position) {
+		AdColumn result=null;
+		List<AdColumn> adColunmList=this.baseDaoSupport.queryForList("select a.* from "+this.getTableName("adcolumn")+" a," +
+				this.getTableName("adcolumn_cat")+" b where  a.acid=b.acid and b.catid=? and b.position=? and b.source_from =? "+ManagerUtils.apSFromCond("a")+"", AdColumn.class,catid,position, ManagerUtils.getSourceFrom());
+		if(adColunmList!=null&&adColunmList.size()>0){
+			result=adColunmList.get(0);
+		}
+		return result;
+	}
+
+	
+	@Override
+	public AdColumn getADcolumnDetail(String acid) {
+		
+		List paramLst = new ArrayList();
+		paramLst.add(ManagerUtils.getSourceFrom());
+		paramLst.add(acid);
+        
+		AdColumn adColumn = this.baseDaoSupport.queryForObject(SF.infoSql("ADCOLUMN_BY_ID"), 
+				AdColumn.class, paramLst.toArray());
+		return adColumn;
+	}
+
+	
+	@Override
+	public List listAllAdvPos() {
+//		List<AdColumn> list = this.baseDaoSupport.queryForList("select * from adcolumn", AdColumn.class);
+//		return list;
+		
+		/**
+		 * 修改楼层
+		 */
+		String sql="select a.acid, a.cname from es_adcolumn a UNION select a.cat_id || '-lc-' ||  a.name acid, a.name || '-楼层' cname from es_goods_cat a where a.parent_id = '0' AND not exists"
+			+" (select 1 from es_adcolumn_cat b where b.catid = a.cat_id and b.position='lc') UNION select a.cat_id || '-lb-' ||  a.name acid, a.name || '-类别' cname from es_goods_cat a"
+			+" where a.parent_id = '0' AND not EXISTS (select 1 from es_adcolumn_cat b where b.catid = a.cat_id and b.position ='lb')";
+			List list = this.baseDaoSupport.queryForList(sql);
+			return list;
+	}
+
+	
+	@Override
+	public Page pageAdvPos(int page, int pageSize) {
+		String sql = "select * from adcolumn";
+		Page rpage = this.baseDaoSupport.queryForPage(sql, page, pageSize);
+		return rpage;
+	}
+
+	
+	@Override
+	public void updateAdvc(AdColumn adColumn) {
+		this.baseDaoSupport.update("adcolumn", adColumn, "acid = " + adColumn.getAcid());
+	}
+	
+	
+	@Override
+	public List listResol(){
+		
+		List list = new ArrayList();		
+		
+		String sql = "SELECT pkey p_key,pname p_value FROM es_dc_public WHERE stype = '3434'";
+		
+		list = this.baseDaoSupport.queryForList(sql);
+		
+		return list;
+	}
+
+}

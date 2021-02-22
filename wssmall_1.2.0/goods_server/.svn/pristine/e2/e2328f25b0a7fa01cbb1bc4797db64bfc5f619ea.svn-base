@@ -1,0 +1,263 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+
+import params.coqueue.req.CoQueueAddReq;
+import params.coqueue.resp.CoQueueAddResp;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.common.StypeConsts;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.exception.NameRepetirException;
+import com.ztesoft.net.mall.core.model.EsCoNoLimitEntity;
+import com.ztesoft.net.mall.core.model.NumberCo;
+import com.ztesoft.net.mall.core.model.Numero;
+import com.ztesoft.net.mall.core.service.IESNoCoLimitManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.mall.core.utils.StringUtilidad;
+import com.ztesoft.net.sqls.SF;
+
+public class ESNoCoLimitManager extends BaseSupport<EsCoNoLimitEntity> implements IESNoCoLimitManager{
+	private static final String TABLE = "ES_NO_CO_LIMIT";
+	
+	@Override
+	public void autoCreatePublish(String org_id, String region_id,int max_ordinary,int max_lucky){
+		try {
+			String alreadyNoNum = SF.numeroSql("ALREADY_PUBLISH_NO_NUM");
+			//已经发布的号码
+			int alreadyOrdinaryCount = this.baseDaoSupport.queryForInt(alreadyNoNum, "%"+org_id+"%",region_id,Consts.IS_LUCKY_NUMBER_0);
+			int alreadyLuckyCount = this.baseDaoSupport.queryForInt(alreadyNoNum, "%"+org_id+"%",region_id,Consts.IS_LUCKY_NUMBER_1);
+			//根据门限计算还需要发布的号码量
+			int needPublishOrd = 0,needPublishLuc=0;
+			if(alreadyOrdinaryCount==0){
+				needPublishOrd = max_ordinary;
+			}else{
+				needPublishOrd = max_ordinary -alreadyOrdinaryCount;
+			}
+			if(alreadyLuckyCount==0){
+				needPublishLuc = max_lucky;
+			}else{
+				needPublishLuc = max_lucky-alreadyLuckyCount;
+			}
+			//按所需数查询需要补发的号码
+			String sqlAutoPublish = SF.numeroSql("AUTO_PUBLISH_SQL");
+			List ordList =this.baseDaoSupport.queryForList(sqlAutoPublish, Numero.class, "%"+org_id+"%",Consts.NUMBER_STATUS_0,region_id,Consts.IS_LUCKY_NUMBER_0,needPublishOrd);
+			List lucList =this.baseDaoSupport.queryForList(sqlAutoPublish, Numero.class, "%"+org_id+"%",Consts.NUMBER_STATUS_0,region_id,Consts.IS_LUCKY_NUMBER_1,needPublishLuc);
+			List<Numero> listOrdinary = ordList;
+			List<Numero> listLucky = lucList;
+			
+			//将号码写入发布状态表
+			//普通号
+			doPublishNum(listOrdinary,org_id);
+			//靓号
+			doPublishNum(listLucky,org_id);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.info(e);
+		}
+	}
+	
+	private void doPublishNum(List<Numero> listLuckyOrOrdinary,String org_id){
+		String source_from = ManagerUtils.getSourceFrom();
+		//消息队列
+		String tableName = "ES_NO_CO",service_code = "CO_HAOMA",object_type = "HAOMA",co_name = "号码同步",primary_key = "",org_id_belong="";
+		String batch_id = this.daoSupport.getSequences("S_ES_CO_BATCH_ID");
+		for(Numero num:listLuckyOrOrdinary){
+			String phoneNum=num.getDn_no().toString();
+			//检测手机是否已经在别的商城发布过，有则修改字段，无则添加
+			List l = this.baseDaoSupport.queryForList(SF.numeroSql("FIND_NOCO_BY_NUMBER"),NumberCo.class,phoneNum, source_from);
+			List<NumberCo> list = l;
+			if(list.size()>0){
+				String sql = SF.numeroSql("UPDATE_NUMBER_CO_PUBLISH");
+				this.baseDaoSupport.execute(sql, list.get(0).getOrg_id_str()+","+org_id,phoneNum,source_from);
+				primary_key=list.get(0).getId();
+			}else{
+				NumberCo nc = new NumberCo();
+				//自动增加序列为18位，模型中定义为9位
+				nc.setNo(phoneNum);
+				nc.setCreated_date(DBTUtil.getDBCurrentTime());
+				nc.setSource_from(source_from);
+				nc.setStatus(Consts.PUBLISH_STATE_1);
+				nc.setStatus_date(DBTUtil.getDBCurrentTime());
+				nc.setOper_id(ManagerUtils.getUserId());
+				nc.setBatch_id(batch_id);
+				primary_key = this.daoSupport.getSequences("S_ES_NO_CO","other",9);
+				nc.setId(primary_key);
+				nc.setOrg_id_str(org_id);
+				baseDaoSupport.insert(tableName, nc);
+			}
+			boolean isTbOrder = CommonDataFactory.getInstance().isTbOrder(org_id);//是否淘宝订单,默认否
+			if(isTbOrder/*Consts.TAOBAO_CODE_ID.equals(org_id)*/){//淘宝商城处理
+				org_id_belong = org_id;
+			}else{
+				org_id_belong=this.baseDaoSupport.queryForString(SF.numeroSql("GOODS_ORG_PARENT_ID"),org_id);
+			}
+			if(Consts.XINGSHANGCHENG_CODE_ID.equals(org_id_belong)){//新商城的才同步
+				//写消息队列
+				CoQueueAddReq coQueueAddReq;
+				ZteClient client = ClientFactory.getZteDubboClient(source_from);
+				
+				coQueueAddReq = new CoQueueAddReq();
+				coQueueAddReq.setCo_name(co_name);
+				coQueueAddReq.setBatch_id(batch_id);
+				coQueueAddReq.setOrg_id_str(org_id);
+				coQueueAddReq.setOrg_id_belong(org_id_belong);
+				coQueueAddReq.setService_code(service_code);
+				coQueueAddReq.setAction_code(Consts.ACTION_CODE_100);
+				coQueueAddReq.setObject_id(phoneNum);
+				coQueueAddReq.setObject_type(object_type);
+				coQueueAddReq.setContents("");
+				coQueueAddReq.setSourceFrom(source_from);
+				coQueueAddReq.setOper_id(ManagerUtils.getAdminUser().getUserid());
+				client.execute(coQueueAddReq, CoQueueAddResp.class);
+			}
+			
+		}
+	}
+	
+	@Override
+	public void addorUpdate(Map params,EsCoNoLimitEntity esCnEntity) throws Exception {
+		String org_ids = "";
+		if(esCnEntity.getOrg_id()!=null){
+			org_ids = esCnEntity.getOrg_id();
+			org_ids = org_ids.substring(0,org_ids.length()-1);
+		}
+		String [] ids = org_ids.split(",");
+		for(int i=0,j=ids.length;i<j;i++){
+			int size = checkIsSave(ids[i],esCnEntity.getRegion_id());
+			if(size==0){//不存在
+				setValue(esCnEntity);
+				esCnEntity.setOrg_id(ids[i]);
+				baseDaoSupport.insert(TABLE, esCnEntity); 
+			}
+		}
+    	     
+	}
+	
+	private int checkIsSave(String org_id,String region_id){
+		String sql = SF.numeroSql("ESCONOLIMIT_CHECK_SAVE");
+		sql += " and e.org_id = ? and  e.region_id= ? ";
+		return baseDaoSupport.queryForInt(sql,org_id,region_id);
+	}
+	
+	private void checkSave(EsCoNoLimitEntity esCnEntity) throws NameRepetirException {
+		String sql = SF.numeroSql("ESCONOLIMIT_CHECK_SAVE");
+		if(esCnEntity.getOrg_id()!=null && esCnEntity.getRegion_id()!=null){
+			String oids = esCnEntity.getOrg_id();
+			if(StringUtils.isNotBlank(oids)){
+				if(oids.endsWith(",")){
+					oids = oids.substring(0,oids.length()-1);
+				}
+			}
+			
+			checkCount(sql,"", "记录已存在,请重新输入");
+		}
+	}
+	
+	private void setValue(EsCoNoLimitEntity esCnEntity) {
+		if(esCnEntity.getOrg_id()!=null && esCnEntity.getRegion_id()!=null){
+			String oids = esCnEntity.getOrg_id();
+			if(StringUtils.isNotBlank(oids)){
+				if(oids.endsWith(",")){
+					oids = oids.substring(0,oids.length()-1);
+				}
+			}
+			esCnEntity.setOrg_id(oids);
+		}
+		//Float f = esCnEntity.getReplenish_factor();
+		//BigDecimal b = new BigDecimal(f);
+		//float f1 = b.setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();
+		String source = ManagerUtils.getSourceFrom();
+		esCnEntity.setSource_from(source);
+		//esCnEntity.setReplenish_factor(f1);
+		
+
+	}
+	
+	private void checkCount(String sql, String value, String notar)
+			throws NameRepetirException{
+		int count = baseDaoSupport.queryForInt(sql);
+		if (count > 0)
+	    throw new NameRepetirException(notar);
+	}
+//查询
+	@Override
+	public Page getFormList(int pageNo, int pageSize, Map<String, String> params) {
+		StringBuilder temp = new StringBuilder(SF.numeroSql("ESCONOLIMIT_LIST"));
+		String sql = wrapsql(temp, params);
+		String countSql = "select count(distinct(a.org_id || a.region_id)) from "+sql.substring(sql.lastIndexOf("from ES_NO_CO_LIMIT a")+4); 
+		return baseDaoSupport.queryForCPage(sql, pageNo, pageSize,EsCoNoLimitEntity.class,countSql);
+	}
+
+	private String wrapsql(StringBuilder temp, Map<String, String> params) {
+		String region_id = params.get("region_id");
+		String org_id = params.get("org_id");
+		String org_name = params.get("org_name");
+		if(StringUtils.isNotBlank(org_id)){
+			if(org_id.endsWith(",")){
+				org_id = org_id.substring(0,org_id.length()-1);
+			}
+		}
+		if(region_id != null&&!"".equals(region_id)){
+			StringUtilidad.appendString(temp, region_id, " and a.region_id = "+ region_id + "");	
+		}
+		if(org_id != null&&!"".equals(org_id)){
+			StringUtilidad.appendString(temp, org_id, " and a.org_id in( "+ org_id + " )");	
+		}else{
+			if(org_name!=null&&!"".equals(org_name)){
+				StringUtilidad.appendString(temp, org_name, "and e.org_name like '%"+org_name+"%'");
+			}
+		}
+		return temp.toString();
+	}
+
+	@Override
+	public void update(EsCoNoLimitEntity esCnEntity) throws Exception {
+		setValueUpdate(esCnEntity);
+		
+//		checkUpdate(esCnEntity);
+		baseDaoSupport.update(TABLE, esCnEntity, " ORG_ID=" + esCnEntity.getOrg_id() +" and REGION_ID="+esCnEntity.getRegion_id());	
+	}
+	private void setValueUpdate(EsCoNoLimitEntity esCnEntity) {
+		String source = ManagerUtils.getSourceFrom();
+		esCnEntity.setSource_from(source);
+	}
+	private void checkUpdate(EsCoNoLimitEntity esCnEntity) throws NameRepetirException {
+		String sql = SF.numeroSql("ESCONOLIMIT_CHECK_UPDATE");
+		String oids = esCnEntity.getOrg_id();
+		if(StringUtils.isNotBlank(oids)){
+			if(oids.endsWith(",")){
+				oids = oids.substring(0,oids.length()-1);
+			}
+		}
+		sql+="  and e.org_id = '"+oids+"' and  e.region_id= '"+esCnEntity.getRegion_id()+"' ";
+		checkUpdateCount(esCnEntity, "编码重复,请重新输入", sql, "");
+	}
+
+	private void checkUpdateCount(EsCoNoLimitEntity esCnEntity, String notar, String sql,
+			String args) throws NameRepetirException {
+		int count = baseDaoSupport.queryForInt(sql);
+		if (count != 1 )
+	    throw new NameRepetirException(notar);
+
+	}
+
+	@Override
+	public EsCoNoLimitEntity get(String org_id, String region_id) {
+			String sql = SF.numeroSql("ESCONOLIMIT_GET");
+			return baseDaoSupport.queryForObject(sql, EsCoNoLimitEntity.class, org_id,region_id);
+
+	}
+
+
+
+}

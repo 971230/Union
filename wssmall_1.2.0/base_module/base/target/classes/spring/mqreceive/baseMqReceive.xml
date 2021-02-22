@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+    <context:annotation-config />
+    <!-- 属性文件 -->
+    <!-- <context:property-placeholder location="classpath*:config/rocketMQ.properties" 
+        /><context:annotation-config /> -->
+    <bean id="excuteReceiveMsg" class="com.ztesoft.api.mq.ExcuteReceiveMsg" p:ignoreUnresolvablePlaceholders="true"/><!-- 
+        bean 消息接收时用到 -->
+    <!-- 消费者1开始:common_topic -->
+    <bean name="receiveListenerController"
+        class="com.ztesoft.mq.client.rocketMQ.control.DefaultSingleEventListenerController"
+        destroy-method="destroy" scope="singleton" init-method="start"><!-- init-method="start" -->
+        <property name="config">
+            <bean
+                class="com.ztesoft.mq.client.rocketMQ.control.EventListenerControlConfig">
+                <property name="namesrvAddr">
+                    <value>${mq.namesrvAddr}</value>
+                </property>
+                <property name="groupName">
+                    <value>${mq.groupname.common}</value>
+                </property>
+                <property name="consumeMessageBatchMaxSize">
+                    <value>1</value>
+                </property>
+                <property name="isOrder">
+                    <value>false</value>
+                </property>
+            </bean>
+        </property>
+        <property name="subscription">
+            <map>
+                <entry key="${mq.topic.common}" value="*" />
+            </map>
+        </property>
+        <property name="msgErrorHandle">
+            <bean class="com.ztesoft.api.mq.PushError" />
+        </property>
+    </bean>
+
+    <bean name="receiveListener" class="com.ztesoft.mq.client.EventProcessService"
+        init-method="init"><!-- -->
+        <property name="listenerController">
+            <ref bean="receiveListenerController" />
+        </property>
+        <property name="topic">
+            <value>${mq.topic.common}</value>
+        </property>
+        <property name="action">
+            <value>*</value>
+        </property>
+        <property name="processor">
+            <bean class="com.ztesoft.api.mq.MqReceiveDefault" />
+        </property>
+    </bean>
+    <!-- 消费者1结束:common_topic -->
+
+
+    <!-- 消费者2开始:crm_topic <bean name="receiveListenerController2" class="com.ztesoft.mq.client.rocketMQ.control.DefaultSingleEventListenerController" 
+        destroy-method="destroy" scope="singleton" > <property name="config"> <bean 
+        class="com.ztesoft.mq.client.rocketMQ.control.EventListenerControlConfig"> 
+        <property name="namesrvAddr"> <value>${mq.namesrvAddr}</value> </property> 
+        <property name="groupName"> <value>crmListener</value> </property> <property 
+        name="consumeMessageBatchMaxSize"> <value>1</value> </property> <property 
+        name="isOrder"> <value>false</value> </property> </bean> </property> <property 
+        name="subscription"> <map> <entry key="crm_topic" value="*" /> </map> </property> 
+        <property name="msgErrorHandle"> <bean class="com.ztesoft.api.mq.PushError" 
+        /> </property> </bean> <bean name="receiveListener2" class="com.ztesoft.mq.client.EventProcessService" 
+        > <property name="listenerController"> <ref bean="receiveListenerController2" 
+        /> </property> <property name="topic"> <value>crm_topic</value> </property> 
+        <property name="action"> <value>*</value> </property> <property name="processor"> 
+        <bean class="com.ztesoft.api.mq.MqReceiveCRM" /> </property> </bean> -->
+    <!-- 消费者2结束:crm_topic -->
+
+    <!-- 消费者3开始:electron_topic <bean name="receiveListenerController3" class="com.ztesoft.mq.client.rocketMQ.control.DefaultSingleEventListenerController" 
+        destroy-method="destroy" scope="singleton"> <property name="config"> <bean 
+        class="com.ztesoft.mq.client.rocketMQ.control.EventListenerControlConfig"> 
+        <property name="namesrvAddr"> <value>${mq.namesrvAddr}</value> </property> 
+        <property name="groupName"> <value>electronlListener</value> </property> 
+        <property name="consumeMessageBatchMaxSize"> <value>1</value> </property> 
+        <property name="isOrder"> <value>false</value> </property> </bean> </property> 
+        <property name="subscription"> <map> <entry key="electron_topic" value="*" 
+        /> </map> </property> <property name="msgErrorHandle"> <bean class="com.ztesoft.api.mq.PushError" 
+        /> </property> </bean> <bean name="receiveListener3" class="com.ztesoft.mq.client.EventProcessService" 
+        > <property name="listenerController"> <ref bean="receiveListenerController3" 
+        /> </property> <property name="topic"> <value>electron_topic</value> </property> 
+        <property name="action"> <value>*</value> </property> <property name="processor"> 
+        <bean class="com.ztesoft.api.mq.MqReceiveCRM" /> </property> </bean> -->
+    <!-- 消费者3结束:electron_topic -->
+
+</beans>

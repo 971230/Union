@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-2.0.xsd"
+       default-autowire="byName" default-lazy-init="false">
+	<bean id="articleManager" class="com.ztesoft.net.mall.core.service.impl.ArticleManager" parent="baseSupport"></bean>
+	<bean id="articleCatManagerImpl" class="com.ztesoft.net.mall.core.service.impl.ArticleCatManager" parent="baseSupport"></bean>
+	<bean id="articleCatManager" class="com.ztesoft.net.mall.core.service.impl.cache.ArticleCatCacheProxy">
+		<constructor-arg><ref bean="articleCatManagerImpl"/></constructor-arg>
+    </bean>
+    <bean id="seoManager" class="com.ztesoft.net.mall.core.service.impl.SeoManager"  parent="baseSupport" />
+    <bean id="noticeManager" class='com.ztesoft.net.mall.core.service.impl.NoticeManagerImpl' scope="prototype"></bean>
+   <!-- 快讯管理 -->	
+	<bean id="newsManager" class="com.ztesoft.net.mall.core.service.impl.NewsManager" parent="baseSupport"></bean>
+	 <!-- 广告管理 -->	
+	<bean id="advManager" class="com.ztesoft.net.mall.core.service.impl.AdvManager" parent="baseSupport"></bean>
+	<bean id="adColumnManager" class="com.ztesoft.net.mall.core.service.impl.AdColumnManager" parent="baseSupport"></bean>
+	<bean id="welcomeInfoManager" class="com.ztesoft.net.mall.core.service.impl.WelcomeInfoManager" parent="baseSupport"></bean>
+	<bean id="ordTemplateManager" class="com.ztesoft.net.template.service.impl.OrdTemplateManager" parent="baseSupport"></bean>
+	<bean id="templateConvertManager" class="com.ztesoft.net.template.service.impl.TemplateConvertManager" parent="baseSupport"></bean>
+	<!-- 配置模板业务组件 Add by zjy -->
+	<bean id="ordTemplateBusiRequest" class="com.ztesoft.net.template.busi.OrdTemplateBusiRequest"></bean>
+	<!-- 搜索组件 -->
+	<bean id="lucenAttrTableService" class="com.ztesoft.net.template.lucence.LucenAttrTableService"></bean>
+	<bean id="lucenTableSearchService" class="com.ztesoft.net.template.lucence.LucenTableSearchService"></bean>
+</beans>

@@ -1,0 +1,44 @@
+package services;
+
+import params.adminuser.req.StaffReq;
+import params.adminuser.req.WordLogAddReq;
+import params.adminuser.resp.StaffInfoResp;
+import params.adminuser.resp.WorkLogAddResp;
+
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.service.IMblLogManager;
+
+
+public class WorkLogServ extends ServiceBase implements WorkLogInf{
+	
+	private IMblLogManager mblLogManager;
+	
+	public StaffInfoResp staffList(StaffReq staffReq){
+		
+		Page page = mblLogManager.staffList(staffReq.getUsername(),
+				Integer.valueOf(staffReq.getPage()), Integer.valueOf(staffReq.getPageSize()));
+		StaffInfoResp staffInfoResp = new StaffInfoResp();
+		staffInfoResp.setWebPage(page);
+		addReturn(staffReq, staffInfoResp);
+		
+		return staffInfoResp;
+	}
+	
+	public WorkLogAddResp addWork(WordLogAddReq wordLogAddReq){
+		
+		mblLogManager.addWork(wordLogAddReq.getMblWorkLogVO());
+		
+		WorkLogAddResp workLogAddResp = new WorkLogAddResp();
+		addReturn(wordLogAddReq, workLogAddResp);
+		return workLogAddResp;
+	}
+	
+	
+	public IMblLogManager getMblLogManager() {
+		return mblLogManager;
+	}
+
+	public void setMblLogManager(IMblLogManager mblLogManager) {
+		this.mblLogManager = mblLogManager;
+	}
+}

@@ -1,0 +1,324 @@
+package com.ztesoft.net.mall.core.action.order;
+
+import com.ztesoft.net.consts.OrderStatus;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class OrderBuilder {
+
+	public OrderBuilder() {
+		buildOrderFlow();
+	}
+
+	private  Map<String, List<FlowEntry>> flowMaps = new HashMap();
+
+	public static final String COLLECT = "COLLECT";
+	public static final String AUDIT = "AUDIT";
+	public static final String ACCEPT = "ACCEPT";
+	public static final String PAYMENT = "PAYMENT";
+	public static final String DILVERY = "DILVERY";
+	public static final String FINISH = "FINISH";
+	public static final String CANCEL = "CANCEL";
+	public static final String WITHDRAW = "WITHDRAW";
+	
+	
+	public static final String CLOUD_KEY = "CLOUD";
+	public static final String CONTRACT_KEY = "CONTRACT";
+	public static final String CARD_KEY = "CARD"; //充值卡
+	public static final String RECHARGE_CARD_KEY = "RECHARGE_CARD"; //流量卡
+	public static final String TIME_CARD_KEY = "TIME_CARD"; //时长卡
+	
+	public static final String COMMON_KEY = "COMMON";
+	//大众版订单
+	public static final String COMMONAGE = "COMMONAGE";
+	
+	
+	/**
+	 * 订单流程处理
+	 */
+	public  void buildOrderFlow() {
+		buildCloudOrderFlow();
+		buildContractOrderFlow();
+		buildRateCardOrderFlow();
+		buildRechargeCardOrderFlow();
+		buildTimeCardOrderFlow();
+	}
+	
+	//换货订单
+	public  void buildChangeShipFlow() {
+		buildCommonChangeShipFlow();
+	}
+	
+	
+	//退货订单
+	public  void buildRefundShipFlow() {
+		buildCommonRefundShipFlow();
+	}
+	
+	
+	//退费订单
+	public  void buildRefundFeeFlow() {
+		buildCommonRefundFeeFlow();
+	}
+	
+
+	
+	
+	
+	//取消订单
+	public  void buildCancelFlow() {
+		buildCommonCancelFlow();
+	}
+
+	//撤单
+	public  void buildWithDrawFlow() {
+		buildCommonWithDrawFlow();
+	}
+	
+	
+	//换货
+	private void buildCommonChangeShipFlow(){
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(DILVERY,"commonChangeShipHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.ACCEPT_ACTION_CHANGE_SHIPPING, flows);
+		
+	}
+	//退货
+	private void buildCommonRefundShipFlow(){
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(DILVERY,"commonReturnedShipHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.ACCEPT_ACTION_CANCEL_SHIPPING, flows);	
+	}
+	//退费
+	private void buildCommonRefundFeeFlow(){
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(PAYMENT,"commonRefundHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.ACCEPT_ACTION_REFUND, flows);
+	}
+	
+	
+	/**
+	 * 订单取消
+	 */
+	private  void buildCommonCancelFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(CANCEL,"commonCancelHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.ACCEPT_ACTION_CANCEL, flows);
+	}
+	
+	
+	/**
+	 * 订单撤单
+	 */
+	private  void buildCommonWithDrawFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(WITHDRAW,"commonWithDrawsHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.ACCEPT_ACTION_WITHDRAWS, flows);
+	}
+	
+	
+	
+	/**
+	 * 云卡
+	 */
+	private  void buildCloudOrderFlow() {
+		
+		/*订购流程*/
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(COLLECT,"cloudCardCollectHander"));
+		flows.add(new FlowEntry(AUDIT, "cloudCardAuditHander"));
+		flows.add(new FlowEntry(PAYMENT, "cloudCardPaymentHander"));
+		flows.add(new FlowEntry(ACCEPT,"cloudCardAcceptHander"));
+		
+		flows.add(new FlowEntry(DILVERY,  "cloudCardDilveryHander"));
+		//flows.add(new FlowEntry(FINISH, "cloudCardFinishHander")));
+		flowMaps.put(CLOUD_KEY+OrderStatus.ACCEPT_ACTION_ORDER, flows); //按流程动作区分
+		
+		
+	}
+	
+	
+	
+	
+	
+
+	/**
+	 * 合约机
+	 */
+	private  void buildContractOrderFlow() {
+		
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(COLLECT,"contractCollectHander"));
+		flows.add(new FlowEntry(AUDIT, "contractAuditHander"));
+		flows.add(new FlowEntry(PAYMENT, "contractPaymentHander"));
+		flows.add(new FlowEntry(ACCEPT,"contractAcceptHander"));
+		
+		flows.add(new FlowEntry(DILVERY,  "contractDilveryHander"));
+		//flows.add(new FlowEntry(FINISH, "contractFinishHander")));
+		
+		flowMaps.put(CONTRACT_KEY+OrderStatus.ACCEPT_ACTION_ORDER, flows);
+	}
+
+	/**
+	 * 充值卡
+	 */
+	private  void buildRateCardOrderFlow() {
+		
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(COLLECT,"cardCollectHander"));
+		flows.add(new FlowEntry(AUDIT, "cardAuditHander"));
+		flows.add(new FlowEntry(PAYMENT, "cardPaymentHander"));
+		flows.add(new FlowEntry(ACCEPT,"cardAcceptHander"));
+		
+		flows.add(new FlowEntry(DILVERY,  "cardDilveryHander"));
+		//flows.add(new FlowEntry(FINISH, "rateCardFinishHander")));
+		flowMaps.put(CARD_KEY+OrderStatus.ACCEPT_ACTION_ORDER, flows);
+	}
+
+	/**
+	 * 流量卡
+	 */
+	private  void buildRechargeCardOrderFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		
+//		flows.add(new FlowEntry(COLLECT,"rechargeCardCollectHander"));
+//		flows.add(new FlowEntry(AUDIT, "rechargeCardAuditHander"));
+//		flows.add(new FlowEntry(PAYMENT, "rechargeCardPaymentHander"));
+//		flows.add(new FlowEntry(ACCEPT,"rechargeCardAcceptHander"));
+//		
+//		flows.add(new FlowEntry(DILVERY,  "rechargeCardDilveryHander"));
+		//flows.add(new FlowEntry(FINISH, "rechargeCardFinishHander")));
+		
+		
+		//流量卡走充值卡的流程
+		flows.add(new FlowEntry(COLLECT,"cardCollectHander"));
+		flows.add(new FlowEntry(AUDIT, "cardAuditHander"));
+		flows.add(new FlowEntry(PAYMENT, "cardPaymentHander"));
+		flows.add(new FlowEntry(ACCEPT,"cardAcceptHander"));
+		flows.add(new FlowEntry(DILVERY,  "cardDilveryHander"));
+		
+		
+		flowMaps.put(RECHARGE_CARD_KEY+OrderStatus.ACCEPT_ACTION_ORDER, flows);
+	}
+	
+	
+	/**
+	 * 时长卡
+	 */
+	private  void buildTimeCardOrderFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		
+
+		//流量卡走充值卡的流程
+		flows.add(new FlowEntry(COLLECT,"cardCollectHander"));
+		flows.add(new FlowEntry(AUDIT, "cardAuditHander"));
+		flows.add(new FlowEntry(PAYMENT, "cardPaymentHander"));
+		flows.add(new FlowEntry(ACCEPT,"cardAcceptHander"));
+		flows.add(new FlowEntry(DILVERY,  "cardDilveryHander"));
+		
+		
+		flowMaps.put(TIME_CARD_KEY+OrderStatus.ACCEPT_ACTION_ORDER, flows);
+	}
+	
+
+	/**
+	 * 获取流程的后面的环节
+	 * 
+	 * @param goods_type
+	 * @param flow_name
+	 * @return
+	 */
+	public List<FlowEntry> getNextFlows(String goods_type, String flow_name) {
+		List<FlowEntry> flows = (List<FlowEntry>) flowMaps.get(goods_type);
+		List<FlowEntry> nextFlows = new ArrayList<FlowEntry>();
+		for (int i = getIndex(goods_type, flow_name); i < flows.size(); i++) {
+			FlowEntry flowEntry = flows.get(i);
+			nextFlows.add(flowEntry);
+		}
+		return nextFlows;
+	}
+	
+	public static final String ORDER_BH = "ORDERBL";
+	public void buildOrderWithBLFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(ORDER_BH,"orderHandleHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.BUTTON_CUST_ACCEPT_C, flows);
+	}
+	
+	public static final String ORDER_FH = "ORDERFH";
+	public void buildOrderWithFHFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(ORDER_FH,"orderHandleHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.BUTTON_SHIPPING_C, flows);
+	}
+	
+	public static final String ORDER_SH = "ORDERSH";
+	public void buildOrderWithSHFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(ORDER_SH,"orderHandleHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.BUTTON_GET_SHIPPING_C, flows);
+	}
+	
+	public static final String ORDER_FINISH = "ORDERFINISH";
+	public void buildOrderWithFinishFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(ORDER_FINISH,"orderHandleHander"));
+		flowMaps.put(COMMON_KEY+OrderStatus.BUTTON_FINISHED_C, flows);
+	}
+	
+
+	/**
+	 * 获取当前所在环节
+	 * 
+	 * @param goods_type
+	 * @param flow_name
+	 * @return
+	 */
+	public  int getIndex(String goods_type, String flow_name) {
+		List<FlowEntry> flows = (List<FlowEntry>) flowMaps.get(goods_type);
+		for (int i = 0; i < flows.size(); i++) {
+			FlowEntry flowEntry = flows.get(i);
+			if (flowEntry.getFlow_name().equals(flow_name))
+				return i;
+		}
+		return -1;
+	}
+	
+	public static final String PAYMENT_C = "PAYMENTC";
+	/**
+	 * 支付流程
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-19
+	 */
+	public void buildPaymentFlow() {
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(PAYMENT_C,"paymentHander"));
+		flowMaps.put(COMMONAGE+OrderStatus.BUTTON_CUST_ACCEPT_C, flows);
+	}
+	
+	/**
+	 * 退货流程
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-28
+	 */
+	public void buildGoodsRefundShipFlow(){
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(DILVERY,"goodsReturnedShipHander"));
+		flowMaps.put(COMMONAGE+OrderStatus.ACCEPT_ACTION_CANCEL_SHIPPING, flows);	
+	}
+	
+	/**
+	 * 退费流程
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-28
+	 */
+	public void buildGoodsRefundFeeFlow(){
+		List<FlowEntry> flows = new ArrayList<FlowEntry>();
+		flows.add(new FlowEntry(PAYMENT,"goodsRefundHander"));
+		flowMaps.put(COMMONAGE+OrderStatus.ACCEPT_ACTION_REFUND, flows);
+	}
+
+}

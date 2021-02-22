@@ -1,0 +1,23 @@
+/*    */ package com.ztesoft.crm.report.rule.function;
+/*    */ 
+/*    */ import com.ztesoft.crm.report.db.data_new.Cell;
+/*    */ import com.ztesoft.crm.report.rule.Function;
+/*    */ import com.ztesoft.crm.report.rule.FunctionInvoker;
+/*    */ 
+/*    */ public class Value
+/*    */   implements FunctionInvoker
+/*    */ {
+/*    */   public Object invoke(Function func)
+/*    */   {
+/* 32 */     Cell cell = (Cell)func.getParameter(0);
+/* 33 */     if (cell == null) {
+/* 34 */       return null;
+/*    */     }
+/* 36 */     return cell.getValue();
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.rule.function.Value
+ * JD-Core Version:    0.5.3
+ */

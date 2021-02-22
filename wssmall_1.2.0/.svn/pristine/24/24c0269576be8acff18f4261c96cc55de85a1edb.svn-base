@@ -1,0 +1,116 @@
+package com.ztesoft.net.eop.processor;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.utils.CacheUtil;
+
+public class XSSFilter implements Filter {
+	private static Logger logger = Logger.getLogger(XSSFilter.class);
+	public void init(FilterConfig filterConfig) throws ServletException {
+
+	}
+
+	public void destroy() {
+	}
+
+	public void doFilter(ServletRequest request, ServletResponse response,
+			FilterChain chain) throws IOException, ServletException {
+		HttpServletRequest req = (HttpServletRequest) request;
+		HttpServletResponse res = (HttpServletResponse)response;
+		//utils.SystemUtils.printLog("XSSFilter http请求IP:"+req.getRemoteAddr());
+		String uri = req.getRequestURI();
+		
+		
+			//get 请求参数处理
+			String filterUrl = HetaoBlogXssHTMLFilter.filter(uri);
+			if (!uri.equals(filterUrl)){
+				res.sendRedirect(filterUrl);
+			}
+			//post 请求参数处理
+//			if(hasSqlInjectParameter(req)){
+//				//参数有XSS攻击脚本，重定向到非法操作页面
+//				res.setContentType("text/html; charset=UTF-8");
+//				res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+//				req.getRequestDispatcher("/admin/illegal_message.jsp").forward(req,res);
+//			}
+//			else 
+			CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+			String xssFilter = cacheUtil.getConfigInfo("IS_XSS_FILTER");
+			if("1".equals(xssFilter)&& uri.indexOf("rule")<0){//过滤掉规则管理
+					if(hasXssParameter(req)){
+						//参数有XSS攻击脚本，重定向到非法操作页面
+						res.setContentType("text/html; charset=UTF-8");
+						res.setStatus(HttpServletResponse.SC_NOT_FOUND);
+						req.getRequestDispatcher("/error/404.html").forward(req,res);
+					}else{
+						chain.doFilter(request, response);
+					}
+			}else{
+				chain.doFilter(request, response);
+			}
+			
+		}
+		
+	
+	
+	/**
+	 * 判断HTTP请求参数值是否有XSS攻击脚本
+	 * @param req
+	 * @return
+	 */
+	public boolean hasXssParameter(HttpServletRequest req){
+		boolean isXssParameter = false;
+		//构造HttpRequestWrapper对象处理XSS
+		XssHttpRequestWrapper httpReqWarp = new XssHttpRequestWrapper(req);
+		Map<String,String[]> params = req.getParameterMap();
+		Set<String> keySet = params.keySet();
+		for(String key : keySet){
+			isXssParameter = httpReqWarp.isXssParameter(key);
+			if(isXssParameter){
+				logger.info(req.getRequestURI()+"请求存在XSS攻击 被拦截");
+				break;
+			}
+		}
+		return isXssParameter;
+	}
+	
+	/**
+	 * 判断HTTP请求参数值是否有SQL注入风险
+	 * @param req
+	 * @return
+	 */
+	public boolean hasSqlInjectParameter(HttpServletRequest req){
+		boolean hasSqlInjectP =  false;
+		//匹配单引号，--单行注释符，/**/多行注释符，关键字
+		String reg = "(?:')|(?:--)|(/\\*(?:.|[\\n\\r])*?\\*/)";  
+		Pattern sqlPattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
+		
+		Map<String,String[]> params = req.getParameterMap();
+		Set<String> keySet = params.keySet();
+		for(String key : keySet){
+			String param_value = req.getParameter(key);
+			if (sqlPattern.matcher(param_value).find()) {
+				hasSqlInjectP = true;
+				logger.info(req.getRequestURI()+"请求存在sql注入风险被拦截,param_value:"+param_value);
+				break;
+			}
+		}
+		return hasSqlInjectP;
+	}
+
+}

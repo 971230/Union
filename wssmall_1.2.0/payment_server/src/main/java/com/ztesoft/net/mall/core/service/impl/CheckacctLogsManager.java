@@ -1,0 +1,13 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.model.CheckacctLogs;
+import com.ztesoft.net.mall.core.service.ICheckacctLogsManager;
+
+public class CheckacctLogsManager extends BaseSupport<CheckacctLogs> implements ICheckacctLogsManager {
+	@Override
+	public void addLogs(CheckacctLogs checkacctLogs){
+		
+		this.baseDaoSupport.insert("checkacct_logs", checkacctLogs);
+	}
+}

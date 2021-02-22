@@ -1,0 +1,53 @@
+package zte.net.ord.rule.inf;
+
+import java.io.Serializable;
+import java.util.List;
+
+import com.ztesoft.net.annotation.DroolsFact;
+import com.ztesoft.net.annotation.DroolsFactField;
+import com.ztesoft.net.auto.rule.fact.AutoFact;
+import com.ztesoft.net.auto.rule.vo.RuleConsts;
+
+@DroolsFact(name="报文转换",code="infTplFact")
+public class InfTplFact extends AutoFact implements Serializable {
+	
+	private String order_id;
+	
+	@DroolsFactField(name="报文类型", ele_type="radio", stype_code="DC_IS_OR_NO")
+	private String inf_type;
+
+	public void exeAction(AutoFact fact, List<RuleConsts> consts)
+			throws RuntimeException {
+		
+	}
+
+	@Override
+	public String getObj_id() {
+		// TODO Auto-generated method stub
+		return order_id;
+	}
+
+	@Override
+	public String getTrace_flow_id() {
+		
+		return trace_flow_id;
+	}
+
+	public String getInf_type() {
+		//通过订单ID获取报文类型
+		return inf_type;
+	}
+
+	public void setInf_type(String inf_type) {
+		this.inf_type = inf_type;
+	}
+
+	public String getOrder_id() {
+		return order_id;
+	}
+
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+	
+}

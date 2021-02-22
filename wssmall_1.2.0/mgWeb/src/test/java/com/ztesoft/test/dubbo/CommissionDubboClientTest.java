@@ -1,0 +1,27 @@
+package com.ztesoft.test.dubbo;
+
+import com.ztesoft.test.dubbo.base.DubboClientTest;
+
+public class CommissionDubboClientTest extends DubboClientTest{
+	//----------成功-----------
+//	@Test(enabled=true)
+//	public void addSpread(){
+//		SpreadAddReq spreadAddReq=new SpreadAddReq();
+//		SpreadMember spreadMember=new SpreadMember();
+//		spreadMember.setSpread_id("1111111111");
+//		spreadMember.setName("呵呵");
+//		spreadMember.setMobile("2222222222");
+//		SpreadMemberGrade spreadMemberGrade=new SpreadMemberGrade();
+//		spreadMemberGrade.setSpread_id("201403119733000102");
+//		spreadMemberGrade.setService_id("1");
+//		spreadMemberGrade.setService_type("common");
+//		spreadMemberGrade.setSpread_mod("2");
+//		spreadAddReq.setSpreadMember(spreadMember);
+//		spreadAddReq.setSpreadMemberGrade(spreadMemberGrade);
+//		ZteClient client=getDubboZteClient();
+//		ZteResponse response=client.execute(spreadAddReq, SpreadAddResp.class);
+//		logger.info("0--"+response.getError_msg());
+//		Assert.assertEquals(response.getError_code(), "0");
+//	}
+
+}

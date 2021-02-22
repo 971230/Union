@@ -1,0 +1,114 @@
+/**
+ * 
+ */
+package com.ztesoft.rule.manager.action;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import zte.net.ecsord.params.logs.req.QryMatchDictLogsReq;
+
+import com.alibaba.fastjson.JSONArray;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.model.LogDictDetailContent;
+import com.ztesoft.net.model.DataPraserCatalog;
+import com.ztesoft.net.model.DataPraserInst;
+import com.ztesoft.rule.manager.service.IDictMatchLogsManager;
+
+/**
+ * @author ZX
+ * @version 2015-08-27
+ *
+ */
+public class DictMatchLogsAction extends WWAction {
+
+	@Resource
+	private IDictMatchLogsManager dictMatchLogsManager;
+	private QryMatchDictLogsReq qryMatchDictLogsReq;
+	private List<DataPraserCatalog> catalogList;
+	private DataPraserInst dataPraserInst;
+	private String inst_id;
+	private LogDictDetailContent detailContent;
+	
+	public String qryDataPraserInst() {
+		if (qryMatchDictLogsReq != null) {
+			qryMatchDictLogsReq.setPageNo(getPage());
+			qryMatchDictLogsReq.setPageSize(getPageSize());
+			webpage = dictMatchLogsManager.qryDataPraserInst(qryMatchDictLogsReq);
+		}
+		return "qryDataPraserInst";
+	}
+	/**
+	 * 查询字典目录
+	 * @return
+	 */
+	public String qryDictCatalog() {
+		catalogList = dictMatchLogsManager.qryDictCatalog();
+		json = JSONArray.toJSONString(catalogList);
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 日志处理
+	 * @return
+	 */
+	public String dealContent() {
+		return "dealContent";
+	}
+	/**
+	 * 日志处理保存
+	 * @return
+	 */
+	public String saveDealContent() {
+		dataPraserInst = dictMatchLogsManager.saveDealContent(dataPraserInst);
+		json = "{'result':0,'message':'成功！'}";
+		return JSON_MESSAGE;
+	}
+	
+	/**
+	 * 查询接口日志详细信息
+	 * @return
+	 */
+	public String detailContent() {
+		detailContent = dictMatchLogsManager.detailContent(inst_id);
+		return "detailContent";
+	}
+	
+	public QryMatchDictLogsReq getQryMatchDictLogsReq() {
+		return qryMatchDictLogsReq;
+	}
+	public void setQryMatchDictLogsReq(QryMatchDictLogsReq qryMatchDictLogsReq) {
+		this.qryMatchDictLogsReq = qryMatchDictLogsReq;
+	}
+	public IDictMatchLogsManager getDictMatchLogsManager() {
+		return dictMatchLogsManager;
+	}
+	public void setDictMatchLogsManager(IDictMatchLogsManager dictMatchLogsManager) {
+		this.dictMatchLogsManager = dictMatchLogsManager;
+	}
+	public List<DataPraserCatalog> getCatalogList() {
+		return catalogList;
+	}
+	public void setCatalogList(List<DataPraserCatalog> catalogList) {
+		this.catalogList = catalogList;
+	}
+	public DataPraserInst getDataPraserInst() {
+		return dataPraserInst;
+	}
+	public void setDataPraserInst(DataPraserInst dataPraserInst) {
+		this.dataPraserInst = dataPraserInst;
+	}
+	public String getInst_id() {
+		return inst_id;
+	}
+	public void setInst_id(String inst_id) {
+		this.inst_id = inst_id;
+	}
+	public LogDictDetailContent getDetailContent() {
+		return detailContent;
+	}
+	public void setDetailContent(LogDictDetailContent detailContent) {
+		this.detailContent = detailContent;
+	}
+}

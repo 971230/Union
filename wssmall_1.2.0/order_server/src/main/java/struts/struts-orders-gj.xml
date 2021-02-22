@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+		
+	<package name="struts-gj-order" extends="shop_default" namespace="/shop/admin">
+		<action name="ordehis" class="orderHistoryAction">
+			<result name="list">/shop/admin/ddgj/order_list.jsp</result>
+			<result name="his_center">/shop/admin/order_his/his_center.jsp</result>
+			<result name="his_order_base">/shop/admin/order_his/his_order_base.jsp</result>
+			<result name="his_order_items">/shop/admin/ddgj/order_items.jsp</result>
+			<result name="goods_info">/shop/admin/ddgj/goods_info.jsp</result>
+			<result name="his_payment_log">/shop/admin/ddgj/payment_log.jsp</result>
+			<result name="his_shipping_log">/shop/admin/ddgj/shipping_log.jsp</result>
+			<result name="order_log">/shop/admin/ddgj/order_log.jsp</result>
+			<result name="order_promotion">/shop/admin/ddgj/order_promotion.jsp</result>
+			<result name="order_flow_log">/shop/admin/ddgj/order_flow_log.jsp</result>
+			<result name="his_order_info">/shop/admin/order_his/his_order_info.jsp</result>
+		</action>
+		
+		<action name="ordergj" class="orderGJAction">
+			<result name="list">/shop/admin/ddgj/order_list.jsp</result>
+			<result name="order_center">/shop/admin/ddgj/order_center.jsp</result>
+			<result name="order_base">/shop/admin/ddgj/order_base.jsp</result>
+			<result name="order_items">/shop/admin/ddgj/order_items.jsp</result>
+			<result name="goods_info">/shop/admin/ddgj/goods_info.jsp</result>
+			<result name="order_supply">/shop/admin/ddgj/order_supply.jsp</result>
+			<result name="payment_log">/shop/admin/ddgj/payment_log.jsp</result>
+			<result name="shipping_log">/shop/admin/ddgj/shipping_log.jsp</result>
+			<result name="delivery_info">/shop/admin/ddgj/delivery_info.jsp</result>
+			<result name="delivery_info_add">/shop/admin/ddgj/delivery_info_add.jsp</result>
+			<result name="order_log">/shop/admin/ddgj/order_log.jsp</result>
+			<result name="order_promotion">/shop/admin/ddgj/order_promotion.jsp</result>
+			<result name="order_flow_log">/shop/admin/ddgj/order_flow_log.jsp</result>
+			<result name="right_order_flow_log">/shop/admin/ddgj/right_order_flow_log.jsp</result>
+		</action>
+		
+		<action name="orderBusiness" class="orderBusinessAction">
+			<result name="order_cancel">/shop/admin/ddgj/order_cancel.jsp</result>
+			<result name="order_bh">/shop/admin/ddgj/order_bh.jsp</result>
+			<result name="order_shipping">/shop/admin/ddgj/order_shipping.jsp</result>
+			<result name="select_admin">/shop/admin/ddgj/select_admin.jsp</result>
+			<result name="order_receive">/shop/admin/ddgj/order_receive.jsp</result>
+			<result name="order_finish">/shop/admin/ddgj/order_finish.jsp</result>
+			<result name="return_dialog">/shop/admin/ddgj/return_dialog.jsp</result>
+			<result name="refund_dialog">/shop/admin/ddgj/refund_dialog.jsp</result>
+			<result name="change_dialog">/shop/admin/ddgj/change_dialog.jsp</result>
+			<result name="order_pay">/shop/admin/ddgj/order_pay.jsp</result>
+			<result name="no_security_pay">/shop/admin/ddgj/no_security_pay.jsp</result>
+			<result name="order_dispatch">/shop/admin/ddgj/order_dispatch.jsp</result>
+			<result name="select_group_admin">/shop/admin/ddgj/select_group_admin.jsp</result>
+			<result name="order_openaccount">/shop/admin/ddgj/order_openaccount.jsp</result>
+			<result name="order_confirm">/shop/admin/ddgj/order_confirm.jsp</result>
+			<result name="order_info">/shop/admin/ddgj/order_info.jsp</result>
+			<result name="order_visit">/shop/admin/ddgj/order_visit.jsp</result>
+			<result name="add_return_visit">/shop/admin/ddgj/add_return_visit.jsp</result>
+			<result name="right_return_visit">/shop/admin/ddgj/right_return_visit.jsp</result>
+		</action>
+		
+		<action name="orderOp" class="orderOpAction">
+			<result name="order_exception">/shop/admin/ddgj/order_exception.jsp</result>
+			<result name="order_exp_info">/shop/admin/ddgj/order_exp_info.jsp</result>
+			<result name="order_comments">/shop/admin/ddgj/order_comments.jsp</result>
+			<result name="order_com_info">/shop/admin/ddgj/order_com_info.jsp</result>
+			<result name="order_return_apply">/shop/admin/ddgj/order_return_apply.jsp</result>
+			<result name="order_apply_list">/shop/admin/ddgj/order_apply_list.jsp</result>
+			<result name="order_back_list">/shop/admin/ddgj/order_back_list.jsp</result>
+		</action>
+		
+	</package>
+	
+</struts>

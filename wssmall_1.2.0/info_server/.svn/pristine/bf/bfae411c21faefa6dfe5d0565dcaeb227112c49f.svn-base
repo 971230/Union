@@ -1,0 +1,85 @@
+package com.ztesoft.zteopen.service.info;
+
+import zte.net.iservice.IInfoServices;
+import zte.params.template.req.GetAttrDefTableReq;
+import zte.params.template.req.TemplateAccessConvertReq;
+import zte.params.template.req.TemplateOuter2XmlConvertReq;
+import zte.params.template.req.TemplateOuterConvertReq;
+import zte.params.template.req.TemplateQryReq;
+import zte.params.template.req.WelcomInfoReq;
+import zte.params.template.resp.GetAttrDefTableResp;
+import zte.params.template.resp.TemplateAccessConvertResp;
+import zte.params.template.resp.TemplateOuter2XmlConvertResp;
+import zte.params.template.resp.TemplateOuterConvertResp;
+import zte.params.template.resp.TemplateQryResp;
+import zte.params.template.resp.WelcomInfoResp;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+/**
+ * 信息管理模块开放服务
+ * @author pzh
+ */
+@ServiceMethodBean(version="1.0")
+public class ZteInfoOpenService  implements IInfoServices{
+
+//    @Resource
+    private IInfoServices infoServices;
+    
+    private void init(){
+    	infoServices = SpringContextHolder.getBean("infoServices");
+	}
+
+	@Override
+	@ServiceMethod(method="zte.net.iservice.template.qry",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public TemplateQryResp templateQry(TemplateQryReq req)
+			throws ApiBusiException {
+		this.init();
+		return infoServices.templateQry(req);
+	}
+
+	@Override
+	@ServiceMethod(method="zte.net.iservice.template.tplAccessConvert",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public TemplateAccessConvertResp tplAccessConvert(
+			TemplateAccessConvertReq req) throws ApiBusiException {
+		this.init();
+		return infoServices.tplAccessConvert(req);
+	}
+
+	@Override
+	@ServiceMethod(method="zte.net.iservice.template.tplOuterConvert",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public TemplateOuterConvertResp tplOuterConvert(TemplateOuterConvertReq req)
+			throws ApiBusiException {
+		this.init();
+		return infoServices.tplOuterConvert(req);
+	}
+
+	@Override
+	@ServiceMethod(method="zte.net.iservice.template.tplOuter2XmlConvert",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public TemplateOuter2XmlConvertResp tplOuter2XmlConvert(TemplateOuter2XmlConvertReq req) throws ApiBusiException {
+		this.init();
+		return infoServices.tplOuter2XmlConvert(req);
+	}
+
+	@Override
+	@ServiceMethod(method="zte.infoService.info.get.memberMap",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public WelcomInfoResp mapWelcomInfo(WelcomInfoReq req) throws ApiBusiException {
+		this.init();
+		return infoServices.mapWelcomInfo(req);
+	}
+    
+	
+	/**
+	 * 联通获取属性定义
+	 * @return
+	 */
+	@ServiceMethod(method="zte.net.iservice.template.getAttrDefTableReq",version="1.0",needInSession=NeedInSessionType.NO,timeout = 600000)
+	public GetAttrDefTableResp getAttrDefTableReq(GetAttrDefTableReq req) throws ApiBusiException{
+		this.init();
+		return infoServices.getAttrDefTableReq(req);
+	}
+}

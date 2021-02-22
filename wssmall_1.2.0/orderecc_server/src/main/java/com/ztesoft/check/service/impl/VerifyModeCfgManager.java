@@ -1,0 +1,87 @@
+package com.ztesoft.check.service.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.check.model.Fun;
+import com.ztesoft.check.service.IVerifyModeCfgManager;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+
+/**
+ * 校验方式配置
+ * @author Administrator
+ *
+ */
+public class VerifyModeCfgManager extends BaseSupport implements IVerifyModeCfgManager{
+	
+	private static final String TABLE = "ES_ECC_FUN";
+	
+	@Override
+	public Page getVerifyModeList(int pageNo, int pageSize, Map<String, String> params) {
+		
+		StringBuilder temp = new StringBuilder(SF.eccSql("ES_ECC_FUN_LIST"));
+		//校验方式
+		String verify_mode = params.get("verify_mode");
+		//状态
+		String status = params.get("status");
+		//校验名称
+		String fun_name = params.get("fun_name");
+		
+		List paramLst = new ArrayList();
+		
+		temp.append(" and a.source_from = ?");
+		paramLst.add(ManagerUtils.getSourceFrom());
+		
+		if (StringUtils.isNotEmpty(fun_name)) {
+			temp.append(" and a.fun_name like '%"+fun_name+"%'");
+		}
+		
+		if (StringUtils.isNotEmpty(verify_mode)) {
+			temp.append(" and a.impl = ?");
+			paramLst.add(verify_mode);
+		}
+		
+		if (StringUtils.isNotEmpty(status)) {
+			temp.append(" and a.status = ?");
+			paramLst.add(status);
+		}
+		
+		temp.append(" order by a.create_time desc ");
+		String sql = "select rownum seq_id, seqtt.* from ("+temp.toString()+") seqtt ";
+		return baseDaoSupport.queryForPage(sql, pageNo, pageSize, paramLst.toArray());
+	}
+
+	@Override
+	public void saveOrUpdate(Fun fun) throws Exception {
+		// TODO Auto-generated method stub
+		if (StringUtils.isBlank(fun.getFun_id())) {
+			save(fun);
+		} else {
+			update(fun);
+		}
+	}
+
+	private void save(Fun fun) throws Exception {
+		
+		baseDaoSupport.insert(TABLE, fun);
+	}
+
+	private void update(Fun fun) throws Exception {
+		baseDaoSupport.update(TABLE, fun, "FUN_ID=" + fun.getFun_id());
+	}
+	
+	@Override
+	public Fun get(String id) {
+		// TODO Auto-generated method stub
+		String sql = SF.eccSql("FUN_GET");
+		return (Fun) baseDaoSupport.queryForObject(sql, Fun.class, id);
+	}
+
+}

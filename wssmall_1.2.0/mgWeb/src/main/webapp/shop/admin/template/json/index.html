@@ -1,0 +1,78 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+<META content="IE=10.000" http-equiv="X-UA-Compatible">
+<META http-equiv="Content-Type" content="text/html;charset=utf-8">
+<TITLE>JSON Editor</TITLE>
+<LINK href="favicon.ico" rel="shortcut icon">
+<LINK href="index/app.min.css" rel="stylesheet" type="text/css">
+<SCRIPT src="index/app.min.js" type="text/javascript"></SCRIPT>
+</HEAD>
+<BODY>
+	<DIV id="header">
+		<A class="header" href="http://jsoneditoronline.org/"><IMG
+			title="JSON Editor Online" id="logo" alt="JSON Editor Online"
+			src="index/logo.png"> </A>
+		<DIV id="name-menu">
+			<DIV title="Document name. Click to change" id="name"></DIV>
+			<DIV title="Changes are automatically saved online" id="name-status"></DIV>
+		</DIV>
+		<DIV id="menu">
+			<UL>
+				<LI><A title="Open a new, empty document" id="new">New</A></LI>
+				<LI><A title="Open file" id="open"> Open <SPAN
+						class="dropDownIcon">▼</SPAN>
+				</A>
+					<UL id="openMenu">
+						<LI><A title="Open file from disk" id="openFromDisk">Open
+								from disk</A></LI>
+						<LI><A title="Open file from url" id="openUrl">Open url</A></LI>
+						<LI id="filesList"></LI>
+					</UL></LI>
+				<LI><A title="Save file" id="save"> Save <SPAN
+						class="dropDownIcon">▼</SPAN>
+				</A>
+					<UL id="saveMenu">
+						<LI><A title="Save file to disk" id="saveToDisk">Save to
+								disk</A></LI>
+						<LI><A title="Save and share online" id="saveOnline">Save
+								online</A></LI>
+					</UL></LI>
+				<LI><A title="Open documentation (opens in a new window)"
+					id="help" href="http://jsoneditoronline.org/doc/index.html"
+					target="_blank">Help</A></LI>
+			</UL>
+		</DIV>
+	</DIV>
+	<DIV id="auto">
+		<DIV id="contents">
+			<DIV id="codeEditor"></DIV>
+			<DIV id="splitter">
+				<DIV id="buttons">
+					<DIV>
+						<BUTTON title="Copy code to tree editor" class="convert"
+							id="toTree">
+							<DIV class="convert-right"></DIV>
+						</BUTTON>
+					</DIV>
+					<DIV>
+						<BUTTON title="Copy tree to code editor" class="convert"
+							id="toCode">
+							<DIV class="convert-left"></DIV>
+						</BUTTON>
+					</DIV>
+				</DIV>
+				<DIV id="drag"></DIV>
+			</DIV>
+			<DIV id="treeEditor"></DIV>
+			<SCRIPT type="text/javascript">
+				app.load();
+				app.resize();
+			</SCRIPT>
+		</DIV>
+	</DIV>
+	<SCRIPT type="text/javascript">
+		app.resize();
+	</SCRIPT>
+</BODY>
+</HTML>

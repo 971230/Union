@@ -1,0 +1,160 @@
+<div tabid="tab_9" class="tab-panel">
+	<table class="form-table">
+		<tbody>
+			<tr>
+				<th>
+					<label class="text">
+						简介信息：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp; <#if goodsBusiness?exists>
+					<input type="text" class="ipttxt" name="goodsBusiness.remark"
+						value="${goodsBusiness.remark!''}" datatype="string">
+					<#else>
+					<input type="text" class="ipttxt" name="goodsBusiness.remark"
+						value="" datatype="string">
+					</#if>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label class="text">
+						商品范围：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp; <#if goodsBusiness?exists>
+					<input type="text" class="ipttxt"
+						name="goodsBusiness.service_scope"
+						value="${goodsBusiness.service_scope!''}" datatype="string">
+					<#else>
+					<input type="text" class="ipttxt"
+						name="goodsBusiness.service_scope" value="" datatype="string">
+					</#if>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label class="text">
+						商品温馨提醒：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp; <#if goodsBusiness?exists>
+					<input type="text" class="ipttxt" name="goodsBusiness.service_tip"
+						value="${goodsBusiness.service_tip!''}" datatype="string">
+					<#else>
+					<input type="text" class="ipttxt" name="goodsBusiness.service_tip"
+						value="" datatype="string">
+					</#if>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label class="text">
+						商品资费信息：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp; <#if goodsBusiness?exists>
+					<input type="text" class="ipttxt"
+						name="goodsBusiness.service_fee_desc"
+						value="${goodsBusiness.service_fee_desc!''}" datatype="string">
+					<#else>
+					<input type="text" class="ipttxt"
+						name="goodsBusiness.service_fee_desc" value="" datatype="string">
+					</#if>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label class="text">
+						商品促销信息：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp; <#if goodsBusiness?exists>
+					<input type="text" class="ipttxt"
+						name="goodsBusiness.service_promt_desc"
+						value="${goodsBusiness.service_promt_desc!''}" datatype="string">
+					<#else>
+					<input type="text" class="ipttxt"
+						name="goodsBusiness.service_promt_desc" value="" datatype="string">
+					</#if>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label class="text">
+						外系统服务类型：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp;
+					<select class="ipttxt" name="goodsBusiness.service_type">
+						<#if listBusType?exists> <#list listBusType as bus> <#if
+						goodsBusiness?exists> <#if goodsBusiness.service_type == bus.pkey>
+						<option value="${bus.pkey}" selected="selected">
+							${bus.pname}
+						</option>
+						</#if> </#if>
+						<option value="${bus.pkey}">
+							${bus.pname}
+						</option>
+						</#list> </#if>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label class="text">
+						BIZ_TYPE_CODE：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp; <#if goodsBusiness?exists>
+					<input type="text" class="ipttxt"
+						name="goodsBusiness.biz_type_code"
+						value="${goodsBusiness.biz_type_code!''}" datatype="string">
+					<#else>
+					<input type="text" class="ipttxt"
+						name="goodsBusiness.biz_type_code" value="" datatype="string">
+					</#if>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label class="text">
+						SP_ID：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp; <#if goodsBusiness?exists>
+					<input type="text" class="ipttxt" name="goodsBusiness.sp_id"
+						value="${goodsBusiness.sp_id!''}" datatype="string">
+					<#else>
+					<input type="text" class="ipttxt" name="goodsBusiness.sp_id"
+						value="" datatype="string">
+					</#if>
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label class="text">
+						BIZ_CODE：
+					</label>
+				</th>
+				<td valign="middle">
+					&nbsp; <#if goodsBusiness?exists>
+					<input type="text" class="ipttxt" name="goodsBusiness.biz_code"
+						value="${goodsBusiness.biz_code!''}" datatype="string">
+					<#else>
+					<input type="text" class="ipttxt" name="goodsBusiness.biz_code"
+						value="" datatype="string">
+					</#if>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>

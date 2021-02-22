@@ -1,0 +1,109 @@
+package zte.params.process.req;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.framework.database.NotDbField;
+
+import params.ZteRequest;
+import zte.params.process.resp.UosDealResp;
+
+/**
+ * @author Reason.Yea
+ * @version 创建时间：2014-9-16
+ */
+public class UosDealReq extends ZteRequest<UosDealResp> {
+
+	@ZteSoftCommentAnnotationParam(name = "用户ID", type = "Int", isNecessary = "Y", desc = "用户ID")
+	private int staffId;
+	@ZteSoftCommentAnnotationParam(name = "用户名称", type = "String", isNecessary = "N", desc = "用户名称")
+	private String staffName;
+	@ZteSoftCommentAnnotationParam(name = "流程实例ID", type = "String", isNecessary = "Y", desc = "流程实例ID")
+	private String processInstanceId;
+	@ZteSoftCommentAnnotationParam(name = "环节编码", type = "String", isNecessary = "Y", desc = "环节编码")
+	private String tacheCode;
+	@ZteSoftCommentAnnotationParam(name = "工单ID", type = "String", isNecessary = "N", desc = "工单ID")
+	private String workItemId;
+	@ZteSoftCommentAnnotationParam(name = "环节ID", type = "String", isNecessary = "N", desc = "环节ID")
+	private String tacheId;
+	@ZteSoftCommentAnnotationParam(name = "环节处理状态", type = "String", isNecessary = "N", desc = "B：结束整个流程 ;C:完成当前工单;默认为C")
+	private String dealType;	
+	@ZteSoftCommentAnnotationParam(name = "流程控制参数", type = "Object", isNecessary = "N", desc = "控制流程分支的参数,isAuditPass;传入可以为String")
+	private String isAuditPass; //add modify by wui 只能传输字符串,不传输不确定类型,需要list省份的省份自己解决
+
+	public String getIsAuditPass() {
+		return isAuditPass;
+	}
+
+	public void setIsAuditPass(String isAuditPass) {
+		this.isAuditPass = isAuditPass;
+	}
+
+	public String getTacheCode() {
+		return tacheCode;
+	}
+
+	public void setTacheCode(String tacheCode) {
+		this.tacheCode = tacheCode;
+	}
+
+	public String getDealType() {
+		return dealType;
+	}
+
+	public void setDealType(String dealType) {
+		this.dealType = dealType;
+	}
+
+	public String getProcessInstanceId() {
+		return processInstanceId;
+	}
+
+	public void setProcessInstanceId(String processInstanceId) {
+		this.processInstanceId = processInstanceId;
+	}
+
+	public String getWorkItemId() {
+		return workItemId;
+	}
+
+	public void setWorkItemId(String workItemId) {
+		this.workItemId = workItemId;
+	}
+
+	public String getTacheId() {
+		return tacheId;
+	}
+
+	public void setTacheId(String tacheId) {
+		this.tacheId = tacheId;
+	}
+
+	public int getStaffId() {
+		return staffId;
+	}
+
+	public void setStaffId(int staffId) {
+		this.staffId = staffId;
+	}
+
+	public String getStaffName() {
+		return staffName;
+	}
+
+	public void setStaffName(String staffName) {
+		this.staffName = staffName;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "zte.uosService.process.deal";
+	}
+
+}

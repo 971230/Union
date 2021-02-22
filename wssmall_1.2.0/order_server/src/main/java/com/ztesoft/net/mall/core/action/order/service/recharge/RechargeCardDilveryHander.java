@@ -1,0 +1,40 @@
+package com.ztesoft.net.mall.core.action.order.service.recharge;
+
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.order.dilvery.CommonDilveryHander;
+
+
+public  class RechargeCardDilveryHander extends CommonDilveryHander{
+
+	@Override
+	public void display() {
+		//合约机不需要展示按钮
+	}
+
+	/**
+	 * 物流处理 合约机自动物流跳转
+	 */
+	@Override
+	public void execute(){
+		if (isTaobaoAgent()) {
+			//无需处理
+		}else{
+			if(StringUtil.isEmpty(getOrderRequst().getShip_action()) || OrderStatus.SHIP_ACTION_SHIP.equals(getOrderRequst().getShip_action())){
+				
+				orderNFlowManager.ship_auto(getOrder().getOrder_id());
+				orderNFlowManager.confirm_ship(getOrder().getOrder_id());
+				
+			}else if(OrderStatus.SHIP_ACTION_CONFIRM_SHIP.equals(getOrderRequst().getShip_action()))
+			{	
+				orderNFlowManager.confirm_ship(getOrder().getOrder_id());
+			}
+		}
+	}
+	@Override
+	public boolean isCanExecute() {
+		return this.getOrderRequst().isCan_execute();
+	}
+
+
+}

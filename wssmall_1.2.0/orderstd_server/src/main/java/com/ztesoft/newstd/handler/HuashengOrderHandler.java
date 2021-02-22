@@ -1,0 +1,273 @@
+package com.ztesoft.newstd.handler;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.attr.hander.AttrSwitchParams;
+import com.ztesoft.net.attr.hander.IAttrHandler;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.newstd.common.CommonData;
+
+import consts.ConstsCore;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.common.SpecConsts;
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+import zte.net.ecsord.params.busi.req.HuashengOrderBusiRequest;
+import zte.net.ecsord.params.busi.req.HuashengOrderItemBusiRequest;
+
+public class HuashengOrderHandler extends BaseSupport implements IAttrHandler {
+	private static final String INSERT_SQL_HS_ITEMS = "INSERT INTO ES_HUASHENG_ORDER_ITEM "
+			+ " (ITEMS_ID, ORDER_ID, ITEM, LGORT, MATNR, SOBKZ, MENGE, MEINS, POSNR, SN, SOURCE_FROM, EBELP, XBLNR, SKU)"
+			+ " VALUES (:ITEMS_ID, :ORDER_ID, :ITEM, :LGORT, :MATNR, :SOBKZ, :MENGE, :MEINS, :POSNR, :SN, :SOURCE_FROM, :EBELP, :XBLNR, :SKU)";
+
+	private static final String INSERT_SQL_EXTVTL = "INSERT INTO ES_ORDER_ITEMS_EXTVTL "
+			+ " (ITEMS_ID, ORDER_ID, GOODS_ID, GOODS_NAME, GOODS_TYPE, RESOURCES_CODE, RESOURCES_BRAND_CODE, "
+			+ " RESOURCES_BRAND_NAME, RESOURCES_MODEL_CODE, RESOURCES_MODEL_NAME, RESOURCES_COLOR, "
+			+ "MACHINE_TYPE_CODE, MACHINE_TYPE_NAME, SOURCE_FROM, ESS_OPER_ID, OPERATION_STATUS, "
+			+ "OPERATION_DESC, SKU, PRODUCT_ID, GOODS_PRICE, ZLINE) "
+			+ " VALUES (:ITEMS_ID, :ORDER_ID, :GOODS_ID, :GOODS_NAME, :GOODS_TYPE, :RESOURCES_CODE, :RESOURCES_BRAND_CODE, "
+			+ ":RESOURCES_BRAND_NAME, :RESOURCES_MODEL_CODE, :RESOURCES_MODEL_NAME, :RESOURCES_COLOR, "
+			+ ":MACHINE_TYPE_CODE, :MACHINE_TYPE_NAME, :SOURCE_FROM, :ESS_OPER_ID, :OPERATION_STATUS, "
+			+ ":OPERATION_DESC, :SKU, :PRODUCT_ID, :GOODS_PRICE, :ZLINE)";
+
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo) throws ApiBusiException {
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+		String order_id = params.getOrder_id();// 订单ID
+		Map orderAttrValues = params.getOrderAttrValues();// 订单所有属性值
+		String hsOrderInfo = (String) orderAttrValues.get(AttrConsts.HS_ORDER_INFO);
+		List<HuashengOrderBusiRequest> huashengOrderBusiRequests = (List<HuashengOrderBusiRequest>) params
+				.getBusiRequest();
+		List<HuashengOrderItemBusiRequest> huashengOrderItemBusiRequests = CommonData.getData()
+				.getOrderTreeBusiRequest().getHuashengOrderItemBusiRequest();
+
+		CommHandler commHandler = new CommHandler();
+		String source_from = commHandler.getSourceFrom();
+
+		if (StringUtils.isNotBlank(hsOrderInfo)) {
+			JSONArray array = JSON.parseArray(hsOrderInfo);
+			if (null != array && array.size() > 0) {
+				Map<String, String> fieldsOrder = null;
+				Map<String, String> fieldsItems = null;
+				List<Map<String, String>> batchList = new ArrayList<Map<String, String>>();
+				for (int i = 0; i < array.size(); i++) {
+					try {
+						JSONObject jsonObj = array.getJSONObject(i);
+						// 入库es_huasheng_order
+						if (i == 0) {
+							if (ListUtil.isEmpty(huashengOrderBusiRequests))
+								huashengOrderBusiRequests = new ArrayList<HuashengOrderBusiRequest>();
+							fieldsOrder = new HashMap<String, String>();
+							fieldsOrder.put("vbeln", jsonObj.getString("VBELN"));
+							fieldsOrder.put("mjahr", jsonObj.getString("MJAHR"));
+							fieldsOrder.put("werks", jsonObj.getString("WERKS"));
+							fieldsOrder.put("company_id", jsonObj.getString("COMPANY_ID"));
+							fieldsOrder.put("company_name", jsonObj.getString("COMPANY_NAME"));
+							fieldsOrder.put("disvendor_code", jsonObj.getString("DISVENDOR_CODE"));
+							fieldsOrder.put("sf_destcode", jsonObj.getString("SF_DESTCODE"));
+							fieldsOrder.put("sf_origincode", jsonObj.getString("SF_ORIGINCODE"));
+							fieldsOrder.put("vbeln", jsonObj.getString("VBELN"));
+							fieldsOrder.put("order_id", order_id);
+							fieldsOrder.put("zjklb", jsonObj.getString("ZJKLB"));
+							fieldsOrder.put("lifnr", jsonObj.getString("LIFNR"));
+							fieldsOrder.put("source_from", source_from);
+							HuashengOrderBusiRequest request = new HuashengOrderBusiRequest();
+							BeanUtils.copyProperties(request, fieldsOrder);
+							huashengOrderBusiRequests.add(request);
+						}
+						if (ListUtil.isEmpty(huashengOrderItemBusiRequests))
+							huashengOrderItemBusiRequests = new ArrayList<HuashengOrderItemBusiRequest>();
+						// es_huasheng_order_item表
+						String goods_sku = jsonObj.getString("SKU");
+						Goods goods = CommonDataFactory.getInstance().getGoodsBySku(goods_sku);
+						String goods_id = goods.getGoods_id();
+						String goods_name = CommonDataFactory.getInstance().getGoodSpec(null, goods_id,
+								SpecConsts.GOODS_NAME);
+						Map mobileTerminalSpec = getProductSpecByGoodsId(order_id, goods_id);
+						String product_sku = (String) mobileTerminalSpec.get(SpecConsts.SKU);
+						fieldsItems = new HashMap<String, String>();
+						fieldsItems.put("ITEMS_ID", this.baseDaoSupport.getSequences("s_es_huasheng_order_item"));
+						fieldsItems.put("ORDER_ID", order_id);
+						fieldsItems.put("ITEM", jsonObj.getString("ITEM"));
+						fieldsItems.put("LGORT", jsonObj.getString("LGORT"));
+						fieldsItems.put("MATNR", jsonObj.getString("MATNR"));
+						fieldsItems.put("SOBKZ", jsonObj.getString("SOBKZ"));
+						fieldsItems.put("MENGE", jsonObj.getString("MENGE"));
+						fieldsItems.put("MEINS", jsonObj.getString("MEINS"));
+						fieldsItems.put("POSNR", "");
+						fieldsItems.put("SN", jsonObj.getString("MATNR").substring(8));
+						fieldsItems.put("SOURCE_FROM", source_from);
+						fieldsItems.put("EBELP", jsonObj.getString("EBELP"));
+						fieldsItems.put("XBLNR", order_id);
+						fieldsItems.put("SKU", product_sku);
+						batchList.add(fieldsItems);
+						// this.baseDaoSupport.insert("es_huasheng_order_item", fieldsItems);
+						HuashengOrderItemBusiRequest request = new HuashengOrderItemBusiRequest();
+						BeanUtils.copyProperties(request, fieldsItems);
+						request.setDb_action(ConstsCore.DB_ACTION_INSERT);
+						request.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+						huashengOrderItemBusiRequests.add(request);
+
+						// request.store();
+					} catch (Exception e) {
+						logger.info("order_id:" + order_id + " HSOrderHandler error," + e.getMessage());
+						e.printStackTrace();
+					}
+				}
+				// 批量插入es_huasheng_order_item表
+				try {
+					this.baseDaoSupport.batchExecuteByListMap(INSERT_SQL_HS_ITEMS, batchList);
+				} catch (Exception e) {
+					logger.info("order_id:" + order_id + " batchExecuteByListMap error," + e.getMessage());
+					e.printStackTrace();
+				}
+
+				// 设置同一sku入库次数,生成序列用
+				List<Map<String, String>> batchVtlList = new ArrayList<Map<String, String>>();
+				Map<String, String> mapSku = new HashMap<String, String>();
+				// 订单多商品实体插入
+				for (int i = 0; i < array.size(); i++) {
+					try {
+						JSONObject jsonObj = array.getJSONObject(i);
+						String matnr = jsonObj.getString("MATNR");
+						int nums = Integer.parseInt(jsonObj.getString("MENGE")); // 商品数量
+						// 根据物料号获取商品的sku
+						// String sql = "select c.sku from es_goods c, es_goods_package p where
+						// p.hs_matnr = '"+matnr+"' and p.goods_id = c.goods_id and c.type_id = '20003'
+						// and p.source_from = 'ECS' and p.source_from = c.source_from and rownum < 2";
+						String goods_sku = jsonObj.getString("SKU");
+						if (StringUtils.isNotEmpty(goods_sku)) {
+							Goods goods = CommonDataFactory.getInstance().getGoodsBySku(goods_sku);
+							String goods_id = goods.getGoods_id();
+							String goods_name = CommonDataFactory.getInstance().getGoodSpec(null, goods_id,
+									SpecConsts.GOODS_NAME);
+							Map mobileTerminalSpec = getProductSpecByGoodsId(order_id, goods_id);
+							String product_id = (String) mobileTerminalSpec.get(SpecConsts.PROD_GOODS_ID);// 取es_goods表的goods_id
+							String goods_type = (String) mobileTerminalSpec.get(SpecConsts.TYPE_ID);
+							String machine_type_code = (String) mobileTerminalSpec.get(SpecConsts.GOODS_SN);
+							String machine_type_name = (String) mobileTerminalSpec.get(SpecConsts.MODEL_NAME);
+							String resources_brand_code = (String) mobileTerminalSpec.get(SpecConsts.BRAND_CODE);
+							String resources_brand_name = (String) mobileTerminalSpec.get(SpecConsts.BRAND_NAME);
+							String resources_model_code = (String) mobileTerminalSpec.get(SpecConsts.MODEL_CODE);
+							String resources_model_name = (String) mobileTerminalSpec.get(SpecConsts.MODEL_NAME);
+							String resources_color = (String) mobileTerminalSpec.get(SpecConsts.COLOR_NAME);
+							String sku = (String) mobileTerminalSpec.get(SpecConsts.SKU);
+
+							if (!mapSku.containsKey(sku)) {
+								mapSku.put(sku, "1");
+							}
+							for (int j = 0; j < nums; j++) {
+								// 生成6位序列
+								Map<String, String> mapValue = new HashMap<String, String>();
+								mapValue.put("ITEMS_ID", this.baseDaoSupport.getSequences("s_es_order_items_extvtl"));
+								mapValue.put("ORDER_ID", order_id);
+								mapValue.put("GOODS_ID", goods_id);
+								mapValue.put("GOODS_NAME", goods_name);
+								mapValue.put("GOODS_TYPE", goods_type);
+								mapValue.put("RESOURCES_CODE", "");
+								mapValue.put("RESOURCES_BRAND_CODE", resources_brand_code);
+								mapValue.put("RESOURCES_BRAND_NAME", resources_brand_name);
+								mapValue.put("RESOURCES_MODEL_CODE", resources_model_code);
+								mapValue.put("RESOURCES_MODEL_NAME", resources_model_name);
+								mapValue.put("RESOURCES_COLOR", resources_color);
+								mapValue.put("MACHINE_TYPE_CODE", machine_type_code);
+								mapValue.put("MACHINE_TYPE_NAME", machine_type_name);
+								mapValue.put("SOURCE_FROM", source_from);
+								mapValue.put("ESS_OPER_ID", "");
+								mapValue.put("OPERATION_STATUS", "");
+								mapValue.put("OPERATION_DESC", "");
+								mapValue.put("SKU", sku);
+								mapValue.put("PRODUCT_ID", product_id);
+								mapValue.put("GOODS_PRICE", "0");
+								String zline = mapSku.get(sku);
+								while (zline.length() < 6)
+									zline += "0";
+								mapValue.put("ZLINE", zline);
+								batchVtlList.add(mapValue);
+								// 序列加1
+								int num = Integer.parseInt(mapSku.get(sku)) + 1;
+								mapSku.put(sku, num + "");
+							}
+						}
+					} catch (Exception e) {
+						logger.info("order_id:" + order_id + " HSOrderHandler error," + e.getMessage());
+						e.printStackTrace();
+					}
+				}
+
+				// 批量插入es_order_items_extvtl表
+				try {
+					this.baseDaoSupport.batchExecuteByListMap(INSERT_SQL_EXTVTL, batchVtlList);
+				} catch (Exception e) {
+					logger.info("order_id:" + order_id + " batchExecuteByListMap error," + e.getMessage());
+					e.printStackTrace();
+				}
+			}
+		}
+		CommonData.getData().getOrderTreeBusiRequest().setHuashengOrderBusiRequest(huashengOrderBusiRequests);
+		CommonData.getData().getOrderTreeBusiRequest().setHuashengOrderItemBusiRequest(huashengOrderItemBusiRequests);
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		return null;
+	}
+
+	/**
+	 * 根据商品id获取手机/配件货品属性
+	 * 
+	 * @param order_id
+	 * @param goods_id
+	 * @return
+	 */
+	private Map getProductSpecByGoodsId(String order_id, String goods_id) {
+		Map mobileTerminalSpec = new HashMap();
+		Map adjunctSpec = CommonData.getData().getAdjunctSpec();
+		if (MapUtils.isEmpty(adjunctSpec)) {
+			adjunctSpec = CommonDataFactory.getInstance().getProductSpecMapByGoodsId(goods_id,
+					SpecConsts.TYPE_ID_10006);
+			CommonData.getData().setAdjunctSpec(adjunctSpec);
+		}
+		Map terMinalSpec = CommonData.getData().getTerMinalSpec();
+		if (MapUtils.isEmpty(terMinalSpec)) {
+			terMinalSpec = CommonDataFactory.getInstance().getProductSpecMapByGoodsId(goods_id,
+					SpecConsts.TYPE_ID_10000);// 货品手机信息
+			CommonData.getData().setTerMinalSpec(terMinalSpec);
+		}
+		mobileTerminalSpec = terMinalSpec;
+		if (null == mobileTerminalSpec || mobileTerminalSpec.size() == 0) {
+			mobileTerminalSpec = adjunctSpec;
+		}
+		if (null == mobileTerminalSpec || mobileTerminalSpec.size() == 0) {
+			logger.info("============订单[" + order_id + "]不存在手机/配件货品!============");
+		}
+		return mobileTerminalSpec;
+	}
+
+}

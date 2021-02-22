@@ -1,0 +1,669 @@
+package com.ztesoft.ibss.common.util;
+
+import com.powerise.ibss.framework.FrameException;
+import com.ztesoft.cms.page.file.FtpUpLoadImpl;
+import com.ztesoft.cms.page.file.SftpUpLoadImpl;
+import com.ztesoft.cms.page.file.UpLoadInf;
+import com.ztesoft.cms.page.file.UploadTools;
+import com.ztesoft.cms.page.file.vo.FileBean;
+import com.ztesoft.common.util.ContextHelper;
+import com.ztesoft.ibss.ct.config.CTConfig;
+import com.ztesoft.net.eop.sdk.context.EopSetting;
+import com.ztesoft.net.eop.sdk.context.FileConfigSetting;
+import com.ztesoft.net.eop.sdk.utils.UploadUtil;
+import com.ztesoft.net.framework.blog.IStoreProcesser;
+import com.ztesoft.net.framework.blog.StoreProcesser;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.util.FileBaseUtil;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.log4j.Logger;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.DecimalFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
+
+/**
+ * 文件操作工具类，类似对文件的读、写等等操作方法
+ * @author Musoon
+ */
+public class FileUtil {
+
+	private static Logger log = Logger.getLogger(FileUtil.class);
+	
+	public static FileUtil instance = null;
+	
+	private FileUtil() {}
+	
+	public static FileUtil getInst() {
+		if (null == instance) {
+			instance = new FileUtil();
+		}
+		return instance;
+	}
+	
+	
+	public String readFileFormat(String filePath) {
+		return "";
+	}
+	
+	/**
+	 * 通过流读取
+	 * @param filePath
+	 * @return
+	 */
+	public String readFileByBR(String filePath) {
+		File file = null;
+		BufferedReader br = null;
+		InputStreamReader isr = null;
+		StringBuffer result = new StringBuffer();
+		try {
+			file = new File(filePath);
+			if (file.exists()) {
+				String line = "";
+				isr = new InputStreamReader(new FileInputStream(file), "gbk");
+				br = new BufferedReader(isr);
+				while ((line = br.readLine()) != null) {
+					result.append(line);
+					log.info(line);
+				}
+				log.info("==================================");
+				log.info(result.toString());
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (null != isr) isr.close();
+				if (null != br) br.close();
+			} catch (IOException ee) {
+				ee.printStackTrace();
+			}
+		}
+		return result.toString();
+	}
+
+    //localFilePath
+    public String getLocalPath(String path){
+        if(StringUtils.isEmpty(path))return null;
+        HttpSession session = ContextHelper.getSession();
+        String realPath = session.getServletContext().getRealPath("/")+path;
+        return realPath;
+    }
+
+    //writeFile
+    public boolean writeFile(FileBean fileBean,String context,String encode){
+        boolean rval=false;
+        OutputStreamWriter out = null;
+        File file=null;
+        try{
+            String filePath=fileBean.getPath();
+
+            HttpServletRequest request = ContextHelper.getRequest();
+            //绝对路径创建
+            String realPath = request.getRealPath("/")+"/temp";
+            filePath = realPath+filePath;
+            //先创建目录
+            File folder=new File(realPath+fileBean.getFolder());
+            if(!folder.exists())folder.mkdirs();
+            //创建文件
+            file=new File(filePath);
+            file.delete();
+            file.createNewFile();
+
+            out = new OutputStreamWriter(new FileOutputStream(file),"utf-8");
+            out.write(context);
+            rval=true;
+        }catch (Exception e){
+            log.debug("同步文件出错!");
+            e.printStackTrace();
+        }finally {
+            try{
+                out.flush();
+                out.close();
+
+                //同步ftp
+                if(null!=file){
+                    Map map=new HashMap();
+                    map.put("FILE_ITEM",file);
+                    map.put("FILE_BEAN", fileBean);
+                    UpLoadInf upLoadInf = new CommonUpLoadInf();
+                    upLoadInf.upLoad(map);
+                }
+            }catch (IOException e){
+                rval=false;
+               e.printStackTrace();
+            }catch (Exception e){
+                rval=false;
+                log.debug("ftp同步文件出错!");
+                e.printStackTrace();
+            }
+            return rval;
+        }
+    }
+
+//    private UpLoadInf getUpload() {
+//		if(CTConfig.getInstance().getValue("FTP_MODE").equals("T")){
+//			return new FtpUpLoadImpl();
+//		}else{
+//			return new SftpUpLoadImpl();
+//		}
+//	}
+    
+    private UpLoadInf getUpload() {
+		if(CTConfig.getInstance().getValue("FTP_MODE").equals("T")){
+			return new FtpUpLoadImpl();
+		}else{
+			return new SftpUpLoadImpl();
+		}
+	}
+
+	/**
+	 * 同步索引文件到服务器
+	 * @param filePath
+	 * @return
+	 */
+    public boolean writeIndexFile(FileBean fileBean){
+        boolean rval=false;
+      
+        File file=null;
+        try{
+            String filePath=fileBean.getPath();   
+            //创建文件
+            file=new File(filePath);
+            if(null!=file){
+                Map map=new HashMap();
+                map.put("FILE_ITEM",file);
+                map.put("FILE_BEAN", fileBean);
+                UpLoadInf upLoadInf = new CommonUpLoadInf();
+                upLoadInf.uploadIndexFile(map);
+                rval=true;
+                //log.info("索引文件同步到服务器成功！");
+            }
+        }catch (Exception e){
+        	//log.info("索引文件同步到服务器失败！");
+            log.debug("同步文件出错!");
+            e.printStackTrace();
+        }
+        return rval;
+    }
+
+    /**
+	 * 删除服务器上的索引文件
+	 * @param fileName
+	 * @return
+	 *//*
+    public boolean deleteIndexFile(String fileName){
+        boolean rval=false;
+      
+        try{
+            if(null!=fileName && !fileName.equals("")){
+                SftpUpLoadImpl upLoadInf = new SftpUpLoadImpl();
+                upLoadInf.deleteIndexFile(fileName);
+                rval=true;
+                //log.info("删除服务器上的索引文件成功！");
+            }
+        }catch (Exception e){
+        	//log.info("删除服务器上的索引文件失败！");
+            log.debug("删除服务器上的索引文件出错!");
+            e.printStackTrace();
+        }
+        return rval;
+    }*/
+	
+	/**
+	 * 按字节读取文件内容，把文件格式、空格等一起读
+	 * @param filePath
+	 * @return
+	 */
+	public String readFileByBytes(String filePath,String encode) {
+		File file = null;
+		BufferedReader br = null;
+		InputStreamReader isr = null;
+		StringBuffer result = new StringBuffer();
+		try {
+			file = new File(filePath);
+			if(!file.exists()){//路径不存在
+				HttpServletRequest request = ContextHelper.getRequest();
+				if(request!=null){
+					String realPath = request.getRealPath("/");
+					filePath = realPath+filePath;
+					file=new File(filePath);
+				}
+			}
+			if (file.exists()) {
+				isr = new InputStreamReader(new FileInputStream(file),encode);
+                br = new BufferedReader(isr);
+				String str=null;
+				while((str=br.readLine())!=null){ 
+				      result.append(str+"\n"); //结束添加换行标示
+				}
+				//String fileSize = formetFileSize(file.length());
+			}
+		} catch (Exception e) {
+			log.info("readFileByBytes 异常==>" + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			try {
+				if (null != isr) isr.close();
+				if (null != br) br.close();
+			} catch (IOException ee) {
+				ee.printStackTrace();
+			}
+		}
+		String content = result.toString();
+		return content;
+	}
+	
+	/**
+	 * 写文件
+	 * @param filePath
+	 * @param content
+	 * @return
+	 */
+	public boolean writeFileByUrl(String filePath, String content) {
+		BufferedWriter out = null;
+		boolean result = true;
+		HttpURLConnection conn = null;
+		try {
+			String getURL = filePath;
+ 	        URL getUrl = new URL(getURL);
+		    conn = (HttpURLConnection) getUrl.openConnection();
+  	       //	conn.connect();
+  	      	conn.setDoInput(true);              //设置true:应用程序要从URL连接读取数据   
+  	        conn.setDoOutput(true);
+  	        OutputStream outputStream = conn.getOutputStream();
+			out = new BufferedWriter(new OutputStreamWriter(outputStream));
+			out.write(content);
+			out.flush();
+			out.close();
+		} catch (Exception e) {
+			result = false;
+			log.info("writeFileContent 异常==>" + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			try {
+				if (null != out) out.close();
+				if (null != conn) conn.disconnect();
+			} catch (IOException ee) {
+				ee.printStackTrace();
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * 按字节读取文件内容，把文件格式、空格等一起读
+	 * @param filePath
+	 * @return
+	 */
+	public String readFileByUrl(String filePath) {
+		File file = null;
+		BufferedReader br = null;
+		InputStreamReader isr = null;
+		StringBuffer result = new StringBuffer();
+		HttpURLConnection conn = null;
+		try {
+			Date beginDate = new Date();
+			long beginTime = beginDate.getTime();
+				String getURL = filePath;
+     	        URL getUrl = new URL(getURL);
+     	        conn = (HttpURLConnection) getUrl.openConnection();
+     	        conn.connect();
+				isr = new InputStreamReader(conn.getInputStream(), "utf-8");
+				br = new BufferedReader(isr);
+				int ch;
+				while ((ch = br.read()) > -1) {
+					result.append((char) ch);
+				}
+				Date endDate = new Date();
+				long endTime = endDate.getTime();
+				String fileTime = formatTime(endTime - beginTime);
+		} catch (Exception e) {
+			log.info("readFileByBytes 异常==>" + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			try {
+				if (null != isr) isr.close();
+				if (null != br) br.close();
+				if (null != conn) conn.disconnect();
+				
+			} catch (IOException ee) {
+				ee.printStackTrace();
+			}
+		}
+		return result.toString();
+	}
+	
+	
+	/**
+	 * 读取文件内容
+	 * @param filePath
+	 * @return
+	 */
+	public String getFileContent(String filePath) {
+		
+		if (null == filePath || "".equals(filePath.trim())) return "";
+		String result = "";
+		try {
+			String curLine = "";
+			BufferedReader br = new BufferedReader(new FileReader(filePath));
+			Date beginDate = new Date();
+			long beginTime = beginDate.getTime();
+			while ((curLine = br.readLine()) != null) {
+//				log.info(curLine);
+				//result += curLine + "\\n";
+				result += curLine;
+			}
+			/*if (result.endsWith("\\n")) {
+				result = result.substring(0, result.length() - 2);
+			}*/
+			log.info("getFileContent.filePath==>" + filePath);
+			log.info("getFileContent.result==>" + result);
+			Date endDate = new Date();
+			long endTime = endDate.getTime();
+			formatTime(endTime - beginTime);
+			br.close();
+		} catch (Exception e) {
+			log.info("getFileContent 异常==>" + e.getMessage());
+			e.printStackTrace();
+		}
+		return result;
+	}
+	
+	/**
+	 * 写文件
+	 * @param filePath
+	 * @param content
+	 * @return
+	 */
+	public boolean writeFileContent(String filePath, String content) {
+		
+		BufferedWriter out = null;
+		boolean result = true;
+		try {
+			out = new BufferedWriter(new FileWriter(filePath));
+			out.write(content);
+			out.flush();
+			out.close();
+		} catch (Exception e) {
+			result = false;
+			log.info("writeFileContent 异常==>" + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			try {
+				if (null != out) out.close();
+			} catch (IOException ee) {
+				ee.printStackTrace();
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * 毫毛转时间
+	 * @param ms
+	 * @return
+	 * @throws FrameException
+	 */
+	public String formatTime(long ms) throws FrameException {
+		
+		int ss = 1000;
+		int mi = ss * 60;
+		int hh = mi * 60;
+		int dd = hh * 24;
+
+		long day = ms / dd;
+		long hour = (ms - day * dd) / hh;
+		long minute = (ms - day * dd - hour * hh) / mi;
+		long second = (ms - day * dd - hour * hh - minute * mi) / ss;
+		long milliSecond = ms - day * dd - hour * hh - minute * mi - second * ss;
+
+		String strDay = day < 10 ? "0" + day : "" + day;
+		String strHour = hour < 10 ? "0" + hour : "" + hour;
+		String strMinute = minute < 10 ? "0" + minute : "" + minute;
+		String strSecond = second < 10 ? "0" + second : "" + second;
+		String strMilliSecond = milliSecond < 10 ? "0" + milliSecond : "" + milliSecond;
+		strMilliSecond = milliSecond < 100 ? "0" + strMilliSecond : "" + strMilliSecond;
+		String result = strDay + "天  " + strHour + ":" + strMinute + ":" + strSecond + "." + strMilliSecond;
+		
+		return result;
+		
+	}
+	
+	/**
+	 * 转换文件大小
+	 * @param fileLength
+	 * @return
+	 */
+	public String formetFileSize(long fileLength)  {
+		
+		String fileSizeString = "";
+		
+		try {
+			DecimalFormat df = new DecimalFormat("#.00");
+			
+			if (fileLength < 1024) {
+				fileSizeString = df.format((double) fileLength) + "B";
+			} else if (fileLength < 1048576) {
+				fileSizeString = df.format((double) fileLength / 1024) + "K";
+			} else if (fileLength < 1073741824) {
+				fileSizeString = df.format((double) fileLength / 1048576) + "M";
+			} else {
+				fileSizeString = df.format((double) fileLength / 1073741824) + "G";
+			}
+		} catch (Exception e) {
+			log.info("formetFileSize 转换文件大小异常==>" + e.getMessage());
+			e.printStackTrace();
+		}
+		
+		return fileSizeString;
+	} 
+	
+	/**
+	 * 图片转化成base64字符串  
+	 * @param imgFile 图片文件 如d://test.jpg
+	 * @return
+	 */
+    public String getBase64StrFromImage(String imgFile){ 
+        InputStream in = null;  
+        byte[] data = null;  
+        //读取图片字节数组  
+        try{  
+            in = new FileInputStream(imgFile);          
+            data = new byte[in.available()];  
+            in.read(data);  
+            in.close();  
+        }   
+        catch (IOException e){  
+            e.printStackTrace();  
+        }  
+        //对字节数组Base64编码  
+        BASE64Encoder encoder = new BASE64Encoder();  
+        return encoder.encode(data);//返回Base64编码过的字节数组字符串  
+    }  
+	
+    /**
+     * base64字符串转化成图片  
+     * @param imgStr
+     * @return 
+     */
+    public void getImageFromBase64Str(String base64Str){
+        BASE64Decoder decoder = new BASE64Decoder();
+        try{
+        	String suffix = null;
+            Pattern p = Pattern.compile("image\\/(.*?)\\;base64");//正则表达式，取image/和;base64之间的字符串，不包括image/和;base64
+            Matcher m = p.matcher(base64Str);  
+            while(m.find()) {  
+            	suffix = m.group(1);
+            }
+            byte[] b = decoder.decodeBuffer(base64Str);//Base64解码
+            for(int i=0;i<b.length;++i){
+                if(b[i]<0){//调整异常数据
+                    b[i]+=256;
+                }
+            }
+            //生成jpeg图片
+            String imgFilePath = "d://222.jpg";//新生成的图片
+            OutputStream out = new FileOutputStream(imgFilePath);
+            out.write(b);
+            out.flush();
+            out.close();
+        }catch (Exception e){
+        }  
+    }
+    
+    /**
+	 * base64转inputStream
+	 * @param base64string
+	 * @return
+	 */
+	public InputStream base64StrToInputStream(String base64Str){  
+	    ByteArrayInputStream stream = null;
+		try {
+			Base64 decoder = new Base64();
+		    //BASE64Decoder decoder = new BASE64Decoder(); 
+		    //byte[] bytes = decoder.decodeBuffer(base64Str);
+			byte[] bytes = decoder.decodeBase64(base64Str);
+		    stream = new ByteArrayInputStream(bytes);  
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	    return stream;  
+	}
+	
+	/**
+	 * 上传文件到FastDFS，FTP文件系统
+	 * @param file 文件对象
+	 * @param fileName  文件名
+	 * @return path 文件在文件系统中的路径
+	 */
+	public String uploadFileToFileSystem(InputStream inputStream, String fileName){
+		String path = null;
+		if (inputStream != null && fileName != null) {
+			IStoreProcesser netBlog = StoreProcesser.getFileProcesser();
+			path = netBlog.upload(inputStream, fileName, "goods");
+			path = netBlog.replaceUrl(path);
+		} 
+		return path;
+	}
+	
+	/**
+	 * 上传文件到FastDFS，FTP文件系统
+	 * @param file 文件对象
+	 * @param fileName  文件名
+	 * @return path 文件在文件系统中的路径
+	 */
+	public String uploadFileToFileSystem(File file, String fileName){
+		String path = null;
+		if (file != null && fileName != null) {
+			IStoreProcesser netBlog = StoreProcesser.getFileProcesser();
+			path = netBlog.upload(file, fileName, "goods");
+			path = netBlog.replaceUrl(path);
+		} 
+		return path;
+	}
+	
+	/**
+	 * 删除指定的图片<br>
+	 * 将本地存储的图片路径替换为实际硬盘路径<br>
+	 * 不会删除远程服务器图片
+	 */
+	public void deleteFileFromFileSystem(String photoName) {
+		photoName = UploadUtil.replacePath(photoName);
+		photoName = photoName.replaceAll(EopSetting.IMG_SERVER_DOMAIN , EopSetting.IMG_SERVER_PATH);
+		if(photoName.startsWith("http://"+FileConfigSetting.FAST_DFS_HOSTNAME+":"+FileConfigSetting.FAST_DFS_HOSTPORT+"/")){
+			photoName = photoName.replace("http://"+FileConfigSetting.FAST_DFS_HOSTNAME+":"+FileConfigSetting.FAST_DFS_HOSTPORT+"/","");
+		}
+		FileBaseUtil.delete(photoName);
+		
+		FileBaseUtil.delete(UploadUtil.getThumbPath(photoName, "_thumbnail"));
+		FileBaseUtil.delete(UploadUtil.getThumbPath(photoName, "_small"));
+		FileBaseUtil.delete(UploadUtil.getThumbPath(photoName, "_big"));
+		 
+		ICacheUtil util = (ICacheUtil)SpringContextHolder.getBean("cacheUtil");
+		
+		String p_filePath = util.getConfigInfo("CT_ACCESS_PATH");
+		 
+		String filePath = p_filePath.replace("/temp", "");
+		 
+		String img = UploadUtil.getThumbPath(photoName, "");
+		String thumbnail_img = UploadUtil.getThumbPath(photoName, "_thumbnail");
+		String small_img = UploadUtil.getThumbPath(photoName, "_small");
+		String big_img = UploadUtil.getThumbPath(photoName, "_big");
+		
+		img=img.replaceAll(EopSetting.IMG_SERVER_PATH,"");
+		thumbnail_img=thumbnail_img.replaceAll(EopSetting.IMG_SERVER_PATH,"");
+		small_img=small_img.replaceAll(EopSetting.IMG_SERVER_PATH,"");
+		big_img=big_img.replaceAll(EopSetting.IMG_SERVER_PATH,"");
+		 
+		String store_type = FileConfigSetting.FILE_STORE_TYPE;
+		if("FTP".equals(store_type.toUpperCase())){ //FTP文件
+			UploadTools.delete(filePath+img);
+			UploadTools.delete(filePath + thumbnail_img);
+			UploadTools.delete(filePath+small_img);
+			UploadTools.delete(filePath+big_img);
+		}
+	}
+	
+	/**
+	 * 从Base64图片字符串中获取图片扩展名
+	 * @param base64Str
+	 * @return
+	 */
+	public String getBase64ImgSuffix(String base64Str){
+		String suffix = null;
+        Pattern p = Pattern.compile("image\\/(.*?)\\;base64");//正则表达式，取image/和;base64之间的字符串，不包括image/和;base64
+        Matcher m = p.matcher(base64Str);  
+        while(m.find()) {  
+        	suffix = m.group(1);
+        }
+        return suffix;
+	}
+	
+	/**
+	 * 获取图片Base64字符串
+	 * @param imgFile 图片路径 d:\tmp\11.jpg
+	 * @return
+	 */
+	public String getImgBase64Str(String imgFile){
+        InputStream in = null;  
+        byte[] data = null;  
+        //读取图片字节数组  
+        try{  
+            in = new FileInputStream(imgFile);          
+            data = new byte[in.available()];  
+            in.read(data);  
+            in.close();  
+        }   
+        catch (IOException e){  
+            e.printStackTrace();  
+        }  
+        //对字节数组Base64编码  
+        BASE64Encoder encoder = new BASE64Encoder();
+        String base64Str = encoder.encode(data);
+        return base64Str;
+	}
+	
+	public static void main(String[] args) {
+		String filePath = "D:\\wssnet_jx1\\WebRoot\\adslXY\\index.jsp";
+		//String content = FileUtil.getInst().readFileByBytes(filePath);
+		//FileUtil.getInst().readFileByBR(filePath);
+		//String content = FileUtil.getInst().getFileContent(filePath);
+		//FileUtil.getInst().writeFileContent("D:\\wssnet_jx1\\WebRoot\\adslXY\\index1.jsp", content);
+	}
+	
+}

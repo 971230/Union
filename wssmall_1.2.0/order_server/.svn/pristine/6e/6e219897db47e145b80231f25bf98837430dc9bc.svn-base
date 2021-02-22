@@ -1,0 +1,185 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Delivery;
+import com.ztesoft.net.mall.core.model.DeliveryItem;
+import com.ztesoft.net.mall.core.model.GoodsOrder;
+import com.ztesoft.net.mall.core.model.PaymentLog;
+import com.ztesoft.net.mall.core.service.IOrderReportManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+import java.util.List;
+
+/**
+ * 订单报表
+ * 
+ * @author lzf<br/>
+ *         2010-4-12上午10:23:43<br/>
+ *         version 1.0
+ */
+public class OrderReportManager extends BaseSupport implements
+		IOrderReportManager {
+
+	@Override
+	public Page ListOrderWithStaffId(String staffId,int pageNo,int pageSize,String startDate,String endDate) {
+		String sql = SF.orderSql("SERVICE_ORD_SELECT_BY_STAFF")+" and g.staff_no="+staffId;
+		if (startDate != null && !startDate.equals("")) {
+			sql += " and o.create_time>= "+DBTUtil.to_date(startDate + " 00:00:00", 2);
+		}
+
+		if (endDate != null && !endDate.equals("")) {
+			sql += " and o.create_time<= "+DBTUtil.to_date(endDate + " 23:59:59", 2);
+		}
+		return this.daoSupport.queryForPage(sql, pageNo, pageSize);
+	}
+	
+	@Override
+	public Page orderCountList(int pageNo, int pageSize,String startDate,String endDate) {
+		String sql=SF.orderSql("SERVICE_STAFF_ORDER_SELECT");
+		
+		if(ManagerUtils.getAdminUser().getFounder()!=Consts.CURR_FOUNDER1){
+			sql+=" and g.staff_no= "+ManagerUtils.getAdminUser().getUserid();
+		}
+		if (startDate != null && !startDate.equals("")) {
+			//sql += " and o.create_time>= to_date('"+ startDate + " 00:00:01','yyyy-mm-dd hh24:mi:ss') ";
+            sql+=" and o.create_time>="+ DBTUtil.to_date(startDate,2);
+		}
+
+		if (endDate != null && !endDate.equals("")) {
+			//sql += " and o.create_time<= to_date('"+ endDate+ " 23:59:59','yyyy-mm-dd hh24:mi:ss') ";
+            sql+=" and o.create_time<="+ DBTUtil.to_date(startDate,2);
+		}
+		sql+= " group by g.staff_no,a.realname";
+		String countSql = SF.orderSql("SERVICE_COUNT")+" ("+sql+") kk";
+		Page queryForCPage = this.daoSupport.queryForCPage(sql, pageNo, pageSize,GoodsOrder.class,countSql);
+		return queryForCPage;
+	}
+	
+	public Delivery getDelivery(String deliveryId) {
+		String sql = SF.orderSql("SERVICE_MEM_DELIVERY_SELECT");
+		Delivery delivery = (Delivery)this.daoSupport.queryForObject(sql, Delivery.class, deliveryId);
+		return delivery;
+	}
+
+	
+	public PaymentLog getPayment(String paymentId) {
+		//String sql = "select l.*, m.uname as member_name, o.sn,o.order_id as o_order_id from " + this.getTableName("payment_logs") + " l left join " + this.getTableName("member") + " m on m.member_id = l.member_id left join " + this.getTableName("order") + " o on o.order_id = l.order_id or o.batch_id=l.order_id where l.payment_id = ?";
+		String sql = SF.orderSql("SERVICE_PAYMENT_SELECT");
+		PaymentLog paymentLog = (PaymentLog)this.daoSupport.queryForObject(sql, PaymentLog.class, paymentId);
+		return paymentLog;
+	}
+
+	
+	public List<DeliveryItem> listDeliveryItem(String deliveryId) {
+		String sql = SF.orderSql("SERVICE_DELIVERY_ITEM_SELECT");
+		return this.baseDaoSupport.queryForList(sql, DeliveryItem.class, deliveryId);
+	}
+	
+	private Page list(int pageNo, int pageSize, String order, int type,String payment_id,String order_id,String member_name){
+		order = order == null ? " create_time desc" : order ;
+		AdminUser au = ManagerUtils.getAdminUser();
+		String userid = au.getUserid();
+		if(Const.ADMIN_RELTYPE_SUPPER_STAFF.equalsIgnoreCase(au.getReltype()))
+			userid = au.getParuserid();
+		boolean isSupplier = ((Consts.SUPPLIER_FOUNDER==au.getFounder())||(5==au.getFounder()));
+		//String sql = "select l.*, m.uname as member_name , o.sn,o.order_id as o_order_id from " + this.getTableName("payment_logs") + " l left join " + this.getTableName("member") + " m on m.member_id = l.member_id inner join " 
+		//	+ this.getTableName("order") + " o on ((o.order_id = l.order_id or o.batch_id=l.order_id) "+(isSupplier?" and o.userid = '"+userid+"'":"")+") where l.type = " + type;
+		String joinCond = "";
+		if(!StringUtil.isEmpty(member_name)){
+			joinCond = " and m.uname='"+member_name.trim()+"'";
+		}
+		String sql = SF.orderSql("SERVICE_MEM_PAYMENT_LOGS_SELECT").replace("#joincond", joinCond)+" and l.type = " + type;
+		if(!StringUtil.isEmpty(payment_id))
+			sql += " and l.payment_id='"+payment_id+"'";
+		if(isSupplier){
+			sql += " and exists(select 1 from es_order o where (o.order_id = l.order_id or o.batch_id=l.order_id and o.source_from = l.source_from) "+(StringUtil.isEmpty(order_id)?"":" and o.order_id='"+order_id.trim()+"'")+" and o.userid = '"+userid+"')";
+		}else if(!StringUtil.isEmpty(order_id)){
+			sql += " and exists(select 1 from es_order o where (o.order_id = l.order_id or o.batch_id=l.order_id and o.source_from = l.source_from) and o.order_id = '"+order_id.trim()+"')";
+		}
+	    sql += " and l.status!=-1";
+		sql += "   order by l." + order;
+		
+		return this.daoSupport.queryForPage(sql, pageNo, pageSize, PaymentLog.class);
+	}
+
+	
+	public Page listPayment(int pageNo, int pageSize, String order,String payment_id,String order_id,String member_name) {
+		return list(pageNo, pageSize, order, 1, payment_id, order_id, member_name);
+	}
+
+	
+	public Page listRefund(int pageNo, int pageSize, String order,String payment_id,String order_id,String member_name) {
+		return list(pageNo, pageSize, order, 2, payment_id, order_id, member_name);
+	}
+	
+	private Page listDelivery(int pageNo, int pageSize, String order, int type,String create_type,String order_id,String delivery_id,String member_name){
+		order = order == null ? " l.create_time desc" : order ;
+		String founderSql = "";
+		String createTypeSql= "";
+		if(OrderStatus.WP_CREATE_TYPE_5.equals(create_type)){
+			createTypeSql = " and o.create_type="+create_type+" ";
+		}else if(OrderStatus.WP_CREATE_TYPE_6.equals(create_type) || OrderStatus.WP_CREATE_TYPE_7.equals(create_type)){
+			createTypeSql = " and o.create_type in(6,7) ";
+		}else{
+			createTypeSql = " and o.create_type not in(5,6,7) ";
+		}
+		if(!ManagerUtils.isAdminUser()){
+			String staffNo = ManagerUtils.getAdminUser().getUserid();
+			founderSql = " and exists(select b.staff_no from " + this.getTableName("order_items") + " a, " 
+					+ this.getTableName("goods") + " b " +
+					"where a.goods_id=b.goods_id and b.staff_no=" + staffNo + 
+					" and a.order_id=o.order_id and a.source_from = b.source_from and a.source_from = '" + ManagerUtils.getSourceFrom() + "') ";
+		}
+		AdminUser au = ManagerUtils.getAdminUser();
+		String userid = au.getUserid();
+		if(Const.ADMIN_RELTYPE_SUPPER_STAFF.equalsIgnoreCase(au.getReltype()))
+			userid = au.getParuserid();
+		boolean isSupplier = ((Consts.SUPPLIER_FOUNDER==au.getFounder())||(5==au.getFounder()));
+		//"+(StringUtil.isEmpty(member_name)?"":" and m.uname='"+member_name.trim()+"'")+"
+		String supplierSql = "";
+		if(isSupplier){
+			supplierSql = " and o.userid = '"+userid+"'";
+		}
+		String sql = SF.orderSql("SERVICE_MEM_DELIVERY_SELECT2").replace("#createTypeSql", createTypeSql)
+														.replace("#supplierSql", supplierSql) + " and l.type = " + type ;
+		if(!StringUtil.isEmpty(delivery_id))
+			sql += " and l.delivery_id='"+delivery_id.trim()+"'";
+		if(!StringUtil.isEmpty(order_id))
+			sql += " and l.order_id='"+order_id.trim()+"'";
+		if(!StringUtil.isEmpty(member_name))
+			sql += " and l.ship_name='"+member_name.trim()+"'";
+		sql += " and l.ship_status!=-1";
+		sql += " " + founderSql + " order by " + order;
+		return this.daoSupport.queryForPage(sql, pageNo, pageSize, Delivery.class);
+	}
+
+	
+	public Page listReturned(int pageNo, int pageSize, String order,String create_type,String order_id, String delivery_id, String member_name) {
+		return listDelivery(pageNo, pageSize, order, 2,create_type, order_id, delivery_id, member_name);
+	}
+
+	
+	public Page listShipping(int pageNo, int pageSize, String order,String create_type,String order_id,String delivery_id,String member_name) {
+		return listDelivery(pageNo, pageSize, order, 1,create_type, order_id, delivery_id, member_name);
+	}
+
+	
+	public List listDelivery(String orderId, Integer type) {
+		return this.baseDaoSupport.queryForList(SF.orderSql("SERVICE_DELIVERY_SELECT_BY_TYPE"), orderId, type);
+	}
+
+	
+	public List listPayLogs(String orderId, Integer type) {
+		return this.baseDaoSupport.queryForList(SF.orderSql("SERVICE_PAY_LOGS_SELECT"), orderId, type,ManagerUtils.getSourceFrom()); //展示处理成功的记录
+	}
+
+
+}

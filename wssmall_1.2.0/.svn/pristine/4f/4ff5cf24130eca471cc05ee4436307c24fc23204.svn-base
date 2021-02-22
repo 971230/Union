@@ -1,0 +1,10 @@
+file_store_type=FTP
+fast_dfs_hostname=
+fast_dfs_port=
+fast_dfs_pool_size=
+fast_dfs_heart_beat_time=
+
+sftp_server=10.123.188.126
+sftp_username=weblogic
+sftp_password=1@sonauvMK
+sftp_path=/weblogic/baseSoftware/appDoc/

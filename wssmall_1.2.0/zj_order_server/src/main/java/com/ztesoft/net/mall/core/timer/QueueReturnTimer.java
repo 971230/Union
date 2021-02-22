@@ -1,0 +1,370 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import params.order.req.OrderExceptionLogsReq;
+import params.order.req.OrderQueueCardActionLogReq;
+import params.order.resp.OrderExceptionCollectResp;
+import rule.impl.OrdExceptionHandleImpl;
+import util.Utils;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.base.resp.BusiCompResponse;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.utils.PCWriteCardTools;
+
+import com.ztesoft.common.util.ListUtil;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.CacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.service.IOrderFlowManager;
+import com.ztesoft.net.service.IQueueCardMateManager;
+
+import consts.ConstsCore;
+
+/**
+ * 处理队列回退操作定时任务
+ * @author shen.qiyu
+ *
+ */
+public class QueueReturnTimer {
+	private static Logger logger = Logger.getLogger(QueueReturnTimer.class);
+	@Resource
+	private IQueueCardMateManager queueCardMateManager;
+	@Resource
+	private IOrderFlowManager ordFlowManager;//流程处理类
+	@Resource
+	private OrdExceptionHandleImpl ordExceptionHandleImpl;
+	
+	public static final String ACTION_DESC_04="队列订单不在D、X、Y环节或者订单已经移到历史表！";
+	public static final String ACTION_DESC_05="队列订单回退！";
+
+
+	
+	/**
+	 * 两个线程池，分别执行订单回退、删除垃圾数据
+	 */
+	public void run(){
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "run")) {
+  			return;
+		}
+		logger.info("QueueReturnTimer===============start");
+		try {
+			CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+			String thread_num_return = cacheUtil.getConfigInfo("QUEUE_RETURN_TIMER_THREAD_NUM");
+			String thread_num_delete = cacheUtil.getConfigInfo("QUEUE_DATA_RETURN_TIMER_THREAD_NUM");
+			if (StringUtils.isEmpty(thread_num_return)) thread_num_return = "5"; // 默认线程池大小为5
+			if (StringUtils.isEmpty(thread_num_delete)) thread_num_delete = "5"; // 默认线程池大小为5
+			Integer num_return = Integer.valueOf(thread_num_return);
+			Integer num_delete = Integer.valueOf(thread_num_delete);
+			if (new Integer("15").compareTo(num_return) < 0) num_return = 15; // 最大控制在15
+			if (new Integer("10").compareTo(num_delete) < 0) num_delete = 10; // 最大控制在10
+			
+	        ExecutorService service = Executors.newFixedThreadPool(2);
+
+			//1、集中写卡模式标记人工异常并回退到回访，不改模式、不恢复异常、设置可见，并且踢出队列
+			if (new Integer("0").compareTo(num_return) < 0) {
+				final List<Map<String,String>> list_return = queueCardMateManager.queueReturnList();
+				final Integer thread_num_r = num_return;
+		        Runnable runReturn = new Runnable() {
+					@Override
+					public void run() {
+						queueReturn(list_return, thread_num_r);
+					}
+		        };
+				service.execute(runReturn);
+			}
+			
+			//2、SQL统计并删除队列中不在环节的订单，则踢出队列
+			if (new Integer("0").compareTo(num_delete) < 0) {
+				final List<Map<String,String>> list_delete = queueCardMateManager.queueDeleteList();
+				final Integer thread_num_d = num_delete;
+		        Runnable runDelete = new Runnable() {
+					@Override
+					public void run() {
+						queueDelete(list_delete, thread_num_d);
+					}
+		        };
+				service.execute(runDelete);
+			}
+			
+	        // 关闭启动线程
+	        service.shutdown();
+	        // 等待子线程结束，再继续执行下面的代码
+	        service.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+		} catch(Exception e) {
+			logger.info("QueueReturnTimer===============exception");
+			throw new RuntimeException(e.getMessage());
+		}
+		logger.info("QueueReturnTimer===============end");
+	}
+	
+	private void queueReturn(List<Map<String,String>> list, Integer thread_num){
+
+		logger.info("queueReturn===============start");
+		try {
+			// 创建一个固定大小的线程池
+	        ExecutorService service = Executors.newFixedThreadPool(thread_num);
+			if(!ListUtil.isEmpty(list)){
+				for(Map<String,String> order_ids : list){
+					final Map<String,String> orders = order_ids;
+					logger.info("queueReturn====queue==add===order_id:" + orders.get("order_id"));
+					Runnable run = new Runnable() {
+						@Override
+						public void run() {
+							try {
+								logger.info("queueReturn====start===order_id:" + orders.get("order_id"));
+								execQueueReturn(orders);
+								logger.info("queueReturn====end===order_id:" + orders.get("order_id"));
+							} catch (Exception e) {
+								logger.info("queueReturn====exception===order_id:" + orders.get("order_id"));
+								e.printStackTrace();
+							}
+						}
+					};
+					service.execute(run);
+				}
+			}
+			
+	        // 关闭启动线程
+	        service.shutdown();
+	        // 等待子线程结束，再继续执行下面的代码
+	        service.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+		} catch (Exception e) {
+			logger.info("queueReturn===============exception");
+			e.printStackTrace();
+		}
+		logger.info("queueReturn===============end");
+	}
+	
+	private void queueDelete(List<Map<String,String>> list, Integer thread_num){
+		logger.info("queueDelete===============start");
+		try {
+			// 创建一个固定大小的线程池
+	        ExecutorService service = Executors.newFixedThreadPool(thread_num);
+			if(!ListUtil.isEmpty(list)){
+				for(Map<String,String> order_ids : list){
+					final Map<String,String> orders = order_ids;
+					logger.info("queueDelete====queue==add===order_id:" + orders.get("order_id"));
+					Runnable run = new Runnable() {
+						@Override
+						public void run() {
+							try {
+								logger.info("queueDelete====start===order_id:" + orders.get("order_id"));
+								execQueueDelete(orders);
+								logger.info("queueDelete====end===order_id:" + orders.get("order_id"));
+							} catch (Exception e) {
+								logger.info("queueDelete====exception===order_id:" + orders.get("order_id"));
+								e.printStackTrace();
+							}
+						}
+					};
+					service.execute(run);
+				}
+			}
+			
+	        // 关闭启动线程
+	        service.shutdown();
+	        // 等待子线程结束，再继续执行下面的代码
+	        service.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+		} catch (Exception e) {
+			logger.info("queueDelete===============exception");
+			e.printStackTrace();
+		}
+		logger.info("queueDelete===============end");
+	}
+	/**
+	 * 获取表中的字段，拼接sql
+	 * @param tableName
+	 * @return
+	 */
+	private String getSql(String tableName){
+		String  hisTableName = tableName+"_his";
+		String cols = PCWriteCardTools.queryTableColumns(tableName);
+		String sql = "insert into "+hisTableName +" ("+cols+") "+
+		"select "+cols+" from "+tableName +" where order_id=?";
+		return sql;
+	}
+	
+	private void execQueueReturn(Map<String,String> order_ids){
+		String order_id = order_ids.get("order_id");
+		String open_account_status = order_ids.get("open_account_status");
+		String write_card_status = order_ids.get("write_card_status");
+		logger.info("execQueueReturn===============start"+order_id);
+		try{
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(order_id);
+			OrderExtBusiRequest orderExt = orderTree.getOrderExtBusiRequest();
+			String flow_trace_id = orderExt.getFlow_trace_id();
+			if(!EcsOrderConsts.DIC_ORDER_NODE_D.equals(flow_trace_id)&&!EcsOrderConsts.DIC_ORDER_NODE_X.equals(flow_trace_id)){
+				logger.info("execQueueReturn====return(订单已不在X、D环节)===order_id:" + order_id);
+			}else{
+				IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+				//集中写卡模式标记人工异常并自动回退，不改模式、不恢复异常、设置可见
+				//1、标记人工异常
+				String qrySql = "select a.user_id,a.user_name,a.exception_type,a.exception_msg,b.abnormal_type from es_queue_write_card a," +
+						"es_order_ext b where a.order_id = b.order_id and a.source_from = '"+ManagerUtils.getSourceFrom()+"' and a.order_id = ? ";
+				List<Map<String,String>> list = baseDaoSupport.queryForList(qrySql, order_id);
+				if(list!=null && list.size()>0){
+					Map<String,String> map = list.get(0);
+					String abnormal_type = map.get("abnormal_type");
+					logger.info("execQueueReturn====mark_exception_start===order_id:" + order_id);
+					//如果订单的异常状态为null或者为正常单状态，则标记人工异常 
+					if(StringUtils.isEmpty(abnormal_type) || EcsOrderConsts.ORDER_ABNORMAL_TYPE_0.equals(abnormal_type)){
+						String exception_id = map.get("exception_type");
+						String exception_remark = map.get("exception_msg");
+						String user_id = map.get("user_id");
+						String user_name = map.get("user_name");
+						//定时任务没有session用户，强制设置
+						AdminUser importUser = new AdminUser();
+						importUser.setUserid(user_id);
+						importUser.setUsername(user_name);
+						ManagerUtils.createSession(importUser);
+						Map params = new HashMap();
+						params.put("order_id", order_id);
+						params.put("exception_id", exception_id);
+						params.put("exception_remark", exception_remark);
+						params.put("abnormal_type", EcsOrderConsts.ORDER_ABNORMAL_TYPE_1);
+						OrderExceptionCollectResp orderExceptionCollectResp = ordExceptionHandleImpl.exceptionHandleAct(params);
+						//异常记录
+						OrderExceptionLogsReq exceptionLogReq = new OrderExceptionLogsReq();
+						AdminUser user = new AdminUser();
+						user = ManagerUtils.getAdminUser();
+						String flow_id = orderTree.getOrderExtBusiRequest().getFlow_id();
+						exceptionLogReq.setOrder_id(order_id);
+						exceptionLogReq.setFlow_id(flow_id);
+						exceptionLogReq.setFlow_trace_id(flow_trace_id);
+						if(null != user){
+							exceptionLogReq.setMark_op_id(user.getUserid());
+							exceptionLogReq.setMark_op_name(user.getUsername());
+						}
+						exceptionLogReq.setAbnormal_type(abnormal_type);
+						exceptionLogReq.setException_desc(exception_remark);
+						exceptionLogReq.setException_type(exception_id);
+						this.ordFlowManager.insertOrderExceptionLog(exceptionLogReq);
+						
+						//调用异常系统
+						Utils.writeExp(order_id,exception_id,exception_remark,EcsOrderConsts.BASE_YES_FLAG_1);
+						logger.info("execQueueReturn====mark_exception_end===order_id:" + order_id);
+					}
+				}
+				logger.info("execQueueReturn====return_start===order_id:" + order_id);
+				//踢出队列：
+				//1、先移到历史表，再删除数据
+				String insertSql = getSql("es_queue_write_card");
+				logger.info("execQueueReturn====insert_start===order_id:" + order_id);
+				baseDaoSupport.execute(insertSql, order_id);
+				logger.info("execQueueReturn====insert_end===order_id:" + order_id);
+				//2、再删除原表的数据
+				String deteleSql = "delete from es_queue_write_card where order_id =?";
+				logger.info("execQueueReturn====delete_start===order_id:" + order_id);
+				baseDaoSupport.execute(deteleSql,order_id);			
+				logger.info("execQueueReturn====end_start===order_id:" + order_id);
+				//记录日志
+				addLog(order_id,EcsOrderConsts.QUEUE_ACTION_05,ACTION_DESC_05);
+				CommonDataFactory.getInstance().updateAttrFieldValue(order_id, new String[]{AttrConsts.ORDER_MODEL}, new String[]{EcsOrderConsts.OPER_MODE_RG});
+				orderExt = orderTree.getOrderExtBusiRequest();
+				orderExt.setOrder_model(EcsOrderConsts.OPER_MODE_RG);
+				orderExt.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+				orderExt.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+				orderExt.store();
+				//订单进行回退操作
+	    		BusiCompResponse response = ordFlowManager.reBackToVisit(order_id);
+				logger.info("execQueueReturn====return_end===order_id:" + order_id);
+				
+				/*
+				//查询写卡队列历史表中开户回退订单数量
+				String card_his_opensql = "select count(1) from es_queue_write_card_his eqwc " +
+						"where eqwc.source_from = ? and eqwc.order_id = ? and eqwc.open_account_status= ? ";
+				//查询写卡队列历史表中写卡回退订单数量
+				String card_his_writesql = "select count(1) from es_queue_write_card_his eqwc " +
+						"where eqwc.source_from = ? and eqwc.order_id = ? and eqwc.write_card_status= ? ";
+				
+				if(!StringUtils.isEmpty(open_account_status) && open_account_status.equals("1")){//开户中
+					int openCount = baseDaoSupport.queryForInt(card_his_opensql, ManagerUtils.getSourceFrom(),order_id,open_account_status);
+					if(openCount<3){//开户失败如果连续3次还是失败不做处理，人工处理
+						//1、先移到历史表
+						String insertSql = getSql("es_queue_write_card");
+						baseDaoSupport.execute(insertSql, order_id);
+						//2、修改队列表中开户状态为“未开户”,队列状态为“正常”
+						String open_update_sql = "update es_queue_write_card eqwc set eqwc.open_account_status=?,eqwc.queue_status=? where eqwc.order_id= ? ";
+						baseDaoSupport.execute(open_update_sql, "0","0",order_id);
+					}
+					addLog(order_id,EcsOrderConsts.QUEUE_ACTION_05,ACTION_DESC_05);
+				}
+				if(!StringUtils.isEmpty(write_card_status) && write_card_status.equals("1")){//写卡中
+					int writeCount = baseDaoSupport.queryForInt(card_his_writesql, ManagerUtils.getSourceFrom(),order_id,write_card_status);
+					if(writeCount<3){//获取卡数据失败如果连续3次还是失败不做处理，人工处理
+						//1、先移到历史表
+						String insertSql = getSql("es_queue_write_card");
+						baseDaoSupport.execute(insertSql, order_id);
+						//2、修改队列表中写卡状态为“未写卡”,队列状态为“正常”
+						String write_update_sql = "update es_queue_write_card eqwc set eqwc.write_card_status=?,eqwc.queue_status=? where eqwc.order_id= ? ";
+						baseDaoSupport.execute(write_update_sql, "0","0",order_id);
+					}
+					addLog(order_id,EcsOrderConsts.QUEUE_ACTION_05,ACTION_DESC_05);
+				 }*/
+				
+			}
+		}catch(Exception e){
+			logger.info("execQueueReturn===============exception");
+			e.printStackTrace();
+		}
+		logger.info("execQueueReturn===============end"+order_id);
+	}
+	private void addLog(String order_id,String action_type,String action_desc){
+		OrderQueueCardActionLogReq logReq = new OrderQueueCardActionLogReq();
+		logReq.setOrder_id(order_id);
+		logReq.setAction_code(action_type);
+		logReq.setAction_desc(action_desc);
+		PCWriteCardTools.saveQueueCardActionLog(logReq);
+		
+	}
+	
+	private void execQueueDelete(Map<String,String> order_ids){
+		String order_id = order_ids.get("order_id");
+		logger.info("execQueueDelete===============start");
+		try{
+			//踢出队列：
+			IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+			//1、先移到历史表，再删除数据
+			String insertSql = getSql("es_queue_write_card");
+			logger.info("execQueueDelete====insert_start===order_id:" + order_id);
+			baseDaoSupport.execute(insertSql, order_id);
+			logger.info("execQueueDelete====insert_end===order_id:" + order_id);
+			//2、再删除原表的数据
+			String deteleSql = "delete from es_queue_write_card where order_id =?";
+			logger.info("execQueueDelete====delete_start===order_id:" + order_id);
+			baseDaoSupport.execute(deteleSql,order_id);			
+			logger.info("execQueueDelete====end_start===order_id:" + order_id);
+			//记录日志
+			addLog(order_id,EcsOrderConsts.QUEUE_ACTION_04,ACTION_DESC_04);
+		}catch(Exception e){
+			logger.info("execQueueDelete===============exception");
+			e.printStackTrace();
+		}
+		logger.info("execQueueDelete===============end");
+	}
+	
+	public OrdExceptionHandleImpl getOrdExceptionHandleImpl() {
+		return ordExceptionHandleImpl;
+	}
+
+	public void setOrdExceptionHandleImpl(
+			OrdExceptionHandleImpl ordExceptionHandleImpl) {
+		this.ordExceptionHandleImpl = ordExceptionHandleImpl;
+	}
+}

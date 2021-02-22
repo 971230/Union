@@ -1,0 +1,207 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.plugin.fileUpload.BatchResult;
+import com.ztesoft.net.consts.SysExcelConsts;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.service.ISystemExcelHandlerManager;
+import com.ztesoft.net.model.AttrDef;
+import com.ztesoft.net.model.AttrInst;
+import com.ztesoft.net.model.TempConfig;
+import com.ztesoft.net.model.TempInst;
+import com.ztesoft.net.sqls.SF;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 扩展属性导入导出处理类
+ * @author hu.yi
+ * @date 2013.9.26
+ */
+@SuppressWarnings("unchecked")
+public class SystemExcelHandlerManager extends BaseSupport implements ISystemExcelHandlerManager {
+
+	/****************************** 模板相关业务 start ******************************************/
+	
+	/**
+	 * 根据id获取扩展属性实体list
+	 */
+	public List<AttrDef> getAttrById(String attr_spec_id){
+		List<AttrDef> list = new ArrayList<AttrDef>();
+		String sql = SF.orderSql("SERVICE_ATTR_DEF_SELECT");
+		
+		list = this.baseDaoSupport.queryForList(sql, AttrDef.class, attr_spec_id);
+		
+		return list;
+	}
+	
+	
+	/**
+	 * 根据id获取模板实例list
+	 */
+	public List<TempInst> getTempById(String temp_inst_id){
+		List<TempInst> list = new ArrayList<TempInst>();
+		String sql = SF.orderSql("SERVICE_TEMP_INST_SELECT")+" and temp_inst_id = ?";
+		
+		list = this.baseDaoSupport.queryForList(sql, TempInst.class, temp_inst_id);
+		
+		return list;
+	}
+	
+	
+	/**
+	 * 列出所有模板配置数据
+	 */
+	public List<TempConfig> getTempConfig(){
+		List<TempConfig> list = new ArrayList<TempConfig>();
+		String sql = SF.orderSql("SERVICE_TEMP_CONFIG_SELECT");
+		
+		list = this.baseDaoSupport.queryForList(sql, TempConfig.class, SysExcelConsts.TEMP_STATE_VALID);
+		
+		return list;
+	}
+	
+	
+	/**
+	 * 根据id获取模板配置
+	 */
+	public TempConfig getTempConfigById(String temp_id){
+		TempConfig tempConfig = new TempConfig();
+		String sql = SF.orderSql("SERVICE_TEMP_CONFIG_SELECT_BY_ID");
+		
+		tempConfig = (TempConfig) this.baseDaoSupport.queryForObject(sql, TempConfig.class, temp_id);
+		
+		return tempConfig;
+	}
+	
+	
+	/**
+	 * 保存模板数据
+	 */
+	public void saveTemp(TempConfig tempConfig,String attr_spec_data,String temp_source_from,String temp_inst_id){
+		
+		//首先组装模板,前两个为jsonArray格式[{},{},{}]
+		String temp_cols = tempConfig.getTemp_cols();
+		String temp_cols_contents = tempConfig.getTemp_cols_contents();
+		String temp_name = tempConfig.getTemp_name();
+		String temp_notes = tempConfig.getTemp_notes();
+		
+		String inst_temp_cols = temp_cols.substring(0,temp_cols.length()-1)
+								+ "," + attr_spec_data.substring(1,attr_spec_data.length());
+		
+		TempInst tempInst = new TempInst();
+		
+		tempInst.setSource_from(temp_source_from);
+		tempInst.setTemp_cols(inst_temp_cols);
+		tempInst.setTemp_contents(temp_cols_contents);
+		tempInst.setTemp_name(temp_name);
+		tempInst.setTemp_notes(temp_notes);
+		tempInst.setTemp_inst_id(temp_inst_id);
+		
+		Integer count = 0;
+		
+		String countSql = SF.orderSql("SERVICE_TEMP_INST_COUNT");
+		
+		count = this.baseDaoSupport.queryForInt(countSql, temp_inst_id);
+		
+		if(count == 0){
+			this.baseDaoSupport.insert("ES_TEMP_INST",tempInst);
+		}else{
+			this.baseDaoSupport.update("ES_TEMP_INST", tempInst, " temp_inst_id = '"+ temp_inst_id +"'");
+		}
+		
+	}
+	
+	
+	/**
+	 * 获取模板实例
+	 */
+	public TempInst getTempInstByArgs(String temp_inst_id,String source_from){
+		
+		TempInst tempInst = new TempInst();
+		String sql = SF.orderSql("SERVICE_TEMP_INST_SELECT")+" and temp_inst_id = '"+temp_inst_id+"' AND source_from = '"+source_from+"'";
+		
+		tempInst = (TempInst) this.baseDaoSupport.queryForObject(sql, TempInst.class);
+	
+		return tempInst;
+	}
+	
+	/****************************** 模板相关业务 end ******************************************/
+	
+	
+	
+	
+	
+	
+	/****************************** 入库相关业务 start ******************************************/
+	
+	/**
+	 * 导入订单
+	 */
+	public BatchResult importOrder(List<Map<String, Object>> inList,List<Map<String, Object>> prefixList,String orderType,String flowType){
+		
+		BatchResult batchResult = new BatchResult();
+		
+		return batchResult;
+	}
+	
+	
+	
+	/**
+	 * 插入扩展属性
+	 * 入库 es_outer_attr_inst map结构prefix_col1_994000152=33
+	 * @param prefixList	
+	 * @param order_id	
+	 * @param inListKey
+	 */
+	public void insertPrefixEle(List<Map<String, Object>> prefixList,String order_id,String inListKey){
+		
+		if(prefixList != null && !prefixList.isEmpty()){
+			for (int i = 0; i < prefixList.size(); i++) {
+				Map<String, Object> map = prefixList.get(i);
+				AttrInst attrInst = new AttrInst();
+				Iterator it = map.entrySet().iterator();
+				while(it.hasNext()){
+					Map.Entry e = (Map.Entry) it.next();
+					String key = (String) e.getKey();
+					String value = (String) e.getValue();
+					
+					if(key.equals(inListKey)){
+						String field_name = "";
+						String field_attr_id = "";
+						String attr_spec_id = "";
+						String attr_inst_id = this.baseDaoSupport.getSequences("s_es_outer_attr_inst");
+						
+						String[] keys = key.split("_");
+						for (int j = 0; j < keys.length; j++) {
+							field_name = keys[1];
+							field_attr_id = keys[2];
+							attr_spec_id = keys[3];
+						}
+						
+						attrInst.setCreate_date(DBTUtil.current());
+						attrInst.setField_attr_id(field_attr_id);
+						attrInst.setField_value(value);
+						attrInst.setField_name(field_name);
+						attrInst.setAttr_inst_id(attr_inst_id);
+						attrInst.setOrder_id(order_id);
+						attrInst.setAttr_spec_id(attr_spec_id);
+						
+						
+						this.baseDaoSupport.insert("es_outer_attr_inst", attrInst);
+					}
+				}
+			}
+		}
+		
+		
+	}
+	
+	
+	
+	/****************************** 入库相关业务 end ******************************************/
+}

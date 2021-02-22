@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	<bean id="cardReleaseScheduler" class="com.ztesoft.net.mall.core.timer.CardReleaseScheduler" />
+	<bean id="orderRoleDataManager" class="com.ztesoft.net.mall.core.service.impl.OrderRoleDataManager"  parent="baseSupport" />
+	<bean id="orderRuleManager" class="com.ztesoft.net.mall.core.service.impl.OrderRuleManager"  parent="baseSupport" />
+	<bean id="cloudCardCollectHander" class="com.ztesoft.net.mall.core.action.order.service.cloud.CloudCardCollectHander" parent="baseSupport" />
+	<bean id="cloudCardAuditHander" class="com.ztesoft.net.mall.core.action.order.service.cloud.CloudCardAuditHander" parent="baseSupport" />
+	<bean id="cloudCardAcceptHander" class="com.ztesoft.net.mall.core.action.order.service.cloud.CloudCardAcceptHander" parent="baseSupport" />
+	<bean id="cloudCardPaymentHander" class="com.ztesoft.net.mall.core.action.order.service.cloud.CloudCardPaymentHander" parent="baseSupport" />
+	<bean id="cloudCardDilveryHander" class="com.ztesoft.net.mall.core.action.order.service.cloud.CloudCardDilveryHander" parent="baseSupport" />
+	<bean id="cloudCardFinishHander" class="com.ztesoft.net.mall.core.action.order.service.cloud.CloudCardFinishHander" parent="baseSupport" />
+	<bean id="contractCollectHander" class="com.ztesoft.net.mall.core.action.order.service.contract.ContractCollectHander" parent="baseSupport" />
+	<bean id="contractAuditHander" class="com.ztesoft.net.mall.core.action.order.service.contract.ContractAuditHander" parent="baseSupport" />
+	<bean id="contractAcceptHander" class="com.ztesoft.net.mall.core.action.order.service.contract.ContractAcceptHander" parent="baseSupport" />
+	<bean id="contractPaymentHander" class="com.ztesoft.net.mall.core.action.order.service.contract.ContractPaymentHander" parent="baseSupport" />
+	<bean id="contractDilveryHander" class="com.ztesoft.net.mall.core.action.order.service.contract.ContractDilveryHander" parent="baseSupport" />
+	<bean id="contractFinishHander" class="com.ztesoft.net.mall.core.action.order.service.contract.ContractFinishHander" parent="baseSupport" />
+	<bean id="cardCollectHander" class="com.ztesoft.net.mall.core.action.order.service.card.CardCollectHander" parent="baseSupport" />
+	<bean id="cardAuditHander" class="com.ztesoft.net.mall.core.action.order.service.card.CardAuditHander" parent="baseSupport" />
+	<bean id="cardAcceptHander" class="com.ztesoft.net.mall.core.action.order.service.card.CardAcceptHander" parent="baseSupport" />
+	<bean id="cardPaymentHander" class="com.ztesoft.net.mall.core.action.order.service.card.CardPaymentHander" parent="baseSupport" />
+	<bean id="cardDilveryHander" class="com.ztesoft.net.mall.core.action.order.service.card.CardDilveryHander" parent="baseSupport" />
+	<bean id="cardFinishHander" class="com.ztesoft.net.mall.core.action.order.service.card.CardFinishHander" parent="baseSupport" />
+	<bean id="rechargeCardCollectHander" class="com.ztesoft.net.mall.core.action.order.service.recharge.RechargeCardCollectHander" parent="baseSupport" />
+	<bean id="rechargeCardAuditHander" class="com.ztesoft.net.mall.core.action.order.service.recharge.RechargeCardAuditHander" parent="baseSupport" />
+	<bean id="rechargeCardAcceptHander" class="com.ztesoft.net.mall.core.action.order.service.recharge.RechargeCardAcceptHander" parent="baseSupport" />
+	<bean id="rechargeCardPaymentHander" class="com.ztesoft.net.mall.core.action.order.service.recharge.RechargeCardPaymentHander" parent="baseSupport" />
+	<bean id="rechargeCardDilveryHander" class="com.ztesoft.net.mall.core.action.order.service.recharge.RechargeCardDilveryHander" parent="baseSupport" />
+	<bean id="rechargeCardFinishHander" class="com.ztesoft.net.mall.core.action.order.service.recharge.RechargeCardFinishHander" parent="baseSupport" />
+	<bean id="commonReturnedShipHander" class="com.ztesoft.net.mall.core.action.order.returnedship.CommonReturnedShipHander" parent="baseSupport" />
+	<bean id="commonChangeShipHander" class="com.ztesoft.net.mall.core.action.order.changeship.CommonChangeShipHander" parent="baseSupport" />
+	<bean id="commonRefundHander" class="com.ztesoft.net.mall.core.action.order.refund.CommonRefundHander" parent="baseSupport" />
+	<bean id="commonCancelHander" class="com.ztesoft.net.mall.core.action.order.cancel.CommonCancelHander" parent="baseSupport" />
+	<bean id="commonWithDrawsHander" class="com.ztesoft.net.mall.core.action.order.invalid.CommonWithDrawsHander" parent="baseSupport" />
+	<bean id="acceptPlugin" class="com.ztesoft.net.mall.core.action.order.flow.AcceptPlugin" parent="baseSupport" />
+	<bean id="commonPaymentHander" class="com.ztesoft.net.mall.core.action.order.payment.CommonPaymentHander" parent="baseSupport" ></bean>
+	
+	<bean id="orderApplyManage" class="com.ztesoft.net.mall.core.service.impl.OrderApplyManage" parent="baseSupport"></bean>
+	<bean id="orderMetaManager" class="com.ztesoft.net.mall.core.service.impl.OrderMetaManager" parent="baseSupport"></bean>
+	<bean id="returnsOrderManager" class="com.ztesoft.net.mall.core.service.impl.ReturnsOrderManager" parent="baseSupport"></bean>
+	<bean id="orderFlowManager" class="com.ztesoft.net.mall.core.service.impl.OrderFlowManager" parent="baseSupport"></bean>
+	<bean id="orderAuditManager" class="com.ztesoft.net.mall.core.service.impl.OrderAuditManager" parent="baseSupport"></bean>
+	<bean id="custReturnedManager" class="com.ztesoft.net.mall.core.service.impl.CustReturnedManager" parent="baseSupport"></bean>
+	<bean id="rateManager" class="com.ztesoft.net.mall.core.service.impl.RateManager" parent="baseSupport"></bean>
+	<bean id="cloudManager" class="com.ztesoft.net.mall.core.service.impl.CloudManager" parent="baseSupport"></bean>
+	<bean id="accNbrManager" class="com.ztesoft.net.mall.core.service.impl.AccNbrManager" parent="baseSupport"></bean>
+	<bean id="orderHisManager" class="com.ztesoft.net.mall.core.service.impl.OrderHisManager" parent="baseSupport"></bean>
+	
+	<bean id="contractManager" class="com.ztesoft.net.mall.core.service.impl.ContractManager" parent="baseSupport"></bean>
+	<bean id="commonBtnsHander" class="com.ztesoft.net.mall.core.action.order.button.CommonBtnsHander" parent="baseSupport"></bean>
+	<bean id="orderUtils" class="com.ztesoft.net.mall.core.service.OrderUtils" parent="baseSupport"></bean>
+	<bean id="orderDirector" class="com.ztesoft.net.mall.core.action.order.OrderDirector" parent="baseSupport"></bean>
+	<bean id="sumSaleroomReportManager" class ="com.ztesoft.net.mall.core.service.impl.SumSaleroomReportManager" parent ="baseSupport"></bean>
+	<bean id="dealCardFailManager" class ="com.ztesoft.net.mall.core.timer.DealCardFailManager" parent ="baseSupport"></bean>
+	<bean id="orderHandleHander" class="com.ztesoft.net.mall.core.action.order.orderc.OrderHandleHander" parent="baseSupport" ></bean>
+	<bean id="goodsReturnedShipHander" class="com.ztesoft.net.mall.core.action.order.orderc.GoodsReturnedShipHander" parent="baseSupport" ></bean>
+	<bean id="goodsRefundHander" class="com.ztesoft.net.mall.core.action.order.orderc.GoodsRefundHander" parent="baseSupport" ></bean>
+	<bean id="orderApplycMamager" class="com.ztesoft.net.mall.core.service.impl.OrderApplycMamager" parent="baseSupport" ></bean>
+	<bean id="orderReportManager" class="com.ztesoft.net.mall.core.service.impl.OrderReportManager" parent="baseSupport"></bean>
+	<bean id="areaManager" class="com.ztesoft.net.mall.core.service.impl.AreaManager"  parent="baseSupport"  />
+	
+	<bean id="logiManager" class="com.ztesoft.net.mall.core.service.impl.LogiManager"   parent="baseSupport" />
+	
+	<bean id="gnotifyManager" class="com.ztesoft.net.mall.core.service.impl.GnotifyManager" parent="baseSupport"></bean>
+	<bean id="dlyCenterManager" class="com.ztesoft.net.mall.core.service.impl.DlyCenterManager" parent="baseSupport"></bean>
+	<bean id = "deliveryFlowManager" class ="com.ztesoft.net.mall.core.service.impl.DeliveryFlowManager" parent ="baseSupport"></bean>
+	
+	
+	<bean id = "orderPrintData" class ="com.ztesoft.net.mall.core.service.impl.OrderPrintData" parent ="baseSupport"></bean>
+	<bean id="systemExcelHandlerManager" class="com.ztesoft.net.mall.core.service.impl.SystemExcelHandlerManager" parent="baseSupport"></bean>
+	
+	<bean id = "reportManager" class ="com.ztesoft.net.mall.core.service.impl.ReportManager" parent ="baseSupport"></bean>
+	
+	<bean id = "requestLogsManager" class ="com.ztesoft.net.mall.core.service.impl.RequestLogsManager" parent ="baseSupport"></bean>
+	
+	
+	
+	<bean id = "dealLogManager" class ="com.ztesoft.net.mall.core.service.impl.DealLogManager" parent ="baseSupport"></bean>
+	
+	<!-- 促销插件 -->
+	<bean id="enoughPriceGiveGiftPlugin"  class="com.ztesoft.net.mall.plugin.promotion.EnoughPriceGiveGiftPlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="promotionPluginBundle" />
+			</list>
+		</property>	
+	</bean>
+	<bean id="enoughPriceReducePrice"  class="com.ztesoft.net.mall.plugin.promotion.EnoughPriceReducePrice" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="promotionPluginBundle" />
+			</list>
+		</property>	
+	</bean>	
+	<bean id="enoughPriceFreeDeliveryPlugin"  class="com.ztesoft.net.mall.plugin.promotion.EnoughPriceFreeDeliveryPlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="promotionPluginBundle" />
+			</list>
+		</property>	
+	</bean>	
+	
+	<bean id="outterTmplManager" class="com.ztesoft.net.outter.inf.service.OutterTmplManager" parent="baseSupport"></bean>
+	
+    <bean id="orderNFlowManager" class="com.ztesoft.net.mall.core.service.impl.OrderNFlowManager" parent="baseSupport"></bean>
+    <bean id="datasLogManager" class="com.ztesoft.net.mall.core.service.impl.DataLogManager"></bean>
+    <bean id="orderOuterManager" class="com.ztesoft.net.mall.core.service.impl.OrderOuterManager" parent="baseSupport"></bean>
+    <bean id="tplInstManager" class="com.ztesoft.net.mall.core.service.impl.TplInstManager" parent="baseSupport"></bean>
+    <bean id="orderAcceptManager" class="com.ztesoft.net.mall.core.service.impl.OrderAcceptManager"/>
+    <bean id="cartManager" class="com.ztesoft.net.mall.core.service.impl.CartManager" parent="baseSupport"/>
+    <bean id="promotionManager" class="com.ztesoft.net.mall.core.service.impl.PromotionManager" parent="baseSupport"></bean>
+    <bean id="dlyTypeManager" class="com.ztesoft.net.mall.core.service.impl.DlyTypeManager" parent="baseSupport"/>
+    <bean id="orderCommentManager" class="com.ztesoft.net.mall.core.service.impl.OrderCommentManager" parent="baseSupport"></bean>
+    <bean id="dictMatchManager" class="com.ztesoft.net.mall.core.service.impl.DictMatchManager" parent="baseSupport"></bean>
+    
+    <bean id="orderPaymentServ" class="services.OrderPaymentServ" scope="prototype"/>
+    <bean id="syOrderRule" class="com.ztesoft.net.rule.SyOrderRule"/>
+    <bean id="LoginUserClearTimer" class="services.LoginUserClearTimer"/>
+    <bean id="deliveryManager" class="com.ztesoft.net.mall.core.service.impl.DeliveryManager" parent="baseSupport"/>
+    <bean id="warehousePurorderMamager" class="com.ztesoft.net.mall.core.service.impl.WarehousePurorderMamager" parent="baseSupport"/>
+    <bean id="dlyTypeAddressManager" class="com.ztesoft.net.mall.core.service.impl.DlyTypeAddressManager" parent="baseSupport"/>
+    <bean id="orderCanel" class="com.ztesoft.net.mall.core.timer.OrderCanelTimer"/>
+    <bean id="orderHistoryTimer" class="com.ztesoft.net.mall.core.timer.OrderHistoryTimer"/>
+    <bean id="orderStandardizeTimer" class="com.ztesoft.net.mall.core.timer.OrderStandardizeTimer"/>
+    <bean id="gProdOrderStandardizeTimer" class="com.ztesoft.net.mall.core.timer.GProdOrderStandardizeTimer"/>
+    <!-- <bean id = "absOrderPayment" class = "services.AbsOrderPayment" parent="baseSupport"></bean> -->
+    <bean id="refundManager" class="com.ztesoft.net.mall.service.impl.RefundManager" parent="baseSupport"></bean>
+    <bean id="paymentHander" class="com.ztesoft.net.mall.core.pay.PaymentHander" parent="baseSupport"></bean>
+	<bean id="ruleManager" class="com.ztesoft.net.mall.core.service.impl.RuleManager"  />
+    <bean id="outerService" class="com.ztesoft.net.outter.inf.service.OuterService"/>
+	<bean id="orderDeliveryRule" class="zte.service.OrderDeliveryRule"   parent="baseSupport" />
+	
+
+
+    <!-- <bean id = "absOrderPayment" class = "services.AbsOrderPayment" parent="baseSupport"></bean> -->
+    
+	<bean id="orderPaymentRule" class="zte.service.OrderPaymentRule"   parent="baseSupport" />
+	
+	<bean id="orderGroupManagerImpl" class="com.ztesoft.net.mall.service.impl.OrderGroupManager" parent="baseSupport"></bean>
+	
+	<bean id="orderFlowBussManager" class="com.ztesoft.net.mall.service.impl.OrderFlowBussManager"  parent="baseSupport" />
+	
+	<bean id="attrDefNManager" class="com.ztesoft.net.attr.service.impl.AttrDefNManager" parent="baseSupport"></bean>
+	
+	<bean id="orderQueueManager" class="com.ztesoft.net.mall.core.service.impl.OrderQueueManager" parent="baseSupport"></bean>
+	<bean id="orderWorkItemManager" class="com.ztesoft.net.mall.core.service.impl.OrderWorkItemManager" parent="baseSupport"></bean>
+	
+	
+</beans>

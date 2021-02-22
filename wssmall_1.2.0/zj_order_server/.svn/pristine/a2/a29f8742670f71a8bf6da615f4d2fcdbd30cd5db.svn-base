@@ -1,0 +1,170 @@
+package com.ztesoft.net.ecsord.params.ecaop.vo;
+
+public class BroadbandMonitorReportVO {
+	
+	public String CITY_CODE;
+	public String CITY_NAME;
+	public String CREATE_TIME;	
+	public String BOOK_DAY_COUNT;
+	public String BOOK_MONTH_COUNT;
+	public String RECEIVE_DAY_COUNT;
+	public String RECEIVE_MONTH_COUNT;
+	public String AVG_RECEIVE_TIME;
+	public String UNRECEIVE_DAY_COUNT;
+	public String UNRECEIVE_MONTH_COUNT;
+	public String DISTRIBUTE_DAY_COUNT;
+	public String DISTRIBUTE_MONTH_COUNT;
+	public String AVG_DISTRIBUTE_TIME;
+	public String DISTRIBUTE_RETURN_DAY_COUNT;
+	public String DISTRIBUTE_RETURN_MONTH_COUNT;
+	public String HANG_DAY_COUNT;
+	public String HANG_MONTH_COUNT;
+	public String COMPLETE_DAY_COUNT;
+	public String COMPLETE_MONTH_COUNT;
+	public String AVG_COMPLETE_TIME;
+	public String OUTSIDE_RETURN_DAY_COUNT;
+	public String OUTSIDE_RETURN_MONTH_COUNT;
+	public String SOURCE_FROM;
+	
+	public String getCITY_CODE() {
+		return CITY_CODE;
+	}
+	public void setCITY_CODE(String cITY_CODE) {
+		CITY_CODE = cITY_CODE;
+	}
+	public String getCITY_NAME() {
+		return CITY_NAME;
+	}
+	public void setCITY_NAME(String cITY_NAME) {
+		CITY_NAME = cITY_NAME;
+	}
+	public String getCREATE_TIME() {
+		return CREATE_TIME;
+	}
+	public void setCREATE_TIME(String cREATE_TIME) {
+		CREATE_TIME = cREATE_TIME;
+	}
+	public String getBOOK_DAY_COUNT() {
+		return BOOK_DAY_COUNT;
+	}
+	public void setBOOK_DAY_COUNT(String bOOK_DAY_COUNT) {
+		BOOK_DAY_COUNT = bOOK_DAY_COUNT;
+	}
+	public String getBOOK_MONTH_COUNT() {
+		return BOOK_MONTH_COUNT;
+	}
+	public void setBOOK_MONTH_COUNT(String bOOK_MONTH_COUNT) {
+		BOOK_MONTH_COUNT = bOOK_MONTH_COUNT;
+	}
+	public String getRECEIVE_DAY_COUNT() {
+		return RECEIVE_DAY_COUNT;
+	}
+	public void setRECEIVE_DAY_COUNT(String rECEIVE_DAY_COUNT) {
+		RECEIVE_DAY_COUNT = rECEIVE_DAY_COUNT;
+	}
+	public String getRECEIVE_MONTH_COUNT() {
+		return RECEIVE_MONTH_COUNT;
+	}
+	public void setRECEIVE_MONTH_COUNT(String rECEIVE_MONTH_COUNT) {
+		RECEIVE_MONTH_COUNT = rECEIVE_MONTH_COUNT;
+	}
+	public String getAVG_RECEIVE_TIME() {
+		return AVG_RECEIVE_TIME;
+	}
+	public void setAVG_RECEIVE_TIME(String aVG_RECEIVE_TIME) {
+		AVG_RECEIVE_TIME = aVG_RECEIVE_TIME;
+	}
+	public String getUNRECEIVE_DAY_COUNT() {
+		return UNRECEIVE_DAY_COUNT;
+	}
+	public void setUNRECEIVE_DAY_COUNT(String uNRECEIVE_DAY_COUNT) {
+		UNRECEIVE_DAY_COUNT = uNRECEIVE_DAY_COUNT;
+	}
+	public String getUNRECEIVE_MONTH_COUNT() {
+		return UNRECEIVE_MONTH_COUNT;
+	}
+	public void setUNRECEIVE_MONTH_COUNT(String uNRECEIVE_MONTH_COUNT) {
+		UNRECEIVE_MONTH_COUNT = uNRECEIVE_MONTH_COUNT;
+	}
+	public String getDISTRIBUTE_DAY_COUNT() {
+		return DISTRIBUTE_DAY_COUNT;
+	}
+	public void setDISTRIBUTE_DAY_COUNT(String dISTRIBUTE_DAY_COUNT) {
+		DISTRIBUTE_DAY_COUNT = dISTRIBUTE_DAY_COUNT;
+	}
+	public String getDISTRIBUTE_MONTH_COUNT() {
+		return DISTRIBUTE_MONTH_COUNT;
+	}
+	public void setDISTRIBUTE_MONTH_COUNT(String dISTRIBUTE_MONTH_COUNT) {
+		DISTRIBUTE_MONTH_COUNT = dISTRIBUTE_MONTH_COUNT;
+	}
+	public String getAVG_DISTRIBUTE_TIME() {
+		return AVG_DISTRIBUTE_TIME;
+	}
+	public void setAVG_DISTRIBUTE_TIME(String aVG_DISTRIBUTE_TIME) {
+		AVG_DISTRIBUTE_TIME = aVG_DISTRIBUTE_TIME;
+	}
+	public String getDISTRIBUTE_RETURN_DAY_COUNT() {
+		return DISTRIBUTE_RETURN_DAY_COUNT;
+	}
+	public void setDISTRIBUTE_RETURN_DAY_COUNT(String dISTRIBUTE_RETURN_DAY_COUNT) {
+		DISTRIBUTE_RETURN_DAY_COUNT = dISTRIBUTE_RETURN_DAY_COUNT;
+	}
+	public String getDISTRIBUTE_RETURN_MONTH_COUNT() {
+		return DISTRIBUTE_RETURN_MONTH_COUNT;
+	}
+	public void setDISTRIBUTE_RETURN_MONTH_COUNT(
+			String dISTRIBUTE_RETURN_MONTH_COUNT) {
+		DISTRIBUTE_RETURN_MONTH_COUNT = dISTRIBUTE_RETURN_MONTH_COUNT;
+	}
+	public String getHANG_DAY_COUNT() {
+		return HANG_DAY_COUNT;
+	}
+	public void setHANG_DAY_COUNT(String hANG_DAY_COUNT) {
+		HANG_DAY_COUNT = hANG_DAY_COUNT;
+	}
+	public String getHANG_MONTH_COUNT() {
+		return HANG_MONTH_COUNT;
+	}
+	public void setHANG_MONTH_COUNT(String hANG_MONTH_COUNT) {
+		HANG_MONTH_COUNT = hANG_MONTH_COUNT;
+	}
+	public String getCOMPLETE_DAY_COUNT() {
+		return COMPLETE_DAY_COUNT;
+	}
+	public void setCOMPLETE_DAY_COUNT(String cOMPLETE_DAY_COUNT) {
+		COMPLETE_DAY_COUNT = cOMPLETE_DAY_COUNT;
+	}
+	public String getCOMPLETE_MONTH_COUNT() {
+		return COMPLETE_MONTH_COUNT;
+	}
+	public void setCOMPLETE_MONTH_COUNT(String cOMPLETE_MONTH_COUNT) {
+		COMPLETE_MONTH_COUNT = cOMPLETE_MONTH_COUNT;
+	}
+	public String getAVG_COMPLETE_TIME() {
+		return AVG_COMPLETE_TIME;
+	}
+	public void setAVG_COMPLETE_TIME(String aVG_COMPLETE_TIME) {
+		AVG_COMPLETE_TIME = aVG_COMPLETE_TIME;
+	}
+	public String getOUTSIDE_RETURN_DAY_COUNT() {
+		return OUTSIDE_RETURN_DAY_COUNT;
+	}
+	public void setOUTSIDE_RETURN_DAY_COUNT(String oUTSIDE_RETURN_DAY_COUNT) {
+		OUTSIDE_RETURN_DAY_COUNT = oUTSIDE_RETURN_DAY_COUNT;
+	}
+	public String getOUTSIDE_RETURN_MONTH_COUNT() {
+		return OUTSIDE_RETURN_MONTH_COUNT;
+	}
+	public void setOUTSIDE_RETURN_MONTH_COUNT(String oUTSIDE_RETURN_MONTH_COUNT) {
+		OUTSIDE_RETURN_MONTH_COUNT = oUTSIDE_RETURN_MONTH_COUNT;
+	}
+	public String getSOURCE_FROM() {
+		return SOURCE_FROM;
+	}
+	public void setSOURCE_FROM(String sOURCE_FROM) {
+		SOURCE_FROM = sOURCE_FROM;
+	}
+
+	
+}

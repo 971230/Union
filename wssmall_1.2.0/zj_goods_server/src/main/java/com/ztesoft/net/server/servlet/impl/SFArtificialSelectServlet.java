@@ -1,0 +1,121 @@
+package com.ztesoft.net.server.servlet.impl;
+
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
+
+import zte.net.ecsord.params.sf.req.ArtificialSelectRequest;
+import zte.net.ecsord.params.sf.resp.ArtificialSelectResponse;
+import zte.net.ecsord.params.sf.vo.OrderFilterResult;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.server.servlet.ICommonServlet;
+
+/**
+ * 顺丰推送人工筛单信息处理
+ */
+public class SFArtificialSelectServlet implements ICommonServlet {
+
+	private final static Logger logger = Logger.getLogger(SFArtificialSelectServlet.class);
+
+	private static final String serviceName = "OrderFilterPushService";
+	 private  static String interfaceName="【顺丰人工筛选结果推送】";
+
+	@Override
+	public String service(String reqString) throws Exception {
+		// 解析报文返回内容
+		Element root = null;
+		Element bodyElement = null;
+		try {
+			SAXReader readerDom = new SAXReader();
+			reqString = reqString.replaceAll("&lt;", "<");//页面测试的时候用到
+			reqString = reqString.replaceAll("＝", "=");//页面测试的时候用到
+			
+			Document doc = readerDom.read(new ByteArrayInputStream(reqString
+				     .getBytes("UTF-8")));
+			root = doc.getRootElement();
+			bodyElement = root.element("Body");
+		} catch (Exception e) {
+			logger.info(interfaceName+"请求报文格式错误:"+e.getMessage());
+			e.printStackTrace();
+			ArtificialSelectResponse resp = new ArtificialSelectResponse();
+			resp.setRespOrderStatus(EcsOrderConsts.SF_INF_FAIL_CODE);
+			resp.setRespOrderDesc("请求报文格式错误!");
+			return getResultStr(SFArtificialSelectServlet.serviceName, resp);
+		}
+
+		// 封装参数
+		ArtificialSelectRequest req = new ArtificialSelectRequest();
+		String serviceName = "";
+		try {
+			List<OrderFilterResult> orderFilterResultList = new ArrayList<OrderFilterResult>();
+			OrderFilterResult orderFilterResult = null;
+			serviceName = root.attributeValue("service");
+			List<Element> orderFilterList = bodyElement.elements("OrderFilterResult");
+			if(orderFilterList.isEmpty()) throw new Exception();
+			for (Element orderInfo : orderFilterList) {
+				orderFilterResult = new OrderFilterResult();
+				orderFilterResult.setOrderid(orderInfo.attributeValue("orderid"));
+				final String filterResult = orderInfo.attributeValue("filterResult");
+//				orderFilterResult.setFilterResult(org.apache.commons.lang.math.NumberUtils.isNumber(filterResult) ? Integer.parseInt(filterResult) : null);
+				orderFilterResult.setFilterResult(Integer.parseInt(filterResult));
+				orderFilterResult.setDestCode(orderInfo.attributeValue("destCode"));
+				orderFilterResult.setMailno(orderInfo.attributeValue("mailno"));
+				orderFilterResult.setOrigincode(orderInfo.attributeValue("origincode"));
+				orderFilterResult.setReturnTrackingNo(orderInfo.attributeValue("returnTrackingNo"));
+				orderFilterResult.setRemark(orderInfo.attributeValue("remark"));
+				orderFilterResultList.add(orderFilterResult);
+			}
+			req.setOrderFilterResultList(orderFilterResultList);
+		} catch (Exception e) {
+			logger.info(interfaceName+"请求报文参数错误:"+e.getMessage());
+			e.printStackTrace();
+			ArtificialSelectResponse resp = new ArtificialSelectResponse();
+			resp.setRespOrderStatus(EcsOrderConsts.SF_INF_FAIL_CODE);
+			resp.setRespOrderDesc("请求报文参数错误!");
+			return getResultStr(SFArtificialSelectServlet.serviceName, resp);
+		}
+
+		// 接口调用-业务处理
+		ArtificialSelectResponse resp = null;
+		try {
+			ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+			resp =  client.execute(req, ArtificialSelectResponse.class);
+		} catch (Exception e) {
+			logger.info(interfaceName+"inf接口调用错误:"+e.getMessage());
+			e.printStackTrace();
+			resp = new ArtificialSelectResponse();
+			resp.setRespOrderStatus(EcsOrderConsts.SF_INF_FAIL_CODE);
+			resp.setRespOrderDesc("inf接口调用错误:"+e.getMessage());
+			return getResultStr(serviceName, resp);
+		}
+
+		return getResultStr(serviceName, resp);
+	}
+
+	/**
+	 * 根据返回对象拼装xml返回报文
+	 * @param serviceName
+	 * @param resp
+	 * @return
+	 */
+	private String getResultStr(String serviceName, ArtificialSelectResponse resp) {
+		// 响应报文<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+		String resultStr = "<Response service=\"" + serviceName + "\"><Head>" + resp.getRespOrderStatus() + "</Head>";
+		if ("ERR".equals(resp.getRespOrderStatus())) {
+			resultStr += "<ERROR code=\"-1\">" + resp.getRespOrderDesc() + "</ERROR>";
+		}else{
+			//resultStr +="<OrderFilterResultResponse  orderid=\""+resp.getOrderid()+"\"   orderid_error=\""+resp.getOrderid_error()+"\" ></OrderFilterResultResponse>";
+		}
+		resultStr += "</Response>";
+		return resultStr;
+	}
+}

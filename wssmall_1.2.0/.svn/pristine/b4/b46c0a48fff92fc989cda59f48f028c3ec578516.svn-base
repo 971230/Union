@@ -1,0 +1,17 @@
+package com.ztesoft.remote.params.activity.resp;
+
+import java.util.List;
+import java.util.Map;
+
+import params.ZteResponse;
+
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+
+/**
+ * 
+ *
+ */
+public class PromotionActResp extends ZteResponse {
+	
+	
+}

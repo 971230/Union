@@ -1,0 +1,67 @@
+package com.zte.cbss.autoprocess.request;
+
+import net.sf.json.JSONObject;
+
+import org.apache.http.message.BasicNameValuePair;
+import com.zte.cbss.autoprocess.AbsHttpRequest;
+import com.zte.cbss.autoprocess.HttpLoginClient;
+import com.zte.cbss.autoprocess.PageHttpResponse;
+import com.zte.cbss.autoprocess.model.ParameterData;
+import com.zte.cbss.autoprocess.model.data.CheckRightOpenData;
+
+public class CheckRightOpenRequest extends AbsHttpRequest<ParameterData,Boolean>{
+
+	public CheckRightOpenRequest(HttpLoginClient client) {
+		super(client);
+	}
+
+	@Override
+	protected boolean pack(ParameterData data) {
+		try{
+			CheckRightOpenData param = new CheckRightOpenData();
+			param.setPsptId(data.getBill().getPsptId());
+			String temp = JSONObject.fromObject(param).toString();
+			this.body.add(new BasicNameValuePair("param",temp));
+			this.body.add(new BasicNameValuePair("globalPageName","personalserv.createuser.CreateUser"));
+			return true;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	@Override
+	protected Boolean unpack(PageHttpResponse response) {
+		try{
+//			logger.info(response.getResponse().getFirstHeader("Set-Cookie"));
+			String respXml = response.getResponse();
+//			logger.info(respXml);
+			return true;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	@Override
+	public String getUrl() {
+		return "https://gd.cbss.10010.com/custserv?service=swallow/personalserv.createuser.CreateUser/checkRightOpen/1";
+	}
+
+	@Override
+	public String getReferer() {
+		String param = this.client.getRelererParam("page/personalserv.createuser.CreateUser");
+		return "https://gd.cbss.10010.com/custserv?service=page/personalserv.createuser.CreateUser"+param;
+	}
+
+	@Override
+	public boolean isXMLHttpRequest() {
+		return true;
+	}
+
+	@Override
+	public boolean isPost() {
+		return true;
+	}
+
+}

@@ -1,0 +1,917 @@
+/**
+ * 
+ */
+package com.ztesoft.common.query;
+
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.ztesoft.common.dao.ConnectionContext;
+import com.ztesoft.common.dao.DAOSQLUtils;
+import com.ztesoft.common.dao.DAOSystemException;
+import com.ztesoft.common.dao.DAOUtils;
+import com.ztesoft.common.dao.Debug;
+import com.ztesoft.common.util.JNDINames;
+
+
+public class SqlMapExe {
+
+
+	private static final Log LOG = LogFactory.getLog(SqlMapExe.class);
+	
+	private static SqlMapExe instance;
+	
+	
+	private SqlMapExe(){
+		
+		
+	}
+	
+	public static SqlMapExe getInstance(){
+		
+		if(instance==null)
+			instance=new SqlMapExe();
+		return instance;
+	}
+	public List queryForStringListEx(String sql,String[]sqlParams,int num) {
+		List list = new ArrayList();
+		Connection dbConnection = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		try {
+			dbConnection = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			String sqlStr = DAOSQLUtils.getFilterSQL(sql);
+			stmt = dbConnection.prepareStatement(sqlStr);
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams[i]);
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			result = stmt.executeQuery();
+			if (result.next()) {
+				for (int i=1; sqlParams!=null && i<num+1; i++ ) {
+					list.add(DAOUtils.trimStr(result.getString(i)));
+				}
+				
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return list;
+	}
+	
+	public String queryValueBySqlAndCond(String sql,String param) {
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		String returnValue = "";
+
+		try {
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			
+			if(param!=null){
+			    stmt.setString( 1, param );
+			}
+			
+			result = stmt.executeQuery();
+			if (result.next()) {
+				returnValue = DAOUtils.trimStr(result.getString(1));
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return returnValue;
+	}
+	
+	public String queryValueBySqlAndCond(String sql,String params[]) {
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		String returnValue = "";
+
+		try {
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			
+			for (int i=0; params!=null && i<params.length; i++ ) {
+				stmt.setString( i+1, params[i] );
+			}
+			result = stmt.executeQuery();
+			if (result.next()) {
+				returnValue = DAOUtils.trimStr(result.getString(1));
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return returnValue;
+	}
+	
+	
+	public String querySingleValue(String sqlname,String param) {
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		String returnValue = "";
+		
+		String sql=Sqls.getSql(sqlname);
+		
+		try {
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			
+			if(param!=null){
+			    stmt.setString( 1, param );
+			}
+			
+			result = stmt.executeQuery();
+			if (result.next()) {
+				returnValue = DAOUtils.trimStr(result.getString(1));
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return returnValue;
+	}
+	
+	
+	public String querySingleValue(String sql,String[] params){
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		String returnValue = "";
+		try {
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			if(sql.indexOf("dual")>-1||sql.indexOf("DUAL")>-1)
+			{
+				stmt = conn.prepareStatement(sql);
+			}
+			else
+			{
+				stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB));
+			}
+			
+			for(int i=0;i<params.length;i++){
+			    stmt.setString( i+1,params[i]);
+			}    			
+			result = stmt.executeQuery();
+			if (result.next()) {
+				returnValue = DAOUtils.trimStr(result.getString(1));
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return returnValue;
+	}
+	
+	public String querySingleValue(String sql,ArrayList params){
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		String returnValue = "";
+		try {
+			if(params==null){
+				params=new ArrayList();
+			}
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB));
+			for(int i=0,argsCnt=params.size();i<argsCnt;i++){
+			    stmt.setString( i+1,(String)params.get(i));
+			}    			
+			result = stmt.executeQuery();
+			if (result.next()) {
+				returnValue = DAOUtils.trimStr(result.getString(1));
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return returnValue;
+	}
+	
+	public Map queryForMap(String sqlname,String param) throws DAOSystemException {
+		
+		Map map=null;
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		String sql=Sqls.getSql(sqlname);
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			LOG.debug(DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB));
+			//logger.info(DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB));
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+	
+			stmt.setString( 1, param );
+	
+			rs= stmt.executeQuery();
+			
+			if(rs.next()){
+				
+				map=this.rowToMap(rs);
+			}
+			
+			return map;
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+
+	}
+	
+	//通过SQL名称 获取结果集
+	public List queryForMapList(String sqlname,String[]sqlParams) throws DAOSystemException {
+		
+		List list = new ArrayList();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		String sql=Sqls.getSql(sqlname);
+
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams[i]);
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			rs= stmt.executeQuery();
+			
+			list=handle(rs);
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+			/*try{
+				ConnectionContext.getContext().closeConnection(JNDINames.DEFAULT_DATASOURCE);
+			}catch(Exception e){
+				
+			}*/
+		}
+		return list;
+	}
+	
+	//通过SQL名称 获取结果集
+	/**
+	 * @param sqlname
+	 * @param sqlParams
+	 * @return
+	 * @throws DAOSystemException
+	 */
+	public List queryForMapList(String sqlname,List sqlParams) throws DAOSystemException {
+		
+		List list = new ArrayList();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		String sql=Sqls.getSql(sqlname);
+
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			for (int i=0; sqlParams!=null && i<sqlParams.size(); i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams.get(i));
+				stmt.setString( i+1, (String)sqlParams.get(i) );
+			}
+			rs= stmt.executeQuery();
+			
+			list=handle(rs);
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+			/*try{
+				ConnectionContext.getContext().closeConnection(JNDINames.DEFAULT_DATASOURCE);
+			}catch(Exception e){
+				
+			}*/
+			
+		}
+		return list;
+	}
+	
+	//直接通过SQL 获取结果集
+	public List queryForMapListBySql(String sql,String[]sqlParams) throws DAOSystemException {
+		
+		List list = new ArrayList();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams[i]);
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			rs= stmt.executeQuery();
+			
+			list=handle(rs);
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return list;
+	}
+	
+	//直接通过SQL 获取结果集
+	public List queryForMapListBySql(String sql,List sqlParams) throws DAOSystemException {
+		
+		List list = new ArrayList();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			for (int i=0; sqlParams!=null && i<sqlParams.size(); i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams.get(i));
+				stmt.setString( i+1, (String)sqlParams.get(i) );
+			}
+			rs= stmt.executeQuery();
+			
+			list=handle(rs);
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return list;
+	}
+	
+	
+	public List queryForStringList(String sql,String[]sqlParams) {
+		List list = new ArrayList();
+		Connection dbConnection = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		try {
+			dbConnection = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			String sqlStr = DAOSQLUtils.getFilterSQL(sql);
+			stmt = dbConnection.prepareStatement(sqlStr);
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams[i]);
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			result = stmt.executeQuery();
+			while (result.next()) {
+				list.add(DAOUtils.trimStr(result.getString(1)));
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return list;
+	}
+	
+	//以返回结果集的第一个字段作为HashMap KEY
+	public Map queryKeyValueMap(String sqlname,String[] sqlParams) throws DAOSystemException {
+		
+		Map map=new HashMap();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		String sql=Sqls.getSql(sqlname);
+		try {
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			rs= stmt.executeQuery();
+			
+			while(rs.next()){
+				
+				map.put(DAOUtils.trimStr(rs.getString(1)), DAOUtils.trimStr(rs.getString(2)));
+			}
+			
+			return map;
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+
+	}
+	
+	public Map queryRowsForMap(String sql,String[] sqlParams) throws DAOSystemException {
+		
+		Map map=new HashMap();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		try {
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			rs= stmt.executeQuery();
+			
+			while(rs.next()){
+				
+				map.put(DAOUtils.trimStr(rs.getString(1)), DAOUtils.trimStr(rs.getString(2)));
+			}
+			
+			return map;
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+
+	}
+	
+	public int  executeUpdate(String sql) throws DAOSystemException {
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql.toString()) );
+			
+			return stmt.executeUpdate();
+								
+		}
+		catch (SQLException se) {
+			Debug.print(sql.toString(),this);
+			throw new DAOSystemException("SQLException while update sql:\n"+sql.toString(), se);
+		}
+		finally {
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+	}
+	
+	public String querySingleValue(String sql) {
+		Connection dbConnection = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		String returnValue = "";
+		try {
+			dbConnection = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			String sqlStr = "";
+			if(sql.indexOf("dual")>-1||sql.indexOf("DUAL")>-1)
+			{
+				sqlStr = sql;
+			}
+			else
+			{
+				sqlStr = DAOSQLUtils.getFilterSQL(sql);
+			}
+			stmt = dbConnection.prepareStatement(sqlStr);
+			result = stmt.executeQuery();
+			if (result.next()) {
+				returnValue = DAOUtils.trimStr(result.getString(1));
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+			//DAOUtils.closeConnection(dbConnection, this);
+		}
+		return returnValue;
+	}
+	
+	public List queryForStringList(String sql) {
+		List list = new ArrayList();
+		Connection dbConnection = null;
+		PreparedStatement stmt = null;
+		ResultSet result = null;
+		try {
+			dbConnection = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			String sqlStr = DAOSQLUtils.getFilterSQL(sql);
+			stmt = dbConnection.prepareStatement(sqlStr);
+			
+			
+			
+			result = stmt.executeQuery();
+			while (result.next()) {
+				list.add(result.getString(1));
+			}
+		} catch (Exception se) {
+			throw new DAOSystemException("SQLException while execSQL:" + sql + "\n", se);
+		} finally {
+			DAOUtils.closeResultSet(result, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return list;
+	}
+	
+	public List queryForMapList(String sql) throws DAOSystemException {
+		
+		List list = new ArrayList();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			rs= stmt.executeQuery();
+			
+			list=handle(rs);
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return list;
+	}
+	
+	
+	public List execForMapList(String sql,String[]sqlParams) throws DAOSystemException{
+		
+		List list = new ArrayList();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			LOG.debug(DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB));
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams[i]);
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			rs= stmt.executeQuery();
+			
+			list=handle(rs);
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return list;
+	}
+	public int excuteUpdate(String sql, List sqlParams)
+			throws DAOSystemException {
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		try {
+
+			conn =  ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			stmt = conn.prepareStatement(DAOSQLUtils.getFilterSQL(sql
+					.toString()));
+			for (int i = 0; i < sqlParams.size(); i++) {
+				stmt.setString(i + 1, (String) sqlParams.get(i));
+			}
+			return stmt.executeUpdate();
+		} catch (SQLException se) {
+			throw new DAOSystemException("SQLException while update sql:\n"
+					+ sql.toString(), se);
+		} finally {
+			DAOUtils.closeStatement(stmt, this);
+		}
+	}
+	public int excuteUpdate(String sql, String[] sqlParams)
+			throws DAOSystemException {
+		List<String> params = new ArrayList<String>();
+		for (int i = 0; i < sqlParams.length; i++) {
+			params.add(sqlParams[i]);
+		}
+		return excuteUpdate(sql, params);
+	}
+	
+	public List callProc(String procName, List inParams, int[] outParams)
+			throws SQLException {
+		CallableStatement proc = null;
+		Connection connection =  ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+		int outParamIndex = (inParams == null ? 0 : inParams.size());
+		int outParamLength = (outParams == null ? 0 : outParams.length);
+		List result = (outParams == null || outParams.length == 0) ? null
+				: new ArrayList();
+		String callSQL = "";
+		try {
+			StringBuffer paramStr = new StringBuffer();
+
+			// 设置绑定参数位置 ?
+			wrapProcParam(paramStr, outParamIndex + outParamLength);
+
+			callSQL = "{ call " + procName.toUpperCase() + "("
+					+ paramStr.toString() + ")}";
+			proc = connection.prepareCall(callSQL);
+			// 设置输入参数
+			if (inParams != null && !inParams.isEmpty()) {
+				for (int i = 0, j = inParams.size(); i < j; i++) {
+					Object o = inParams.get(i);
+					setObject2Statement(o, proc, i + 1);
+				}
+			}
+			// 设置输出参数
+			if (outParams != null && outParams.length > 0) {
+				for (int i = 0, j = outParams.length; i < j; i++) {
+					proc.registerOutParameter(outParamIndex + i + 1,
+							outParams[i]);
+				}
+			}
+
+			proc.execute();
+
+			// 组装输出结果
+			if (result != null) {
+				for (int i = 0, j = outParams.length; i < j; i++) {
+					int dataType = outParams[i];
+					Object o = getObject(proc, outParamIndex + i + 1,
+							outParams[i]);
+					result.add(o);
+				}
+			}
+		} catch (Exception se) {
+			se.printStackTrace();
+			throw new DAOSystemException("SQLException while execProc:"
+					+ callSQL + "\n", se);
+		} finally {
+			proc.close();
+		}
+		return result;
+	}
+	public void setObject2Statement(Object o, PreparedStatement s, int i)
+			throws SQLException {
+		if (isDateType(o)) {
+			long time = ((java.sql.Date) o).getTime();
+			s.setTimestamp(i, new Timestamp(time));
+		} else if (isTimestampType(o)) {
+			s.setTimestamp(i, (java.sql.Timestamp) o);
+		} else {
+			if (o == null)
+				s.setString(i, "");
+			else
+				s.setObject(i, o);
+		}
+	}
+	private Object getObject(CallableStatement s, int i, int dataType)
+			throws SQLException {
+		if (dataType == Types.DATE)
+			return s.getDate(i);
+
+		if (dataType == Types.TIMESTAMP)
+			return s.getTimestamp(i);
+		if (dataType == Types.INTEGER)
+			return new Integer(s.getInt(i));
+		if (dataType == Types.DOUBLE)
+			return new Double(s.getDouble(i));
+		return s.getString(i);
+
+	}
+
+	public static boolean isDateType(Object o) {
+		return o != null
+				&& ("java.util.Date".equals(o.getClass().getName()) || "java.sql.Date"
+						.equals(o.getClass().getName()));
+	}
+	public static boolean isTimestampType(Object o) {
+		return o != null && "java.sql.Timestamp".equals(o.getClass().getName());
+	}
+	private void wrapProcParam(StringBuffer sb, int paramSize) {
+		for (int i = 0, j = paramSize; i < j; i++) {
+			if (i == j - 1) {
+				sb.append("?");
+			} else {
+				sb.append("?,");
+			}
+		}
+	}
+	public List getUpcaseKeyMapList(String sql,String[]sqlParams) throws DAOSystemException{
+		return getMapList(sql, sqlParams, "T");		
+	}
+	
+	public List getLowercaseKeyMapList(String sql,String[]sqlParams) throws DAOSystemException{
+		return getMapList(sql, sqlParams, "F");		
+	}
+
+	//现在系统都是默认小写key，增加一个方法，用来选定MAP中是大写还是小写
+	//T 大写  否则小写
+    public List getMapList(String sql,String[]sqlParams, String Upcaseflag) throws DAOSystemException{
+		
+		List list = new ArrayList();
+		List  retList=new ArrayList();
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			
+			LOG.debug(DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB));
+			
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams[i]);
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			rs= stmt.executeQuery();
+			
+			list=handle(rs);
+			for(int i=0;i<list.size();i++){
+				HashMap map=(HashMap)list.get(i);
+				HashMap cloneMap=new HashMap();
+				Iterator  ite=map.keySet().iterator();
+				while(ite.hasNext()){
+					 String key=(String)ite.next();
+					 
+					 if ("T".equals(Upcaseflag)){
+					     key.toUpperCase();
+					 }
+					 else{
+						 key.toLowerCase();
+					 }
+					 
+					 cloneMap.put(key,(String)map.get(key));
+				}
+				retList.add(cloneMap);
+			}
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+		return retList;
+	}
+
+
+	
+	private List handle(ResultSet rs) throws SQLException {
+
+		List results = new ArrayList();
+
+		while (rs.next()) {
+			results.add(this.rowToMap(rs));
+		}
+
+		return results;
+	}
+	
+	
+	private Map rowToMap(ResultSet rs) throws SQLException {
+		Map result = new HashMap();
+		ResultSetMetaData rsmd = rs.getMetaData();
+		int cols = rsmd.getColumnCount();
+		for (int i = 1; i <= cols; i++) {
+			result.put(rsmd.getColumnName(i).toLowerCase(), rs.getString(i));
+		}
+		return result;
+	}
+	
+	public Map queryMapBySql(String sql,String[] sqlParams) throws DAOSystemException {
+		
+		Map map=null;
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		ResultSet rs = null;
+		try {
+
+			conn = ConnectionContext.getContext().getConnection(JNDINames.DEFAULT_DATASOURCE);
+			LOG.debug(DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB));
+			//logger.info(DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB));
+			stmt = conn.prepareStatement( DAOSQLUtils.getFilterSQL(sql,DAOSQLUtils.CRM_DB) );
+	
+			for (int i=0; sqlParams!=null && i<sqlParams.length; i++ ) {
+				Debug.print("sqlParams["+i+"]="+sqlParams[i]);
+				stmt.setString( i+1, sqlParams[i] );
+			}
+			rs= stmt.executeQuery();
+			if(rs.next()){
+				map=this.rowToMap(rs);
+			}
+			
+			return map;
+		}
+		catch (SQLException se) {
+			Debug.print(se.toString(),this);
+			Debug.print(sql,this);
+			throw new DAOSystemException("SQLException while getting sql:\n"+sql, se);
+		}
+		finally {
+			DAOUtils.closeResultSet(rs, this);
+			DAOUtils.closeStatement(stmt, this);
+
+		}
+	}
+}

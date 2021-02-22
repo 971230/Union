@@ -1,0 +1,277 @@
+package com.ztesoft.inf.test;
+
+import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import zte.params.goods.req.GoodsInfoGetReq;
+import zte.params.goods.req.ProductInfoGetReq;
+import zte.params.goods.resp.GoodsInfoGetResp;
+import zte.params.goods.resp.ProductInfoGetResp;
+
+import com.alibaba.fastjson.JSON;
+import com.powerise.ibss.framework.FrameException;
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.inf.framework.dao.SqlExeNew;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.Product;
+
+public class GoodsInfo {
+	private static Logger logger = Logger.getLogger(GoodsInfo.class);
+	private static final int HashMap = 0;
+	private static final Object String = null;
+	//商品同步
+	public static String searchGoodsEcs(String goods_id){
+	
+		
+		
+		GoodsInfoGetReq req = new GoodsInfoGetReq();
+		req.setGoods_id((goods_id));
+		ZteClient client = ClientFactory.getZteRopClient(AppKeyEnum.APP_KEY_WSSMALL_ESC);
+		GoodsInfoGetResp response = client.execute(req, GoodsInfoGetResp.class);
+		Goods goods = response.getGoods();
+		SqlExeNew sqlExec = new SqlExeNew();
+		try {
+			String seq = sqlExec.queryForString("select seq_goods.nextVal from dual");
+		    Date date=new Date();
+		    DateFormat format=new SimpleDateFormat("yyyyMMddHHmmss");
+		    String time=format.format(date);
+		    String goodstype=sqlExec.queryForString("select a.name from es_goods_cat a where a.cat_id="+goods.getCat_id()+"");
+		    String goodbrand=sqlExec.queryForString("select a.name from es_brand a where a.brand_id="+goods.getBrand_id()+"");
+		    //String goodsmodel=sqlExec.queryForString("select a.brand_name from es_brand_model a where a.model_code="+goods.getModel_code()+"");
+		    //String params=sqlExec.queryForString("select a.params from es_goods a where a.goods_id="+goods_id+"");
+		    //logger.info(params);
+			String s = "{"+  
+  				"\"prod_offer_req\":"+
+  				"{\"serial_no\":\""+time+seq+"\","+
+  				"\"time\":\""+time+"\","+
+  				" \" source_system \":\"\","+
+  				"\" receive_system \":\"\","+
+  				"\"prod_offer_code\":\""+goods.getSn()+"\","+
+  				"\"action\":\"\","+
+  				"\"prod_offer_name\":\""+goods.getName()+"\","+					                   
+  				"\" prod_offer_type \":\""+goodstype+"\","+
+  				"\" prod_offer_brand \":\""+goodbrand+"\","+
+  				"\" terminal_model \":\"\","+
+  				"\" prod_offer_state \":\""+goods.getDisabled()+"\","+
+  				"\" prod_offer_price\":\""+goods.getPrice()+"\","+
+  				"\" prod_offer_package \":\"\","+
+  				"\" prod_offer_ele \":["+
+  				"{ \"sku\":\""+goods.getSku()+"\","+
+  				"\" goods_num \":\""+goods.getStore()+"\""+
+  				"}, "+
+  				"{ \"sku\":\""+goods.getSku()+"\","+
+  				"\" goods_num \":\""+goods.getStore()+"\""+
+  				"}, "+
+  				"{  \"sku\":\":\""+goods.getSku()+"\","+
+  				"\" goods_num \":\""+goods.getStore()+"\""+
+  				"}"+
+  				"],"+
+  				"\"prod_offer_param\":["+
+  				"{\"param_code\":\"\","+
+  				"\"param_name\":\"\","+
+  				"\"param_value_code\":\"\","+
+  				"\"param_value\":\"\","+
+  				"},"+
+  				"{\"param_code\":\"\","+
+  				"\"param_name\":\"\","+
+  				"\"param_value_code\":\"\","+
+  				"\"param_value\":\"\","+
+  				"}"+
+  				"]"+
+  				"\"prod_offer_attr\":["+
+  				"{\" prod_offer_sku \":\"\", "+
+  				"\" mon_return \":\"\","+
+  				"\" mobile_price \":\"\","+
+  				"\" deposit_fee \":\"\","+	
+  				"\" order_return \":\"\","+
+  				"\" mon_give \":\"\","+
+  				"\" all_give \":\"\""+
+  				"}"+
+  				"]"+
+  				"}"+
+  				"}";
+			logger.info(s);
+  		
+		} catch (FrameException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return goods_id;
+	}	
+	//货品库存同步接口	
+	public void ProductSyn(){
+		SqlExeNew sqlExec = new SqlExeNew();
+		try {
+			Map map = sqlExec.queryForMap("select * from es_warehouse a join es_goods_inventory b on b.house_id = a.house_id left join es_goods_inventory_apply_log c on c.house_id = a.house_id where a.house_id=1");
+			String seq = sqlExec.queryForString("select seq_goods.nextVal from dual");
+		    Date date=new Date();
+		    DateFormat format=new SimpleDateFormat("yyyyMMddHHmmss");
+		    String time=format.format(date);
+		    HashMap share = sqlExec.queryForMap("select a.attr_inline_type from es_virtual_warehouse a where a.house_id="+map.get("house_id")+"");
+			String s="{"+
+					"\"goods_inventory_req\":"+
+					"{"+
+					"{\"serial_no\":\""+time+seq+"\","+
+	  				"\"time\":\""+time+"\","+
+					"\" source_system \":\"\","+
+					"\" receive_system \":\"\","+
+					"\"inventory_code\":\""+map.get("house_code")+"\","+
+					"\" inventory _name\":\""+map.get("house_name")+"\","+
+					"\" sku \":\""+map.get("sku")+"\","+
+					"\" channel \":\""+map.get("org_code_str")+"\","+
+					"\" is_share_other \":\""+share.get("attr_inline_type")+"\","+
+					"\" is_share \":\"\","+
+					"\" action \":\""+map.get("action")+"\","+
+					"\" prod_offer_num \":\""+map.get("inventory_num")+"\","+
+					"\" prod_offer_reason_ID \":\"\","+
+					"\" prod_offer_reason \":\""+map.get("change_reason")+"\" "+
+					"}"+
+					"}"
+;
+			logger.info("货品库存同步接口");
+			logger.info(s.trim());
+		} catch (FrameException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	//活动信息同步接口
+	public void ActivitySyn(){
+		SqlExeNew sqlExec = new SqlExeNew();
+		try {
+			Map map = sqlExec.queryForMap("select * from es_promotion_activity a,es_promotion b where a.id='201403279637000135'");
+			String seq = sqlExec.queryForString("select seq_goods.nextVal from dual");
+		    Date date=new Date();
+		    DateFormat format=new SimpleDateFormat("yyyyMMddHHmmss");
+		    String time=format.format(date);
+			String s="{"+
+					"\"activity_req\":"+
+					"{"+
+					"{\"serial_no\":\""+time+seq+"\","+
+	  				"\"time\":\""+time+"\","+
+					"\" source_system \":\"\","+
+					"\" receive_system \":\"\","+
+					"\" action \":\"\","+
+					"\" activity_code\":\"\","+
+					"\" activity _name\":\""+map.get("name")+"\","+
+					"\" activity_type\":\"\", "+
+					"\" activity_desc\":\"\", "+
+					"\" activity_cond \":\"\","+
+					"\" discount_type\":\""+map.get("pmt_basic_type")+"\","+
+					"\" discount_content \":\"\", "+
+					"\" activity_offer \":\"\","+
+					"\" channel\":\"\","+
+					"\"eff_time\":\"\","+
+					"\"exp_time\":\"\","+
+					"\"activity_attr\":["+
+					"{\"param_type\":\"\","+
+					"\"param_name\":\"\","+
+					"\"param_value\":\"\""+
+					"}, "+
+					"{\"param_type\":\"\","+
+					"\"param_name\":\"\","+
+					"\"param_value\":\"\""+
+					"}"+
+					"]"+
+					"}"+
+					"}"
+;
+			logger.info("活动信息同步接口");
+			logger.info(s.trim());
+		} catch (FrameException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}	
+	//分类同步接口
+	
+	public void ClassifySyn(){
+		SqlExeNew sqlExec = new SqlExeNew();
+		try {
+			Map map = sqlExec.queryForMap("select * from dual");
+			String seq = sqlExec.queryForString("select seq_goods.nextVal from dual");
+		    Date date=new Date();
+		    DateFormat format=new SimpleDateFormat("yyyyMMddHHmmss");
+		    String time=format.format(date);
+			String s="{"+
+					"\"type_req\":"+
+					"{"+
+					"{\"serial_no\":\""+time+seq+"\","+
+	  				"\"time\":\""+time+"\","+
+					"\" source_system \":\"\","+
+					"\" receive_system \":\"\", "+
+					"\" type_code\":\"\","+
+					"\" action \":\"\","+
+					"\" type _name\":\"\","+
+					"\" type_class\":\"\","+
+					"\" type_parents_code\":\"\", "+
+					"\" type_state \":\"\""+
+					"}"+
+					"}"
+;
+			logger.info("分类同步接口");
+			logger.info(s.trim());
+		} catch (FrameException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+	}
+	//品牌同步接口
+	public void BrandSyn(){
+		SqlExeNew sqlExec = new SqlExeNew();
+		try {
+			Map map = sqlExec.queryForMap("select * from es_brand a where a.brand_id='2014032710002'");
+			String seq = sqlExec.queryForString("select seq_goods.nextVal from dual");
+		    Date date=new Date();
+		    DateFormat format=new SimpleDateFormat("yyyyMMddHHmmss");
+		    String time=format.format(date);
+			String s="{"+
+					"\"brand_req\":"+
+					"{"+
+					"{\"serial_no\":\""+time+seq+"\","+
+	  				"\"time\":\""+time+"\","+
+					"\" source_system \":\"\","+
+					"\" receive_system \":\"\","+
+					"\" brand_code\":\""+map.get("brand_code")+"\","+
+					"\" action \":\"\","+
+					"\" brand _name\":\""+map.get("name")+"\","+
+					"\" type_code\":\"\","+
+					"\" brand_class\":\"\","+
+					"\" brand_state \":\"\" "+
+					"\" logo_addr \":\""+map.get("logo")+"\","+
+					"}"+
+					""+
+					"}"
+;
+			logger.info("品牌同步接口");
+			logger.info(s.trim());
+		} catch (FrameException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+}

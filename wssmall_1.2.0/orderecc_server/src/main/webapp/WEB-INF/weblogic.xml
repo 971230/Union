@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<weblogic-web-app
+        xmlns="http://www.bea.com/ns/weblogic/90"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.bea.com/ns/weblogic/90
+    http://www.bea.com/ns/weblogic/90/weblogic-web-app.xsd">
+	<session-descriptor>
+		<timeout-secs>3600</timeout-secs>
+		<invalidation-interval-secs>60</invalidation-interval-secs>
+		<cookie-name>JSESSION</cookie-name>
+		<cookie-max-age-secs>-1</cookie-max-age-secs>
+		<url-rewriting-enabled>false</url-rewriting-enabled>
+	</session-descriptor>
+	<jsp-descriptor>
+		<keepgenerated>false</keepgenerated>
+		<page-check-seconds>-1</page-check-seconds>
+		<debug>true</debug>
+	</jsp-descriptor>
+	<container-descriptor>
+		<filter-dispatched-requests-enabled>false</filter-dispatched-requests-enabled>
+	    <servlet-reload-check-secs>-1</servlet-reload-check-secs>
+    	<single-threaded-servlet-pool-size>50</single-threaded-servlet-pool-size>
+    	<session-monitoring-enabled>true</session-monitoring-enabled>
+    	<prefer-web-inf-classes>true</prefer-web-inf-classes>
+	</container-descriptor>
+	<context-root>/</context-root>
+</weblogic-web-app>
+

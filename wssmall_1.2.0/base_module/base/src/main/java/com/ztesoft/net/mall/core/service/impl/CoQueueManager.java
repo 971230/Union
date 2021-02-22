@@ -1,0 +1,227 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ztesoft.api.internal.utils.StringUtils;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.DateUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.CoQueue;
+import com.ztesoft.net.mall.core.service.ICoQueueManager;
+import com.ztesoft.net.sqls.SF;
+
+import commons.CommonTools;
+
+/**
+ * 消息队列管理
+ * @author wui
+ */
+
+public class CoQueueManager extends BaseSupport<CoQueue> implements ICoQueueManager {
+
+	
+	@Override
+	public CoQueue get(String co_id) {
+		
+		if (StringUtils.isEmpty(co_id)) {
+			CommonTools.addFailError("消息队列标识【co_id】不能为空");
+		}
+		
+		CoQueue coQueue = this.baseDaoSupport.queryForObject(SF.baseSql("QUERY_CO_QUEUE_BY_ID"),
+				CoQueue.class, co_id);
+		
+		return coQueue;
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void add(CoQueue coQueue) {
+		
+		this.baseDaoSupport.insert("co_queue", coQueue);
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void edit(CoQueue coQueue) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void modifyStatus(String co_id, String resp_code, String resp_msg) {
+		
+		List paramLst = new ArrayList();
+		
+		//如果接口处理返回是不成功，就更新消息队列为失败，处理次数加1
+		if (!Consts.RESP_CODE_000.equals(resp_code)) {
+			paramLst.add(Consts.CO_QUEUE_STATUS_XYSB);
+			paramLst.add(resp_msg);
+			paramLst.add(co_id);
+			this.baseDaoSupport.execute(SF.baseSql("UPDATE_CO_QUEUE_BY_ID"), 
+					paramLst.toArray());
+		}
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void modifyStatus(String co_id, String status_new,
+			String status_old, String desc) {
+		
+		List paramLst = new ArrayList();
+		paramLst.add(status_new);
+		paramLst.add(desc);
+		paramLst.add(co_id);
+		this.baseDaoSupport.execute(SF.baseSql("MODIFY_CO_QUEUE_BY_ID"), paramLst.toArray());
+		
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void del(String co_id) {
+		
+		
+		//先备份
+		CoQueue coQueue = this.get(co_id);
+		if(coQueue ==null)
+			return;
+		coQueue.setStatus(Consts.CO_QUEUE_STATUS_XYCG);
+		coQueue.setResp_date(DateUtil.current(DateUtil.defaultPattern));
+		this.baseDaoSupport.insert("es_co_queue_bak", coQueue);
+		
+		//删除记录
+		this.baseDaoSupport.execute(SF.baseSql("DELETE_CO_QUEUE_BY_ID"), co_id);
+		
+	}
+
+	@Override
+	public List<CoQueue> getForJob(String service_code, int max_count) {
+		
+		//获取未发送的【WFS】和响应失败【XYSB】的（失败次数4次以下的）
+		String sql = SF.baseSql("QUERY_CO_QUEUE_ALL") 
+				+ " and service_code = ?"
+				+ " and (status = ? or (status = ? and deal_num < 4))";
+		sql += " order by co_id";
+		
+		List paramLst = new ArrayList();
+		paramLst.add(service_code);
+		paramLst.add(Consts.CO_QUEUE_STATUS_WFS);//Consts.CO_QUEUE_STATUS_WFS
+		paramLst.add(Consts.CO_QUEUE_STATUS_XYSB);
+		Page coPage = this.baseDaoSupport.queryForPage(sql, 1, max_count, 
+				CoQueue.class, paramLst.toArray());
+		
+		return coPage.getResult();
+	}
+	@Override
+	public List<CoQueue> getForABGrayJob(String[] service_code, int max_count,String env_status,String env_code,boolean is_distinct) {
+		String sql ="" ; 
+		String sc_sql = "";
+		List paramLst = new ArrayList();
+		List sc_paramLst = new ArrayList();
+		
+		if (service_code !=null && service_code.length > 0) {
+			for (String sc : service_code) {
+				sc_sql += "?,";
+				sc_paramLst.add(sc);
+			}
+			sc_sql = sc_sql.substring(0,sc_sql.length()-1);
+		}
+		//测试环境已在外围考虑
+		if(Consts.SPREAD_ABLE.equals(env_status)){//生产环境下执行
+			sql ="select * from ( select a.* from es_co_queue a,es_abgray_ord_env_rel b where a.source_from=b.source_from and a.object_id=b.order_id and a.service_code in ("+sc_sql+") and (a.status = ? or (a.status = ? and a.deal_num < 4)) and ( b.env_code =?  or  b.env_code is null)" +
+					"union all select m.* from es_co_queue m where m.service_code in ("+sc_sql+") and (m.status = ? or (m.status = ? and m.deal_num < 4)) and not exists (select 'x' from es_abgray_ord_env_rel n where n.source_from =m.source_from and n.order_id = m.object_id ) )"
+							+ " ex where  not exists  (select 1 from es_co_queue q where q.object_id=ex.object_id and (q.status = '"+Consts.CO_QUEUE_STATUS_FSZ+"' or (q.status = '"+Consts.CO_QUEUE_STATUS_XYSB+"' and q.deal_num >=4)))";
+			paramLst.addAll(sc_paramLst);
+			paramLst.add(Consts.CO_QUEUE_STATUS_WFS);//Consts.CO_QUEUE_STATUS_WFS
+			paramLst.add(Consts.CO_QUEUE_STATUS_XYSB);
+			paramLst.add(env_code);
+			paramLst.addAll(sc_paramLst);
+			paramLst.add(Consts.CO_QUEUE_STATUS_WFS);//Consts.CO_QUEUE_STATUS_WFS
+			paramLst.add(Consts.CO_QUEUE_STATUS_XYSB);
+			logger.info("getForABGrayJob:"+sql+"params:["+sc_paramLst+";"+Consts.CO_QUEUE_STATUS_WFS+";"+Consts.CO_QUEUE_STATUS_XYSB+";"+env_code+";"+sc_paramLst+";"+Consts.CO_QUEUE_STATUS_WFS+";"+Consts.CO_QUEUE_STATUS_XYSB+"]");
+		}else if(Consts.SPREAD_ENABLE.equals(env_status)){//灰度环境下执行
+			sql = "select a.* from es_co_queue a,es_abgray_ord_env_rel b where a.source_from=b.source_from and a.object_id=b.order_id and a.service_code in ("+sc_sql+") and (a.status = ? or (a.status = ? and a.deal_num < 4)) and b.env_code =?"
+					+ "  and  not exists  (select 1 from es_co_queue q where q.object_id=a.object_id and (q.status = '"+Consts.CO_QUEUE_STATUS_FSZ+"' or (q.status = '"+Consts.CO_QUEUE_STATUS_XYSB+"' and q.deal_num >=4)))";
+			paramLst.addAll(sc_paramLst);
+			paramLst.add(Consts.CO_QUEUE_STATUS_WFS);//Consts.CO_QUEUE_STATUS_WFS
+			paramLst.add(Consts.CO_QUEUE_STATUS_XYSB);
+			paramLst.add(env_code);
+			logger.info("getForABGrayJob:"+sql+"params:["+sc_paramLst+";"+Consts.CO_QUEUE_STATUS_WFS+";"+Consts.CO_QUEUE_STATUS_XYSB+";"+env_code+";"+"]");
+		}
+		if (is_distinct) {
+			sql = "select * from (select tt.*,RANK() OVER(PARTITION BY tt.object_id ORDER BY tt.created_date asc) rank_num from ("+sql+") tt) where rank_num=1";
+		}
+		//logger.info("定时任务sql"+sql);
+		//获取未发送的【WFS】和响应失败【XYSB】的（失败次数4次以下的）
+		//生成环境和灰度环境使用baseDaoSupport,测试环境应使用baseDaoSupportGProd,因测试环境不会调用此方法，所以此处直接使用baseDaoSupport
+		Page coPage = this.baseDaoSupport.queryForPageNoCount(sql, 1, max_count, 
+				CoQueue.class, paramLst.toArray());
+		
+		return coPage.getResult();
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void lock(String co_id) {
+		
+		List paramLst = new ArrayList();
+		paramLst.add(Consts.CO_QUEUE_STATUS_FSZ);
+		paramLst.add(co_id);
+		this.baseDaoSupport.execute(SF.baseSql("LOCK_CO_QUEUE_BY_ID"), paramLst.toArray());
+		
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void unLock(String co_id) {
+		
+		List paramLst = new ArrayList();
+		paramLst.add(Consts.CO_QUEUE_STATUS_WFS);
+		paramLst.add(co_id);
+		this.baseDaoSupport.execute(SF.baseSql("LOCK_CO_QUEUE_BY_ID"), paramLst.toArray());
+		
+	}
+
+	@Override
+	public boolean haveLocked(String co_id) {
+
+		String sql = SF.baseSql("QUERY_CO_QUEUE_ALL");
+		sql += " and status = ? and co_id = ?";
+		List paramLst = new ArrayList();
+		paramLst.add(Consts.CO_QUEUE_STATUS_FSZ);
+		paramLst.add(co_id);
+		
+		List coLst = this.baseDaoSupport.queryForList(sql, paramLst.toArray());
+		if (coLst != null && coLst.size() > 0) {
+			return true;  //已锁
+		}
+		
+		return false;
+	}
+
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void modifyStatusToWFS(List co_ids) {
+		if(co_ids!=null && co_ids.size()>0){
+			List<Object[]> list = new ArrayList<Object[]>();
+			int size = co_ids.size();
+			for(int i=0;i<size;i++){
+				Object[] obj = new Object[]{co_ids.get(i)};
+				list.add(obj);
+			}
+			this.baseDaoSupport.batchExecute(SF.baseSql("UPDATE_CO_QUEUE_STATUS_WFS"), list);
+		}
+	}
+	@Override
+	public List<CoQueue> getByOrder(String order_id, int max_count,String base_sql) {
+		String sql = SF.baseSql(base_sql) 
+				+ " and object_id = ?";
+		sql += " order by co_id";
+		Page coPage = this.baseDaoSupport.queryForPage(sql, 1, max_count, 
+				CoQueue.class, order_id);
+		return coPage.getResult();
+	}
+}

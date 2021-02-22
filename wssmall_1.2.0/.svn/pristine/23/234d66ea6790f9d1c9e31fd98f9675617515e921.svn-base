@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	<!-- 广东联通订单系统、商品系统合并、提供除工作流能力 -->
+ 	<!-- 启动订单系统应用，通过dubbo方式调用工作流 -->
+	<import resource="classpath*:/dubbo/rop/RopApplicationContext.xml"/>
+	<import resource="classpath*:/dubbo/rop/dubbo-rop-service.xml"/>
+	<import resource="classpath*:/dubbo/rop/dubbo-rop-spring.xml"/>
+	<import resource="classpath*:spring/*.xml"/>
+	<import resource="classpath*:spring/ecsWebService.xml"/>
+	
+	<!-- MQ消费者配置文件,根据需要开启 -->
+	<!-- <import resource="classpath*:spring/mqreceive/*.xml"/> -->
+	
+	
+	<import resource="classpath*:dubbo/spring/dubbo-goods-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-info-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-member-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-order-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-partner-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-payment-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-sms-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-supplier-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-sys-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-task-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-cms-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-num-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-ecsord-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-crawler-spring.xml"/>
+	
+
+	<import resource="classpath*:dubbo/spring/dubbo-ecs-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-inf-spring.xml"/>
+	
+	
+	 
+	 
+	<import resource="classpath*:dubbo/spring/dubbo-logs-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-rules-spring.xml"/>
+	
+	<!-- 
+	<import resource="classpath*:dubbo/reference/dubbo-ecs-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-inf-reference.xml"/>
+	 -->
+	
+	<!--新增解耦应用 -->
+	<import resource="classpath*:dubbo/spring/dubbo-ecc-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-orderctn-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-orderexp-spring.xml"/>	
+	<import resource="classpath*:dubbo/spring/dubbo-orderstd-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-orderplan-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-zj-inf-spring.xml"/>
+	
+	<import resource="classpath*:dubbo/reference/dubbo-client-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-workflow-reference.xml"/>
+	
+</beans>

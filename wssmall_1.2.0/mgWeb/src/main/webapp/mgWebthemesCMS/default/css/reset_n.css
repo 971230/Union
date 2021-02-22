@@ -1,0 +1,69 @@
+@charset "utf-8";
+/* CSS Document */
+
+*{margin:0px; padding:0px; word-break: break-all;background:url(a.png) repeat-x 0 0; }
+html{background:none;}
+html, body, div, span, applet, object, iframe,h1, h2, h3, h4, h5, h6, p, blockquote, pre,a, abbr, acronym, address, big, cite, code,del, dfn, em, font, img, ins, kbd, q, s, samp,small, strike, strong, sub, sup, tt, var,dl, dt, dd, ol, ul, li,fieldset, form, label, legend,table, caption, tbody, tfoot, thead, tr, th, td {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-weight: inherit;
+	font-style: inherit;
+	font-size: 100%;
+	font-family: inherit;
+}
+body {
+	font-size:12px;
+}
+ol, ul {
+	list-style: none;
+}
+
+
+.red {
+    color: #FF0000;
+}
+
+table {
+	border-collapse: separate;
+	border-spacing: 0;
+}
+caption, th, td {
+	text-align: left;
+	font-weight: normal;
+}
+
+
+a{ text-decoration:none;}
+a:link{ text-decoration:none;}
+a:visited{ text-decoration:none;}
+a:hover{ text-decoration:none;outline:none;}
+a:active, a:focus {outline:none;}
+
+/*浮动相关*/
+.floatleft{float:left;}
+.floatright{float:right;}
+.clear{clear:both;}
+.fix{overflow:hidden; zoom:1;}
+.p_center{text-align:center;}
+
+
+
+/*文字*/
+.f_org{color:#eb6100;}
+.f_org a{color:#eb6100;}
+.f_blue{color:#0068b7;}
+.f_gray{color:#626262;}
+.f_gray1{color:#434343;}
+.f_gray2{ color:#999}
+.f_red{color:#ff0000;}
+.cGray{color:gray;}
+
+.f_s24{font-size:24px;}
+.f_s14{font-size:14px;}
+
+.f_lin25{line-height:2.5;}
+
+.f_bold{font-weight:bold;}
+.f_orange{color:#ff4200}
+

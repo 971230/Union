@@ -1,0 +1,36 @@
+package com.ztesoft.net.mall.core.action.order.service.recharge;
+
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.mall.core.action.order.collect.CommonCollectHander;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Order;
+
+public class RechargeCardCollectHander extends CommonCollectHander {
+	
+	@Override
+	public void collect() {
+		super.collect();
+	}
+
+	@Override
+	public void display() {
+		super.display();
+	}
+
+	@Override
+	public void execute() {
+		if(OrderStatus.SOURCE_FROM_TAOBAO.equals(getOrderRequst().getGoodsApply().getSource_from())){ //外系统订单同步if(isTaobaoAgent()){
+			super.taobaoRechargeOrder(); // 写订单数据
+			//插入订单关系
+		}else{
+			//设置支付方式
+			Order order = getOrderResult().getOrder();
+			
+			getOrderRequst().getGoodsApply().setPayment_id(Consts.PAYMENT_ID_AUTO);
+			
+			super.execute();
+			super.addLog("商品申请:"+getOrderRequst().getGoodsApply().getApply_desc());
+			setCanNext(false);
+		}
+	}
+}

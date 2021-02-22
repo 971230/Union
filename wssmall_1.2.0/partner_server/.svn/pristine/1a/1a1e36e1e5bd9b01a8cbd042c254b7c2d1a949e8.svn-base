@@ -1,0 +1,486 @@
+package com.ztesoft.net.mall.core.action.desposit;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ztesoft.net.app.base.core.model.Partner;
+import com.ztesoft.net.app.base.core.model.PartnerAccount;
+import com.ztesoft.net.app.base.core.model.PartnerDespostLog;
+import com.ztesoft.net.app.base.core.model.PartnerFreezeLog;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.ReflectionUtil;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.desposit.model.AgentDepositRespDto;
+import com.ztesoft.net.mall.core.action.pay.PayHander;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.PartnerDespost;
+import com.ztesoft.net.mall.core.model.PaymentList;
+import com.ztesoft.net.mall.core.service.IPartnerAccountManager;
+import com.ztesoft.net.mall.core.service.IPartnerDespostLogManager;
+import com.ztesoft.net.mall.core.service.IPartnerDespostManager;
+import com.ztesoft.net.mall.core.service.IPartnerFreezeLogManager;
+import com.ztesoft.net.mall.core.service.IPartnerManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+
+public class DespostHander extends PayHander  implements IDespostHander{
+	
+	private Partner partner;
+	private PartnerAccount partnerAccount;
+	
+	protected IPartnerFreezeLogManager freezeLogManager;
+	protected IPartnerAccountManager accountManager;
+	protected IPartnerManager partnerManager;
+	protected IPartnerDespostLogManager despostLogManager;
+	protected IPartnerDespostManager despostManager;
+
+	/**
+	 * (non-Javadoc)
+	 * @function 冻结、解冻预存金
+	 */
+	@Transactional(propagation = Propagation.REQUIRED)
+	public String frostAccount(String partnerId, PartnerFreezeLog freezeLog){
+		int amount = StringUtil.transMoney(freezeLog.getAmount());	//当前预存金变动额度
+		String opType = freezeLog.getOp_type();		//对预存金的操作类型
+		String comments = freezeLog.getComments();	//备注信息
+		String result = "";
+		
+		partner = partnerManager.queryPartnerByID(partnerId);
+		
+		partnerAccount = accountManager.getAccountById(partnerId);
+		
+		if(null != opType){
+			
+			int curAccount = StringUtil.transMoney(partnerAccount.getAccount_amount());	//预存金账户当前金额
+			int curFreeze =  StringUtil.transMoney(partnerAccount.getFrost_deposit());		//预存金账户当前冻结金额
+			
+			int curPartnerAccount = StringUtil.transMoney(partner.getDeposit());			//分销商当前金额
+			int curpartnerFreeze = StringUtil.transMoney(partner.getFrost_deposit());		//分销商当前冻结金额
+			
+			//预存金额度变化逻辑处理
+			if(opType.equals("00A")){		//冻结预存金
+				
+				if(amount <= curAccount){
+					//预存金账户变动
+					partnerAccount.setAccount_amount(curAccount - amount);
+					partnerAccount.setFrost_deposit(curFreeze + amount);
+					accountManager.edit(partnerAccount);
+					
+					//分销商信息变更
+					partner.setDeposit(curPartnerAccount - amount);
+					partner.setFrost_deposit(curpartnerFreeze + amount);
+					this.updatePartner(partner);
+					
+					//预存金冻结、解冻日志
+					addFreezeLog(curPartnerAccount,partner.getDeposit(),amount,partnerId,opType,comments);
+					
+					//预存金变更日志
+					addDespostLog(curPartnerAccount,partner.getDeposit(),amount,partnerId,opType,comments, "", "");
+					
+					result = "{result:1,message:'成功冻结:￥" + amount/100 + "元'}";
+				}else {
+					
+					result = "{result:0,message:'冻结金额大于当前账户余额'}";
+				}
+				
+			}else if(opType.equals("00B")){ 	//解冻预存金
+				
+				if(curFreeze >= amount){
+					//预存金账户变动
+					partnerAccount.setAccount_amount(curAccount + amount);
+					partnerAccount.setFrost_deposit(curFreeze - amount);
+					accountManager.edit(partnerAccount);
+					
+					//分销商信息变更
+					partner.setDeposit(curPartnerAccount + amount);
+					partner.setFrost_deposit(curpartnerFreeze - amount);
+					this.updatePartner(partner);
+					
+					//预存金冻结、解冻日志 
+					addFreezeLog(curPartnerAccount,partner.getDeposit(),amount,partnerId,opType,comments);
+					
+					//预存金变更日志
+					addDespostLog(curPartnerAccount,partner.getDeposit(),amount,partnerId,opType,comments, "", "");	
+					
+					result = "{result:1,message:'成功解冻:￥" + amount/100 + "元'}";
+				}else {
+					
+					result = "{result:1,message:'解冻金额大于当前冻结金额'}";
+				}
+			}else {
+				
+				result = "{result:0,message:'操作类型未定义'}";	
+			}
+			
+		}else{
+			
+			result = "{result:0,message:'操作类型不能为空'}";	
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 账户变动日志
+	 */
+	public boolean addDespostLog(int oldAmount,int newAmount,int amount, String partnerId,String opType, String comments, String tableName, String orderId){
+					
+		PartnerDespostLog despostLog = new PartnerDespostLog();
+		String userId = ManagerUtils.getUserId();
+		String logId = this.baseDaoSupport.getSequences("s_es_partner_despost_log");
+		despostLog.setLog_id(logId);
+		despostLog.setComments(comments);
+		despostLog.setAmount(amount);
+		despostLog.setOld_amount(oldAmount);
+		despostLog.setNew_amount(newAmount);
+		despostLog.setPartner_id(partnerId);
+		despostLog.setOp_time(Consts.SYSDATE);
+		despostLog.setOp_type(opType);
+		despostLog.setUserid(userId);
+		despostLog.setTable_name(tableName);
+		despostLog.setOrder_id(orderId);
+		despostLogManager.insertLog(despostLog);
+			
+		return true;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 资金冻结日志
+	 */
+	public boolean addFreezeLog(int oldAmount,int newAmount,int amount, String partnerId,String opType, String comments){
+			
+		PartnerFreezeLog freezeLog = new PartnerFreezeLog();
+		String userId = ManagerUtils.getUserId();
+		String logId = this.baseDaoSupport.getSequences("s_es_partner_freeze_log");
+		freezeLog.setLog_id(logId);
+		freezeLog.setOp_time(Consts.SYSDATE);
+		freezeLog.setOp_type(opType);
+		freezeLog.setComments(comments);
+		freezeLog.setOld_amount(oldAmount);
+		freezeLog.setNew_amount(newAmount);
+		freezeLog.setPartner_id(partnerId);
+		freezeLog.setUserid(userId);
+		freezeLog.setAmount(amount);
+		freezeLogManager.insertLog(freezeLog);
+		return true;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 预存金开户
+	 */
+	public boolean openAccount(String partnerId){		
+			
+		PartnerAccount partnerAccount = new PartnerAccount();
+		partnerAccount.setFrost_deposit(0);
+		partnerAccount.setCreate_date(Consts.SYSDATE);
+		partnerAccount.setAccount_amount(0);
+		partnerAccount.setAccount_type("00A");
+		partnerAccount.setPartner_id(partnerId);
+		accountManager.add(partnerAccount);
+			
+		return true;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 获取账户冻结、解冻记录
+	 */
+	public List queryfreezeLogList(String partnerId){
+		
+		List result = new ArrayList();
+		result = this.freezeLogManager.getFreezeLogById(partnerId);
+		return result;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 获取账户变更记录
+	 */
+	public List queryDespostLogList(String partnerId){
+			
+		return this.despostLogManager.getDespostLogById(partnerId);
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 获取分销商信息
+	 */
+	public Partner queryPartnerByID(String partnerId){
+			
+		return this.partnerManager.queryPartnerByID(partnerId);
+		
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 获取账户信息
+	 */
+	public PartnerAccount getAccountById(String partnerId){
+			
+		return this.accountManager.getAccountById(partnerId);
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 查询冻结、解冻变更日志
+	 */
+	public Page qyFreezeLogList(String partnerId, String beginTime,String endTime,String opType, int page,int pageSize){
+			
+		return this.freezeLogManager.qyFreezeLogList(partnerId, beginTime, endTime, opType, page, pageSize);
+
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 写入订单
+	 */
+	public boolean depositChange(PartnerDespost despost){
+
+		String despostId = this.baseDaoSupport.getSequences("s_es_partner_despost");
+		despost.setDepost_id(despostId);
+		this.despostManager.insert(despost);			
+		return true;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 更新分销商信息
+	 */
+	public boolean updatePartner(Partner partner){
+			
+		this.partnerManager.editUpdatePartner(ReflectionUtil.po2Map(partner),partner.getPartner_id());
+		return true;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 更新账户信息
+	 */
+	public boolean updatePartnerAccount(PartnerAccount partnerAccount){
+			
+		this.accountManager.edit(partnerAccount);
+		return true;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 更新订单状态
+	 */
+	public boolean updatePartnerDespost(String depostId, String State){
+		
+		PartnerDespost partnerDespost = this.despostManager.getDespostById(depostId);
+		partnerDespost.setDespost_state(State);
+		partnerDespost.setOp_time(Consts.SYSDATE);
+		this.despostManager.edit(partnerDespost);
+		return true;
+	}
+	
+	/**
+	 * (non-Javadoc)
+	 * @function 获取订单信息
+	 */
+	public PartnerDespost getDespostById(String depostId){
+		
+		return this.getDespostById(depostId);
+	}
+	
+	/**
+	 * @param partnerId 分销商ID
+	 * @param amount 金额
+	 * @param flag 金额单位标识 Y：表示元，F：表示分
+	 * @function 预存金充值
+	 */
+	@Transactional(propagation = Propagation.REQUIRED)
+	public boolean charge(String partnerId, Integer amount, String flag, String tableName, String orderId){		//预存金冲正
+		
+		if(flag.equals("Y")){
+			amount = StringUtil.transMoney(amount);
+		}else if(flag.equals("F")){
+			//什么也不做
+		}else {
+			
+			throw new RuntimeException("入参错误，flag必须为Y、F（元、分）");
+		}
+		
+		//更新二级分销商账户信息
+		PartnerAccount partnerAccount = this.getAccountById(partnerId);
+		Integer oldAmount = partnerAccount.getAccount_amount();
+		partnerAccount.setAccount_amount(StringUtil.transMoney(partnerAccount.getAccount_amount()) + amount);
+		partnerAccount.setFrost_deposit(StringUtil.transMoney(partnerAccount.getFrost_deposit()));
+		this.updatePartnerAccount(partnerAccount);
+		
+		//更新二级分销商信息
+		Partner partner = this.queryPartnerByID(partnerId);
+		partner.setDeposit(StringUtil.transMoney(partner.getDeposit()) + amount);
+		partner.setFrost_deposit(StringUtil.transMoney(partner.getFrost_deposit()));
+		this.updatePartner(partner);
+		
+		//记录变动日志
+		this.addDespostLog(StringUtil.transMoney(oldAmount), partnerAccount.getAccount_amount(), 
+				amount, partnerId, "00C", "", tableName, orderId);
+		
+		return true;
+	}
+	
+	/**
+	 * @param partnerId 分销商ID
+	 * @param amount 金额
+	 * @param flag 金额单位标识 Y：表示元，F：表示分
+	 * @function 预存金支付扣款
+	 */
+	public boolean chargeBill(String partnerId, Integer amount, String flag){
+		
+		if(flag.equals("Y")){
+			amount = StringUtil.transMoney(amount);
+		}else if(flag.equals("F")){
+			//什么也不做
+		}else {
+			throw new RuntimeException("入参错误，flag必须为Y、F（元、分）");
+		}
+		//调用计费接口充值
+		
+		return true;
+	}
+	
+	/**
+	 * @param partnerId 分销商ID
+	 * @param amount 金额
+	 * @param flag 金额单位标识 Y：表示元，F：表示分
+	 * @function 预存金支付扣款
+	 */
+	@Transactional(propagation = Propagation.REQUIRED)
+	public boolean debit(String partnerId, Integer amount, String flag, String tableName, String orderId){
+		
+		if(flag.equals("Y")){
+			amount = StringUtil.transMoney(amount);
+		}else if(flag.equals("F")){
+			//什么也不做
+		}else {
+			throw new RuntimeException("入参错误，flag必须为Y、F（元、分）");
+		}
+		
+		//更新二级分销商账户信息
+		PartnerAccount partnerAccount = this.getAccountById(partnerId);
+		Integer oldAmount = partnerAccount.getAccount_amount();
+		partnerAccount.setAccount_amount(StringUtil.transMoney(partnerAccount.getAccount_amount()) - amount);
+		partnerAccount.setFrost_deposit(StringUtil.transMoney(partnerAccount.getFrost_deposit()));
+		this.updatePartnerAccount(partnerAccount);
+		
+		//更新二级分销商信息
+		Partner partner = this.queryPartnerByID(partnerId);
+		partner.setDeposit(StringUtil.transMoney(partner.getDeposit()) - amount);
+		partner.setFrost_deposit(StringUtil.transMoney(partner.getFrost_deposit()));
+		this.updatePartner(partner);
+		
+		//记录变动日志
+		this.addDespostLog(StringUtil.transMoney(oldAmount), partnerAccount.getAccount_amount(), 
+				amount, partnerId, "00D", "", tableName, orderId);
+		return true;
+	}
+	
+	/**
+	 * @param partnerId 分销商ID
+	 * @param amount 金额
+	 * @param flag 金额单位标识 Y：表示元，F：表示分
+	 * @function 判断支付金额是否足够
+	 */
+	public boolean canPay(String partnerId, int amount, String flag){
+		
+		//TODO 根据分销商获取userid,根据userid判断
+		try {
+			
+			if(flag.equals("Y")){
+				amount = StringUtil.transMoney(amount);
+			}else if(flag.equals("F")){
+				//什么也不做
+			}else {
+				throw new RuntimeException("入参错误，flag必须为Y、F（元、分）");
+			}
+			PartnerAccount account = this.accountManager.getAccountById(partnerId);
+			int currAmount = StringUtil.transMoney(account.getAccount_amount());
+			return currAmount >= amount; 
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	
+
+	@Transactional(propagation = Propagation.REQUIRED)
+	@SuppressWarnings("unchecked")
+	public void afterPay(String ordeSeq, Integer orderAmount, String  retnCode, String tranDate){
+		
+	}
+	
+	
+	public void addTempLog(String sql, Object... args){
+		this.baseDaoSupport.execute(sql, args);
+	}
+	
+	public Partner getPartner() {
+		return partner;
+	}
+
+	public void setPartner(Partner partner) {
+		this.partner = partner;
+	}
+
+	public PartnerAccount getPartnerAccount() {
+		return partnerAccount;
+	}
+
+	public void setPartnerAccount(PartnerAccount partnerAccount) {
+		this.partnerAccount = partnerAccount;
+	}
+
+	public IPartnerFreezeLogManager getFreezeLogManager() {
+		return freezeLogManager;
+	}
+
+	public void setFreezeLogManager(IPartnerFreezeLogManager freezeLogManager) {
+		this.freezeLogManager = freezeLogManager;
+	}
+
+	public IPartnerAccountManager getAccountManager() {
+		return accountManager;
+	}
+
+	public void setAccountManager(IPartnerAccountManager accountManager) {
+		this.accountManager = accountManager;
+	}
+
+	public IPartnerManager getPartnerManager() {
+		return partnerManager;
+	}
+
+	public void setPartnerManager(IPartnerManager partnerManager) {
+		this.partnerManager = partnerManager;
+	}
+
+	public IPartnerDespostLogManager getDespostLogManager() {
+		return despostLogManager;
+	}
+
+	public void setDespostLogManager(IPartnerDespostLogManager despostLogManager) {
+		this.despostLogManager = despostLogManager;
+	}
+
+	public IPartnerDespostManager getDespostManager() {
+		return despostManager;
+	}
+
+	public void setDespostManager(IPartnerDespostManager despostManager) {
+		this.despostManager = despostManager;
+	}
+
+}

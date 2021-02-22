@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+    <package name="plugin_default" extends="shop_default" namespace="/shop/admin">
+        <action name="goodsPropertyAction" class="goodsPropertyAction">
+            <result name="saveProperty">plugin/stypeList.jsp</result>
+            <result name="savePropertyModule">plugin/add.jsp</result>
+            <result name="add">goodsRefAttr/addGoodsModule.jsp</result>
+            <result name="list">plugin/goodProperty.jsp</result>
+            <result name="modList">plugin/moduleADD.jsp</result>
+            <result name="edit">plugin/editProperty.jsp</result>
+            <result name="editProperty">plugin/editPropertyies.jsp</result>
+            <result name="selectList">plugin/selectModule.jsp</result>
+            <result name="index">goodsRefAttr/index.jsp</result>
+            <result name="addModule">plugin/moduleList.jsp</result>
+
+            <result name="editModList">plugin/editModule.jsp</result>
+            <result name="editTempList">plugin/editModuleList.jsp</result>
+
+            <result name="typeList">goodsRefAttr/typeList.jsp</result>
+            <result name="stypeList">goodsRefAttr/stypeList.jsp</result>
+            <result name="listSelGoods">goodsRefAttr/selGoodsList.jsp</result>
+            <result name="listAllGoods">goodsRefAttr/goodsList.jsp</result>
+
+        </action>
+        <action name="goodsContractAction" class="goodsContractAction">
+            <result name="list">contract/list.jsp</result>
+            <result name="listBuyWay">contract/list_buyWay.jsp</result>
+            <result name="selContract">contract/listContract.jsp</result>
+            <result name="listContract">contract/contract_list.jsp</result>
+        </action>
+
+    </package>
+</struts>

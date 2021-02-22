@@ -1,0 +1,85 @@
+package com.ztesoft.lucence;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.struts2.ServletActionContext;
+
+import com.ztesoft.net.framework.action.WWAction;
+
+/**
+ * 搜索
+ * @作者 MoChunrun
+ * @创建日期 2014-8-1 
+ * @版本 V 1.0
+ */
+public class LucenceAction extends WWAction {
+
+	private String keyWord;
+	private String keyName;
+	private String type;
+	private AbsLucence goodsLucenceService;
+	
+	public String searchPage(){
+		return "search_page";
+	}
+	
+	public String search(){
+		Map<String,String> params = new HashMap<String,String>();
+		params.put(keyName, keyWord);
+		params.put("type", type);
+		try {
+//			Page page = goodsLucenceService.search(params);
+//			List list = page.getResult();
+//			json = JSON.toJSONString(list);
+			json= "[]";
+		} catch (Exception e) {
+			e.printStackTrace();
+			json = "[]";
+		}
+		HttpServletResponse response = ServletActionContext.getResponse();
+		response.setCharacterEncoding("utf-8");
+		try {
+			response.getWriter().print(json);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public String getKeyWord() {
+		return keyWord;
+	}
+
+	public void setKeyWord(String keyWord) {
+		this.keyWord = keyWord;
+	}
+
+	public AbsLucence getGoodsLucenceService() {
+		return goodsLucenceService;
+	}
+
+	public void setGoodsLucenceService(AbsLucence goodsLucenceService) {
+		this.goodsLucenceService = goodsLucenceService;
+	}
+
+	public String getKeyName() {
+		return keyName;
+	}
+
+	public void setKeyName(String keyName) {
+		this.keyName = keyName;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+	
+}

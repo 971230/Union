@@ -1,0 +1,29 @@
+/*    */ package com.ztesoft.crm.report.generator.html;
+/*    */ 
+/*    */ import com.ztesoft.crm.report.actions.ParameterMap;
+/*    */ import com.ztesoft.crm.report.config.elements.Element;
+/*    */ import com.ztesoft.crm.report.config.elements.Panel;
+/*    */ import com.ztesoft.crm.report.config.elements.Report;
+/*    */ import com.ztesoft.crm.report.document.Node;
+/*    */ import com.ztesoft.crm.report.generator.Generator;
+/*    */ import com.ztesoft.crm.report.generator.html.elements.HTMLForm;
+/*    */ 
+/*    */ public class FormHTMLGenerator extends Generator
+/*    */ {
+/*    */   @Override
+protected Node generateNode(Report report, Element el, ParameterMap map)
+/*    */     throws Exception
+/*    */   {
+/* 38 */     Panel p = (Panel)el;
+/* 39 */     HTMLForm form = new HTMLForm();
+/* 40 */     form.setId(p.getId());
+/* 41 */     form.layout(p, map);
+/*    */ 
+/* 43 */     return form;
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.generator.html.FormHTMLGenerator
+ * JD-Core Version:    0.5.3
+ */

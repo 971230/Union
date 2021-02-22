@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<!-- 后台action -->
+	<package name="struts-paymentst" extends="struts-default" namespace="/shop/admin">
+	
+		<!-- 去付-->
+		<action name="commonPay" class="commonPaymentAction" method="pay">
+		</action>
+		<action name="callback_*" class="commonPaymentAction" method="callback">
+		</action>
+		<action name="st_callback_*" class="commonPaymentAction" method="stream_callback">
+		</action>
+		<action name="redirect_*" class="commonPaymentAction" method="redirect">
+			<result name="pay_redirect">/shop/admin/pay/pay_redirect.jsp</result>
+		</action>
+	</package>	
+	     
+</struts>

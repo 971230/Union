@@ -1,0 +1,8 @@
+	<option value="">选择机型编码</option>
+	<#if machineTypeList??>
+	<#list machineTypeList as machine>
+		<option value="${machine.machine_code }">
+			${machine.machine_name }
+		</option>
+	</#list>
+	</#if>

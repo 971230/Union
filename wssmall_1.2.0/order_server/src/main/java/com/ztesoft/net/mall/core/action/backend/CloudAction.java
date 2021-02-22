@@ -1,0 +1,515 @@
+package com.ztesoft.net.mall.core.action.backend;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.struts2.ServletActionContext;
+
+import services.LanInf;
+
+import com.ztesoft.net.app.base.core.model.Lan;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.util.DownLoadUtil;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.order.IOrderDirector;
+import com.ztesoft.net.mall.core.action.order.OrderBuilder;
+import com.ztesoft.net.mall.core.action.order.OrderRequst;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Cloud;
+import com.ztesoft.net.mall.core.model.CloudRequest;
+import com.ztesoft.net.mall.core.model.ItemCard;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.service.ICloudManager;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.mall.core.service.IOrderUtils;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+/**
+ * 云卡调拨处理类
+ * 
+ * @author wui
+ * 
+ */
+public class CloudAction extends WWAction {
+
+	private String orderId;
+	private Order order;
+	private IOrderManager orderManager;
+	private ICloudManager cloudManager;
+	private IOrderUtils orderUtils;
+	private Cloud cloud;
+	private String lan_id;
+	private String cloud_ids;
+
+	private List<Lan> lanList;
+	
+	private Map countMap;
+	private String goods_id;
+	private String p_acc_nbr;
+
+	private String from_page;
+
+    @Resource
+    private LanInf lanServ;
+	private IOrderDirector orderDirector;
+	private AdminUser adminUser;
+	
+	
+	
+	private String begin_nbr;
+	private String end_nbr;
+	
+	
+	private String dealing_count;
+	private String succ_count;
+	private String show_acc_interval ="no";
+
+	// 切面处理订单id
+	public void acpOrderId() {
+		if (!StringUtil.isEmpty(orderId) && orderId.indexOf(",") > -1)
+			orderId = orderId.substring(0, orderId.indexOf(","));
+	}
+
+	/**
+	 * 显示云卡调拨界面
+	 * 
+	 * @return
+	 */
+	public String showCloudDialog() {
+		acpOrderId();
+		logger.info(p_acc_nbr);
+		order = orderManager.get(orderId); // 根据订单获取分销商信息
+		this.webpage = this.cloudManager.transfer_list(this.getPage(), this
+				.getPageSize(), 0, cloud);
+		return "cloud_list";
+	}
+	
+	
+	/**
+	 * 显示云卡调拨界面
+	 * 
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public String showRandomCloudDialog() {
+		adminUser = ManagerUtils.getAdminUser(); 
+		acpOrderId();
+		order = orderManager.get(orderId); // 根据订单获取分销商信息
+		
+		cloud = new Cloud();
+		
+		cloud.setState(Consts.CARD_INFO_STATE_0); //获取可用库存
+		if(order !=null){
+			cloud.setGoods_id(order.getGoods_id());
+		}
+		countMap  = this.cloudManager.listc(cloud);
+		
+		
+		
+		Integer shipsCount_1 = cloudManager.getCloudCountByOrderId(getOrder().getOrder_id(), Consts.SHIP_STATE_1); //CRM云卡调拨处理中
+		Integer shipsCount_2 = cloudManager.getCloudCountByOrderId(getOrder().getOrder_id(), Consts.SHIP_STATE_2); //CRM云卡调拨成功
+		
+		
+		dealing_count = shipsCount_1.toString(); //调拨处理中
+		succ_count = shipsCount_2.toString(); //调拨成功
+		
+		List<ItemCard> itemCards = orderManager.getItemCardByOrderId(order.getOrder_id());
+		
+		
+		List<ItemCard> beginItemCards = orderManager.getItemCardsByFieldName("begin_nbr", itemCards);
+		
+		ItemCard begAccItemCard = orderManager.getItemCardByFieldName(order.getOrder_id(), "begin_nbr", itemCards);
+		ItemCard endAccItemCard = orderManager.getItemCardByFieldName(order.getOrder_id(), "end_nbr", itemCards);
+		
+		if(begAccItemCard !=null)
+			begin_nbr = begAccItemCard.getField_value();
+		
+		if(endAccItemCard !=null)
+			end_nbr = endAccItemCard.getField_value();
+		
+		show_acc_interval = needShowTransferAcc(beginItemCards); //展示号码段与否
+		
+		return "cloud_random_list";
+	}
+	
+	
+	//是否需要展示调拨号码段
+	public String needShowTransferAcc(List<ItemCard> itemCards)
+	{
+		for (ItemCard itemCard:itemCards) {
+			if(!Consts.ITEM_CARD_ACC_COL1_STATE1.equals(itemCard.getCol1())) //全部为1才需要展示调拨号码段
+				return "no";
+		}
+		return "yes";
+	}
+	
+
+	/**
+	 * 分页读取订单列表 根据订单状态 state 检索，如果未提供状态参数，则检索所有
+	 * 
+	 * @return
+	 */
+	public String list() {
+		acpOrderId();
+		this.adminUser= ManagerUtils.getAdminUser();
+		
+		lanList = new ArrayList<Lan>();
+		lanList.add(new Lan(Consts.LAN_PROV_EMPTY, "全省"));
+		lanList.addAll(this.lanServ.listLan());
+		
+		if(cloud == null){
+			cloud = new Cloud();
+		}
+		if(!StringUtil.isEmpty(lan_id)){
+			cloud.setLan_id(lan_id);
+		}
+		//默认状态可用
+		if(cloud.getState() == null){
+			cloud.setState("0");
+		}
+		
+		this.webpage = this.cloudManager.transfer_list(this.getPage(), this
+				.getPageSize(), 0, cloud);
+		if (!StringUtil.isEmpty(orderId))
+			order = orderManager.get(orderId);
+		
+		
+		/**
+		 * 以下代码是为了导出excel功能所编写
+		 * title:excel表头，传递需要打印的表头注释
+		 * content:内容字段，输入实体对象所对应表头字段的属性
+		 * set的时候勿更改属性名，否则将出现错误
+		 * fileTitle为导出excel文件的标题，根据自己导出的内容设定
+		 * 
+		 * 若需要导出功能，请在jsp页面的grid属性里面添加 excel="yes"
+		 */
+		String[] title = {"销售品名称","业务号码","状态","UIM卡号","归属本地网","调拨时间","批开金额"};
+		String[] content = {"offer_name","phone_num","state_name","uim","lan_name","deal_time","pay_money"};
+		String fileTitle = "云卡数据导出";
+		
+		HttpServletRequest request = ServletActionContext.getRequest();
+		request.setAttribute("webpage", this.webpage);
+		request.setAttribute("title", title);
+		request.setAttribute("content", content);
+		request.setAttribute("fileTitle", fileTitle);
+		
+		if(excel != null && !"".equals(excel)){
+			/**
+			 * 修改退出方式 mochunrun 20130917
+			 */
+			DownLoadUtil.export(webpage, fileTitle, title, content, ServletActionContext.getResponse());
+			return null;
+			//return "export_excel_list";
+		}else{
+			return "cloud_list";
+		}
+		
+	}
+	
+	//云卡可用库存查询
+	public String list_avaible() {
+		
+		lanList = new ArrayList<Lan>();
+		lanList.add(new Lan(Consts.LAN_PROV_EMPTY, "全省"));
+		lanList.addAll(this.lanServ.listLan());
+		
+		acpOrderId();
+		if(cloud == null)
+			cloud = new Cloud();
+		if(!StringUtil.isEmpty(goods_id)){
+			cloud.setGoods_id(goods_id);
+		}
+		
+		if(!StringUtil.isEmpty(lan_id))
+			cloud.setLan_id(lan_id);
+		
+		
+		cloud.setP_apply_show_parent_stock("yes");
+		cloud.setState(Consts.CARD_INFO_STATE_0);
+		this.webpage = this.cloudManager.transfer_list(this.getPage(), this
+				.getPageSize(), 0, cloud);
+		if (!StringUtil.isEmpty(orderId))
+			order = orderManager.get(orderId);
+		return "cloud_avliable_list";
+	}
+	
+	
+	//云卡可用库存查询
+	public String list_avaible_forSearch() {
+		
+		lanList = new ArrayList<Lan>();
+		lanList.add(new Lan(Consts.LAN_PROV_EMPTY, "全省"));
+		lanList.addAll(this.lanServ.listLan());
+		
+		acpOrderId();
+		if(cloud == null)
+			cloud = new Cloud();
+		if(!StringUtil.isEmpty(goods_id)){
+			cloud.setGoods_id(goods_id);
+		}
+		
+		if(!StringUtil.isEmpty(lan_id))
+			cloud.setLan_id(lan_id);
+		
+		
+		cloud.setP_apply_show_parent_stock("yes");
+		cloud.setState(Consts.CARD_INFO_STATE_0);
+		this.webpage = this.cloudManager.transfer_list_query(this.getPage(), this
+				.getPageSize(), 0, cloud);
+		if (!StringUtil.isEmpty(orderId))
+			order = orderManager.get(orderId);
+		return "cloud_forSearch_list";
+	}
+	
+	
+	public String listImport() {
+		acpOrderId();
+		this.webpage = this.cloudManager.transfer_list(this.getPage(), this
+				.getPageSize(), 0, cloud);
+		if (!StringUtil.isEmpty(orderId))
+			order = orderManager.get(orderId);
+		return "import_cloud_list";
+	}
+	
+	
+
+	public String importCloud(){
+		
+		return "importCloud";
+	}
+	
+	
+	// 云卡调拨处理
+	public String transfer() {
+		acpOrderId();
+		try {
+			transferCloud();
+			this.json = "{result:1,message:'云卡处理成功'}";
+		} catch (Exception e) {
+			if (logger.isDebugEnabled()) {
+				logger.debug(e);
+			}
+			this.json = "{result:0,message:\"" + e.getMessage() + "\"}";
+		}
+		return WWAction.JSON_MESSAGE;
+	}
+
+	/**
+	 * 
+	 * 订单云卡调拨受理
+	 */
+	private void transferCloud() {
+
+		acpOrderId();
+		Order order = this.orderManager.get(orderId);
+
+		CloudRequest cloudRequest = new CloudRequest();
+		cloudRequest.setBegin_nbr(begin_nbr);
+		cloudRequest.setEnd_nbr(end_nbr);
+		
+		orderDirector.getOrderBuilder().buildOrderFlow();
+		OrderRequst orderRequst = new OrderRequst();
+		orderRequst.setService_name(order.getType_code());
+		orderRequst.setFlow_name(OrderBuilder.ACCEPT);
+		orderRequst.setAccept_action(OrderStatus.ACCEPT_ACTION_ORDER);
+		orderRequst.setOrderId(orderId);
+		orderRequst.setCloudRequest(cloudRequest);
+		orderDirector.perform(orderRequst);
+		
+	}
+
+	public String listCount() {
+
+		if (cloud == null) {
+			cloud = new Cloud();
+			cloud.setBegin_nbr(begin_nbr);
+			cloud.setEnd_nbr(end_nbr);
+			cloud.setGoods_id(goods_id);
+			if(!StringUtil.isEmpty(begin_nbr)) //开始号码不为空
+				cloud.setP_apply_show_parent_stock("yes");
+		}
+		try {
+			Map countMap = this.cloudManager.listc(cloud);
+			String jsonStr = ManagerUtils.toJsonString(countMap);
+			this.json = "{result:1," + jsonStr + "}";
+		} catch (RuntimeException e) {
+			if (logger.isDebugEnabled()) {
+				logger.debug(e);
+			}
+			this.json = "{result:0,message:\"读取失败：" + e.getMessage() + "\"}";
+
+		}
+		return WWAction.JSON_MESSAGE;
+		
+	}
+
+	public Order getOrder() {
+		return order;
+	}
+
+	public void setOrder(Order order) {
+		this.order = order;
+	}
+
+	public IOrderManager getOrderManager() {
+		return orderManager;
+	}
+
+	public void setOrderManager(IOrderManager orderManager) {
+		this.orderManager = orderManager;
+	}
+
+	public ICloudManager getCloudManager() {
+		return cloudManager;
+	}
+
+	public void setCloudManager(ICloudManager cloudManager) {
+		this.cloudManager = cloudManager;
+	}
+
+	public Cloud getCloud() {
+		return cloud;
+	}
+
+	public void setCloud(Cloud cloud) {
+		this.cloud = cloud;
+	}
+
+	public String getOrderId() {
+		return orderId;
+	}
+
+	public void setOrderId(String orderId) {
+		this.orderId = orderId;
+	}
+
+	public IOrderUtils getOrderUtils() {
+		return orderUtils;
+	}
+
+	public void setOrderUtils(IOrderUtils orderUtils) {
+		this.orderUtils = orderUtils;
+	}
+
+	public String getCloud_ids() {
+		return cloud_ids;
+	}
+
+	public void setCloud_ids(String cloud_ids) {
+		this.cloud_ids = cloud_ids;
+	}
+
+	public String getP_acc_nbr() {
+		return p_acc_nbr;
+	}
+
+	public void setP_acc_nbr(String p_acc_nbr) {
+		this.p_acc_nbr = p_acc_nbr;
+	}
+
+	public IOrderDirector getOrderDirector() {
+		return orderDirector;
+	}
+
+	public void setOrderDirector(IOrderDirector orderDirector) {
+		this.orderDirector = orderDirector;
+	}
+
+	public String getFrom_page() {
+		return from_page;
+	}
+
+	public void setFrom_page(String from_page) {
+		this.from_page = from_page;
+	}
+
+	public Map getCountMap() {
+		return countMap;
+	}
+
+	public void setCountMap(Map countMap) {
+		this.countMap = countMap;
+	}
+
+	public List<Lan> getLanList() {
+		return lanList;
+	}
+
+	public void setLanList(List<Lan> lanList) {
+		this.lanList = lanList;
+	}
+	
+
+	public String getLan_id() {
+		return lan_id;
+	}
+
+	public void setLan_id(String lan_id) {
+		this.lan_id = lan_id;
+	}
+
+	public String getGoods_id() {
+		return goods_id;
+	}
+
+	public void setGoods_id(String goods_id) {
+		this.goods_id = goods_id;
+	}
+
+	public AdminUser getAdminUser() {
+		return adminUser;
+	}
+
+	public void setAdminUser(AdminUser adminUser) {
+		this.adminUser = adminUser;
+	}
+
+	public String getBegin_nbr() {
+		return begin_nbr;
+	}
+
+	public void setBegin_nbr(String begin_nbr) {
+		this.begin_nbr = begin_nbr;
+	}
+
+	public String getEnd_nbr() {
+		return end_nbr;
+	}
+
+	public void setEnd_nbr(String end_nbr) {
+		this.end_nbr = end_nbr;
+	}
+
+	public String getDealing_count() {
+		return dealing_count;
+	}
+
+	public void setDealing_count(String dealing_count) {
+		this.dealing_count = dealing_count;
+	}
+
+	public String getSucc_count() {
+		return succ_count;
+	}
+
+	public void setSucc_count(String succ_count) {
+		this.succ_count = succ_count;
+	}
+
+	public String getShow_acc_interval() {
+		return show_acc_interval;
+	}
+
+	public void setShow_acc_interval(String show_acc_interval) {
+		this.show_acc_interval = show_acc_interval;
+	}
+	
+	
+	
+}

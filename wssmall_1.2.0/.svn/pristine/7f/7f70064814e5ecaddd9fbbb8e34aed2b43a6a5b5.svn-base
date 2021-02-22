@@ -1,0 +1,237 @@
+package com.ztesoft.net.app.base.core.service.auth.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.app.base.core.model.AuthAction;
+import com.ztesoft.net.app.base.core.service.auth.IAuthActionManager;
+import com.ztesoft.net.consts.MblConsts;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import commons.CommonTools;
+
+/**
+ * 权限点管理
+ * @author kingapex
+ * 2010-10-24下午10:38:33
+ */
+public class AuthActionManager extends BaseSupport<AuthAction> implements IAuthActionManager {
+
+	@Transactional(propagation = Propagation.REQUIRED)
+	public String add(AuthAction act) {
+		if(StringUtil.isEmpty(act.getActid())){
+			act.setActid(this.baseDaoSupport.getSequences("S_ES_AUTH_ACTION"));
+		}
+		act.setCreatetime(DBTUtil.current());
+		this.baseDaoSupport.insert("auth_action", act);
+		return act.getActid();
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void delete(String actid) {
+		//删除角色权限表中对应的数据
+		this.baseDaoSupport.execute("delete from role_auth where authid=?", actid);
+		//删除权限基本数据
+		this.baseDaoSupport.execute("delete from auth_action where actid=?", actid);
+	}
+
+	
+	public void edit(AuthAction act) {
+		
+		String sql = "SELECT count(actid) FROM es_auth_action WHERE actid = '"+act.getActid()+"' AND type = '"+act.getType()+"'";
+		Integer count = 0;
+		count = this.baseDaoSupport.queryForInt(sql);
+		if(count == 0){
+			add(act);
+		}else{
+            String wheresql= "actid='"+act.getActid()+"' and type='"+act.getType()+"'";
+			this.baseDaoSupport.update("auth_action", act,wheresql);
+		}
+		
+	}
+
+	
+	@SuppressWarnings("static-access")
+	public List<AuthAction> list(String [] auids) {
+		ManagerUtils mu = new ManagerUtils();
+		String appendSql ="";
+		if(auids.length>0)
+		{
+			StringBuffer inSql = new StringBuffer("  in (");
+			for (int i = 0; i < auids.length; i++) {
+				inSql.append("'").append(auids[i]).append("',");
+			}
+			appendSql = inSql.substring(0, inSql.length()-1);
+			appendSql+=")";
+		  	  String sql = "select *"+
+					  "  from (select distinct (actid), name, userid, type"+
+					  "          from es_auth_action"+
+					  "         where source_from = ? and actid "+appendSql+
+					  "        union all"+
+					  "        select distinct (d.id) actid,"+
+					  "                        d.role_code name,"+
+					  "                        d.userid,"+
+					  "                        'data' type"+
+					  "          from es_role_data d"+
+					  "         where source_from = ? and id "+appendSql+")";
+		  	  	List arr = new ArrayList();
+		  	  	arr.add(CommonTools.getSourceForm());
+		  	  	arr.add(CommonTools.getSourceForm());
+				return this.baseDaoSupport.queryForList(sql, AuthAction.class,arr.toArray());
+		}else{
+			return new ArrayList();
+		}
+		
+
+		
+	}
+    public Page  authPage(String act_id,String name,String type,int page,int pageSize){
+    	 String sql ="";
+    	 List arr = new ArrayList();
+    	String countSql = "";
+    	if(MblConsts.SUPER_USER_ID.equals(CommonTools.getUserId())){
+    	  sql = "select *"+
+    			  "  from (select distinct (actid), name, userid, type"+
+    			  "          from es_auth_action"+
+    			  "         where source_from = ?"+
+    			  "        union all"+
+    			  "        select distinct (d.id) actid,"+
+    			  "                        d.role_code name,"+
+    			  "                        d.userid,"+
+    			  "                        'data' type"+
+    			  "          from es_role_data d"+
+    			  "         where source_from = ?) a where 1=1 ";
+    	  countSql =  "select count(1)"+
+    			  "  from (select distinct (actid), name, userid, type"+
+    			  "          from es_auth_action"+
+    			  "         where source_from = ?"+
+    			  "        union all"+
+    			  "        select distinct (d.id) actid,"+
+    			  "                        d.role_code name,"+
+    			  "                        d.userid,"+
+    			  "                        'data' type"+
+    			  "          from es_role_data d"+
+    			  "         where source_from = ?) a where 1=1 ";;
+    	  arr.add(CommonTools.getSourceForm());
+    	  arr.add(CommonTools.getSourceForm());
+    	}else{
+    	  sql = "select *"+
+    			  "  from (select distinct (actid), name, userid, type"+
+    			  "          from es_auth_action"+
+    			  "         where source_from = ?"+
+    			  "        union all"+
+    			  "        select distinct (d.id) actid,"+
+    			  "                        d.role_code name,"+
+    			  "                        d.userid,"+
+    			  "                        'data' type"+
+    			  "          from es_role_data d"+
+    			  "         where source_from = ? and userid =?) a where 1=1 ";
+    	  countSql =  "select count(1)"+
+    			  "  from (select distinct (actid), name, userid, type"+
+    			  "          from es_auth_action"+
+    			  "         where source_from = ?"+
+    			  "        union all"+
+    			  "        select distinct (d.id) actid,"+
+    			  "                        d.role_code name,"+
+    			  "                        d.userid,"+
+    			  "                        'data' type"+
+    			  "          from es_role_data d"+
+    			  "         where source_from = ? and userid =?) a where 1=1 ";;
+    	  arr.add(CommonTools.getSourceForm());
+    	  arr.add(CommonTools.getSourceForm());
+    	  arr.add(CommonTools.getUserId());
+    	}
+        String whereSql="";
+    	if(act_id!=null&&!"".equals(act_id)){
+    		whereSql +=" and a.actid =?";
+    		arr.add(act_id);
+    	}
+    	if(name!=null&&!"".equals(name)){
+    		whereSql +=" and a.name like  '%"+name+"%'";
+    	}
+    	if(type!=null&&!"".equals(type)&&!"all".equals(type)){
+    		whereSql +=" and a.type =?";
+    		arr.add(type);
+    	}
+    	whereSql += " order by a.actid desc";
+    	sql = sql +whereSql;
+    	countSql = countSql +whereSql;
+    	return this.baseDaoSupport.queryForCPage(sql, page, pageSize, AuthAction.class, countSql, arr.toArray());   //(sql, page, pageSize, arr.toArray());
+    }
+
+	public AuthAction get(String authid) {
+		return this.baseDaoSupport.queryForObject("select * from auth_action where actid=?", AuthAction.class, authid);
+	}
+
+	
+	public AuthAction getByRoleId(String roleid) {
+		return this.baseDaoSupport.queryForObject("select a.*,a.rowid from es_auth_action a,es_role_auth b "
+				+ " where a.actid = b.authid and b.roleid = ? and a.source_from = ?", 
+				AuthAction.class, roleid, ManagerUtils.getSourceFrom());
+	}
+	
+	
+	public List<AuthAction> getListByRoleId(String roleid){
+		return this.baseDaoSupport.queryForList("select a.*,a.rowid from es_auth_action a,es_role_auth b "
+				+ "where a.actid = b.authid and b.roleid = ? and a.source_from = ?", 
+				AuthAction.class, roleid, ManagerUtils.getSourceFrom());
+	}
+	
+	public List<AuthAction> getList(String autid,String auth_type){
+		String sql = "select distinct (tab.actid) actid,"+
+				"                tab.name,"+
+				"                tab.type,"+
+				"                tab.objvalue,"+
+				"                tab.userid,"+
+				"                tab.source_from,"+
+				"                tab.createtime"+
+				"  from (select a.actid,"+
+				"               a.name,"+
+				"               a.type,"+
+				"               a.objvalue,"+
+				"               a.userid,"+
+				"               a.source_from,"+
+				"               a.createtime"+
+				"          from es_auth_action a"+
+				"         where a.actid = ? and a.source_from=?" ;
+				if(!StringUtil.isEmpty(auth_type)){
+					sql += " and a.type ='"+auth_type+"' ";
+				}
+				sql+="        union all"+
+				"        select d.id actid,"+
+				"               d.role_code name,"+
+				"               'data' type,"+
+				"               d.order_region objvalue,"+
+				"               d.create_user userid,"+
+				"               d.source_from,"+
+				"               d.create_time createtime"+
+				"          from es_role_data d"+
+				"         where d.id = ? and d.source_from=? ) tab";
+		List arr = new ArrayList();
+		arr.add(autid);
+		arr.add(ManagerUtils.getSourceFrom());
+		arr.add(autid);
+		arr.add(ManagerUtils.getSourceFrom());
+		return this.baseDaoSupport.queryForList(sql, AuthAction.class, arr.toArray());
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public List<Map> roleGroupType() {
+		String sql = "select p.pkey ,p.pname from es_dc_public_ext p where p.source_from='ECS'and  p.stype='role_group' order by p.pkey desc";
+		List<Map>  list =  this.baseDaoSupport.queryForListByMap(sql, null);
+		if (list != null && list.size() > 0) {
+        return list;
+		}  
+		return null;
+	}
+
+}

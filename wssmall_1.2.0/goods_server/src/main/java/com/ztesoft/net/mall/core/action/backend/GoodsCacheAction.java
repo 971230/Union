@@ -1,0 +1,53 @@
+package com.ztesoft.net.mall.core.action.backend;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import com.ztesoft.net.cache.common.GoodsNetCacheWrite;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+
+public class GoodsCacheAction extends WWAction {
+
+	/**
+	 * 前台送过来“方法名称”，反射到<b>GoodsNetCacheWrite</b>方法中
+	 * 
+	 */
+	String refreshMethod = "";
+	
+	public String getRefreshMethod() {
+		return refreshMethod;
+	}
+
+	public void setRefreshMethod(String refreshMethod) {
+		this.refreshMethod = refreshMethod;
+	}
+
+	public String goodsCache(){
+		GoodsNetCacheWrite write = SpringContextHolder.getBean("goodsNetCacheWrite");
+		write.loadTerminalNumList();
+		return "goodsCache";
+	}
+
+	public String refreshGoods(){
+		GoodsNetCacheWrite write = new GoodsNetCacheWrite();
+		Class clazz = write.getClass();
+		try {
+			Method m = clazz.getDeclaredMethod(refreshMethod);
+			m.invoke(write);
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+		}
+		this.json = "{'result':0,'refreshMethod':'"+refreshMethod+"'}";		
+		return WWAction.JSON_MESSAGE;
+	}
+
+}

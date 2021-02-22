@@ -1,0 +1,429 @@
+package com.ztesoft.net.rule.util;
+
+import java.util.Iterator;
+import java.util.Map;
+
+import params.ZteResponse;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.iservice.IRuleService;
+import zte.net.params.req.PlanRuleTreeExeReq;
+import zte.net.params.req.RuleExeLogDelReq;
+import zte.net.params.req.RuleTreeExeReq;
+import zte.net.params.resp.PlanRuleTreeExeResp;
+import zte.net.params.resp.RuleExeLogDelResp;
+import zte.net.params.resp.RuleTreeExeResp;
+
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.auto.rule.fact.AutoFact;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+
+public class RuleFlowUtil {
+	
+
+	/**
+	 * 执行方案规则树
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-30 
+	 * @param plan_id
+	 * @param fact
+	 * @return
+	 */
+	public static PlanRuleTreeExeResp executePlanRuleTree(String plan_id,AutoFact fact,String deal_from){
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		req.setDeal_from(deal_from);
+    	req.setPlan_id(plan_id);
+    	req.setFact(fact);
+    	IRuleService bean = (IRuleService) SpringContextHolder.getBean("ruleService");
+    	PlanRuleTreeExeResp resp = bean.exePlanRuleTree(req);
+    	return resp;
+	}
+	
+	/**
+	 * 执行方案规则树
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-30 
+	 * @param plan_id
+	 * @param fact
+	 * @return
+	 */
+	public static PlanRuleTreeExeResp executePlanRuleTree(String plan_id,int is_auto,AutoFact fact,String deal_from){
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		req.setDeal_from(deal_from);
+    	req.setPlan_id(plan_id);
+    	req.setFact(fact);
+    	req.setAuto_exe(is_auto);
+    	IRuleService bean = (IRuleService) SpringContextHolder.getBean("ruleService");
+    	PlanRuleTreeExeResp resp = bean.exePlanRuleTree(req);
+    	return resp;
+	}
+	
+	/**
+	 * 执行方案规则树
+	 * @作者 MoChunrun
+	 * @创建日期 2014-9-30 
+	 * @param plan_id
+	 * @param fact
+	 * @return
+	 */
+	public static PlanRuleTreeExeResp executePlanRuleTree(String plan_id,int is_auto,AutoFact fact,String deal_from,String deal_type,String deal_desc){
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		req.setDeal_from(deal_from);
+    	req.setPlan_id(plan_id);
+    	req.setFact(fact);
+    	req.setAuto_exe(is_auto);
+    	req.setDeal_type(deal_type);
+    	req.setDeal_desc(deal_desc);
+    	IRuleService bean = (IRuleService) SpringContextHolder.getBean("ruleService");
+    	PlanRuleTreeExeResp resp = bean.exePlanRuleTree(req);
+    	return resp;
+	}
+	
+	public static RuleTreeExeResp executeRuleTree(String plan_id,String rule_id,AutoFact fact,boolean checkCurrRelyOnRule,boolean checkAllRelyOnRule,String deal_from){
+		RuleTreeExeReq rreq = new RuleTreeExeReq();
+		rreq.setDeal_from(deal_from);
+    	rreq.setPlan_id(plan_id);
+    	rreq.setRule_id(rule_id);
+    	rreq.setFact(fact);
+    	rreq.setCheckCurrRelyOnRule(checkCurrRelyOnRule);
+    	rreq.setCheckAllRelyOnRule(checkAllRelyOnRule);
+    	IRuleService bean = (IRuleService) SpringContextHolder.getBean("ruleService");
+    	RuleTreeExeResp rresp = bean.exeRuleTree(rreq);
+    	return rresp;
+	}
+	
+	public static RuleTreeExeResp executeRuleTree(String plan_id,String rule_id,AutoFact fact,boolean checkCurrRelyOnRule,boolean checkAllRelyOnRule,
+			String deal_from,String deal_type,String deal_desc){
+		RuleTreeExeReq rreq = new RuleTreeExeReq();
+		rreq.setDeal_from(deal_from);
+		rreq.setDeal_type(deal_type);
+		rreq.setDeal_desc(deal_desc);
+    	rreq.setPlan_id(plan_id);
+    	rreq.setRule_id(rule_id);
+    	rreq.setFact(fact);
+    	rreq.setCheckCurrRelyOnRule(checkCurrRelyOnRule);
+    	rreq.setCheckAllRelyOnRule(checkAllRelyOnRule);
+    	IRuleService bean = (IRuleService) SpringContextHolder.getBean("ruleService");
+    	RuleTreeExeResp rresp = bean.exeRuleTree(rreq);
+    	return rresp;
+	}
+	
+	/**
+	 * 执行方案规则树
+	 * @param plan_id 方案id
+	 * @param is_auto 规则类型：-1 所有规则 0自动执行规则 1手动调用规则
+	 * @param fact 规则实例数据
+	 * @param deleteLogs，是否删除旧日志
+	 * @param deal_from 处理来源[page 界面处理 inf接口处理]
+	 * @param deal_type
+	 * @param deal_desc
+	 * @return
+	 */
+	public static PlanRuleTreeExeResp executePlanRuleTree(String plan_id,int is_auto,AutoFact fact,boolean deleteLogs,String deal_from,String deal_type,String deal_desc){
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		req.setDeal_from(deal_from);
+    	req.setPlan_id(plan_id);
+    	req.setFact(fact);
+    	req.setAuto_exe(is_auto);
+    	req.setDeal_type(deal_type);
+    	req.setDeal_desc(deal_desc);
+    	req.setDeleteLogs(deleteLogs);
+    	IRuleService bean = (IRuleService) SpringContextHolder.getBean("ruleService");
+    	PlanRuleTreeExeResp resp = bean.exePlanRuleTree(req);
+    	return resp;
+	}
+	
+	public static RuleExeLogDelResp delRuleExeLogs(String plan_id,String rule_id,String obj_id){
+		RuleExeLogDelReq req = new RuleExeLogDelReq();
+		req.setPlan_id(new String[]{plan_id});
+		req.setRule_id(rule_id);
+		req.setObj_id(obj_id);
+		IRuleService bean = (IRuleService) SpringContextHolder.getBean("ruleService");
+		RuleExeLogDelResp resp = bean.delRuleExeLog(req);
+		return resp;
+	}
+	
+	/**
+	 * 从缓存拿要trace_id 走规则传order_id
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-21 
+	 * @param order_id
+	 * @param trace_id
+	 * @return
+	 */
+	public static String getOrderUrl(String order_id,String trace_id){
+		String action_url = null;
+		try{
+			OrderTreeBusiRequest orderTreeBusiRequest = CommonDataFactory.getInstance().getOrderTree(order_id);
+			OrderExtBusiRequest orderExt = orderTreeBusiRequest.getOrderExtBusiRequest();
+			if(EcsOrderConsts.DIC_ORDER_NODE_B.equals(trace_id) || EcsOrderConsts.DIC_ORDER_NODE_P.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				if(EcsOrderConsts.GOODS_TYPE_KD.equals(goods_type)){
+					action_url = "shop/admin/orderFlowAction!pre_deal_kd.do";
+				}else{
+					action_url = "shop/admin/orderFlowAction!preDealOrd.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_C.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				String order_type = orderTreeBusiRequest.getOrderBusiRequest().getOrder_type();
+				String order_from = orderExt.getOrder_from();
+				if(EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)&&EcsOrderConsts.ORDER_TYPE_09.equals(order_type)){
+					action_url = "shop/admin/orderFlowAction!prePickMore.do";
+				}else if((EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)||EcsOrderConsts.GOODS_TYPE_ADJUNCT.equals(goods_type))
+						&&(EcsOrderConsts.ORDER_FROM_10061.equals(order_from)||EcsOrderConsts.ORDER_FROM_10062.equals(order_from))){
+					action_url = "shop/admin/orderFlowAction!prePickMore.do";
+				}else{
+					action_url = "shop/admin/orderFlowAction!prePick.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_Y.equals(trace_id)){
+				action_url = "shop/admin/orderFlowAction!business.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_D.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				String is_aop = orderExt.getIs_aop();
+				if(EcsOrderConsts.GOODS_TYPE_KD.equals(goods_type)){
+					action_url = "shop/admin/orderFlowAction!open_account_kd.do";
+				}else if(EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_AOP.equals(is_aop)||EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_BSS.equals(is_aop)){
+					action_url = "shop/admin/orderFlowAction!openAccount.do?openAccountType=online";
+				}else{
+					action_url = "shop/admin/orderFlowAction!openAccount.do?openAccountType=offline";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_X.equals(trace_id)){
+				String is_aop = orderExt.getIs_aop();
+				if(EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_AOP.equals(is_aop)||EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_BSS.equals(is_aop)){
+					action_url = "shop/admin/orderFlowAction!openAccount.do?openAccountType=online";
+				}else{
+					action_url = "shop/admin/orderFlowAction!writeCard.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_F.equals(trace_id)){
+				String order_model = orderExt.getOrder_model();
+				if(!EcsOrderConsts.OPER_MODE_ZD.equals(order_model)){//此入口多数是非自动化模式，放在前面
+					String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+					String order_type = orderTreeBusiRequest.getOrderBusiRequest().getOrder_type();
+					String order_from = orderExt.getOrder_from();
+					if(EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)&&EcsOrderConsts.ORDER_TYPE_09.equals(order_type)){
+						action_url = "shop/admin/ordAuto!quality_audit_more.do";
+					}else if((EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)||EcsOrderConsts.GOODS_TYPE_ADJUNCT.equals(goods_type))
+							&&(EcsOrderConsts.ORDER_FROM_10061.equals(order_from)||EcsOrderConsts.ORDER_FROM_10062.equals(order_from))){
+						action_url = "shop/admin/ordAuto!quality_audit_more.do";
+					}else{
+						action_url = "shop/admin/ordAuto!quality_audit.do";
+					}
+				}else{
+					action_url = "shop/admin/ordAuto!entity_quality_audit.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_H.equals(trace_id)){
+				action_url = "shop/admin/ordAuto!showShipping.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_J.equals(trace_id)){
+				action_url = "shop/admin/ordAuto!ord_receipt.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_L.equals(trace_id)){
+				action_url = "shop/admin/ordAuto!orderArchive.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_MK.equals(trace_id)){
+			    action_url = "shop/admin/orderFlowAction!openAccount.do";
+			}else{//预处理(没匹配到页面)
+				action_url = "shop/admin/orderFlowAction!preDealOrd.do";
+			}
+		}catch(Exception e){//匹配报错，认为没匹配到页面，给个默认页面
+			e.printStackTrace();
+			action_url = "shop/admin/orderFlowAction!preDealOrd.do";
+		}
+		
+		return action_url;
+	}
+	
+	/***
+	 * 订单审核环节详情优化
+	 * @author huangxm
+	 * 2018.06.06
+	 * @param order_id
+	 * @param trace_id
+	 * @return
+	 */
+	public static String getOrderUrlNew(String order_id,String trace_id){
+		String action_url = null;
+		try{
+			OrderTreeBusiRequest orderTreeBusiRequest = CommonDataFactory.getInstance().getOrderTree(order_id);
+			OrderExtBusiRequest orderExt = orderTreeBusiRequest.getOrderExtBusiRequest();
+			if(EcsOrderConsts.DIC_ORDER_NODE_B.equals(trace_id) || EcsOrderConsts.DIC_ORDER_NODE_P.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				if(EcsOrderConsts.GOODS_TYPE_KD.equals(goods_type)){
+					action_url = "shop/admin/orderFlowAction!pre_deal_kd.do";
+				}else{
+					action_url = "shop/admin/orderFlowAction!preDealOrdNew.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_C.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				String order_type = orderTreeBusiRequest.getOrderBusiRequest().getOrder_type();
+				String order_from = orderExt.getOrder_from();
+				if(EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)&&EcsOrderConsts.ORDER_TYPE_09.equals(order_type)){
+					action_url = "shop/admin/orderFlowAction!prePickMore.do";
+				}else if((EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)||EcsOrderConsts.GOODS_TYPE_ADJUNCT.equals(goods_type))
+						&&(EcsOrderConsts.ORDER_FROM_10061.equals(order_from)||EcsOrderConsts.ORDER_FROM_10062.equals(order_from))){
+					action_url = "shop/admin/orderFlowAction!prePickMore.do";
+				}else{
+					action_url = "shop/admin/orderFlowAction!prePick.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_Y.equals(trace_id)){
+				action_url = "shop/admin/orderFlowAction!business.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_D.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				String is_aop = orderExt.getIs_aop();
+				if(EcsOrderConsts.GOODS_TYPE_KD.equals(goods_type)){
+					action_url = "shop/admin/orderFlowAction!open_account_kd.do";
+				}else if(EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_AOP.equals(is_aop)||EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_BSS.equals(is_aop)){
+					action_url = "shop/admin/orderFlowAction!openAccount.do?openAccountType=online";
+				}else{
+					action_url = "shop/admin/orderFlowAction!openAccount.do?openAccountType=offline";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_X.equals(trace_id)){
+				String is_aop = orderExt.getIs_aop();
+				if(EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_AOP.equals(is_aop)||EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_BSS.equals(is_aop)){
+					action_url = "shop/admin/orderFlowAction!openAccount.do?openAccountType=online";
+				}else{
+					action_url = "shop/admin/orderFlowAction!writeCard.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_F.equals(trace_id)){
+				String order_model = orderExt.getOrder_model();
+				if(!EcsOrderConsts.OPER_MODE_ZD.equals(order_model)){//此入口多数是非自动化模式，放在前面
+					String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+					String order_type = orderTreeBusiRequest.getOrderBusiRequest().getOrder_type();
+					String order_from = orderExt.getOrder_from();
+					if(EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)&&EcsOrderConsts.ORDER_TYPE_09.equals(order_type)){
+						action_url = "shop/admin/ordAuto!quality_audit_more.do";
+					}else if((EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)||EcsOrderConsts.GOODS_TYPE_ADJUNCT.equals(goods_type))
+							&&(EcsOrderConsts.ORDER_FROM_10061.equals(order_from)||EcsOrderConsts.ORDER_FROM_10062.equals(order_from))){
+						action_url = "shop/admin/ordAuto!quality_audit_more.do";
+					}else{
+						action_url = "shop/admin/ordAuto!quality_audit.do";
+					}
+				}else{
+					action_url = "shop/admin/ordAuto!entity_quality_audit.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_H.equals(trace_id)){
+				action_url = "shop/admin/ordAuto!showShipping.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_J.equals(trace_id)){
+				action_url = "shop/admin/ordAuto!ord_receipt.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_L.equals(trace_id)){
+				action_url = "shop/admin/ordAuto!orderArchive.do";
+			}else{//预处理(没匹配到页面)
+				action_url = "shop/admin/orderFlowAction!preDealOrd.do";
+			}
+		}catch(Exception e){//匹配报错，认为没匹配到页面，给个默认页面
+			e.printStackTrace();
+			action_url = "shop/admin/orderFlowAction!preDealOrdNew.do";
+		}
+		
+		return action_url;
+	}
+	
+	/**
+	 * 从缓存拿要trace_id 走规则传order_id
+	 * @作者 MoChunrun
+	 * @创建日期 2014-11-21 
+	 * @param order_id
+	 * @param trace_id
+	 * @return
+	 */
+	public static String getCrawlerOrderUrl(String order_id,String trace_id){
+		String action_url = null;
+		try{
+			OrderTreeBusiRequest orderTreeBusiRequest = CommonDataFactory.getInstance().getOrderTree(order_id);
+			OrderExtBusiRequest orderExt = orderTreeBusiRequest.getOrderExtBusiRequest();
+			if(EcsOrderConsts.DIC_ORDER_NODE_B.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				if(EcsOrderConsts.GOODS_TYPE_KD.equals(goods_type)){
+					action_url = "shop/admin/orderCrawlerAction!preDealKD.do";
+				}else{
+					action_url = "shop/admin/orderCrawlerAction!preDealOrd.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_C.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				String order_type = orderTreeBusiRequest.getOrderBusiRequest().getOrder_type();
+				String order_from = orderExt.getOrder_from();
+				if(EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)&&EcsOrderConsts.ORDER_TYPE_09.equals(order_type)){
+					action_url = "shop/admin/orderCrawlerAction!prePickMore.do";
+				}else if((EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)||EcsOrderConsts.GOODS_TYPE_ADJUNCT.equals(goods_type))
+						&&(EcsOrderConsts.ORDER_FROM_10061.equals(order_from)||EcsOrderConsts.ORDER_FROM_10062.equals(order_from))){
+					action_url = "shop/admin/orderCrawlerAction!prePickMore.do";
+				}else{
+					action_url = "shop/admin/orderCrawlerAction!prePick.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_Y.equals(trace_id)){
+				action_url = "shop/admin/orderCrawlerAction!business.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_D.equals(trace_id)){
+				String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+				String is_aop = orderExt.getIs_aop();
+				if(EcsOrderConsts.GOODS_TYPE_KD.equals(goods_type)){
+					action_url = "shop/admin/orderCrawlerAction!openAccountKD.do";
+				}else if(EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_AOP.equals(is_aop)||EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_BSS.equals(is_aop)){
+					action_url = "shop/admin/orderCrawlerAction!openAccount.do?openAccountType=online";
+				}else{
+					action_url = "shop/admin/orderCrawlerAction!openAccount.do?openAccountType=offline";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_X.equals(trace_id)){
+				String is_aop = orderExt.getIs_aop();
+				if(EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_AOP.equals(is_aop)||EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_BSS.equals(is_aop)){
+					action_url = "shop/admin/orderCrawlerAction!openAccount.do?openAccountType=online";
+				}else{
+					action_url = "shop/admin/orderCrawlerAction!writeCard.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_F.equals(trace_id)){
+				String order_model = orderExt.getOrder_model();
+				if(!EcsOrderConsts.OPER_MODE_ZD.equals(order_model)){//此入口多数是非自动化模式，放在前面
+					String goods_type = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.GOODS_TYPE);
+					String order_type = orderTreeBusiRequest.getOrderBusiRequest().getOrder_type();
+					String order_from = orderExt.getOrder_from();
+					if(EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)&&EcsOrderConsts.ORDER_TYPE_09.equals(order_type)){
+						action_url = "shop/admin/orderCrawlerAction!qualityAuditMore.do";
+					}else if((EcsOrderConsts.GOODS_TYPE_PHONE.equals(goods_type)||EcsOrderConsts.GOODS_TYPE_ADJUNCT.equals(goods_type))
+							&&(EcsOrderConsts.ORDER_FROM_10061.equals(order_from)||EcsOrderConsts.ORDER_FROM_10062.equals(order_from))){
+						action_url = "shop/admin/orderCrawlerAction!qualityAuditMore.do";
+					}else{
+						action_url = "shop/admin/orderCrawlerAction!qualityAudit.do";
+					}
+				}else{
+					action_url = "shop/admin/orderCrawlerAction!entityQualityAudit.do";
+				}
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_H.equals(trace_id)){
+				action_url = "shop/admin/orderCrawlerAction!showShipping.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_J.equals(trace_id)){
+				action_url = "shop/admin/orderCrawlerAction!ordReceipt.do";
+			}else if(EcsOrderConsts.DIC_ORDER_NODE_L.equals(trace_id)){
+				action_url = "shop/admin/orderCrawlerAction!orderArchive.do";
+			}else{//预处理(没匹配到页面)
+				action_url = "shop/admin/orderCrawlerAction!preDealOrd.do";
+			}
+		}catch(Exception e){//匹配报错，认为没匹配到页面，给个默认页面
+			e.printStackTrace();
+			action_url = "shop/admin/orderCrawlerAction!preDealOrd.do";
+		}
+		
+		return action_url;
+	}
+	
+	/**
+	 * 获取获取规则执行失败的错误描述
+	 * 
+	 * @param fact
+	 * @return
+	 */
+	public static String getAllRuleErrorMsg(AutoFact fact) {
+		String msg = "";
+		Map<String, ZteResponse> resps = fact.getResponses();
+		if (resps != null && resps.size() > 0) {
+			Iterator it = resps.keySet().iterator();
+			while (it.hasNext()) {
+				String key = (String) it.next();
+				ZteResponse zr = resps.get(key);
+				if (!"0".equals(zr.getError_code())) {
+					if (!StringUtil.isEmpty(zr.getError_msg()))
+						msg += zr.getError_msg() + ",";
+				}
+			}
+		}
+		return msg;
+	}
+	
+}

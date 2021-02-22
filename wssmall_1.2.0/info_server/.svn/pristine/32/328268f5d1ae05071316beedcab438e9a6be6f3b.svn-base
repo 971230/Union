@@ -1,0 +1,115 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.List;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.Article;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.database.StringMapper;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.service.IArticleManager;
+
+public class ArticleManager extends BaseSupport implements IArticleManager {
+
+	public void saveAdd(Article article){
+		if(article.getCat_id() != null){
+			String sql = "select count(*) from article_cat where cat_id=?";
+			int count = this.baseDaoSupport.queryForInt(sql, article.getCat_id());	
+			    if(count <= 0)
+			    	throw new RuntimeException();//没有文章分类
+		}
+		article.setCreate_time(DBTUtil.current());
+		this.baseDaoSupport.insert("article", article);
+	}
+
+	public void saveEdit(Article article){
+		if(article.getCat_id() != null){
+			String sql = "select count(*) from article_cat where cat_id=?";
+			int count = this.baseDaoSupport.queryForInt(sql, article.getCat_id());	
+			    if(count <= 0)
+			    	throw new RuntimeException();//没有文章分类
+		}
+		this.baseDaoSupport.update("article", article, "id=" + article.getId());
+	}
+
+	public Article get(String id){
+		
+			String sql = "select * from article where id=?";
+			 Article article = null;
+			try{
+				article = (Article) this.baseDaoSupport.queryForObject(sql, Article.class, id);
+				
+			}catch(Exception ex){
+				article = null;
+			}
+			//if(article == null)
+			//	throw new ArticleRuntimeException(1);//没有此文章
+			return article;
+		
+	
+	}
+
+	/**
+	 * 读取文章列表
+	 * 
+	 * @param cat_id
+	 * @return
+	 */
+	public List listByCatId(Integer cat_id) {
+		String cat_path = (String)this.baseDaoSupport.queryForObject("select cat_path from article_cat where cat_id = ?", new StringMapper(), cat_id);
+		String sql = "select a.*,b.cat_path from "+this.getTableName("article") + " a left join " + this.getTableName("article_cat") + " b on b.cat_id = a.cat_id where cat_path like '" + cat_path + "%' order by create_time desc";
+		List list = this.daoSupport.queryForList(sql);
+		return list;
+	}
+	
+	public String getCatName(Integer cat_id){
+		String sql ="select name from article_cat where cat_id=?";
+		String cat_name = null;
+		try{
+		    cat_name =(String)this.baseDaoSupport.queryForObject(sql, String.class, cat_id); 
+		}catch(Exception ex){
+			cat_name = null;
+		}
+		if( cat_name == null)
+			throw new RuntimeException();//没有文章
+		return cat_name;
+	}
+
+	
+	public void delete(String id) {
+		if (id == null || id.equals(""))
+			return;
+		String sql = "delete from article  where id in (" + id
+				+ ")";
+		this.baseDaoSupport.execute(sql);
+		
+	}
+	/**
+	 * 根据工号删除广告信息并归档到历史表
+	 * 
+	 * @param staff_no
+	 */
+	public void delArticleByStaffNo(String staff_no) {
+		if (staff_no == null || staff_no.equals(""))
+			return;
+		String sql = "INSERT into es_en_article_his SELECT * FROM es_en_article where staff_no=?";
+		this.baseDaoSupport.execute(sql, staff_no);
+		sql = "delete from es_en_article where staff_no=?";
+		this.baseDaoSupport.execute(sql, staff_no);
+	}
+	
+	public Page pageByCatId(Integer pageNo, Integer pageSize, String catId) {
+		String cat_path = (String)this.baseDaoSupport.queryForObject("select cat_path from article_cat where cat_id = ?", new StringMapper(), catId);
+		String sql = "select a.*,b.cat_path from " + this.getTableName("article") + " a left join " + this.getTableName("article_cat") + " b on b.cat_id = a.cat_id where cat_path like '" + cat_path + "%' order by create_time desc";
+		Page page = this.daoSupport.queryForPage(sql, pageNo, pageSize);
+		return page;
+	}
+
+	
+	public List topListByCatId(Integer catId, Integer topNum) {
+		String sql = "select * from article where cat_id=? order by create_time limit 0," + topNum;
+		List list = this.baseDaoSupport.queryForList(sql, catId);
+		return list;
+	}
+}

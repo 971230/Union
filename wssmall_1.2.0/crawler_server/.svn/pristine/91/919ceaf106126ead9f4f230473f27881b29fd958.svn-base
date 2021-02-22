@@ -1,0 +1,4 @@
+#接收爬虫自动登录断开提醒号码（多个号码以英文逗号分隔）
+receive_phonenums=17682340219
+#爬虫文件存放地址
+parseFileUrl=/data/ztesoft/upload/pachongwar/temp/

@@ -1,0 +1,100 @@
+
+    <div class="section GoodsEditSection" style="">
+        <div class="grid">
+            <table width="100%" cellspacing="0" cellpadding="3">
+                <col class="span-4 ColColorGray">
+                <col class="span-2 ColColorOrange">
+                <col class="textleft">
+                <thead>
+                <tr>
+                   
+                    <th>名称</th>
+                   
+                    <th>操作</th>
+
+                  <div class="comBtnDiv">
+					    <a class="graybtn1" style="margin-right:10px;" href="javascript:void(0)">
+					        <span id="addContract">添加</span>
+					    </a>
+					    <a class="graybtn1" style="margin-right:10px;" href="javascript:void(0)">
+					        <span id="delContract">清空</span>
+					    </a>
+				 </div>
+
+                </tr>
+                </thead>
+        <tbody id="contractNode">
+        <#if listGoodsContract?exists>
+            <#list listGoodsContract as goods>
+                <tr id="complex_${goods.goods_id}">
+                    <td>
+                        <div align="center">${goods.name}
+                            <input type='hidden' name='goodsids' value="${goods.goods_id}" />
+                            <a href='javascript:void(0);' class='delete'/>
+                        </div>
+                    </td>
+                   
+                    <td><div align="center"><a href='javascript:void(0)' name='del'>删除</a></div></td>
+                </tr>
+            </#list>
+        </#if>
+        </tbody>
+    </table>
+   </div>
+ </div>
+
+<div id="contractSelect"></div>
+<script type="text/javascript">
+    var Contract = {
+        init: function () {
+            this.bindEvent();
+            var self = this;
+
+            function appendGoods(goodsList) {
+                self.appendGoods(goodsList);
+            }
+
+            $("#addContract").bind("click", function () {
+                GoodsContract.open("contractSelect", appendGoods);
+                
+            });
+           
+        },
+        bindEvent: function () {
+            $("#contractNode [name='del']").unbind("click");
+            $("#contractNode [name='del']").bind("click", function () {
+                $(this).parents("tr").remove();
+            });
+        },
+        appendGoods: function (goodsList) {
+        	
+            for (i in goodsList) {
+                var goods = goodsList[i];
+                if($("#contractNode #complex_"+goods.goods_id).length >=1){
+                	alert("已关联过"+goods.name);
+                	continue;
+                }
+                var html = "<tr id='complex_" + goods.goods_id + "'>";
+                html += "<td style='vertical-align:middle;'><div align='center'>" + goods.name + "<input type='hidden' name='goodsids' value='" + goods.goods_id + "' /><a href='javascript:void(0);' class='delete'/></div></td>";
+             //   html += "<td><div align='center'>" + goods.service_name + "</div></td>";
+                html += "<td><div align='center'><a href='javascript:void(0)' name='del'>删除</a></div></td>";
+                html += "</tr>";
+                var htmlJq = $(html);
+                htmlJq.appendTo($("#contractNode"));
+                htmlJq.find("[name='del']").bind("click", function () {
+                   
+ $(this).closest("tr").remove();
+                })
+            }
+            this.bindEvent();
+        }
+    }
+
+    $.getScript(basePath + "js/GoodsContract.js");
+    Eop.Dialog.init({id: "contractSelect", modal: false, title: "关联合约", width: "450px"});
+    Contract.init();
+
+    $('#delContract').bind('click', function () {
+        $('#contractNode').empty();
+    })
+</script>

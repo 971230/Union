@@ -1,0 +1,117 @@
+package params.req;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+
+import params.ZteRequest;
+import params.resp.GetCardDatasResp;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+/**
+ * 获取写卡数据对象
+ * @author Sun
+ *
+ */
+public class GetCardDatasReq extends ZteRequest<GetCardDatasResp>{
+	@ZteSoftCommentAnnotationParam(name="内部订单号",type="String",isNecessary="Y",desc="内部订单号")
+	private String notNeedReqStrOrderId;
+    @ZteSoftCommentAnnotationParam(name="ICCID（SIM卡号）",type="String",isNecessary="Y",desc="ICCID（SIM卡号）")
+	private String iccid;
+    @ZteSoftCommentAnnotationParam(name="总商长订单id",type="String",isNecessary="Y",desc="总商长订单id")
+	private String orderId;
+
+    @ZteSoftCommentAnnotationParam(name="分配标志",type="String",isNecessary="N",desc="分配标志默认0")
+	private String allotFlag = "0";
+
+    @ZteSoftCommentAnnotationParam(name="是否是老用户便捷换卡订单 1:是  0:不是",type="String",isNecessary="Y",desc="是否是老用户便捷换卡订单 1:是  0:不是")
+	private String isCardChange;
+
+    @ZteSoftCommentAnnotationParam(name="是否是主副卡新带新且副卡带有号码的订单  1：是 0：不是",type="String",isNecessary="Y",desc="是否是主副卡新带新且副卡带有号码的订单  1：是 0：不是")
+	private String isZFKNewOrder;
+
+    @ZteSoftCommentAnnotationParam(name="手机卡号，上网卡号",type="String",isNecessary="Y",desc="手机卡号，上网卡号")
+	private String preNum;
+	
+	@ZteSoftCommentAnnotationParam(name="总商订单编号(短订单号对应云订单系统外部订单号)",type="String",isNecessary="Y",desc="总商订单编号(短订单号对应云订单系统外部订单号)")
+	private String orderNo;
+    
+	public String getOrderNo() {
+		return orderNo;
+	}
+
+	public void setOrderNo(String orderNo) {
+		this.orderNo = orderNo;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		return "zte.net.iservice.impl.ZteCrawlerOpenService.getCardDatas";
+	}
+
+	public String getIccid() {
+		return iccid;
+	}
+
+	public void setIccid(String iccid) {
+		this.iccid = iccid;
+	}
+
+	public String getOrderId() {
+		return orderId;
+	}
+
+	public void setOrderId(String orderId) {
+		this.orderId = orderId;
+	}
+
+	public String getAllotFlag() {
+		return allotFlag;
+	}
+
+	public void setAllotFlag(String allotFlag) {
+		this.allotFlag = allotFlag;
+	}
+
+	public String getIsCardChange() {
+		return isCardChange;
+	}
+
+	public void setIsCardChange(String isCardChange) {
+		this.isCardChange = isCardChange;
+	}
+
+	public String getIsZFKNewOrder() {
+		return isZFKNewOrder;
+	
+	}
+
+	public void setIsZFKNewOrder(String isZFKNewOrder) {
+		this.isZFKNewOrder = isZFKNewOrder;
+	}
+
+	public String getPreNum() {
+		return preNum;
+	}
+
+	public void setPreNum(String preNum) {
+		this.preNum = preNum;
+	}
+
+	public String getNotNeedReqStrOrderId() {
+		return notNeedReqStrOrderId;
+	}
+
+	public void setNotNeedReqStrOrderId(String notNeedReqStrOrderId) {
+		this.notNeedReqStrOrderId = notNeedReqStrOrderId;
+	}
+	
+}

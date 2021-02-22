@@ -1,0 +1,157 @@
+package com.ztesoft.net.mall.utils;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.methods.ByteArrayRequestEntity;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.log4j.Logger;
+
+import com.alibaba.fastjson.JSONObject;
+import com.oreilly.servlet.Base64Encoder;
+import com.taobao.api.DefaultTaobaoClient;
+import com.taobao.api.TaobaoClient;
+import com.taobao.api.TaobaoRequest;
+import com.taobao.api.TaobaoResponse;
+import com.ztesoft.common.util.DesEncrypt;
+import com.ztesoft.net.framework.util.StringUtil;
+
+public class TaoBaoHttpClientUtils {
+	private static Logger logger = Logger.getLogger(TaoBaoHttpClientUtils.class);
+	static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
+	static {
+    	/**
+    	 * add by shusx 2016-08-10
+    	 * 下面两个参数使用说明:
+    	 * 如果该多线程连接池不对多个host使用时，MaxTotalConnections = MaxConnectionsPerHost
+    	 * 如果该多线程连接池对多个host使用时，MaxTotalConnections = n(host) * MaxConnectionsPerHost
+    	 */
+        connectionManager.setMaxConnectionsPerHost(20);
+        connectionManager.setMaxTotalConnections(20);
+	}
+	private static HttpClient client = new HttpClient(connectionManager);
+
+	public static TaobaoResponse execute(TaobaoRequest<?> req,String json) throws Exception {
+		JSONObject app_json = JSONObject.parseObject(json);
+		String isJushita = app_json.get("isJushita")==null?"":app_json.get("isJushita").toString();
+		if ("1".equals(isJushita)) {
+			return executeJushita(req, json);
+		} else {
+			return executeTaobaoSdk(req, json);
+		}
+	}
+
+	/**
+	 * 通过淘宝API直接调用接口
+	 * @param req
+	 * @param json
+	 * @return
+	 * @throws Exception
+	 */
+	private static TaobaoResponse executeTaobaoSdk(TaobaoRequest<?> req,String json) throws Exception {
+		JSONObject app_json = JSONObject.parseObject(json);
+		TaobaoClient client=new DefaultTaobaoClient(app_json.getString("url"), app_json.getString("appkey"), app_json.getString("secret"));
+		TaobaoResponse response = client.execute(req , app_json.getString("sessionKey"));
+		return response;
+	}
+	
+	/**
+	 * 通过聚石塔转发调用接口
+	 * @param req
+	 * @param rep_class
+	 * @param resp_class
+	 * @param json
+	 * @return
+	 */
+	private static TaobaoResponse executeJushita(TaobaoRequest<?> req,String json) {
+		TaobaoResponse resp = null;
+		PostMethod postMethod = null;
+		Class<?> clazz = null;
+		DesEncrypt des = new DesEncrypt();
+		try {
+			clazz = req.getResponseClass();
+			resp = (TaobaoResponse) clazz.newInstance();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			JSONObject app_json = JSONObject.parseObject(json);
+			String url = app_json.getString("jushitaUrl");
+			postMethod = new PostMethod(url);
+			JSONObject req_json = new JSONObject();
+
+			String app_id_s = app_json.getString("jushitaAppId");
+			String req_s = JSONObject.toJSONString(req);
+			String md5_s = StringUtil.md5(app_id_s+json+req_s);
+			
+			req_json.put("APP_ID", des.encrypt(Base64Encoder.encode(md5_s)));
+			req_json.put("APP_KEYS", des.encrypt(json));
+			req_json.put("REQ", req_s);
+			req_json.put("REQ_CLASS", req.getClass().getName());
+			req_json.put("RESP_CALSS", req.getResponseClass().getName());
+			
+			// 链接超时
+			client.getHttpConnectionManager().getParams().setConnectionTimeout(30 * 1000);
+			// 读取超时
+			client.getHttpConnectionManager().getParams().setSoTimeout(30 * 1000);
+			
+			byte[] bytes = req_json.toString().getBytes("UTF-8");
+			ByteArrayRequestEntity bare = new ByteArrayRequestEntity(bytes);
+			postMethod.setRequestEntity(bare);
+        	/** 调用前先打印连接池使用情况  */
+        	logger.info("TaoBaoHttpClientUtils-orderctn==pool"
+        			+",connectionsInPool:"+connectionManager.getConnectionsInPool()
+        			+",connectionsInUse:"+connectionManager.getConnectionsInUse()
+        			+",maxConnectionsPerHost:"+connectionManager.getMaxConnectionsPerHost()
+        			+",maxTotalConnections:"+connectionManager.getMaxTotalConnections());
+			int statusCode = client.executeMethod(postMethod);
+			String resContent = getResponseContent(postMethod.getResponseBodyAsStream());
+			
+			if (408 == statusCode)
+				throw new Exception("超时异常".concat(";HTTP响应状态:")
+						.concat(String.valueOf(statusCode))
+						.concat(";HTTP响应内容:").concat(resContent));
+			if (200 != statusCode && 201 != statusCode && 202 != statusCode
+					&& 203 != statusCode && 204 != statusCode
+					&& 205 != statusCode && 206 != statusCode)
+				throw new Exception("接口异常".concat(";HTTP响应状态:")
+						.concat(String.valueOf(statusCode))
+						.concat(";HTTP响应内容:").concat(resContent));
+			
+			JSONObject resp_json = JSONObject.parseObject(resContent);
+			if ("0".equals(resp_json.getString("ERR_CODE"))) {
+				resp = (TaobaoResponse) JSONObject.parseObject(resp_json.getString("RESP"), clazz);
+			} else {
+				resp.setErrorCode("zte-error");
+				resp.setMsg("调用聚石服务失败："+resp_json.getString("ERR_MESSGE"));
+				resp.setSubCode("zte defined error");
+				resp.setSubMsg("调用聚石服务失败："+resp_json.getString("ERR_MESSGE"));
+			}
+        } catch (Exception e) {
+			e.printStackTrace();
+			resp.setErrorCode("zte-error");
+			resp.setMsg("调用聚石服务失败："+e.getMessage());
+			resp.setSubCode("zte defined error");
+			resp.setSubMsg("调用聚石服务失败："+e.getMessage());
+		} finally {
+            if (postMethod != null) {
+                postMethod.releaseConnection();
+            }
+        }
+		return resp;
+	}
+	
+	private static String getResponseContent(final InputStream input) throws IOException {
+    	BufferedReader reader = new BufferedReader(new InputStreamReader(input, "utf-8"));
+		StringBuilder buffer = new StringBuilder();
+		String line = null;
+		while ((line = reader.readLine()) != null) {
+			buffer.append(line);
+		}
+        return buffer.toString();
+    }
+}

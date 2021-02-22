@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	<!-- num_server 启动文件 -->
+	
+	<!-- 加载所有spring包下的xml文件 -->
+	<import resource="classpath*:spring/*.xml"/>
+ 	<!-- 注入aop_server相关 bean -->
+	<import resource="classpath*:/dubbo/rop/RopApplicationContext.xml"/>
+	<import resource="classpath*:/dubbo/rop/dubbo-rop-service.xml"/>
+	<import resource="classpath*:/dubbo/rop/dubbo-rop-spring.xml"/>
+	
+	<!-- MQ消费者配置文件,根据需要开启 -->
+	<import resource="classpath*:spring/mqreceive/*.xml"/>
+	<!--MQ提供者配置文件，根据需要开启  -->
+	<import resource="classpath*:spring/mqsend/*.xml"/>
+	
+	<!-- 注入sys_server先关bean -->
+	<import resource="classpath*:dubbo/spring/dubbo-sys-spring.xml"/>
+	<!-- 注入task_server相关bean -->
+	<import resource="classpath*:dubbo/spring/dubbo-task-spring.xml"/>
+	<!-- 注入member_server先关bean -->
+	<import resource="classpath*:dubbo/spring/dubbo-member-spring.xml"/>
+	<!-- 注入inf_server相关bean -->
+	<import resource="classpath*:dubbo/spring/dubbo-inf-spring.xml"/>
+	<!-- 注入log先关bean -->
+	<import resource="classpath*:dubbo/spring/dubbo-logs-spring.xml"/>
+	<!-- 注入rule_server相关bean -->
+	<import resource="classpath*:dubbo/spring/dubbo-rules-spring.xml"/>
+	
+	<!-- 注册member_server相关服务 -->
+	<import resource="classpath*:dubbo/service/dubbo-member-service.xml"/>
+	
+	<!-- member_Server需要消费 goods_server的能力  (消费能力的类   AttentionServ.java)-->
+	<import resource="classpath*:dubbo/reference/dubbo-goods-reference.xml"/>
+</beans>

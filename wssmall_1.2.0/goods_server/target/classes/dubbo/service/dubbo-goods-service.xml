@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://code.alibabatech.com/schema/dubbo
+        http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-autowire="byName" default-lazy-init="true">
+   
+    <dubbo:service interface="services.GoodsTypeInf" ref="goodsTypeServ"/>
+    <dubbo:service interface="services.GoodsDetialInf" ref="goodsDetailServ"/>
+    <dubbo:service interface="services.TagsInf" ref="tagsServ"/>
+    <dubbo:service interface="services.GoodsCatInf" ref="goodCatsServ"/>
+    <dubbo:service interface="services.GoodsInf" ref="goodsServ"/>
+    <dubbo:service interface="services.BrandInf" ref="brandServ"/>
+    <dubbo:service interface="services.GoodsComplexInf" ref="goodsComplexServ"/>
+    <dubbo:service interface="services.ProductInf" ref="proudctServ"/>
+    <dubbo:service interface="services.FreeOfferInf" ref="freeOfferServ"/>
+    <dubbo:service interface="services.CardInf" ref="cardServ"/>
+    <dubbo:service interface="services.WarhouseGoodsStoreInf" ref="warhouseGoodsStoreServ"/>
+    <dubbo:service interface="services.WarehouseInf" ref="warehouseServ"/>
+    <dubbo:service interface="services.CouponInf" ref="couponServ"/>
+    <dubbo:service interface="services.CommentsInf" ref="commentsServ"/>
+    <dubbo:service interface="services.GoodsInventoryInf" ref="goodsInventoryServ"/>
+    <dubbo:service interface="services.GoodsDataProviderInf" ref="goodsDataProviderServ"/>
+    <dubbo:service interface="services.GoodsAdjunctInf" ref="goodsAdjunctServ" />
+    <dubbo:service interface="services.FavoriteInf" ref="favoriteServ" />
+    <dubbo:service interface="zte.net.iservice.IGoodsService" ref="goodServices"/>
+    <dubbo:service interface="zte.net.iservice.IGoodsBrandService" ref="goodsBrandService"/>
+    <dubbo:service interface="zte.net.iservice.IGoodsTypeService" ref="goodsTypeService"/>
+    <dubbo:service interface="zte.net.iservice.IGoodsTagsService" ref="goodsTagsService"/>
+	<dubbo:service interface="zte.net.iservice.IGoodsCatsService" ref="goodsCatsService"/>
+	<dubbo:service interface="zte.net.iservice.IGoodsPromotionService" ref="goodsPromotionService"/>
+	<dubbo:service interface="zte.net.iservice.ICommentsService" ref="commentsService"/>
+	<dubbo:service interface="com.ztesoft.remote.inf.IActivityService" ref="activityService"/>
+	<dubbo:service interface="zte.net.iservice.IGoodsAdjunctService" ref="adjunctService"/>
+	<dubbo:service interface="zte.net.iservice.ICouponService" ref="couponService"/>
+	<dubbo:service interface="zte.net.iservice.IFreeOfferService" ref="freeOfferService"/>
+	<dubbo:service interface="zte.net.iservice.IGoodSearchService" ref="goodSearchService"/>
+	<dubbo:service interface="com.ztesoft.remote.basic.inf.IFeeQueryBasicService" ref="feeQueryBasicService" />
+	<dubbo:service interface="com.ztesoft.remote.basic.inf.IChargeBasicService" ref="chargeBasicService" />
+	
+	<dubbo:service interface="com.ztesoft.remote.inf.IWarehouseService" ref="warehouseService"/>
+	
+	<dubbo:service interface="com.ztesoft.net.mall.core.service.impl.cache.IGoodsCacheUtil" ref="goodsCacheUtil"/>
+</beans>

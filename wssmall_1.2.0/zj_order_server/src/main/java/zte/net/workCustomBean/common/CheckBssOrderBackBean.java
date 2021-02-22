@@ -1,0 +1,67 @@
+package zte.net.workCustomBean.common;
+
+
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.ecsord.params.ecaop.req.CancelOrderStatusQryReq;
+import com.ztesoft.net.ecsord.params.ecaop.resp.CancelOrderStatusQryResp;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+
+public class CheckBssOrderBackBean extends BasicBusiBean{
+	/**
+	 * 业务处理方法
+	 * @return
+	 * @throws Exception
+	 */
+	@Override
+	public String doBusi() throws Exception{
+		String order_id=this.getFlowData().getOrderTree().getOrder_id();
+		String is_aop = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.IS_AOP);
+
+		if (EcsOrderConsts.ACCOUNT_OPEN_CHANNEL_BSS.equals(is_aop)) {
+			CancelOrderStatusQryReq req = new CancelOrderStatusQryReq();
+			req.setNotNeedReqStrOrderId(order_id);
+			if(StringUtils.isBlank(req.getBase_order_id())) {
+				return "true";
+			}else {
+				ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+				CancelOrderStatusQryResp resp = client.execute(req, CancelOrderStatusQryResp.class);
+
+				if (!StringUtil.isEmpty(resp.getCode())
+						&& StringUtil.equals(resp.getCode(), EcsOrderConsts.INF_RESP_CODE_00000)) {
+					String is_back = resp.getRespJson().getIs_back();
+
+					if (StringUtil.isEmpty(is_back)
+							||(!StringUtil.equals(is_back, EcsOrderConsts.WYG_BACK_ORDER_STATUS_1))) {
+						throw new Exception("订单未返销");
+					}
+				} else {
+					throw new Exception(resp.getMsg());
+				}
+			}
+			
+		}
+		
+		return "true";
+	}
+
+	/**
+	 * 后台等待环节的处理方法，用于后台等待环节的自动判断，
+	 * 不是后台等待环节的业务处理代码无需实现该方法
+	 * @return 可以继续往下执行，返回true;继续等待返回false
+	 * @throws Exception
+	 */
+	@Override
+	public boolean doBackWaitCheck() throws Exception{
+		System.out.println("doBackWaitCheck()");
+		return true;
+	}
+
+}

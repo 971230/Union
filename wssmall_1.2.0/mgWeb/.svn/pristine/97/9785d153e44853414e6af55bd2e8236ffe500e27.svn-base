@@ -1,0 +1,53 @@
+
+<div class="input">
+	<form method="post" name="catalogAddForm" id="catalogAddForm" class="validate">
+		<table class="form-table">
+			<tr>
+				<th>
+					<input type="hidden" name="esearchCatalog.catalog_id" id="esearchCatalog.catalog_id" value="" />
+					<label class="text">归类编码</label>
+				</th>
+				<td>
+					<input type="text" class="ipttxt" name="esearchCatalog.catalog_code"
+						id="esearchCatalog.catalog_code" value="" dataType="string" maxlength="50"
+						required="true" style="width: 260px;" />
+				</td>
+			</tr>
+			<tr>
+				<th><label class="text">归类名称</label></th>
+				<td><input type="text" class="ipttxt"
+					name="esearchCatalog.catalog_name" id="esearchCatalog.catalog_name"
+					value="" dataType="string"
+					required="true" style="width: 260px;" /></td>
+			</tr>
+			<tr>
+				<th><label class="text">归类描述</label></th>
+				<td><input type="text" class="ipttxt"
+					name="esearchCatalog.catalog_desc" id="esearchCatalog.catalog_desc"
+					value="" dataType="string"
+					style="width: 260px;" /></td>
+			</tr>
+			<tr>
+				<th><label class="text">上级归类</label></th>
+				<td>
+					<select  class="ipttxt"  name="esearchCatalog.sub_catalog_id">
+ 							<#assign children=catalogTreeList />
+							<#assign level=1 />
+							<#assign pid='0' />
+							<#include 'select_children.html' />  
+					</select>
+				</td>
+			</tr>
+		</table>
+		<div class="submitlist" align="center">
+			<table>
+				<tr>
+					<td><input type="button" value="保存" class="submitBtn" id="saveCatalogAddBtn"/>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</form>
+</div>
+<div id="solution_select_dlg"></div>
+<script type="text/javascript" src="orderexp/js/add_catalog.js"></script>

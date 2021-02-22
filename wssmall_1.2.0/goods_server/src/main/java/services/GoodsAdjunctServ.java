@@ -1,0 +1,43 @@
+package services;
+
+import com.ztesoft.net.app.base.plugin.fileUpload.BatchResult;
+import com.ztesoft.net.mall.core.service.IGoodsAdjunctManager;
+import com.ztesoft.net.mall.core.service.IGoodsImportManager;
+
+import javax.annotation.Resource;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Created with IntelliJ IDEA.
+ * User: guangping
+ * Date: 2013-12-26 19:41
+ * To change this template use File | Settings | File Templates.
+ */
+public class GoodsAdjunctServ implements GoodsAdjunctInf {
+    @Resource
+    private IGoodsAdjunctManager goodsAdjunctManager;
+
+    @Resource
+    private IGoodsImportManager goodsImportManager;
+
+    @Override
+    public List<Map> list(String goods_id) {
+        return this.goodsAdjunctManager.list(goods_id);
+    }
+
+    @Override
+    public int isExistsAjdunct(List list) {
+        return this.goodsAdjunctManager.isExistsAjdunct(list);
+    }
+
+    @Override
+    public BatchResult importAdjunct(List inList, String goods_id) {
+        return this.goodsImportManager.importAdjunct(inList,goods_id);
+    }
+    
+    @Override
+	public Map getAdjunct(String adjunctid){
+    	return goodsImportManager.getAdjunct(adjunctid);
+    }
+}

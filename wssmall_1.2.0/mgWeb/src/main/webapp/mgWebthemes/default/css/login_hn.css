@@ -1,0 +1,14 @@
+@charset "utf-8";
+/* CSS Document */
+body{ background:#9c0708;}
+.login_top{ background:url(../images/login_top.jpg) center top no-repeat;height:270px;}
+.login_wrap{ background:url(../images/login_wrap.jpg) center top no-repeat; height:266px;}
+.login_box{ width:592px; margin:0 auto; background:url(../images/login_box.jpg) no-repeat; height:266px;}
+.login_table{ width:370px; margin:0 auto; padding-top:62px;}
+.login_table table{}
+.login_table table th{ width:60px; text-align:right; padding-right:10px; padding-top:8px; padding-bottom:8px; vertical-align:middle; color:#356686; font-size:14px;}
+.login_table table td{ padding-top:5px; padding-bottom:5px;}
+.login_table table td img{ vertical-align:middle;}
+.login_ipt{ background:#fff; height:28px; line-height:28px; border:1px solid #b4bcc2; vertical-align:middle;}
+.loginbtn{ background:url(../images/loginbtn.jpg) no-repeat; width:116px; height:32px; display:inline-block; vertical-align:middle; text-indent:-999px; overflow:hidden;}
+a.txt{ color:#356686; text-decoration:underline; margin-left:5px;}

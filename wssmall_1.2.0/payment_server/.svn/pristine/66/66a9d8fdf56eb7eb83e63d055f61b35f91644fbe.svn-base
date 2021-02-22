@@ -1,0 +1,373 @@
+package com.ztesoft.net.mall.cmp;
+
+import com.powerise.ibss.framework.FrameException;
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.*;
+import com.ztesoft.net.mall.core.service.ICheckacctLogsManager;
+import com.ztesoft.net.mall.core.utils.CacheUtil;
+import com.ztesoft.net.model.CheckacctRule;
+import com.ztesoft.remote.inf.IRemoteSmsService;
+
+import org.apache.log4j.Logger;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import params.checkacctconfig.req.CheckAcctConfigReq;
+import params.checkacctconfig.resp.CheckAcctConfigResp;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+/**
+ * 
+ * @author wu.i
+ * 对账文件处理器
+ *
+ */
+@SuppressWarnings("unchecked")
+public class CheckAcctManager extends BaseSupport implements ICheckAcctManager{
+
+	public Logger imlog = Logger.getLogger(CheckAcctManager.class);	
+	
+	private ICheckacctLogsManager checkacctLogsManager;
+	private ICMPBill bakCheckBillData;
+	private ICMPBill getBankArgs;
+	private ICMPBill dataToDataBase;
+	private ICMPBill dataBaseToFile;
+	private ICheckBill checkBill;	
+	private CacheUtil cacheUtil;
+	
+    private IRemoteSmsService localRemoteSmsService;
+    
+    private void init(){
+    	if(null == localRemoteSmsService) localRemoteSmsService = ApiContextHolder.getBean("localRemoteSmsService");
+    }
+	
+	public List<CheckacctRule> listCheckacct(int type){
+		String sql = "select * from es_checkacct_rules where type=?";
+		return this.baseDaoSupport.queryForList(sql, CheckacctRule.class,type);
+	}
+	
+	public CheckacctRule getCheckacct(String system_id,int type){
+		String sql = "select * from es_checkacct_rules where type=? and system_id=?";
+		return (CheckacctRule) this.baseDaoSupport.queryForObject(sql, CheckacctRule.class,type, system_id);
+	}
+	
+	/**
+	 * 格式为：yyyymmddsystemid 20131021104
+	 */
+	public CheckAcctConfigResp checkAcctByDateAndSystemId(String strPara){
+		
+		if (null != strPara && !strPara.equals("")){
+			if (strPara.length()!= 11){
+				throw new RuntimeException("对帐有入参追加入参长度不正确退出,正确输入方式为YYYYMMDD+3位银行ID，共11位");
+			}			
+		}
+		String strDate = "";
+		String strSystemID  = "";
+		if (null != strPara && !strPara.equals("")){
+			strDate = strPara.substring(0,8);
+			strSystemID = strPara.substring(8);			
+		}
+		
+		//to_char(to_date(?,'yyyymmdd')-1 ,'yyyymmdd') DBTUtil.to_char(DBTUtil.addDays(DBTUtil.to_date(3), -1), 5);
+		String sqlAll = " select a_file_remote_path,a_file_tail,a_file_local_path,a_shop_no,system_id , city_no , bns_local_file_path,bns_remote_file_path,up_ftp_addr,up_ftp_port ," +
+			  	"staff_id, up_ftp_user,up_ftp_passwd,boname , "+DBTUtil.to_char(DBTUtil.addDays(DBTUtil.to_date(3), -1), 5)+" || ' 00:00:00' beginTime," +
+			  	""+DBTUtil.to_char(DBTUtil.addDays(DBTUtil.to_date(3), -1), 5)+"|| ' 23:59:59' endTime,bns_filehead || "+DBTUtil.to_char(DBTUtil.addDays(DBTUtil.to_date(3), -1), 5)+" " +
+			  	"|| '.' || bns_filetail billdzfilename,"+DBTUtil.to_char(DBTUtil.addDays(DBTUtil.to_date(3), -1), 5)+" accounts_id  ,bill_error_num ,bill_error_money ,charge_error_num " +
+			  	"from es_checkacct_config  where state= '1' and system_id = ?";
+		try {	
+			List<CheckAcctConfig> acctConfigs = this.daoSupport.queryForList(sqlAll,CheckAcctConfig.class,strDate, strDate, strDate, strDate, strSystemID);
+			return runCheckAcct(acctConfigs);
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
+		
+	}
+	
+	/**
+	 * 按对账规格id查询对账配置信息
+	 */
+	public CheckAcctConfigResp checkAcctBySystemId(String system_id){
+		
+		
+		String sqlAll = " select a_file_remote_path,a_file_tail,a_file_local_path,a_shop_no,system_id , city_no ,bns_local_file_path,bns_remote_file_path,up_ftp_addr,up_ftp_port ," +
+				"staff_id, up_ftp_user,up_ftp_passwd, boname , "+DBTUtil.to_char(DBTUtil.current(-1), 1)+" ||' 00:00:00'  beginTime, " +
+				""+DBTUtil.to_char(DBTUtil.current(-1), 1)+" ||' 23:59:59'  endTime  ,bns_filehead||"+DBTUtil.to_char(DBTUtil.current(-1), 5)+"|| '.' || bns_filetail billdzfilename ," +
+				""+DBTUtil.to_char(DBTUtil.current(-1), 5)+"  accounts_id ,bill_error_num ,bill_error_money ,charge_error_num" +
+				" from es_checkacct_config  where state= '1' and system_id = ?";
+		try {
+			List<CheckAcctConfig> acctConfigs = this.daoSupport.queryForList(sqlAll,CheckAcctConfig.class,system_id);
+			return runCheckAcct(acctConfigs);
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}					
+	}
+	
+	
+	/**
+	 * 查询所有对账配置信息
+	 */
+	public CheckAcctConfigResp checkAcct(){
+		
+		
+//		String sqlAll = " select a_file_remote_path,a_file_tail,a_file_local_path,a_shop_no,system_id , city_no ,bns_local_file_path,bns_remote_file_path,up_ftp_addr,up_ftp_port ," +
+//				"staff_id, up_ftp_user,up_ftp_passwd, boname , to_char(sysdate-1,'yyyy-mm-dd') ||' 00:00:00'  beginTime, " +
+//				"to_char(sysdate-1,'yyyy-mm-dd') ||' 23:59:59'  endTime  ,bns_filehead||to_char(sysdate-1,'yyyymmdd')|| '.' || bns_filetail billdzfilename ," +
+//				"to_char(sysdate-1,'yyyymmdd')  accounts_id ,bill_error_num ,bill_error_money ,charge_error_num " +
+//				"from es_checkacct_config  where state= '1' ";
+		String sqlAll = " select a_file_remote_path,a_file_tail,a_file_local_path,a_shop_no,system_id , city_no ,bns_local_file_path,bns_remote_file_path,up_ftp_addr,up_ftp_port ," +
+				"staff_id, up_ftp_user,up_ftp_passwd, boname , "+DBTUtil.to_char(DBTUtil.current(-1), 1)+" ||' 00:00:00'  beginTime, " +
+				" "+DBTUtil.to_char(DBTUtil.current(-1), 1)+" ||' 23:59:59'  endTime  ,bns_filehead||"+DBTUtil.to_char(DBTUtil.current(-1), 5)+"|| '.' || bns_filetail billdzfilename ," +
+				""+DBTUtil.to_char(DBTUtil.current(-1), 5)+"  accounts_id ,bill_error_num ,bill_error_money ,charge_error_num " +
+				"from es_checkacct_config  where state= '1' ";
+		try {
+			List<CheckAcctConfig> acctConfigs = this.daoSupport.queryForList(sqlAll,CheckAcctConfig.class);
+			return runCheckAcct(acctConfigs);
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}					
+	}
+	
+	
+	private CheckAcctConfigResp runCheckAcct(List<CheckAcctConfig> acctconfigs){
+		//初始化beans
+		init();
+		
+		CheckAcctConfigResp resp = new CheckAcctConfigResp();
+		CompBillResult compBillResult = new CompBillResult();						//记录异常信息
+		resp.setCompBillResult(compBillResult);
+//		/List<CheckacctRule> rules = this.listCheckacct(0);
+		for (CheckAcctConfig acctconfig : acctconfigs){
+			try {
+				
+				CheckAcctConfigReq req = new CheckAcctConfigReq();
+				req.setCheckAcctConfig(acctconfig);
+				
+				bakCheckBillData.perform(req, resp);						//归档上次对账数据
+				//改为读取规则
+				CheckacctRule rule = this.getCheckacct(acctconfig.getSystem_id(), 0);
+				if(rule!=null){
+					ICheckBill cb = SpringContextHolder.getBean(rule.getBean_class());
+					cb.bestCheckBill(req, resp);//解析文件、获取银行对账数据
+				}else{
+					checkBill.bestCheckBill(req, resp);	//解析文件、获取银行对账数据
+				}
+				
+				Long icount =  resp.getTransMainVo().getIcount();							//对账数据总数
+				if (icount > 0)
+					perform(req,resp);									//对账
+				
+			} catch (RuntimeException e) {
+				e.printStackTrace();
+				CheckacctLogs checkacctLogs = new CheckacctLogs();
+				checkacctLogs.setAccounts_id(acctconfig.getAccounts_id());
+				checkacctLogs.setTrans_date(DBTUtil.current());
+				checkacctLogs.setSystem_id(acctconfig.getSystem_id());
+				checkacctLogs.setComments(compBillResult.getErr_message());
+				checkacctLogs.setErr_type(compBillResult.getErr_type());
+				checkacctLogs.setFile_name(acctconfig.getA_file_name()); //处理的时候会生成文件名 shopbo
+				checkacctLogs.setException_msg(e.getMessage().substring(0, e.getMessage().length() > 1000 ? 1000:e.getMessage().length()));
+				checkacctLogsManager.addLogs(checkacctLogs);
+				String smsMsg = "";
+				
+				AlarmTask alarmTask = compBillResult.getAlarmTask();
+				
+				if(alarmTask != null){
+					if(!StringUtil.isEmpty(alarmTask.getAlarm_task_id())){
+						StringBuffer sql = new StringBuffer();
+						
+						sql.append("SELECT * FROM es_alarm_template WHERE status = '"+Consts.CHECK_ACCT_TMPL_ABLE+"'");
+						sql.append(" AND able_time <= "+DBTUtil.current()+"");
+						sql.append(" AND enable_time >= "+DBTUtil.current()+"");
+						sql.append(" AND applic_scene_id = '"+alarmTask.getAlarm_task_id()+"'");
+						
+						AlarmTmplDate alarmTmplDate = new AlarmTmplDate();
+						List<AlarmTmplDate> list = this.baseDaoSupport.queryForList(sql.toString(), AlarmTmplDate.class);
+						
+						if(!ListUtil.isEmpty(list)){
+							for (int i = 0; i < list.size(); i++) {
+								alarmTmplDate = list.get(0);
+							}
+						}
+						
+						Map<String, Object> map = new HashMap<String, Object>();
+						map.put("alarm_amount", compBillResult.getBill_num());
+						map.put("alarm_money", compBillResult.getBill_money());
+						try {
+							map.put("reconciliation_time", DateUtil.getTime(DateUtil.DATE_FORMAT_1));
+						} catch (FrameException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						
+						alarmTask = CheckBillUtils.parseMsgTemp(alarmTask, alarmTmplDate, map);
+						
+						
+						String resSql = "SELECT * FROM es_alarm_receiver WHERE alarm_task_id = '"+alarmTask.getAlarm_task_id()+"'";
+						
+						List<AlarmReceiver> resList = this.baseDaoSupport.queryForList(resSql, AlarmReceiver.class);
+						
+						if(!ListUtil.isEmpty(resList)){
+							for (int i = 0; i < resList.size(); i++) {
+								AlarmReceiver alarmReceiver = resList.get(i);
+								
+								if(!StringUtil.isEmpty(alarmTask.getTask_content())){
+									this.localRemoteSmsService.save(alarmTask.getTask_content(), alarmReceiver.getRecevier_phone_num());
+								}
+							}
+						}
+					}
+				}
+				
+				e.printStackTrace();				
+				throw new RuntimeException("对账异常:" + e.getMessage());
+			}
+			
+			
+			//对账后删除异常日志
+			String sql = "delete es_checkacct_logs where accounts_id = ? and err_type = '00A'";//and accounts_type = '00A'
+			this.baseDaoSupport.execute(sql, acctconfig.getAccounts_id());
+			
+		}
+		return resp;
+	}
+
+	
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void perform(CheckAcctConfigReq req,CheckAcctConfigResp resp){
+		
+		dataToDataBase.perform(req, resp);					//生成对账数据
+		CheckacctRule rule = this.getCheckacct(req.getCheckAcctConfig().getSystem_id(), 1);
+		if(rule!=null){
+			ICMPBill cb = SpringContextHolder.getBean(rule.getBean_class());
+			cb.perform(req, resp);//解析文件、获取银行对账数据
+		}else{
+			dataBaseToFile.perform(req, resp);					//对比银行数据生成文件
+		}
+	}
+	
+	
+	public Page listAcct(int pageNO, int pageSize,CheckAcctConfig checkAcctConfig){
+		
+		StringBuffer sql = new StringBuffer();
+		StringBuffer countSql = new StringBuffer();
+		StringBuffer where = new StringBuffer();
+		
+		sql.append("SELECT * FROM es_checkacct_config WHERE state = '"+Consts.CHECK_ACCT_CONFIG_ABLE+"'");
+		countSql.append("SELECT count(system_id) FROM es_checkacct_config WHERE state = '"+Consts.CHECK_ACCT_CONFIG_ABLE+"'");
+		
+		if(!StringUtil.isEmpty(checkAcctConfig.getSystem_name())){
+			where.append(" AND system_name like '%"+checkAcctConfig.getSystem_name()+"%'");
+		}
+		if(!StringUtil.isEmpty(checkAcctConfig.getBanknmae())){
+			where.append(" AND banknmae like '%"+checkAcctConfig.getBanknmae()+"%'");
+		}
+		if(!StringUtil.isEmpty(checkAcctConfig.getA_shop_no())){
+			where.append(" AND a_shop_no like '%"+checkAcctConfig.getA_shop_no()+"%'");
+		}
+		
+		where.append(" ORDER BY create_time DESC");
+		
+		return this.baseDaoSupport.queryForCPage(sql.append(where).toString(), pageNO, pageSize, 
+				CheckAcctConfig.class, countSql.append(where).toString());
+	}
+	
+	
+	public void saveAcct(CheckAcctConfig checkAcctConfig){
+		
+		String system_id = this.baseDaoSupport.getSequences("S_ES_ACCT_CONFIG");
+		checkAcctConfig.setSystem_id(system_id);
+		checkAcctConfig.setCreate_time(DBTUtil.current());
+		checkAcctConfig.setState(Consts.CHECK_ACCT_CONFIG_ABLE);
+		
+		this.baseDaoSupport.insert("es_checkacct_config", checkAcctConfig);
+	}
+	
+	
+	public CheckAcctConfig qyrAcctById(String system_id){
+		
+		String sql = "SELECT * FROM es_checkacct_config WHERE system_id = '"+system_id+"'";
+		
+		return (CheckAcctConfig) this.baseDaoSupport.queryForObject(sql, CheckAcctConfig.class);
+	}
+	
+	
+	public void updateAcct(CheckAcctConfig checkAcctConfig){
+		
+		this.baseDaoSupport.update("es_checkacct_config", checkAcctConfig, "system_id='"+checkAcctConfig.getSystem_id()+"'");
+	}
+	
+
+	public ICheckacctLogsManager getCheckacctLogsManager() {
+		return checkacctLogsManager;
+	}
+
+	public void setCheckacctLogsManager(ICheckacctLogsManager checkacctLogsManager) {
+		this.checkacctLogsManager = checkacctLogsManager;
+	}
+
+	public ICMPBill getBakCheckBillData() {
+		return bakCheckBillData;
+	}
+
+	public void setBakCheckBillData(ICMPBill bakCheckBillData) {
+		this.bakCheckBillData = bakCheckBillData;
+	}
+
+	public ICMPBill getGetBankArgs() {
+		return getBankArgs;
+	}
+
+	public void setGetBankArgs(ICMPBill getBankArgs) {
+		this.getBankArgs = getBankArgs;
+	}
+
+	public ICMPBill getDataToDataBase() {
+		return dataToDataBase;
+	}
+
+	public void setDataToDataBase(ICMPBill dataToDataBase) {
+		this.dataToDataBase = dataToDataBase;
+	}
+
+	public ICMPBill getDataBaseToFile() {
+		return dataBaseToFile;
+	}
+
+	public void setDataBaseToFile(ICMPBill dataBaseToFile) {
+		this.dataBaseToFile = dataBaseToFile;
+	}
+
+	public ICheckBill getCheckBill() {
+		return checkBill;
+	}
+
+	public void setCheckBill(ICheckBill checkBill) {
+		this.checkBill = checkBill;
+	}
+
+	public CacheUtil getCacheUtil() {
+		return cacheUtil;
+	}
+
+	public void setCacheUtil(CacheUtil cacheUtil) {
+		this.cacheUtil = cacheUtil;
+	}
+	
+	
+}

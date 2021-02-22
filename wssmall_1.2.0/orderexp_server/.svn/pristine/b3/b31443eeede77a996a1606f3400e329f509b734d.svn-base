@@ -1,0 +1,379 @@
+package com.ztesoft.net.action;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.drools.core.util.StringUtils;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.EsearchCatalog;
+import com.ztesoft.net.model.EsearchExpInstSolution;
+import com.ztesoft.net.param.inner.EsearchCatalogInner;
+import com.ztesoft.net.param.inner.EsearchExpInstSolutionInner;
+import com.ztesoft.net.param.outer.EsearchExpInstSolutionOuter;
+import com.ztesoft.net.service.IExpConfigManager;
+import com.ztesoft.net.service.IOrderExpManager;
+
+import commons.BeanUtils;
+
+public class EsearchCatalogAction extends WWAction {
+
+	private static final long serialVersionUID = 1L;
+	
+	private EsearchCatalogInner eclInner;
+	private EsearchCatalog esearchCatalog;
+	private EsearchExpInstSolutionInner solutionInner;
+	
+	private IExpConfigManager expConfigManager;
+	private IOrderExpManager orderExpManager;
+	
+	private String show_type;
+	private String catalog_id;//归类ID
+	private String catalog_name;//归类名称
+	private String catalog_code;//归类编码
+	private String flag;//条件标识（search:搜索页面进入）
+	
+	private List catalogTreeList;
+	
+	private String start_time;
+	
+	private String end_time;
+	
+	public String list() {
+		if(show_type != null && show_type.equals("dialog")) {
+			long start = System.currentTimeMillis();
+			this.webpage = expConfigManager.queryEsearchCatalogPage(eclInner, this.getPage(), this.getPageSize());
+			long end = System.currentTimeMillis();
+			logger.info(end-start);
+			return "dialog";
+			
+		}else {
+			return "";
+		}
+	}
+	
+	public String showCatalogTree(){
+		return "catalog_tree_list";
+	}
+	
+	public String qryCatalogTree(){
+		return "catalog_tree";
+	}
+	public String qrySpecCatalogTree(){
+		return "platform_catalog";
+	}
+	public String specCatalogMain(){
+		return "platform_catalog_main";
+	}
+	
+	public String qryCatalogTreeList(){
+		Map map = new HashMap();
+		String parent_catalog_id = "0";
+		Map<String, String> params = new HashMap<String, String>();
+		List<Map<String,String>> catalogTreeList = null;
+		if("search".equals(flag) && (!StringUtils.isEmpty(catalog_code) || !StringUtils.isEmpty(catalog_name))){
+			params.put("catalog_code", catalog_code);
+			params.put("catalog_name", catalog_name);
+			catalogTreeList = expConfigManager.queryEsearchCatalogTree(params);
+		}else{
+			catalogTreeList = expConfigManager.queryEsearchCatalogTree(parent_catalog_id);
+		}
+		if (!ListUtil.isEmpty(catalogTreeList)) {
+            for (int i = 0; i < catalogTreeList.size(); i++) {
+            	Map<String,String> catalog = catalogTreeList.get(i);
+                String catalog_id = Const.getStrValue(catalog, "catalog_id");
+                List<Map<String,String>> childrenList = expConfigManager.queryEsearchCatalogTree(catalog_id);
+                int cnt = childrenList==null?0:childrenList.size();
+                if (cnt > 0) {
+                	catalog.put("isLeaf", "false");
+                	catalog.put("state", "closed");
+                } else {
+                	catalog.put("isLeaf", "true");
+                	catalog.put("state", "open");
+                }
+            }
+        }
+		map.put("total", catalogTreeList.size());
+        map.put("rows", catalogTreeList);
+        this.json = JSONObject.toJSONString(map);
+        return JSON_MESSAGE;
+	}
+	
+	public String qryChildrenCatalog(){
+		Map map = new HashMap();
+		List<Map<String,String>> catalogTreeList = expConfigManager.queryEsearchCatalogTree(catalog_id);
+		if (!ListUtil.isEmpty(catalogTreeList)) {
+            for (int i = 0; i < catalogTreeList.size(); i++) {
+            	Map<String,String> catalog = catalogTreeList.get(i);
+                String child_catalog_id = Const.getStrValue(catalog, "catalog_id");
+                List<Map<String,String>> childrenList = expConfigManager.queryEsearchCatalogTree(child_catalog_id);
+                int cnt = childrenList==null?0:childrenList.size();
+                if (cnt > 0) {
+                	catalog.put("isLeaf", "false");
+                	catalog.put("state", "closed");
+                } else {
+                	catalog.put("isLeaf", "true");
+                	catalog.put("state", "open");
+                }
+            }
+        }
+        this.json= JSONArray.toJSONString(catalogTreeList);
+		return JSON_MESSAGE;
+	}
+	
+	public String qryCatalogAndcountTreeList(){
+		Map map = new HashMap();
+		String parent_catalog_id = "0";
+		Map<String, String> params = new HashMap<String, String>();
+		List<Map<String,String>> catalogTreeList = null;
+		if("search".equals(flag) && (!StringUtils.isEmpty(catalog_code) || !StringUtils.isEmpty(catalog_name))){
+			params.put("catalog_code", catalog_code);
+			params.put("catalog_name", catalog_name);
+			catalogTreeList = expConfigManager.queryEsearchCatalogTree(params);
+		}else{
+			catalogTreeList = expConfigManager.queryEsearchCatalogTree(parent_catalog_id);
+		}
+		if (!ListUtil.isEmpty(catalogTreeList)) {
+            for (int i = 0; i < catalogTreeList.size(); i++) {
+            	Map<String,String> catalog = catalogTreeList.get(i);
+                String catalog_id = Const.getStrValue(catalog, "catalog_id");
+                List<Map<String,String>> childrenList = expConfigManager.queryEsearchCatalogTree(catalog_id);
+                String catalog_name = Const.getStrValue(catalog, "catalog_name");
+                int c = orderExpManager.querySpecCatalogCount(catalog_id, start_time, end_time);
+                catalog_name = catalog_name + "("+c+")";
+                catalog.put("catalog_name", catalog_name);
+                int cnt = childrenList==null?0:childrenList.size();
+                if (cnt > 0) {
+                	catalog.put("isLeaf", "false");
+                	catalog.put("state", "closed");
+                } else {
+                	catalog.put("isLeaf", "true");
+                	catalog.put("state", "open");
+                }
+            }
+        }
+		map.put("total", catalogTreeList.size());
+        map.put("rows", catalogTreeList);
+        this.json = JSONObject.toJSONString(map);
+        return JSON_MESSAGE;
+	}
+	
+	public String qryChildrenCatalogAndcount(){
+		Map map = new HashMap();
+		List<Map<String,String>> catalogTreeList = expConfigManager.queryEsearchCatalogTree(catalog_id);
+		if (!ListUtil.isEmpty(catalogTreeList)) {
+            for (int i = 0; i < catalogTreeList.size(); i++) {
+            	Map<String,String> catalog = catalogTreeList.get(i);
+                String child_catalog_id = Const.getStrValue(catalog, "catalog_id");
+                List<Map<String,String>> childrenList = expConfigManager.queryEsearchCatalogTree(child_catalog_id);
+                String catalog_name = Const.getStrValue(catalog, "catalog_name");
+                int c = orderExpManager.querySpecCatalogCount(child_catalog_id, start_time, end_time);
+                catalog_name = catalog_name + "("+c+")";
+                catalog.put("catalog_name", catalog_name);
+                int cnt = childrenList==null?0:childrenList.size();
+                if (cnt > 0) {
+                	catalog.put("isLeaf", "false");
+                	catalog.put("state", "closed");
+                } else {
+                	catalog.put("isLeaf", "true");
+                	catalog.put("state", "open");
+                }
+            }
+        }
+        this.json= JSONArray.toJSONString(catalogTreeList);
+		return JSON_MESSAGE;
+	}
+	
+	public String getEsearchCatalogInfo(){
+		esearchCatalog = expConfigManager.getEsearchCatalog(catalog_id);
+		if(esearchCatalog != null){
+			//取到归类信息，取父级归类名称
+			String parent_catalog_id = esearchCatalog.getSub_catalog_id();
+			EsearchCatalog p_catalog = expConfigManager.getEsearchCatalog(parent_catalog_id);
+			if(p_catalog!=null){
+				esearchCatalog.setSub_catalog_name(p_catalog.getCatalog_name());
+			}
+		}
+		
+		return "catalog_detail";
+	}
+	
+	public String addCatalog(){
+		esearchCatalog = new EsearchCatalog();
+		esearchCatalog.setSub_catalog_id("0");//添加时默认选中顶级归类
+		catalogTreeList = expConfigManager.getCatalogSelectOption();
+		return "add_catalog";
+	}
+	
+	public String saveCatalogAdd(){
+		EsearchCatalogInner inner = new EsearchCatalogInner();
+		try {
+			BeanUtils.copyProperties(inner, esearchCatalog);
+			inner.setSource_from(ManagerUtils.getSourceFrom());
+			inner.setStaff_no(ManagerUtils.getUserId());
+			expConfigManager.addEsearchCatalog(inner);
+			this.json = "{result:0,message:'添加成功'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:1,message:'添加失败'}";
+		}
+		
+		return this.JSON_MESSAGE;
+	}
+	
+	public String editCatalog(){
+		esearchCatalog = expConfigManager.getEsearchCatalog(catalog_id);
+		catalogTreeList = expConfigManager.getCatalogSelectOption();
+		return "edit_catalog";
+	}
+	
+	public String saveCatalogEdit(){
+		EsearchCatalogInner inner = new EsearchCatalogInner();
+		try {
+			BeanUtils.copyProperties(inner, esearchCatalog);
+			expConfigManager.updateEsearchCatalog(inner);
+			this.json = "{result:0,message:'修改成功'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:1,message:'修改失败'}";
+		}
+		
+		return this.JSON_MESSAGE;
+	}
+	
+	public String updateCatalogSolution(){
+		EsearchCatalogInner inner = new EsearchCatalogInner();
+		try {
+			BeanUtils.copyProperties(inner, esearchCatalog);
+			expConfigManager.updateEsearchCatalog(inner);
+			this.json = "{result:0,message:'变更成功'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:1,message:'变更失败'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	public String deleteCatalogSolution(){
+		EsearchCatalogInner inner = new EsearchCatalogInner();
+		try {
+			BeanUtils.copyProperties(inner, esearchCatalog);
+			inner.setSolution_id("");
+			expConfigManager.updateEsearchCatalog(inner);
+			this.json = "{result:0,message:'删除成功'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			this.json = "{result:1,message:'删除失败'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	public EsearchCatalogInner getEclInner() {
+		return eclInner;
+	}
+
+	public void setEclInner(EsearchCatalogInner eclInner) {
+		this.eclInner = eclInner;
+	}
+
+	public void setEsearchCatalog(EsearchCatalog esearchCatalog) {
+		this.esearchCatalog = esearchCatalog;
+	}
+
+	public EsearchCatalog getEsearchCatalog() {
+		return esearchCatalog;
+	}
+
+	public EsearchExpInstSolutionInner getSolutionInner() {
+		return solutionInner;
+	}
+
+	public void setSolutionInner(EsearchExpInstSolutionInner solutionInner) {
+		this.solutionInner = solutionInner;
+	}
+
+	public IExpConfigManager getExpConfigManager() {
+		return expConfigManager;
+	}
+
+	public void setExpConfigManager(IExpConfigManager expConfigManager) {
+		this.expConfigManager = expConfigManager;
+	}
+
+	public String getShow_type() {
+		return show_type;
+	}
+
+	public void setShow_type(String show_type) {
+		this.show_type = show_type;
+	}
+
+	public String getCatalog_id() {
+		return catalog_id;
+	}
+
+	public void setCatalog_id(String catalog_id) {
+		this.catalog_id = catalog_id;
+	}
+	
+	public String getCatalog_name() {
+		return catalog_name;
+	}
+
+	public void setCatalog_name(String catalog_name) {
+		this.catalog_name = catalog_name;
+	}
+
+	public String getCatalog_code() {
+		return catalog_code;
+	}
+
+	public void setCatalog_code(String catalog_code) {
+		this.catalog_code = catalog_code;
+	}
+
+	public String getFlag() {
+		return flag;
+	}
+
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+
+	public List getCatalogTreeList() {
+		return catalogTreeList;
+	}
+
+	public void setCatalogTreeList(List catalogTreeList) {
+		this.catalogTreeList = catalogTreeList;
+	}
+	public String getStart_time() {
+		return start_time;
+	}
+
+	public void setStart_time(String start_time) {
+		this.start_time = start_time;
+	}
+
+	public String getEnd_time() {
+		return end_time;
+	}
+
+	public void setEnd_time(String end_time) {
+		this.end_time = end_time;
+	}
+	public IOrderExpManager getOrderExpManager() {
+		return orderExpManager;
+	}
+
+	public void setOrderExpManager(IOrderExpManager orderExpManager) {
+		this.orderExpManager = orderExpManager;
+	}
+}

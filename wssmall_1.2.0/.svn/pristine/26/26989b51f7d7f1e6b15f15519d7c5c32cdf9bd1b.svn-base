@@ -1,0 +1,155 @@
+package com.ztesoft.rule.core.ext;
+
+import java.text.DateFormat;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+
+import params.adminuser.req.AdminUserReq;
+import params.adminuser.resp.AdminUserResp;
+import services.AdminUserInf;
+
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.CommissionDetail;
+import com.ztesoft.net.mall.core.model.CommissionRuleDetail;
+import com.ztesoft.net.mall.core.model.PlanService;
+import com.ztesoft.net.mall.core.service.IRuleConfigManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.rule.core.util.Const;
+import com.ztesoft.rule.core.util.LocalCache;
+import com.ztesoft.rule.core.util.ServiceException;
+
+
+/**
+ * 结果集默认处理方式:
+ * 
+ * 1.提供4中处理方式接口,可从两个角度进行分组;
+ *   SQL/Java角度:invoke(String sql, Map data)/invoke(String sql, List<Map> facts)--为SQL类型(【已实现】)
+ *   invoke(Map data)/invoke(List<Map> facts)--为javabean类型(【子类实现】)
+ *   清单/汇总角度：invoke(String sql, Map data)/invoke(Map data) --汇总处理
+ *   invoke(List<Map> facts)/invoke(String sql, List<Map> facts) --清单处理
+ * 
+ * 2.子类需实现的：  invoke(Map data)/invoke(List<Map> facts)--为javabean类型(【子类实现】)
+ * 
+ * 【注！】
+ * 3.对汇总表的表结构要求：
+ * 1)主键列名为ID
+ * 2)序列名称为seq_tableName
+ *
+ * 4.对清单表的表结构要求：
+ * 1)关联外键为sumarry_id
+ *
+ * @author easonwu 
+ * @creation Dec 14, 2013
+ * 
+ */
+public class DefRuleResultProssor  extends BaseSupport  implements IRuleResultProssor {
+	
+	@Resource
+	protected IRuleConfigManager ruleConfigManager;
+	@Resource
+	protected AdminUserInf adminUserServ;
+	protected static final DateFormat DF = new SimpleDateFormat("yyyyMM");
+
+	@Override
+	public String saveSumarryData(String sql, Map data) {
+		String seq = baseDaoSupport.getSequences(getSeqName(sql )) ;
+		data.put(Const.SUMARRY_TABLE_ID, seq) ;
+		baseDaoSupport.update(sql, data) ;
+		return seq ;
+	}
+	
+	private String getSeqName(String sql ){
+		return "seq_"+getTableNameStr( sql ) ;
+	}
+	
+	private String getTableNameStr(String sql ){
+		String tname = (String)LocalCache.get("TABLE_NAME_"+sql) ;
+		if(StringUtils.isEmpty(tname)){
+			String pattern = "(insert\\s+into\\s+)(\\w+)(.+)";
+
+			Pattern p = Pattern.compile(pattern, 2 | Pattern.DOTALL);
+			Matcher m = p.matcher(sql);
+			if (m.find()) {
+				tname = m.group(2);
+				LocalCache.put("TABLE_NAME_"+sql , tname) ;
+			}
+			return tname ;
+		}
+		return tname ;
+	}
+	
+	/**
+	 * 返回detail_id
+	 */
+	@Override
+	public String saveSumarryData(Map data) {
+		throw new ServiceException("DefRuleResultProssor unsupport invoke(Map data) invoke") ;
+	}
+
+	@Override
+	public void saveListData(String sql, List<Map> facts ,String dataIndex) {
+		if(StringUtils.isNotEmpty(dataIndex)){
+			for(Map fact : facts){
+				fact.put(Const.LIST_TABLE_FK, dataIndex) ;
+			}
+		}
+		
+		baseDaoSupport.batchExecuteByListMap(sql, facts) ;
+	}
+
+	@Override
+	public void saveListData(List<Map> facts ,String dataIndex) {
+		throw new ServiceException("DefRuleResultProssor unsupport invokeList(List<Map> facts) invoke") ;
+	}
+	
+	public AdminUser getAdminUser(String user_id){
+		try{
+			if(StringUtils.isEmpty(user_id))return null;
+			AdminUserReq req = new AdminUserReq();
+			req.setUser_id(user_id);
+			AdminUserResp adminUserResp = adminUserServ==null?null:adminUserServ.getAdminUserById(req);
+			if(adminUserResp != null){
+				return adminUserResp.getAdminUser();
+			}
+		}catch(Exception ex){
+			
+		}
+		return null;
+	}
+	
+	/**
+	 * 插入方案明细表
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-4 
+	 * @param detail
+	 */
+	public void insertCommissionDetail(CommissionDetail detail){
+		this.baseDaoSupport.insert("es_commission_detail", detail);
+	}
+	
+	/**
+	 * 插入规则明细表
+	 * @作者 MoChunrun
+	 * @创建日期 2014-3-4 
+	 * @param detail
+	 */
+	public void insertCommissionRuleDetail(CommissionRuleDetail detail){
+		this.baseDaoSupport.insert("es_commission_rule_detail", detail);
+	}
+
+	@Override
+	public void setAuditor(CommissionDetail commissionDetail) {
+		
+	}
+}

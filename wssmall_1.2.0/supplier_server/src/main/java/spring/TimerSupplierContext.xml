@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+ 	 
+ 	<!-- ********************对账扫描开始******************** -->
+    <!-- ********************对账扫描结束******************** -->
+    <!-- 将commission_detail表里面的按monthcycle,service_code,cml_user_id分组 -->
+    <!--<bean id="commissionListJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        
+        <property name="targetObject">
+            <ref bean="commissionManager"/>
+        </property>
+        <
+        <property name="targetMethod">
+            <value>commissionListInput</value>
+        </property>
+    </bean>
+   
+    <bean id="commissionListTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="commissionListJob"/>
+        </property>
+       
+        <property name="cronExpression">
+            <value>0 0/5 * * * ?</value>
+        </property>
+    </bean>
+     -->
+    <!-- ********************充值失败单扫描开始******************** -->
+    <!-- 
+    <bean id="chargeJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+       
+        <property name="targetObject">
+            <ref bean="dealCardFailManager"/>
+        </property>
+       
+        <property name="targetMethod">
+            <value>dealCardFail</value>
+        </property>
+    </bean>
+ 	-->
+    <!-- 充值失败扫描时间 -->
+   <!--  <bean id="chargeTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="chargeJob"/>
+        </property>
+        
+        <property name="cronExpression">
+            <value>0 0/2 * * * ?</value>
+        </property>
+    </bean>-->
+    <!-- ********************充值失败但扫描结束******************** -->
+   
+
+    
+    <!-- ********** 库存告急end ********** -->
+    <!-- ********** 流量卡、充值卡充值对账begin ********** -->
+    <!-- <bean id="compChargeJob"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        调用的类
+        <property name="targetObject">
+            <ref bean="compChargePro"/>
+        </property>
+        调用类中的方法
+        <property name="targetMethod">
+            <value>compCharge</value>
+        </property>
+    </bean> -->
+    <!-- 定义触发时间 -->
+    <!-- <bean id="compChargeJobTime"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="compChargeJob"/>
+        </property>
+          每天凌晨3点启动
+        <property name="cronExpression">
+            <value>0 0 3 * * ?</value>
+        </property>
+    </bean> -->
+    <!-- 取消订单扫描时间   0 0 3 * * ? 每天3点  0 0/1 * * * ? 每分钟-->
+    <!--
+    <bean id="clearInfLoginTime"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="clearInfLoginJob"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/60 * * * ?</value>
+        </property>
+    </bean>
+    -->
+     <!-- ********************接口登录用户清空******************** -->
+     <!-- 
+	    <bean id="clearInfLoginJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	        <property name="targetObject">
+	            <ref bean="LoginUserClearTimer"/>
+	        </property>
+	        <property name="targetMethod">
+	            <value>clear</value>
+	        </property>
+	    </bean>
+     -->
+    <!-- ********** 流量卡、充值卡充值对账end ********** -->
+</beans>

@@ -1,0 +1,152 @@
+package services;
+
+import params.ZteError;
+import params.order.req.AcceptReq;
+import params.order.req.ItemAcceptReq;
+import params.order.resp.ItemAcceptResp;
+import rule.RuleInvoker;
+import rule.params.accept.req.AcceptRuleReq;
+import rule.params.accept.resp.AcceptRuleResp;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderAccept;
+import com.ztesoft.net.mall.core.model.OrderItem;
+import com.ztesoft.net.mall.core.service.IOrderAcceptManager;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.mall.core.service.IOrderNFlowManager;
+import com.ztesoft.net.mall.core.service.IOrderOuterManager;
+import commons.CommonTools;
+
+import consts.ConstsCore;
+
+public class AcceptServ extends ServiceBase implements AcceptInf {
+	
+	private IOrderNFlowManager orderNFlowManager;
+	private IOrderManager orderManager;
+	private IOrderOuterManager orderOuterManager;
+	
+	private IOrderAcceptManager orderAcceptManager;
+	
+	
+
+	/**
+	 * 保存受理单
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-10-10 
+	 * @param order
+	 * @param accept_num
+	 * @param table_name
+	 */
+	public OrderAccept saveAccept(Order order,int accept_num,String table_name){
+		OrderAccept oa = new OrderAccept();
+		oa.setAccept_num(0);
+		oa.setAccept_status(OrderStatus.ACCEPT_STATUS_0);
+		oa.setAccept_table(table_name);
+		oa.setBatch_id(order.getBatch_id());
+		oa.setCreate_time(DBTUtil.current());
+		oa.setMember_id(order.getMember_id());
+		oa.setUserid(order.getAccept_user_id());
+		oa.setModify_time(DBTUtil.current());
+		oa.setNum(accept_num);
+		oa.setOrder_id(order.getOrder_id());
+		orderAcceptManager.add(oa);
+		return oa;
+	}
+	
+	/**
+	 * 子订单受理
+	 * @作者 MoChunrun
+	 * @创建日期 2013-10-14 
+	 * @param req
+	 * @return
+	 */
+	@Override
+	public ItemAcceptResp itemAccept(ItemAcceptReq req){
+		ItemAcceptResp resp = new ItemAcceptResp();
+		OrderAccept accept = orderAcceptManager.qryByOrderId(req.getOrder_id()); //主受理单的数据自身规则处理
+		
+		String tableNames = "";
+		String prefix =",";
+		for (int i = 0; i < req.getAcceptRuleReq().getAcceptVos().size(); i++) {
+			if(i==req.getAcceptRuleReq().getAcceptVos().size()-1)
+				prefix="";
+			tableNames+=req.getAcceptRuleReq().getAcceptVos().get(i).getTable_name()+prefix;
+		}
+		
+		if(accept==null || req.getAcceptRuleReq().getAcceptVos().size()>0) //大于0 的时候插入数据
+			accept = this.saveAccept(req.getAcceptRuleReq().getOrder(), req.getAcceptRuleReq().getAcceptVos().size(), tableNames);
+		/**
+		 * 如果受理num为0侧全部受理
+		 */
+		//没有主订单，则直接退出不处理
+		if(accept ==null || req.getAcceptRuleResp().isDone() == true)
+			return null;
+		if((req.getAccept_num()+accept.getAccept_num())>accept.getNum())CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"确认受理数量不能大于总受理数量"));
+		String table_name = accept.getAccept_table();
+		if(table_name==null)CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"受理失败"));
+		int accept_status = OrderStatus.ACCEPT_STATUS_3;
+		if(accept.getNum()>(req.getAccept_num()+accept.getAccept_num()))
+			accept_status = OrderStatus.ACCEPT_STATUS_33;
+		orderAcceptManager.updateAcceptStatusByOrderId(req.getOrder_id(), accept_status);
+		orderAcceptManager.updateOrderAcceeptStatusByOrderId(req.getOrder_id(), accept_status);
+		String sql = "update "+table_name+" t set t.state=? where t.order_id=? and t.item_id=?";
+		this.baseDaoSupport.execute(sql, req.getAccept_status(),req.getOrder_id(),req.getItem_id());
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setUserSessionId(req.getUserSessionId());
+		addReturn(req,resp);
+		req.getAcceptRuleResp().setDone(true); //受理一次完成后，设置为true避免重复受理设置
+		return resp; 
+	}
+	
+	@Override
+	public AcceptRuleResp createAccept(AcceptReq acceptReq) throws ApiBusiException{
+		
+		OrderItem orderItem = acceptReq.getOrderItem();
+		//add by wui将规则移到本地化中
+		AcceptRuleReq acceptRuleReq = new AcceptRuleReq();
+		acceptRuleReq.setOrderItem(orderItem);
+		acceptRuleReq.setParams(acceptReq.getParamsList().get(0));
+		acceptRuleReq.setZteRequest(acceptReq.getZteRequest());
+		acceptRuleReq.setOattrInsts(orderManager.getOuterAttrInst(orderManager.getOrderOuterByGoodsId(orderItem.getProduct_id(),acceptReq.getOrderOuters())));
+		acceptRuleReq.setOrder(acceptReq.getOrder());
+		AcceptRuleResp acceptRuleResp = RuleInvoker.afSaveAcceptInst(acceptRuleReq);
+		
+		return acceptRuleResp;
+	}
+	
+	
+	
+	
+	public IOrderNFlowManager getOrderNFlowManager() {
+		return orderNFlowManager;
+	}
+	public void setOrderNFlowManager(IOrderNFlowManager orderNFlowManager) {
+		this.orderNFlowManager = orderNFlowManager;
+	}
+	public IOrderManager getOrderManager() {
+		return orderManager;
+	}
+	public void setOrderManager(IOrderManager orderManager) {
+		this.orderManager = orderManager;
+	}
+	public IOrderOuterManager getOrderOuterManager() {
+		return orderOuterManager;
+	}
+	public void setOrderOuterManager(IOrderOuterManager orderOuterManager) {
+		this.orderOuterManager = orderOuterManager;
+	}
+	
+	public IOrderAcceptManager getOrderAcceptManager() {
+		return orderAcceptManager;
+	}
+
+	public void setOrderAcceptManager(IOrderAcceptManager orderAcceptManager) {
+		this.orderAcceptManager = orderAcceptManager;
+	}
+	
+	
+}

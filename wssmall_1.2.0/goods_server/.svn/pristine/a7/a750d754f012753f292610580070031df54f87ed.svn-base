@@ -1,0 +1,69 @@
+package com.ztesoft.net.mall.core.service.impl.batchimport;
+
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.framework.util.FileBaseUtil;
+import com.ztesoft.net.mall.core.model.ImportDataSource;
+import com.ztesoft.net.mall.core.service.batchimport.IGoodsDataImporter;
+import com.ztesoft.net.mall.core.service.impl.batchimport.util.GoodsDescReader;
+import com.ztesoft.net.sqls.SF;
+import org.apache.log4j.Logger;
+import org.w3c.dom.Element;
+
+import java.util.Map;
+
+/**
+ * 商品描述导入器
+ * 
+ * @author kingapex
+ * 
+ */
+public class GoodsDescImporter implements IGoodsDataImporter {
+	protected final static Logger logger = Logger.getLogger(GoodsDescImporter.class);
+	private IDaoSupport daoSupport;
+	private GoodsDescReader goodsDescReader;
+
+	public void imported(Object value, Element node, ImportDataSource importDs,
+			Map goods) {
+
+		Integer goodsid = (Integer) goods.get("goods_id");
+
+		if (this.logger.isDebugEnabled()) {
+			logger.debug("开始导入商品[" + goodsid + "]描述...");
+		}
+
+		String bodyhtml = goodsDescReader.read(importDs.getDatafolder(),
+				goodsid);
+
+		if (bodyhtml != null) {
+			String sql = SF.goodsSql("GOODS_UPDATE_INTRO");
+			this.daoSupport.execute(sql, bodyhtml, goodsid);
+		}
+
+		if (this.logger.isDebugEnabled()) {
+			logger.debug("导入商品[" + goodsid + "]描述 完成");
+		}
+
+	}
+
+	public IDaoSupport getDaoSupport() {
+		return daoSupport;
+	}
+
+	public void setDaoSupport(IDaoSupport daoSupport) {
+		this.daoSupport = daoSupport;
+	}
+
+	public GoodsDescReader getGoodsDescReader() {
+		return goodsDescReader;
+	}
+
+	public void setGoodsDescReader(GoodsDescReader goodsDescReader) {
+		this.goodsDescReader = goodsDescReader;
+	}
+
+	public static void main(String[] args) {
+		logger.info(FileBaseUtil.read("D:/goodsimport/goods/彩片/3/desc.htm",
+				"GBK"));
+	}
+
+}

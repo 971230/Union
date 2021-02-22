@@ -1,0 +1,121 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.taobao.tair.json.JSONArray;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.GoodsParam;
+import com.ztesoft.net.mall.core.model.support.ParamGroup;
+import com.ztesoft.net.mall.core.service.IContractConfigManager;
+import com.ztesoft.net.mall.core.utils.GoodsUtils;
+import com.ztesoft.net.mall.plugin.standard.type.GoodsTypeUtil;
+import com.ztesoft.net.sqls.SF;
+
+
+/**
+ * 合约机配置Manager
+ * @author Administrator
+ *
+ */
+public class ContractConfigManager extends BaseSupport implements IContractConfigManager {
+	
+
+	@Override
+	public Page getTerminalList(int pageNo, int pageSize,String terminal_name,String terminal_type) {
+		
+		StringBuffer bufferSql = new StringBuffer();
+		List<String> params = new ArrayList<String>();
+		String sql = SF.goodsSql("GOODS_TERMINAL_LIST");
+		if(StringUtils.isNotEmpty(terminal_name)){
+			sql += " and b.name like ?";
+			params.add("%"+terminal_name+"%");
+		}
+		if(StringUtils.isNotEmpty(terminal_type)){
+			sql += " and b.cat_id=?";
+			params.add(terminal_type);
+		}
+		Page webpage = this.baseDaoSupport.queryForPage(sql, pageNo, pageSize,true,params.toArray(new String[]{}));
+		return webpage;
+	}
+
+	@Override
+	public Page getContractList(int pageNo, int pageSize, String contract_name) {
+		StringBuffer bufferSql = new StringBuffer();
+		List<String> params = new ArrayList<String>();
+		String sql = SF.goodsSql("GOODS_CONTRACT_LIST");
+		if(StringUtils.isNotEmpty(contract_name)){
+			sql += " and a.name like ?";
+			params.add("%"+contract_name+"%");
+		}
+		Page webpage = this.baseDaoSupport.queryForPage(sql, pageNo, pageSize,params.toArray(new String[]{}));
+		return webpage;
+	}
+
+	@Override
+	public Page getOfferList(int pageNo, int pageSize, String offer_name,
+			String selected_contracts) {
+		Page webpage = new Page();
+		List<String> sqlParams = new ArrayList<String>();
+		String sql = SF.goodsSql("GOODS_OFFER_LIST_BY_CONTRACT");
+		if(StringUtils.isNotEmpty(selected_contracts)){
+			sql += " and a.a_goods_id in("+selected_contracts+") ";
+		}
+		if(StringUtils.isNotEmpty(offer_name)){
+			sql += " and c.name like ?";
+			sqlParams.add("%"+offer_name+"%");
+		}
+		
+		sql += " order by b.name asc";
+		webpage = this.baseDaoSupport.queryForPage(sql, pageNo, pageSize,sqlParams.toArray(new String[]{}));
+		
+//		//获取商品参数，套餐对应的档次
+//		List list = webpage.getResult();
+//		for(int i=0;i<list.size();i++){
+//			Map offer = (Map)list.get(i);
+//			String params = (String)offer.get("params");
+//			List<ParamGroup> paramsArray = GoodsUtils.getParamList(params);
+//			if(paramsArray.size()>0){
+//				ParamGroup paramGroup = paramsArray.get(0);
+//				List<GoodsParam> paramList = paramGroup.getParamList();
+//				for(GoodsParam goodsParam:paramList){
+//					if("month_fee".equals(goodsParam.getEname())){
+//						offer.put("month_fee", goodsParam.getValue());
+//						break;
+//					}
+//				}
+//			}
+//		}
+
+		return webpage;
+	}
+
+	@Override
+	public Map getTagsByName(String tag_name) {
+		Page webpage = new Page();
+		List<String> sqlParams = new ArrayList<String>();
+		String sql = "select * from es_tags where cat_type=100 and tag_name=?";
+		sqlParams.add(tag_name);
+
+		List list = this.baseDaoSupport.queryForList(sql, sqlParams.toArray(new String[]{}));
+		if(list.size()>0){
+			return (Map)list.get(0);
+		}else{
+			return new HashMap();
+		}
+	}
+
+	@Override
+	public List getPackegeLevel() {
+		String sql = SF.goodsSql("GOODS_LEVEL_LIST");
+		List list = this.baseDaoSupport.queryForList(sql);
+		return list;
+	}
+
+}

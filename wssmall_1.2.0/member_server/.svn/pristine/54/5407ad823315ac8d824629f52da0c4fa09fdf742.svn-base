@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	<bean id="pointHistoryManager" class="com.ztesoft.net.mall.core.service.impl.PointHistoryManager" parent="baseSupport"></bean>
+	<bean id="memberPointManger" class="com.ztesoft.net.mall.core.service.impl.MemberPointManger" parent="baseSupport"></bean>
+	<bean id="memberPriceManager" class="com.ztesoft.net.mall.core.service.impl.MemberPriceManager" parent="baseSupport"></bean>
+	<bean id="memberLVSpecManager" class="com.ztesoft.net.mall.widget.memberlv.MemberLVSpecManager" parent="baseSupport" ></bean>
+	<bean id="regionsManager" class="com.ztesoft.net.mall.core.service.impl.cache.RegionsCacheProxy" parent="baseSupport">
+		<constructor-arg><ref bean="regionsDbManager"/></constructor-arg>
+	</bean>
+	<!-- 友情链接管理 -->
+	<bean id="friendsLinkManager" class="com.ztesoft.net.app.base.core.service.impl.FriendsLinkManager"  parent="baseSupport" />
+	<bean id="guestBookManager" class="com.ztesoft.net.app.base.core.service.impl.GuestBookManager"  ></bean>
+	<bean id="memberBuyRuleMamager" class="com.ztesoft.net.mall.core.service.impl.MemberBuyRuleMamager"  parent="baseSupport" />
+	<bean id="regionsDbManager" class="com.ztesoft.net.mall.core.service.impl.RegionsManager" parent="baseSupport"></bean>
+	<bean id="memberOrderManager" class="com.ztesoft.net.mall.core.service.impl.MemberOrderManager" parent="baseSupport"></bean>
+	<bean id="memberAddressManager" class="com.ztesoft.net.mall.core.service.impl.MemberAddressManager"   parent="baseSupport" />
+	<bean id="memberLvManager" class="com.ztesoft.net.mall.core.service.impl.MemberLvManager"   parent="baseSupport" />
+	<bean id="memberManager" class="com.ztesoft.net.mall.core.service.impl.MemberManager"   parent="baseSupport"  />
+    <bean id="memberCouponsManager" class="com.ztesoft.net.mall.core.service.impl.MemberCouponsManager" parent="baseSupport"></bean>
+	<!--会员插件桩 -->
+	<bean id="memberPluginBundle" class="com.ztesoft.net.mall.core.plugin.member.MemberPluginBundle"></bean>
+	
+</beans>

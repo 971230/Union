@@ -1,0 +1,12 @@
+package com.ztesoft.net.mall.core.action.order.finish;
+
+import java.util.Map;
+
+import com.ztesoft.net.mall.core.action.order.AbstractHander;
+
+public  interface IFinishHander{
+
+	public void finish();
+
+
+}

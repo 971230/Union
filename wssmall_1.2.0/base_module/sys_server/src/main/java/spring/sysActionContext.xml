@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+    <!-- 快捷菜单 -->
+    <bean id="usersMenuAction"  class="com.ztesoft.net.mall.core.action.backend.UsersMenuAction" scope="prototype"></bean>
+	<!-- 区域 -->
+    <bean id="commonRegionAction"  class="com.ztesoft.net.app.base.core.action.CommonRegionAction" scope="prototype"></bean>
+	<!-- 组织 -->
+	<bean id="orgAdminAction" class="com.ztesoft.net.app.base.core.action.OrgAdminAction" scope="prototype" />
+	<!--  角色-->
+ 	<bean id="roleAction" class="com.ztesoft.net.app.base.core.action.RoleAction" scope="prototype" />
+	<!--  权限-->
+ 	<bean id="authAction" class="com.ztesoft.net.app.base.core.action.AuthAction" scope="prototype" />
+	<!-- 菜单管理-->
+ 	<bean id="menuAction" class="com.ztesoft.net.app.base.core.action.MenuAction" scope="prototype" />
+ 	<!-- 数据权限 -->
+	<bean id="orgRoleAction" class="com.ztesoft.net.app.base.core.action.RoleAuthAction" scope="prototype" />
+	
+ 	<!--  问答-->
+	<bean id="askAction" class="com.ztesoft.net.app.base.core.action.AskAction" scope="prototype" />
+ 	
+ 	<!-- 导航条 -->	
+ 	<bean id="siteMenuAction" class="com.ztesoft.net.app.base.core.action.SiteMenuAction" scope="prototype"/>
+ 	
+	<bean id="pluginAction" class="com.ztesoft.net.app.base.core.action.PluginAction" scope="prototype"/>
+	<bean id="rankAction" class="com.ztesoft.net.mall.core.action.backend.RankAction" scope="prototype"/>
+	<bean id ="messageAction" class = "com.ztesoft.net.mall.core.action.backend.MessageAction" scope ="prototype"></bean>
+	<!-- 
+	<bean id ="cacheAction" class = "com.ztesoft.net.mall.core.action.cache.CacheAction" scope ="prototype"></bean>
+	 -->
+	<bean id="mblLoginAction" class="com.ztesoft.net.mall.core.action.backend.MblLogAction" scope="prototype"/>
+	<bean id="orderGroupAction" class="com.ztesoft.net.mall.core.action.backend.OrderGroupAction" scope="prototype"></bean>
+	
+	<!-- 应用中心 -->
+	<bean id="appAction" class="com.ztesoft.net.mall.core.action.backend.AppAction" scope="prototype"></bean>
+	
+	<bean id="sysSettingAction" class="com.ztesoft.net.app.base.core.action.SysSettingAction" scope="prototype"/>
+</beans>

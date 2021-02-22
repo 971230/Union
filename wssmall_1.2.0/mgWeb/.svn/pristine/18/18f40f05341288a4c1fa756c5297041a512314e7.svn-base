@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>电商平台 - API详情</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="shortcut icon" href="" type="image/x-icon">
+<link rel="stylesheet" href="css/base-min.css">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/error.css">
+<link rel="stylesheet" href="css/open-base.css">
+<link rel="stylesheet" href="css/sh.css">
+<link rel="stylesheet" href="css/editor-pkg-min-datauri.css" >
+<link rel="stylesheet" href="css/right-tools.css">
+<script src="js/jquery-1.4.2.min.js"></script>
+</head>
+<body>
+	<div class="top-header-menu">
+		<div class="top-menu-cont">
+			<h1 class="top-logo" style="display:none;">
+				<a class="top-logo-link" href="http://open.taobao.com/" alt="淘宝开放平台"></a>
+			</h1>
+			<!-- 搜索start -->
+			<div class="search-wrap">
+				<div class="search">
+					<div id="search">
+						<div class="default"><span class="initText">请输入您要搜索的内容</span></div>
+						<div class="actived">
+							<input autocomplete="off" class="searchText" id="searchText" t="api" onkeypress="EnterPress()" onkeydown="EnterPress(event)" type="text"> 
+							<a class="sBtn" onclick="searchapi()"></a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- 搜索end -->
+			<ul class="top-nav-menu clearfix">
+				<li><a href="#">文档</a></li>
+				<li class="selected"><a href="index.html">API<iclass="reddot"></i></a></li>
+			</ul>
+		</div>
+	</div>
+	<!-- header end -->
+
+	<!--header end-->
+	<!--面包屑 begin-->
+	<div class="crumbs">
+		<a href="index.html">用户API</a>
+		<a class="last" href="#">zte.net.iservice.IGoodsCatsService</a>
+		<!--class with "last"-->
+	</div>
+	<!--面包屑 end-->
+
+	<div class="container grid-s165m0 layout">
+		<!--正文区 begin-->
+		<div class="col-main bg_line">
+			<div class="main-wrap">
+				<div class="title-wrap">
+					<h1 class="open-bg title">
+						zte.net.iservice.IGoodsCatsService 分类信息管理API 
+					</h1>
+
+					<ul class="api-sub-title layout clearfix">
+						<li class="sub-title"><a class="link" href="#param-in-h2">函数输入参数</a></li>
+						<li class="sub-title last"><a class="link" href="#param-out-h2">函数输出参数</a></li>
+					</ul>
+				</div>
+
+				<div class="api-detail-bd" id="bd">
+					<div>
+						<p class="title-intro">分类信息管理API[查询分类信息，按会员类型查询不同的分类 查询分类推荐商品 查询子分类列表（根据分类查询子分类）查询热卖分类标签]</p>
+						<!-- 函数入参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-in-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-in')"> 函数输入参数<font color="blue"><b>class zte.params.goodscats.req.CatGetReq</b></font>
+							</h2>
+							<div id="param-in" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">商品ID</td>
+											<td class="middle"><font color='red'>goods_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">goods_id：商品ID</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">API方法标识</td>
+											<td class="middle"><font color='red'>com.goodsService.cat.get</font></td>
+											<td class="middle">String</td>
+											<td class="middle"></td>
+											<td class="left">ApiMethodName，在注册中心中唯一</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数入参>>end -->
+						<!-- 函数出参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-out-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-out')"> 函数输出参<font color="blue"><b>class zte.params.goodscats.resp.CatGetResp</b></font>
+							</h2>
+							<div id="param-out" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>										
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">商品分类</td>
+											<td class="middle"><font color='red'>cat</font></td>
+											<td class="middle">com.ztesoft.net.mall.core.model.Cat</td>
+											<td class="middle">Y</td>
+											<td class="left">cat：商品分类</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数出参>>end -->						
+					</div>
+					
+				</div>
+			</div>
+		</div>
+		<!--正文区 end-->
+		<!--左侧导航栏 begin-->
+		<div class="col-sub">
+			<div class="APIgory">
+				<ul id="leftnavigation">
+					<li>
+						<div class="APIgory-title">
+							<a href="index.html">返回&nbsp;<span class="APIgory-sub-title">zte.net.iservice.IGoodsCatsService</span></a>
+						</div>
+					</li>
+						<li url="zte.net.iservice.IGoodsCatsService.listAllChildren.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.listAllChildren.html" title="listAllChildren">zte.net.iservice.IGoodsCatsService.listAllChildren</a>
+									<p class="APIgory-intro info-overflow">获取所有子类型</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.getCat.html">
+							<div class="APIgory-list focus ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.getCat.html" title="getCat">zte.net.iservice.IGoodsCatsService.getCat</a>
+									<p class="APIgory-intro info-overflow">获取一个商品分类</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.listGoodsByCatId.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.listGoodsByCatId.html" title="listGoodsByCatId">zte.net.iservice.IGoodsCatsService.listGoodsByCatId</a>
+									<p class="APIgory-intro info-overflow">查询分类推荐商品</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.getHotList.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.getHotList.html" title="getHotList">zte.net.iservice.IGoodsCatsService.getHotList</a>
+									<p class="APIgory-intro info-overflow">热词搜索</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.listCats.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.listCats.html" title="listCats">zte.net.iservice.IGoodsCatsService.listCats</a>
+									<p class="APIgory-intro info-overflow">获取分类列表</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.listGoodsCatsByLvId.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.listGoodsCatsByLvId.html" title="listGoodsCatsByLvId">zte.net.iservice.IGoodsCatsService.listGoodsCatsByLvId</a>
+									<p class="APIgory-intro info-overflow">查询分类信息，按会员类型查询不同的分类</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.listGoodsCatsByParentId.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.listGoodsCatsByParentId.html" title="listGoodsCatsByParentId">zte.net.iservice.IGoodsCatsService.listGoodsCatsByParentId</a>
+									<p class="APIgory-intro info-overflow">查询子分类列表</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.getHotTag.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.getHotTag.html" title="getHotTag">zte.net.iservice.IGoodsCatsService.getHotTag</a>
+									<p class="APIgory-intro info-overflow">查询热卖分类标签</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.getCatPath.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.getCatPath.html" title="getCatPath">zte.net.iservice.IGoodsCatsService.getCatPath</a>
+									<p class="APIgory-intro info-overflow">获取分类的path</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.getComplexGoods.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.getComplexGoods.html" title="getComplexGoods">zte.net.iservice.IGoodsCatsService.getComplexGoods</a>
+									<p class="APIgory-intro info-overflow">根据分类获取关联商品信息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.listCatsByGoodsId.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.listCatsByGoodsId.html" title="listCatsByGoodsId">zte.net.iservice.IGoodsCatsService.listCatsByGoodsId</a>
+									<p class="APIgory-intro info-overflow">根据商品id获取分类</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.listCatsByCond.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.listCatsByCond.html" title="listCatsByCond">zte.net.iservice.IGoodsCatsService.listCatsByCond</a>
+									<p class="APIgory-intro info-overflow">获取分类列表</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.IGoodsCatsService.getCatById.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.IGoodsCatsService.getCatById.html" title="getCatById">zte.net.iservice.IGoodsCatsService.getCatById</a>
+									<p class="APIgory-intro info-overflow">获取单个分类</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+				</ul>
+			</div>
+		</div>
+		<!--左侧导航栏 end-->
+	</div>
+
+	<script type="text/javascript">
+		function changeHide(imgDom, contentDivId) {
+			var contentDiv = document.getElementById(contentDivId);
+			if (contentDiv.style.display == "none") {
+				contentDiv.style.display = "";
+				imgDom.src = "image/tri_down.png";
+			} else {
+				contentDiv.style.display = "none";
+				imgDom.src = "image/tri_right.png";
+			}
+		}
+		
+		$(function(){
+				$($("#leftnavigation").find("li")).each(function(){
+					$(this).bind("click",function(){
+						 window.location.href=$(this).attr("url");
+					});	
+					
+				});
+		
+		})
+	</script>
+	<!--footer begin-->
+	<div id="footer">
+		<div class="footer">
+			<div class="contact">
+				<a class="weibo" href="#" target="_blank">电商平台</a> 
+			</div>
+
+			<div class="about">
+				<span class="copyright">Copyright ? 2003-2012 ZteSoft 版权所有</span>
+				<span class="links">
+				 <a href="#" target="_blank">关于我们</a>
+				</span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

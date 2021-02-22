@@ -1,0 +1,68 @@
+package com.ztesoft.net.rule.order;
+
+import javax.annotation.Resource;
+
+import rule.impl.CoQueueBaseRule;
+import rule.params.coqueue.req.CoQueueRuleReq;
+import rule.params.coqueue.resp.CoQueueRuleResp;
+import zte.net.ecsord.params.order.req.StartOrderPlanReq;
+import zte.net.ecsord.params.order.resp.StartOrderPlanResp;
+import zte.net.iservice.IOrderStandardizing;
+import zte.params.order.req.OrderCollect;
+import zte.params.order.resp.OrderAddResp;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.CoQueue;
+import commons.CommonTools;
+
+public class GProdOrderStandardizing extends CoQueueBaseRule implements IOrderStandardizing {
+
+	@Resource
+	private OrderStandarService orderStandarService;
+
+	public static final String ORDERSTANDARDIZE_CODE = "ORDERSTANDARDIZE_AUTO";
+	
+	public void syncOrderStandardizing(OrderCollect oc,String userSessionId) throws ApiBusiException {
+		orderStandarService.syncOrderStandardizing(oc, userSessionId, ORDERSTANDARDIZE_CODE);
+	}
+	
+	
+	@Override
+	public CoQueueRuleResp coQueue(CoQueueRuleReq coQueueRuleReq) {
+		logger.info("====================1===============================1===================任务开始");
+		CoQueue queue = coQueueRuleReq.getCoQueue();
+		CoQueueRuleResp resp = new CoQueueRuleResp();
+		String json ="";
+		try{
+			if(queue!=null){
+				String order_id = queue.getObject_id();
+				json = queue.getContents(); 
+				OrderCollect oc = CommonTools.jsonToBean(json, OrderCollect.class);
+				this.syncOrderStandardizing(oc,coQueueRuleReq.getUserSessionId());
+			}
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+			resp.setResp_code(Consts.RESP_CODE_000);
+			resp.setResp_msg("成功");
+		}catch(Exception ex){
+			ex.printStackTrace();
+			resp.setError_code("1");
+			resp.setError_msg("失败");
+		}
+		logger.info("=========================11111==============完成===============");
+		return resp;
+	}
+
+
+	@Override
+	public void startOrderStandingPlan(String service_code, OrderAddResp resp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public StartOrderPlanResp syncOrderStandardizing(StartOrderPlanReq req){
+		return null;
+	}
+}

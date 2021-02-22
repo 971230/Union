@@ -1,0 +1,289 @@
+package com.ztesoft.cms.page.file;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServlet;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+
+import com.powerise.ibss.util.CacheData;
+import com.ztesoft.cms.page.file.vo.FileBean;
+import com.ztesoft.ibss.common.util.CommonUpLoadInf;
+import com.ztesoft.ibss.common.util.CrmConstants;
+import com.ztesoft.ibss.common.util.DateFormatUtils;
+import com.ztesoft.ibss.ct.config.CTConfig;
+import com.ztesoft.ibss.ct.config.ConfigUtil;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+
+
+/**
+ * 
+ * @author wu.i 文件上传工具类
+ * 
+ */
+public class UploadTools extends HttpServlet {
+	private static Logger logger = Logger.getLogger(UploadTools.class);
+	public final static String RES_FILE_PATH = "/res/upload/";
+    private static final String FTP_CONFIG_NAME = "FTP_CONGFIG_SERVER"; // ftp服务器配置
+    
+    private static List myStaticFtpConfig = null;
+    
+	public String getFileNameByPrefix(String prefix) {
+		if ("jpg".equals(prefix) || "gif".equals(prefix)
+				|| "png".equals(prefix) || "bmp".equals(prefix))
+			return "picture";
+		if ("jsp".equals(prefix))
+			return "jsp";
+		if ("txt".equals(prefix))
+			return "txt";
+		if ("word".equals(prefix))
+			return "word";
+		if ("js".equals(prefix))
+			return "js";
+		if ("css".equals(prefix))
+			return "css";
+		return "others";
+	}
+
+	
+	
+	@SuppressWarnings("unchecked")
+	public static void delete(String filePath) {
+		UpLoadInf upLoadInf = new CommonUpLoadInf();
+		try {
+		   upLoadInf.delete(filePath); //删除文件
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+	}
+
+	@SuppressWarnings("unchecked")
+	public static void syToFtpFile(String fileName, String filePath,String folder) {
+		//不带水印上传
+
+		//执行文件同步到ftp服务器
+		FileBean fileBean = new FileBean();
+		fileBean.setName(fileName);
+		fileBean.setPath("");
+		fileBean.setPostfix("");
+		fileBean.setFolder(folder);
+		
+		Map fileMap = new HashMap();
+		fileMap.put("catalog_name", "");
+		fileMap.put("CREATE_STAFF_NO", "");
+		fileMap.put("FILE_BEAN", fileBean);
+		fileMap.put("FILE_ITEM", new File(filePath));
+		fileMap.put("FILE_DESC", "1");
+		fileMap.put("F_LEVEN_FOLDER_NAME", "");//远程文件路径
+		fileMap.put("FILE_SIZE", "");//文件大小
+		fileMap.put("DOWN_FILE_NAME", "");
+		fileMap.put("ACCESS_PATH", "");
+		fileMap.put("UPLOAD_FILE_PATH", "");
+		fileMap.put("S_LEVEN_FOLDER_NAME", "goods");
+		fileMap.put("LOCAL_FILE_PATH", filePath);
+		fileMap.put("FILE_PATH", filePath);
+		fileMap.put("RELA_NO", "");
+		fileMap.put("FILE_NAME", fileName);
+		fileMap.put("UPLOAD_TYPE", "");
+		fileMap.put("UPLOAD_SERVER", "");
+		UpLoadInf upLoadInf = new CommonUpLoadInf();
+		try {
+		    fileMap = upLoadInf.upLoad(fileMap);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
+	public String getFileNameBySysdate() {
+		String fileName = DateFormatUtils
+				.formatDate(CrmConstants.DATE_FORMAT_8);
+		return fileName;
+	}
+
+	public String getFileExt(String file_name) {
+		String fileExt = file_name.substring(file_name.lastIndexOf(".") + 1,
+				file_name.length());
+		return fileExt;
+	}
+
+	public String getRandomFileName(String file_name) {
+		int n = 1000 + (int) (Math.random() * 90000);
+		String file_no = DateFormatUtils
+				.formatDate(CrmConstants.DATE_TIME_FORMAT_14)
+				+ String.valueOf(n);
+		file_name = file_no + "." + this.getFileExt(file_name);
+		return file_name;
+	}
+
+	public String getFtpFileFolder(String root_folder, String file_name) {
+		String file_save_path = root_folder + "/"
+		+ this.getFileNameBySysdate() + "/"
+		+ this.getFileNameByPrefix(this.getFileExt(file_name));// 保存目录
+		if(StringUtils.isEmpty(root_folder))
+		{
+			 file_save_path =this.getFileNameBySysdate() + "/"
+			+ this.getFileNameByPrefix(this.getFileExt(file_name));// 保存目录
+		}
+		return file_save_path;
+	}
+
+	public String getFtpFilePath(String root_folder, String file_name) {
+		String file_save_path = this.getFtpFileFolder(root_folder, file_name)
+				+ "/" + file_name;
+		return file_save_path;
+	}
+
+	public void init(){}
+
+	public String  getConfigFile_foder() {
+		ICacheUtil util = (ICacheUtil)SpringContextHolder.getBean("cacheUtil");
+		String file_foder =  util.getConfigInfo("CT_ATTACHMENT_PATH");
+        if(file_foder.equals("")){
+        	file_foder="/was/AppServer/profiles/ppmapp/installedApps/Dmgr02NodeCell/image/temp";
+        }
+        return file_foder;
+	}
+	
+	
+	public String getConfigMax_file_size() {
+		 String max_file_size = CTConfig.getInstance().getValue("CT_ATTACHMENT_MAX_SIZE");
+         if(max_file_size.equals("")){
+         	max_file_size="10000";
+         }
+	    return max_file_size;
+	        
+	}
+	
+	/*public String  getReadFilePath(SqlMapExe sqlMax,String down_file_name) {
+		ArrayList sqlParams = new ArrayList();
+		sqlParams.add(down_file_name);
+		return sqlMax.querySingleValue("select  a.local_file_path || '/' || a.down_file_name as read_file_path  from twb_file_upload a where a.down_file_name = ?",sqlParams);
+	}
+	
+	public String  getFtpPathByAccessPathDb(SqlMapExe sqlMax,String access_file_path) {
+		ArrayList sqlParams = new ArrayList();
+		sqlParams.add(access_file_path);
+		String real_path = sqlMax.querySingleValue("select  a.ftp_file_path || '/' || a.down_file_name as read_file_path  from twb_file_upload a where a.access_path = ?",sqlParams);
+        
+		return real_path;
+	}*/
+	public String getLocalPathByAccessPath(String access_path){
+		String local_path = this.getConfigFile_foder()+access_path.substring(access_path.indexOf("/upload/")+7);
+		local_path = local_path.substring(0, local_path.lastIndexOf("/"));
+		return local_path;
+	}
+	public String getFtpPathByAccessPath(String access_path){
+		String ftpPath = getLocalPathByAccessPath(access_path).replaceAll("upload_tmp", "upload");
+		return ftpPath;
+	}
+	
+	/*public String  getModCountByAccessPath(SqlMapExe sqlMax,String access_file_path) {
+		ArrayList sqlParams = new ArrayList();
+		sqlParams.add(access_file_path);
+		String mod_count = sqlMax.querySingleValue("select nvl(a.mod_count,0)  from twb_file_upload a where a.access_path = ?",sqlParams);
+		return mod_count;
+	}  */
+	
+	/*public String  getContentNoByAccessPath(SqlMapExe sqlMax,String access_file_path) {
+		ArrayList sqlParams = new ArrayList();
+		sqlParams.add(access_file_path);
+		String mod_count = sqlMax.querySingleValue("select content_no  from twb_file_upload a where a.access_path = ?",sqlParams);
+		return mod_count;
+	} */
+	
+	
+	/*public void  updateModCountByAccessPath(SqlMapExe sqlMax,String access_file_path) {
+		ArrayList sqlParams = new ArrayList();
+		sqlParams.add(access_file_path);
+		sqlMax.excuteUpdate("update twb_file_upload a set a.mod_count = nvl(a.mod_count,0)+1 where a.access_path = ? ",sqlParams);
+	} */
+	
+	public String  getConfigAccessFile_foder() {
+		
+		ICacheUtil util = (ICacheUtil)SpringContextHolder.getBean("cacheUtil");
+		String file_foder = util.getConfigInfo("CT_ACCESS_PATH");
+        if(file_foder.equals("")){
+        	file_foder="/was/AppServer/profiles/ppmapp/installedApps/Dmgr02NodeCell/image/temp";
+        }
+        return file_foder;
+	}
+
+    /*
+     * 网厅附件上传FTP服务器配置,CT_KEY需要以FTP_CONGFIG_SERVER_开头，格式
+     * ：ip:port$path$username$password$servername$web_path
+     * 10.40.198.17:21$/ibss/crmnet/picture$ibss$ibss$servername$web_path,
+     */
+	@SuppressWarnings("unchecked")
+	public List getFtpConfig() {
+		
+		ICacheUtil util = (ICacheUtil)SpringContextHolder.getBean("cacheUtil");
+		
+		String servercfg = util.getConfigInfo(FTP_CONFIG_NAME);
+		String [] servers = servercfg.split("__");
+		List ls = new ArrayList();
+		for(int i=0;i<servers.length;i++){
+			String [] server = servers[i].split("\\$");;
+			if (server.length != 6) {// 配置错误
+				logger.debug("ftp格式配置错误：" + server);
+				logger.debug("ftp配置的格式为：ip:port$path$username$password$servername$web_path");
+				continue;
+			}
+			HashMap config = new HashMap();
+			config.put("server", server[0]);
+			config.put("path", server[1]);
+			config.put("username", server[2]);
+			config.put("password", server[3]);
+			config.put("web_path", server[5]);
+			ls.add(config);
+		}
+		return ls;
+	}
+
+	/*
+	 * 静态方法
+     */
+	public static List getFtpConfig_static() {
+		if(myStaticFtpConfig==null){
+			Map map = (Map)CacheData.getM_Data().get(ConfigUtil.CtConfigCatalog);
+			List ls = new ArrayList();
+			String keyName = "";
+			String keyValue = "";
+			for (Iterator iter = map.keySet().iterator(); iter.hasNext();) {
+				keyName = (String) iter.next();
+				HashMap config = new HashMap();
+				if (keyName.indexOf(FTP_CONFIG_NAME) == 0
+						&& keyName.lastIndexOf("_DESC") == -1) {
+					keyValue = (String) map.get(keyName);
+					String values[] = keyValue.split("\\$");
+					if (values.length != 4) {// 配置错误
+						logger.debug("ftp格式配置错误：" + values);
+						logger.debug("ftp配置的格式为：ip:port$path$username$password");
+						continue;
+					}
+					config.put("server", values[0]);
+					config.put("path", values[1]);
+					config.put("username", values[2]);
+					config.put("password", values[3]);
+					ls.add(config);
+				}
+			}
+			myStaticFtpConfig = ls;
+				
+			return ls;
+		}else{
+			return myStaticFtpConfig;
+		}
+		
+		
+	}
+}

@@ -1,0 +1,32 @@
+<#list children as cat> 
+<tr>
+    <td style="padding-left:${(level+1)*20}px;font-weight: bold;">${cat.name}</td>
+    <td>${cat.type_name!''}</td>
+    <td>
+		  <input type="hidden" name="cat_ids" value="${cat.cat_id }"/>
+	     <input type="text" name="cat_sorts" style="width:30px" value="${cat.cat_order }"/>
+    </td>
+    <td>
+     	<input type="hidden" name="floor_list_show" catid="${cat.cat_id }" value="${cat.floor_list_show!'0'}"/>
+     	<input type="checkbox"  catid="${cat.cat_id }" onChange="checkboxChange(this)" value="${cat.floor_list_show!'0'}" />
+    </td> 
+    <td><a href="cat!add.do?cat_id=${cat.cat_id}"><img src="images/transparent.gif" class="add"></a></td>
+    <td><a href="cat!edit.do?cat_id=${cat.cat_id}"><img src="images/transparent.gif" class="modify"></a></td>
+    
+    <td>
+    	<#list memberLv as lv> 
+    		<input type="checkbox" catid="${cat.cat_id }" parent_id="${cat.parent_id }" onChange="memberLvChange(this)" value="${lv.lv_id}" <#if (cat.lvid0?? && cat.lvid0==lv.lv_id)>checked<#elseif (cat.lvid1?? &&cat.lvid1==lv.lv_id)>checked<#elseif (cat.lvid2?? &&cat.lvid2==lv.lv_id)>checked<#elseif (cat.lvid3?? &&cat.lvid3==lv.lv_id)>checked</#if> />${lv.name}
+    	</#list>
+    </td>
+    <td>
+    <a href="javascript:;" ><img src="images/transparent.gif" class="delete" catid="${cat.cat_id}"></a>
+     
+    </td>
+</tr>
+	<#if cat.hasChildren>
+		<#assign level=level+1 />
+	  	<#assign children=cat.children />
+		<#include 'list_children.html' />
+  		<#assign level=level-1/>
+	</#if>
+</#list>

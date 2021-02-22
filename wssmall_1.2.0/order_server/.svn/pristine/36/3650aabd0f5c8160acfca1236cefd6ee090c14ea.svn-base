@@ -1,0 +1,345 @@
+package services;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+
+import params.ZteError;
+import params.order.req.ConfirmShippingReq;
+import params.order.req.DeliveryReq;
+import params.order.resp.ConfirmShippingResp;
+import params.order.resp.DeliveryResp;
+import rule.RuleInvoker;
+import util.OrderThreadLocalHolder;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.Delivery;
+import com.ztesoft.net.mall.core.model.DeliveryItem;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderItem;
+import com.ztesoft.net.mall.core.plugin.order.OrderPluginBundle;
+import com.ztesoft.net.mall.core.service.IDeliveryManager;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.mall.core.service.IOrderNFlowManager;
+import com.ztesoft.net.mall.core.service.ITplInstManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.AttrInst;
+import com.ztesoft.net.sqls.SF;
+import commons.CommonTools;
+
+import consts.ConstsCore;
+
+public class DeliveryServ extends ServiceBase implements DeliveryInf {
+	
+	private IOrderNFlowManager orderNFlowManager;
+	private IOrderManager orderManager;
+	private ITplInstManager tplInstManager;
+	private IDeliveryManager deliveryManager;
+	private OrderPluginBundle orderPluginBundle;
+    @Resource
+    private GoodsInventoryInf goodsInventoryServ;
+	
+	public ConfirmShippingResp confirmShipping(ConfirmShippingReq req){
+		//OrderThreadLocalHolder.getInstance().getOrderCommonData().setStringValue("house_id", req.getHouse_id());
+		ConfirmShippingResp resp = new ConfirmShippingResp();
+		Delivery delivery = req.getDelivery();
+		if(delivery==null)
+			delivery = deliveryManager.get(req.getDelivery_id());
+		List<DeliveryItem> itemList = req.getDeliveryItems();
+		if(itemList==null || itemList.size()==0)CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"param itemList is NULL"));
+		String tmp = "";
+		boolean flag = false;
+		for(DeliveryItem di:itemList){
+			if(goodsInventoryServ.goodsIsInventory(req.getHouse_id(),di.getGoods_id())){
+				flag = true;
+				tmp += "["+di.getName()+"]、";
+			}
+		}
+		if(flag){
+			tmp = tmp.substring(0,tmp.length()-1);
+			tmp += "商品正在盘点中，不允许操作。";
+			resp.setError_code("2");
+			resp.setError_msg(tmp);
+			return resp;
+			//CommonTools.addError(new ErrorEntity(ConstsCore.ERROR_FAIL,tmp));
+		}
+		if(delivery== null) CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"param delivery is NULL"));
+		Order order = orderManager.get(delivery.getOrder_id());
+		if(order== null) CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"delivery_id is error"));
+		if(req.getDeliveryItems()== null)CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"param itemList is NULL"));
+		if(OrderStatus.ORDER_ACCEPT!=order.getStatus() && OrderStatus.SHIP_PARTIAL_SHIPED!=order.getShip_status() && false)
+			CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"订单不允许操作"));
+		if(delivery.getMoney()== null ) delivery.setMoney(0D);
+		if(delivery.getProtect_price()==null) delivery.setProtect_price(0D);
+		
+		if(logger.isDebugEnabled()){
+			logger.debug("订单["+delivery.getOrder_id()+"]发货");
+		}
+		String orderId = delivery.getOrder_id() ;
+		if(order.getStatus().intValue() ==  OrderStatus.ORDER_COMPLETE || order.getStatus().intValue() ==  OrderStatus.ORDER_CANCELLATION)
+			CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"订单已经完成或作废，不能完成操作"));
+		
+		if(order.getShip_status().intValue() ==  OrderStatus.SHIP_YES){
+			if(logger.isDebugEnabled()){
+				logger.debug("订单["+order.getSn()+"]状态已经为【已发货】，不能再对其进行发货操作");
+			}			
+			throw new IllegalStateException("订单["+order.getSn()+"]状态已经为【已发货】，不能再对其进行发货操作");
+		}
+		
+		delivery.setType(Integer.valueOf(req.getShippingType()));
+		delivery.setMember_id(order.getMember_id());
+		AdminUser user = ManagerUtils.getAdminUser();
+		if(!StringUtils.isEmpty(req.getConfirm_userid())){
+			delivery.setUserid(req.getConfirm_userid());
+		}else if(user!=null){
+			delivery.setUserid(user.getUserid());
+		}
+		delivery.setCreate_time(DBTUtil.current());
+		String delivery_id = delivery.getDelivery_id();
+		int shipStatus = OrderStatus.SHIP_YES;
+		
+		//处理商品发货项
+		Map params = new HashMap();
+		params.put("house_id", req.getHouse_id());
+		int goodsShipStatus = orderNFlowManager.processGoodsShipItem(orderId, delivery_id, itemList,"",params,order);
+		shipStatus=goodsShipStatus;
+		
+		if(req.getGiftitemList()!=null && !req.getGiftitemList().isEmpty()){
+			//处理赠品发货项
+			int giftShipStatus = orderNFlowManager.processGiftShipItem(orderId, delivery_id, req.getGiftitemList());
+			shipStatus =  (giftShipStatus== OrderStatus.SHIP_YES &&goodsShipStatus== OrderStatus.SHIP_YES)?OrderStatus.SHIP_YES:OrderStatus.SHIP_PARTIAL_SHIPED;
+		}
+		//如果发货状态不为全部发货即为部分发货
+		shipStatus=shipStatus==OrderStatus.SHIP_YES?OrderStatus.SHIP_YES :OrderStatus.SHIP_PARTIAL_SHIPED;
+		delivery.setShip_status(shipStatus);
+		if(!StringUtil.isEmpty(req.getLogi_id()))
+			delivery.setLogi_id(req.getLogi_id());
+		if(!StringUtil.isEmpty(req.getLogi_name()))
+			delivery.setLogi_name(req.getLogi_name());
+		if(!StringUtil.isEmpty(req.getLogi_no()))
+			delivery.setLogi_no(req.getLogi_no());
+		baseDaoSupport.update("es_delivery", delivery, "delivery_id='"+delivery.getDelivery_id()+"'");
+		if(OrderStatus.SHIP_YES!=shipStatus){
+			//部份发货重新增加物流表记录
+			delivery.setDelivery_id(null);
+			delivery.setShip_status(-1);
+			delivery.setLogi_id(null);
+			delivery.setLogi_name(null);
+			delivery.setLogi_no(null);
+			this.baseDaoSupport.insert("es_delivery", delivery);
+		}
+			
+		/**
+		 * -----------------
+		 * 激发发货事件
+		 * -----------------
+		 */
+		this.orderPluginBundle.onShip(delivery, itemList);
+		
+		if(logger.isDebugEnabled()){
+			logger.debug("更新订单["+ orderId+"]状态["+OrderStatus.ORDER_SHIP+"]，发货状态["+shipStatus+"]");
+		}			
+		//更新订单状态为已发货
+		//baseDaoSupport.execute(SF.orderSql("SERVICE_SHIP_STATUS_UPDATE"), OrderStatus.ORDER_SHIP,shipStatus,orderId);
+		String sql = SF.orderSql("SERVICE_SHIP_STATUS_UPDATE_NEW");//
+		List param = new ArrayList();
+		param.add(OrderStatus.ORDER_SHIP);
+		param.add(shipStatus);
+		//修改完成订单处理ID
+		/*if(!StringUtils.isEmpty(req.getNext_deal_user_id())) {
+			sql += ",ship_user_id=?";
+			param.add(req.getNext_deal_user_id());
+		}else{
+			sql += ",ship_user_id=''";
+		}
+		if(!StringUtils.isEmpty(req.getNext_deal_group_id())){
+			sql += ",ship_group_id=?";
+			param.add(req.getNext_deal_group_id());
+		}else{
+			sql += ",ship_group_id=''";
+		}*/
+		sql += " where order_id=?";
+		param.add(orderId);
+		baseDaoSupport.execute(sql,param.toArray());
+		
+		
+		if(OrderStatus.WP_CREATE_TYPE_5.equals(String.valueOf(order.getCreate_type())) || OrderStatus.WP_CREATE_TYPE_6.equals(String.valueOf(order.getCreate_type())) || OrderStatus.WP_CREATE_TYPE_7.equals(String.valueOf(order.getCreate_type()))){
+			if(OrderStatus.SHIP_YES==shipStatus){
+				baseDaoSupport.execute(SF.orderSql("SERVICE_PRU_STATUS_UPDATE"), OrderStatus.WP_PRU_STATUS_1,order.getBatch_id());
+			}
+		}
+		
+		String ship_info ="订单发货，物流单据号";
+		if(!StringUtil.isEmpty( delivery.getLogi_no()))
+			ship_info ="订单发货，物流单据号["+ delivery.getLogi_no()+"]";
+		String op_id="";
+		String op_name="";
+		if(!StringUtils.isEmpty(req.getConfirm_userid())){
+			op_id = req.getConfirm_userid();
+			op_name = req.getConfirm_username();
+		}else if(user!=null){
+			op_id = user.getUserid();
+			op_name = user.getUsername();
+		}
+		orderManager.log(delivery.getOrder_id(), ship_info, op_id, op_name);
+		
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public DeliveryResp createDelivery(DeliveryReq req) throws ApiBusiException {
+		DeliveryResp resp = new DeliveryResp();
+		Order order = req.getOrder();
+		if(order==null)
+			order = orderManager.get(req.getOrder_id());
+		req.setOrder_id(order.getOrder_id());
+		//List<OrderItem> orderItemList = orderNFlowManager.listNotShipGoodsItem(order.getOrder_id());
+		//List<GoodsActionRule> list = orderNFlowManager.listGoodsActionRule(order.getOrder_id());
+		String create_type =req.getOrder().getCreate_type()+"";
+		Delivery delivery = new Delivery();
+		if(OrderStatus.WP_CREATE_TYPE_6.equals(create_type) || OrderStatus.WP_CREATE_TYPE_7.equals(create_type)){
+			delivery.setType(2);
+		}else{
+			delivery.setType(1);
+		}
+		delivery.setOrder_id(order.getOrder_id());
+		delivery.setMember_id(order.getMember_id());
+		delivery.setShip_type(order.getShipping_type());
+		delivery.setShip_name(order.getShip_name());
+		delivery.setShip_addr(order.getShip_addr());
+		delivery.setShip_mobile(order.getShip_mobile());
+		delivery.setShip_email(order.getShip_email());
+		delivery.setShip_tel(order.getShip_tel());
+		delivery.setShip_zip(order.getShip_zip());
+		delivery.setCreate_time(DBTUtil.current());
+		delivery.setWeight(order.getWeight().floatValue());
+		delivery.setPrint_status(OrderStatus.DELIVERY_PRINT_STATUS_0);
+		delivery.setShip_status(OrderStatus.DELIVERY_SHIP_STATUS_NOT_CONFIRM);
+		delivery.setShip_num(0);
+		delivery.setUserid(order.getShip_user_id());
+		delivery.setBatch_id(order.getBatch_id());
+		delivery.setCreate_type(create_type);
+		AdminUser user = OrderThreadLocalHolder.getInstance().getOrderCommonData().getAdminUser();
+		if(user!=null){
+			delivery.setOp_name(user.getUsername());
+		}
+		baseDaoSupport.insert("delivery", delivery);
+		
+		String delivery_id = delivery.getDelivery_id();
+		String service_code=order.getService_code();
+		List<OrderItem> list = orderNFlowManager.listOrderItemActionCode(order.getOrder_id(),service_code);
+		List<OrderItem> orderItemList = new ArrayList<OrderItem>();
+		//查询需要发货的orderItem
+		for(OrderItem oi:list){
+			if("delivery".equals(oi.getAction_code()) && OrderStatus.ACCEPT_STATUS_YES.equals(oi.getStatus())){
+				orderItemList.add(oi);
+			}
+		}
+		
+		/*List<DeliveryItem> itemList  = new ArrayList<DeliveryItem>();
+		for(OrderItem oi :orderItemList){
+			DeliveryItem item = new DeliveryItem();
+			item.setGoods_id(oi.getGoods_id());
+			item.setName(oi.getName());
+			//item.setNum(oi.getNum()-oi.getShip_num());  
+			item.setNum(0);
+			item.setProduct_id(oi.getSpec_id());
+			item.setSn(oi.getSn());
+			item.setItemtype(0);
+			item.setOrder_item_id(oi.getItem_id());
+			item.setDelivery_id(delivery_id);
+			itemList.add(item);
+			this.baseDaoSupport.insert("delivery_item", item);
+		}*/
+		/*List<DeliveryItem> giftitemList  = new ArrayList<DeliveryItem>();
+		List<Map> giftList = orderNFlowManager.listNotShipGiftItem(order.getOrder_id());
+		if(giftList!=null && giftList.size()>0){
+			for(Map map :giftList){
+				DeliveryItem item = new DeliveryItem();
+				item.setGoods_id(map.get("gift_id").toString());
+				item.setName(map.get("gift_name").toString());
+				item.setNum(0);  
+				item.setProduct_id(map.get("gift_id").toString());
+				item.setItemtype(2);
+				item.setDelivery_id(delivery_id);
+				giftitemList.add(item);
+				//item.setOrder_item_id(itemids[i]);
+				baseDaoSupport.insert("delivery_item", item);
+			}
+		}*/
+		for(OrderItem oi :orderItemList){
+			List<AttrInst> oattrInsts = orderManager.getOuterAttrInst(orderManager.getOrderOuterByGoodsId(oi.getProduct_id(),req.getOrderOuters()));
+			Map<String ,List<AttrInst>> acceptTableInstAttrs = new HashMap<String, List<AttrInst>>();
+			List<AttrInst> propAttrInsts = new ArrayList<AttrInst>();
+			Map<String, String> tableInstFkeys = new HashMap<String, String>();
+			//属性数据分组
+			tplInstManager.groupAttrInsts(oattrInsts, acceptTableInstAttrs, propAttrInsts,OrderStatus.SUB_ATTR_SPEC_TYPE_DELIVERY);
+			//保存受理属性实例数据到指定的库表
+			tplInstManager.saveTableInst(req.getOrder(),oi,acceptTableInstAttrs,tableInstFkeys);
+			//保存受理属性实例数据到属性实例表
+			tplInstManager.saveAttrInst(oi,propAttrInsts,tableInstFkeys);
+			
+		}
+		
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setDelivery(delivery);
+		resp.setUserSessionId(req.getUserSessionId());
+		addReturn(req,resp);
+		return resp;
+	}
+
+	public IOrderNFlowManager getOrderNFlowManager() {
+		return orderNFlowManager;
+	}
+
+	public void setOrderNFlowManager(IOrderNFlowManager orderNFlowManager) {
+		this.orderNFlowManager = orderNFlowManager;
+	}
+
+	public IOrderManager getOrderManager() {
+		return orderManager;
+	}
+
+	public void setOrderManager(IOrderManager orderManager) {
+		this.orderManager = orderManager;
+	}
+
+	public ITplInstManager getTplInstManager() {
+		return tplInstManager;
+	}
+
+	public void setTplInstManager(ITplInstManager tplInstManager) {
+		this.tplInstManager = tplInstManager;
+	}
+
+	
+	public IDeliveryManager getDeliveryManager() {
+		return deliveryManager;
+	}
+
+	public void setDeliveryManager(IDeliveryManager deliveryManager) {
+		this.deliveryManager = deliveryManager;
+	}
+
+	public OrderPluginBundle getOrderPluginBundle() {
+		return orderPluginBundle;
+	}
+
+	public void setOrderPluginBundle(OrderPluginBundle orderPluginBundle) {
+		this.orderPluginBundle = orderPluginBundle;
+	}
+
+}

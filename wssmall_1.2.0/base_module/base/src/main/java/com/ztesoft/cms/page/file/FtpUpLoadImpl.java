@@ -1,0 +1,221 @@
+package com.ztesoft.cms.page.file;
+
+import com.powerise.ibss.framework.FrameException;
+import com.ztesoft.cms.page.file.vo.FileBean;
+import com.ztesoft.ibss.common.util.CommonUpLoadInf;
+import com.ztesoft.ibss.common.util.Const;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPClientConfig;
+import org.apache.commons.net.ftp.FTPReply;
+import org.directwebremoting.util.Logger;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+
+public class FtpUpLoadImpl extends CommonUpLoadInf {
+    private Logger log= Logger.getLogger(FtpUpLoadImpl.class);
+    FTPClient ftp = new FTPClient();
+    public FtpUpLoadImpl() {
+        super();
+    }
+    @Override
+	public void downLoad() throws Exception {
+
+    }
+    @SuppressWarnings("unchecked")
+	public Map uploadNew(Map fileMap,HashMap config,String path ) throws Exception {
+        boolean rval=false;
+        File srcFile = (File) fileMap.get("FILE_ITEM"); //文件对象
+        FileBean fileBean = (FileBean) fileMap.get("FILE_BEAN");
+        FileInputStream fis = null;
+        config.putAll(fileMap);
+        connect(config,path);
+        try {
+            fis = new FileInputStream(srcFile);
+            ftp.setControlEncoding("GBK");
+            ftp.setFileType(FTP.BINARY_FILE_TYPE);
+            ftp.enterLocalPassiveMode();
+            ftp.setFileTransferMode(FTP.STREAM_TRANSFER_MODE);
+            String file_path = fileBean.getPath();
+            String remoteFile =path+ file_path;//远程文件路径
+            String fileName=new String(srcFile.getName().getBytes("GBK"), "ISO-8859-1");
+            
+            createDirs(fileBean.getFolder());
+            rval=ftp.storeFile(fileName, fis);
+            fileMap.put("FTP_FILE_PATH", remoteFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("FTP客户端出错！", e);
+        } finally {
+            fileMap.put("result",String.valueOf(rval));
+            IOUtils.closeQuietly(fis);
+            try {
+                ftp.disconnect();
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new RuntimeException("关闭FTP连接发生异常！", e);
+            }
+        }
+
+        return fileMap;
+    }
+
+    private void createDirs(String file) throws IOException {
+        if(file.indexOf("/")!=-1){
+            String first=file.substring(0,file.indexOf("/"));
+            String second=file.substring(file.indexOf("/")+1,file.length());
+            String folder=ftp.printWorkingDirectory();
+            if(StringUtils.isNotEmpty(first)){
+                folder=folder+"/"+first;
+                ftp.makeDirectory(first);
+                ftp.changeWorkingDirectory(folder);
+            }
+            if(StringUtils.isNotEmpty(second)){
+                createDirs(second);
+            }
+        }else {
+            if(StringUtils.isNotEmpty(file)){
+                String  folder=ftp.printWorkingDirectory()+"/"+file;
+                ftp.makeDirectory(file);
+                ftp.changeWorkingDirectory(folder);
+            }
+        }
+    }
+
+    /**
+     * 删除上传文件
+     */
+    public void delete(String pathname,HashMap config) throws Exception{
+        if (ftpConfig == null || ftpConfig.size() == 0) { // 无配置相关ftp服务器参数
+            return ;
+        }
+        //for (Iterator iter = ftpConfig.iterator(); iter.hasNext();) {
+            //HashMap config = (HashMap) iter.next();
+            connect(config,(String)config.get("path"));
+            try {
+                ftp.setControlEncoding("GBK");
+                FTPClientConfig conf = new FTPClientConfig(FTPClientConfig.SYST_NT);
+                conf.setServerLanguageCode("zh");
+                ftp.deleteFile(pathname);
+            }  finally {
+                try {
+                    ftp.disconnect();
+                } catch (IOException e) {
+                    //e.printStackTrace();
+                    throw new RuntimeException("关闭FTP连接发生异常！", e);
+                }
+            }
+      // }
+    }
+
+   /* //文件上传
+    public Map uploadIndexFileNew(Map fileMap,HashMap config) throws Exception {
+
+
+        String path = (String) config.get("path");
+        
+        connect(config,path);
+        config.putAll(fileMap);
+
+        File srcFile = (File) fileMap.get("FILE_ITEM");
+        FileBean fileBean = (FileBean) fileMap.get("FILE_BEAN");
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(srcFile);
+            ftp.setControlEncoding("GBK");
+            FTPClientConfig conf = new FTPClientConfig(FTPClientConfig.SYST_NT);
+            conf.setServerLanguageCode("zh");
+            // 设置文件类型（二进制）
+            ftp.setFileType(FTPClient.BINARY_FILE_TYPE);
+            ftp.enterLocalPassiveMode();
+            ftp.setFileTransferMode(FTPClient.STREAM_TRANSFER_MODE);
+            String file_path = fileBean.getPath();
+            String file_name = fileBean.getName();
+            String remoteFile = Const.getStrValue(config, "path")+SearchConfig.SERVER_INDEX_FOLDER_NAME+"/" + file_name;
+//                File rfile = new File(remoteFile);
+//                String rpath = rfile.getParent();
+//                try {
+//                    createDir(rpath, sftp);
+//                } catch (Exception e) {
+//                }
+
+
+            ftp.storeFile(new String(srcFile.getName().getBytes("GBK"), "ISO-8859-1"), fis);
+            fileMap.put("FTP_FILE_PATH", remoteFile);
+//				fileMap.put("FTP_FILE_PATH", Const.getStrValue(config,"path")+"/"+uploadTools.getFtpFileFolder("", Const.getStrValue(config,"FILE_NAME")));
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("FTP客户端出错！", e);
+        } finally {
+            IOUtils.closeQuietly(fis);
+            try {
+                ftp.disconnect();
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new RuntimeException("关闭FTP连接发生异常！", e);
+            }
+        }
+
+        return fileMap;
+    }
+*/
+
+    private FTPClient connect( HashMap config,String path ) throws Exception {
+        String server = (String) config.get("server");
+        String username = (String) config.get("username");
+        String password = (String) config.get("password");
+        String hostName = server.split("\\:")[0];
+        String port = "";
+        if (server.indexOf(":") > 0) {
+            port = server.split("\\:")[1];
+        }
+        try {
+            if (!"".equalsIgnoreCase(port)) {
+                ftp.connect(hostName, Integer.parseInt(port));
+            } else {
+                ftp.connect(hostName);
+            }
+        } catch (Exception e) {
+            //	e.printStackTrace();
+            throw new FrameException("ftp upload HOSTNAME:"+ hostName + "FTP server connected failed!");
+        }
+        int reply;
+        reply = ftp.getReplyCode();
+        if (!FTPReply.isPositiveCompletion(reply)) {
+            ftp.disconnect();
+            // log.info("HOSTNAME:" + hostName + "FTP server can not connect");
+            throw new FrameException( "ftp upload HOSTNAME:"+ hostName + "FTP server can not connect");
+        }
+        if (!ftp.login(username, password)) {
+            ftp.logout();
+            // log.info("userName or password incorrect");
+            throw new FrameException("ftp upload userName or password incorrect");
+        }
+        
+        // 设置上传目录
+
+        genDirectory(path,  Const.getStrValue(config, "FILE_NAME"));
+        return ftp;
+    }
+
+
+    public void genDirectory(String path,String file_name) throws IOException{
+        log.debug("默认ftp路径====》"+path);
+        ftp.changeWorkingDirectory(path);
+        /* String folder = uploadTools.getFtpFileFolder("", file_name);
+        String folderArr []=folder.split(this.seperator);
+        String change_path = path;
+        for (int i = 0; i < folderArr.length; i++) {
+            ftp.makeDirectory(folderArr[i]);
+            change_path +=this.seperator+folderArr[i];
+            ftp.changeWorkingDirectory(change_path);
+        }*/
+    }
+}

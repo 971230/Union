@@ -1,0 +1,208 @@
+package com.ztesoft.util;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.jdbc.core.RowMapper;
+
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+public class DevelopCheckInfoTableUtil {
+    /**
+     * 三个维度要同时满足需求 以订单来源（订单来源大类、订单来源小类）,商品（商品小类，商品大类，商品编码）,地市（地市、县分）纬度匹配
+     * 先不进行做县分的校验  后续若加  逻辑需要更改
+     */
+    public static List<DevelopDeployExtUtil> developFindExt(Map<String, String> develop_find) {
+        if(StringUtil.isEmpty(develop_find.get("type_id"))  && StringUtil.isEmpty(develop_find.get("cat_id")) && StringUtil.isEmpty(develop_find.get("goods_id"))){
+            return null;
+        }
+        if(StringUtil.isEmpty(develop_find.get("order_city_code"))){
+            return null;
+        }
+        if(StringUtil.isEmpty(develop_find.get("source_system"))  && StringUtil.isEmpty(develop_find.get("source_system_type"))){//三个维度任意一个为空  不进行匹配
+             return null;
+        }
+        String sqlSelect = "select t.mainkey,t.source_system, t.source_system_type, t.type_mis, t.goods_type, t.goods_cat, t.goods_id, t.order_city_code, t.order_county_code, t.deveop_code, t.develop_point_code, t.source_from  from es_develop_deploy_ext t where t.source_from = '"+ManagerUtils.getSourceFrom()+"'";
+        StringBuilder order_city_code = new StringBuilder();
+        if(!StringUtil.isEmpty(develop_find.get("order_city_code"))){
+            order_city_code.append("and t.order_city_code='").append(develop_find.get("order_city_code")).append("' ");
+        }
+        StringBuilder goods_ids = new StringBuilder();
+        goods_ids.append(" and ( ");
+        if(!StringUtil.isEmpty(develop_find.get("goods_id"))){
+            goods_ids.append(" t.goods_id='").append(develop_find.get("goods_id")).append("' ");
+        }
+        
+        if(!StringUtil.isEmpty(develop_find.get("cat_id"))){
+            goods_ids.append(" or t.goods_cat='").append(develop_find.get("cat_id")).append("' ");
+        }
+
+        if(!StringUtil.isEmpty(develop_find.get("type_id"))){
+            goods_ids.append(" or t.goods_type='").append(develop_find.get("type_id")).append("' ");
+        }
+        goods_ids.append(" )");
+        
+        StringBuilder source_systems = new StringBuilder();
+        source_systems.append(" and (");
+        if(!StringUtil.isEmpty(develop_find.get("source_system"))){
+            source_systems.append(" t.source_system='").append(develop_find.get("source_system")).append("' ");
+        }
+        if(!StringUtil.isEmpty(develop_find.get("source_system_type"))){
+            source_systems.append(" or t.source_system_type='").append(develop_find.get("source_system_type")).append("' ");
+        }
+        source_systems.append(" )");
+        StringBuilder abBuilder = new StringBuilder();
+        abBuilder.append(sqlSelect).append(order_city_code.toString()).append(source_systems.toString()).append(goods_ids.toString());
+        String sqlString = "select count(1) from es_develop_deploy_ext t where t.source_from = '"+ManagerUtils.getSourceFrom()+"' "+order_city_code.toString()+source_systems.toString()+goods_ids.toString();
+        IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+        List<DevelopDeployExtUtil> pList = new ArrayList<DevelopDeployExtUtil>();
+        Page page = baseDaoSupport.queryForPage(abBuilder.toString(),sqlString,1, 1000, new RowMapper(){
+            public Object mapRow(ResultSet rs, int c) throws SQLException {
+                DevelopDeployExtUtil develop = new DevelopDeployExtUtil();
+                develop.setDevelop_point_code(rs.getString("develop_point_code"));
+                develop.setDeveop_code(rs.getString("deveop_code"));
+                develop.setGoods_cat(rs.getString("goods_cat"));
+                develop.setGoods_id(rs.getString("goods_id"));
+                develop.setGoods_type(rs.getString("goods_type"));
+                develop.setMainkey(rs.getString("mainkey"));
+                develop.setSource_from(rs.getString("source_from"));
+                develop.setType_mis(rs.getString("type_mis"));
+                develop.setSource_system_type(rs.getString("source_system_type"));
+                develop.setSource_system(rs.getString("source_system"));
+                develop.setOrder_county_code(rs.getString("order_county_code"));
+                develop.setOrder_city_code(rs.getString("order_city_code"));
+                return develop;
+            }
+        }, pList.toArray());
+        List list = page.getResult();
+        List<DevelopDeployExtUtil> maps = DevelopCheckInfoTableUtil.select_info_develop(list,develop_find);
+        if(maps!=null && !maps.isEmpty() && maps.size()>0){//商品维度筛选符合的
+            return maps;
+        }
+        /**
+         * 若商品维度不符合要求需要进行来源维度匹配
+         */
+        List<DevelopDeployExtUtil> sysDevelopDeploy = DevelopCheckInfoTableUtil.select_info_system(list,develop_find);
+        if(sysDevelopDeploy!=null && !sysDevelopDeploy.isEmpty() && sysDevelopDeploy.size()>0){
+            return sysDevelopDeploy;
+        }
+        return null;
+    }
+    /**
+     * 第一维根据商品依次筛选初步符合的信息
+     */
+    @SuppressWarnings("rawtypes")
+    private static List<DevelopDeployExtUtil> select_info_develop(List list, Map<String, String> develop_finds) {
+        List<DevelopDeployExtUtil> listMap = new ArrayList<DevelopDeployExtUtil>();
+        List<DevelopDeployExtUtil>  listinfo = new ArrayList<DevelopDeployExtUtil>();
+        List<DevelopDeployExtUtil>  listgoodscat = new ArrayList<DevelopDeployExtUtil>();
+        Map<String, String> map = new HashMap<String, String>();
+        /**
+         * 若是100901 和100902 商品配置为null
+         * 分 若商品为空 或者 不为空
+         */
+        if(develop_finds.containsKey("goods_id") && !StringUtil.isEmpty(develop_finds.get("goods_id"))){//结果集中找出是该商品小类的结果集
+            for (int i = 0; i < list.size(); i++) {
+                DevelopDeployExtUtil developDeploy = (DevelopDeployExtUtil)list.get(i);
+                if(!StringUtil.isEmpty(developDeploy.getGoods_id()) && develop_finds.get("goods_id").equals(developDeploy.getGoods_id())){//商品编码不为空 且和传值相同
+                    listinfo.add(developDeploy);
+                }else{
+                    listgoodscat.add(developDeploy);
+                }
+            }
+            if(listinfo != null && !listinfo.isEmpty() && listinfo.size()>0){
+                listMap = DevelopCheckInfoTableUtil.select_info_system(listinfo,develop_finds);
+            }
+            if(listMap!=null && !listMap.isEmpty() && listMap.size()>0){
+                return listMap;
+            }
+        }
+        
+        List<DevelopDeployExtUtil>  listgoodstype = new ArrayList<DevelopDeployExtUtil>();
+        List<DevelopDeployExtUtil>  listcatinfo = new ArrayList<DevelopDeployExtUtil>();
+        if( listgoodscat != null &&develop_finds.containsKey("cat_id") && !StringUtil.isEmpty(develop_finds.get("cat_id"))){
+            for (int i = 0; i < listgoodscat.size(); i++) {
+                DevelopDeployExtUtil developDeploy = (DevelopDeployExtUtil)listgoodscat.get(i);
+                if(!StringUtil.isEmpty(developDeploy.getGoods_cat()) && develop_finds.get("cat_id").equals(developDeploy.getGoods_cat())){
+                    listcatinfo.add(developDeploy);
+                }else{
+                    listgoodstype.add(developDeploy);
+                }
+            }
+            if(listcatinfo != null && !listcatinfo.isEmpty() && listcatinfo.size()>0){
+                listMap = DevelopCheckInfoTableUtil.select_info_system(listcatinfo,develop_finds);
+            }
+            if(listMap!=null && !listMap.isEmpty() && listMap.size()>0){
+                return listMap;
+            }
+        }
+        List<DevelopDeployExtUtil>  listtypeinfo = new ArrayList<DevelopDeployExtUtil>();
+
+        if(listgoodstype != null && develop_finds.containsKey("type_id") && !StringUtil.isEmpty(develop_finds.get("type_id"))){
+            for (int i = 0; i < listgoodstype.size(); i++) {
+                DevelopDeployExtUtil developDeploy = (DevelopDeployExtUtil)listgoodstype.get(i);
+                if(!StringUtil.isEmpty(developDeploy.getGoods_type()) && develop_finds.get("type_id").equals(developDeploy.getGoods_type())){
+                    listtypeinfo.add(developDeploy);
+                }
+            }
+            if(listtypeinfo != null && !listtypeinfo.isEmpty() && listtypeinfo.size()>0){
+                listMap = DevelopCheckInfoTableUtil.select_info_system(listtypeinfo,develop_finds);
+            }
+            if(listMap!= null && !listMap.isEmpty() && listMap.size()>0){
+                return listMap;
+            }
+        }
+        return null;
+    }
+    /**
+     * 内部第二维度判断  来源
+     */
+    private static List<DevelopDeployExtUtil> select_info_system( List<DevelopDeployExtUtil> list, Map<String, String> develop_finds) {
+        List<DevelopDeployExtUtil> listMap = new ArrayList<DevelopDeployExtUtil>();
+        List<DevelopDeployExtUtil>  listinfo = new ArrayList<DevelopDeployExtUtil>();
+        List<DevelopDeployExtUtil>  listsystemtype = new ArrayList<DevelopDeployExtUtil>();
+        Map<String, String> map = new HashMap<String, String>();
+        if(develop_finds.containsKey("source_system_type") && !StringUtil.isEmpty(develop_finds.get("source_system_type"))){//根据小类筛选
+            for (int i = 0; i < list.size(); i++) {
+                DevelopDeployExtUtil developDeploy = (DevelopDeployExtUtil)list.get(i);
+                if(!StringUtil.isEmpty(developDeploy.getSource_system_type()) && develop_finds.get("source_system_type").equals(developDeploy.getSource_system_type()) && develop_finds.get("source_system").equals(developDeploy.getSource_from())){
+                    listinfo.add(developDeploy);
+                }else if(StringUtil.isEmpty(developDeploy.getSource_system_type()) && develop_finds.get("source_system").equals(developDeploy.getSource_system())){
+                    listsystemtype.add(developDeploy);
+                }
+            }
+        }
+        if(listinfo != null && !listinfo.isEmpty()&&listinfo.size()>0){
+            listMap = DevelopCheckInfoTableUtil.select_info_county(listinfo,develop_finds);
+        }
+        if(listMap!=null && !listMap.isEmpty() && listMap.size()>0){
+            return listMap;
+        }else{
+           return listsystemtype;
+        }
+    }
+    /**
+     * 第三维度 来匹配地市信息  此处应该就需要是返回唯一值信息了
+     */
+    private static List<DevelopDeployExtUtil> select_info_county(List<DevelopDeployExtUtil> list, Map<String, String> develop_finds) {
+        List<DevelopDeployExtUtil> listMap = new ArrayList<DevelopDeployExtUtil>();
+        List<DevelopDeployExtUtil>  listinfo = new ArrayList<DevelopDeployExtUtil>();
+        Map<String, String> map = new HashMap<String, String>(); 
+        if(develop_finds.containsKey("order_city_code") && !StringUtil.isEmpty(develop_finds.get("order_city_code"))){
+            for (int i = 0; i < list.size(); i++) {
+                DevelopDeployExtUtil developDeploy = (DevelopDeployExtUtil)list.get(i);
+                if(!StringUtil.isEmpty(developDeploy.getOrder_city_code()) && develop_finds.get("order_city_code").equals(developDeploy.getOrder_city_code())){
+                    listMap.add(developDeploy);
+                }
+            }
+            return listMap;
+        }
+       return null;
+     }
+}

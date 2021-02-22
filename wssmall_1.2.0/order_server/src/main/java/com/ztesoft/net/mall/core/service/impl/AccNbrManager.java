@@ -1,0 +1,533 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.app.base.plugin.fileUpload.BatchResult;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.order.OrderRequst;
+import com.ztesoft.net.mall.core.action.order.OrderResult;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.AccNbr;
+import com.ztesoft.net.mall.core.model.AccNbrRequest;
+import com.ztesoft.net.mall.core.model.GoodsApply;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.service.IAccNbrManager;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.mall.core.service.IOrderNFlowManager;
+import com.ztesoft.net.mall.core.service.IOrderUtils;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+import org.apache.commons.lang.StringUtils;
+
+import java.util.*;
+
+/**
+ * 云卡调拨处理类
+ *
+ * @author wui
+ */
+
+public class AccNbrManager extends BaseSupport implements IAccNbrManager {
+
+    private IOrderNFlowManager orderNFlowManager;
+    private IOrderUtils orderUtils;
+    private ICacheUtil cacheUtil;
+    private IOrderManager orderManager;
+
+
+    @Override
+    public void transfer_acc(OrderRequst orderRequst, OrderResult orderResult) {
+        AccNbrRequest accNbrRequest = orderRequst.getAccNbrRequest();
+
+    }
+
+    public boolean isQueryPartnerAcc(AccNbr accNbr) {
+        if (accNbr != null && (!StringUtil.isEmpty(accNbr.getOrder_id()) ||
+                Consts.ACCNBR_QUERY_TYPE_00A.equals(accNbr.getQuery_type())))
+            return true;
+        return false;
+    }
+
+    @Override
+	public Integer getAccNbrCountByOrderId(String orderId, String ship_state) {
+        Integer countInt = 0;
+        String countStr = this.baseDaoSupport.queryForString(SF.orderSql("SERVICE_ACC_NBR_COUNT") + " and order_id =  '" + orderId + "' and ship_state ='" + ship_state + "'");
+        if (!StringUtil.isEmpty(countStr))
+            countInt = new Integer(countStr);
+        return countInt;
+    }
+
+
+    public String getWhereCond(Object... args) {
+        StringBuffer sql = new StringBuffer();
+        String userId = ManagerUtils.getUserId();
+        AccNbr accNbr = null;
+        if (null != args[0] && args[0] instanceof AccNbr) {
+            accNbr = (AccNbr) args[0];
+        } else if (args[1] != null && args[1] instanceof AccNbr) {
+            accNbr = (AccNbr) args[1];
+        }
+
+        String state = "";
+        String numCode = "";
+        String p_apply_show_parent_num = "";
+        String startNum = "";
+        String endNum = "";
+        String batch_id = "";
+        String lan_id = "";
+        if (accNbr != null) {
+            state = accNbr.getState();
+            numCode = accNbr.getNum_code();
+            p_apply_show_parent_num = accNbr.getP_apply_show_parent_num();
+            startNum = accNbr.getBegin_nbr();
+            endNum = accNbr.getEnd_nbr();
+            batch_id = accNbr.getBatch_id();
+            lan_id = accNbr.getLan_id();
+        }
+
+
+        if (ManagerUtils.isNetStaff() || (ManagerUtils.isFirstPartner()
+                && Consts.APPLY_SHOW_PARENT_STOCK.equals(p_apply_show_parent_num))) {
+            //如果是电信或者一级分销商查询上级分销商
+            if (isQueryPartnerAcc(accNbr)) {
+                sql.append(" from (select * from es_phone_no where to_userid is null and use_type = '00B' and ship_state is null  and state='" + Consts.CARD_INFO_STATE_0 + "' ) phone where 1=1 ");
+            } else {
+                //电信员工查询所有未被分配的号码
+                sql.append(" from (select * from es_phone_no where to_userid is null and use_type = '00B' " +
+                        "union " +
+                        "select * from es_phone_no where use_type = '00A' )phone where 1=1 ");
+            }
+        } else if (ManagerUtils.isFirstPartner() || ManagerUtils.isSecondPartner()) {
+
+            if (ManagerUtils.isSecondPartner() && Consts.APPLY_SHOW_PARENT_STOCK.equals(p_apply_show_parent_num)) {
+                //二级分销商查询一级分销商的
+                if (isQueryPartnerAcc(accNbr)) {
+                    sql.append(" from (select * from es_phone_no where to_userid = '" + ManagerUtils.getAdminUser().getParuserid() + "' and use_type = '00B' and ship_state = '" + Consts.SHIP_STATE_5 + "' " +
+                            " )phone where 1 = 1 ");
+                } else {
+                    //一级、二级员工查询上级员工分配给自己的号码
+                    sql.append(" from (select * from es_phone_no where to_userid = '" + ManagerUtils.getAdminUser().getParuserid() + "' and use_type = '00B' and ship_state = '" + Consts.SHIP_STATE_5 + "'  " +
+                            "union " +
+                            "select * from es_phone_no where use_type = '00A' )phone where 1 = 1 ");
+                }
+            } else {
+                if (isQueryPartnerAcc(accNbr)) {
+                    sql.append(" from (select * from es_phone_no where to_userid = '" + userId + "' and ship_state = '" + Consts.SHIP_STATE_5 + "'  and use_type = '00B' " +
+                            " )phone where 1 = 1 ");
+                } else {
+                    //一级、二级员工查询上级员工分配给自己的号码
+                    sql.append(" from (select * from es_phone_no where to_userid = '" + userId + "' and ship_state = '" + Consts.SHIP_STATE_5 + "' and use_type = '00B' " +
+                            "union " +
+                            "select * from es_phone_no where use_type = '00A' )phone where 1 = 1 ");
+                }
+            }
+        } else {
+            throw new RuntimeException("当前工号信息异常");
+        }
+
+
+        if (numCode != null && !"".equals(numCode)) {
+            sql.append(" and num_code like '%" + numCode + "%'");
+        }
+        if (state != null && !"".equals(state)) {
+            sql.append(" and state = '" + state + "'");
+        }
+
+        if (startNum != null && !"".equals(startNum)) {
+            sql.append(" and num_code >= '" + startNum + "'");
+        }
+
+        if (endNum != null && !"".equals(endNum)) {
+            sql.append(" and num_code <= '" + endNum + "'");
+        }
+
+        if (batch_id != null && !"".equals(batch_id)) {
+            sql.append(" and batch_id = '" + batch_id + "'");
+        }
+
+        if (lan_id != null && !"".equals(lan_id) && !Consts.LAN_PROV.equals(lan_id)) {
+            sql.append(" and area_code = '" + lan_id + "'");
+        }
+
+        return sql.toString();
+
+    }
+
+
+    /**
+     * 查询调拨号码
+     *
+     * @return
+     */
+    @Override
+	public Page transfer_list(int pageNO, int pageSize, Object... args) {
+
+        String sqlCol = SF.orderSql("SERVICE_TRANSFER_COL_SELECT");
+        String countSql = SF.orderSql("SERVICE_TRANSFER_COUNT");
+        String whereSql = getWhereCond(args);
+        Page page = this.baseDaoSupport.queryForCPage(sqlCol + whereSql, pageNO, pageSize, AccNbrRequest.class, countSql + whereSql);
+        return page;
+    }
+
+
+    /**
+     * 查询调拨号码
+     *
+     * @return
+     */
+    @Override
+	public Page transfer_list_forSearch(int pageNO, int pageSize, Object... args) {
+
+        String sqlCol = SF.orderSql("SERVICE_TRANSFER_NBR_COL_SELECT");
+        String countSql = SF.orderSql("SERVICE_TRANSFER_COUNT");
+        String whereSql = getWhereCond(args) + " order by num_code desc";
+        Page page = this.baseDaoSupport.queryForCPage(sqlCol + whereSql, pageNO, pageSize, AccNbrRequest.class, countSql + whereSql);
+        return page;
+    }
+
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Map listc(AccNbr accNbr) {
+        Map countMap = new HashMap();
+        accNbr.setState(Consts.ACC_NBR_STATE_0);
+        String countSql = "select count(*)  " + getWhereCond(accNbr).toString();
+        String ableCar_count = this.baseDaoSupport.queryForString(countSql);
+        if (StringUtil.isEmpty(ableCar_count))
+            ableCar_count = "0";
+        countMap.put("ableCloud_count", ableCar_count);
+        accNbr.setState("");
+        countSql = "select count(*) " + getWhereCond(accNbr).toString();
+
+        String car_count = this.baseDaoSupport.queryForString(countSql);
+        if (StringUtil.isEmpty(car_count))
+            car_count = "0";
+        countMap.put("cloud_count", car_count);
+        return countMap;
+    }
+
+
+    //根据号码编码获取号码信息
+    @Override
+	@SuppressWarnings("unchecked")
+    public AccNbr getAccNbr(String s_accnbr) {
+        String sql = SF.orderSql("SERVICE_ACC_NBR_SELECT") + " and num_code = ? ";
+        AccNbr accNbr = null;
+        List lists = this.baseDaoSupport.queryForList(sql, AccNbr.class, s_accnbr);
+        if (lists != null && lists.size() > 0) {
+            accNbr = (AccNbr) lists.get(0);
+        }
+        return accNbr;
+    }
+
+    /**
+     * 根据num_id号码id获取号码列表
+     *
+     * @param numIds,多个id以逗号分隔
+     * @return
+     */
+    @Override
+	public List<AccNbr> getAccNbrList(String numIds) {
+        String sql = SF.orderSql("SERVICE_ACC_NBR_SELECT") + " and a.num_id in('" + numIds.replaceAll(",", "','") + "')";
+        return this.baseDaoSupport.queryForList(sql, AccNbr.class);
+    }
+
+    //资料反档成功后，更新号码订单
+    @Override
+	public void updateAccNbr(AccNbr accNbr) {
+        this.baseDaoSupport.update("es_phone_no", accNbr, " num_id = '" + accNbr.getNum_id() + "'");
+    }
+
+    //判断调拨号码是否跨本地网
+    @Override
+	public List getLanCounts(String begin_accnbr, String end_accnbr, AccNbr p_accNbr) {
+        String sql = SF.orderSql("SERVICE_COLUMN_SELECT") + getWhereCond(p_accNbr);
+        return baseDaoSupport.queryForList(sql);
+    }
+
+    //合约卡审核预占用
+    @Override
+    public void transfer_phone_no_for_collect(OrderRequst orderRequst, OrderResult orderResult) {
+
+
+        Order order = orderResult.getOrder();
+        GoodsApply goodsApply = orderRequst.getGoodsApply();
+        String begin_nbr = goodsApply.getBegin_nbr();
+        String end_nbr = goodsApply.getEnd_nbr();
+
+        if (StringUtils.isEmpty(begin_nbr) || StringUtils.isEmpty(end_nbr)) {
+            throw new RuntimeException("起始号码、结止号码不能为空");
+        }
+
+        if (begin_nbr.length() != 11 || end_nbr.length() != 11) {
+            throw new RuntimeException("号码格式非法！");
+        }
+
+        if (!begin_nbr.substring(0, 3).equals(end_nbr.substring(0, 3))) {
+            throw new RuntimeException("只能申请同个号码段，请检查 ！");
+        }
+
+
+        AccNbr accNbr = this.getAccNbr(begin_nbr);
+        if (accNbr == null || StringUtils.isEmpty(accNbr.getNum_code())) {
+            throw new RuntimeException("开始号码无效，请检查");
+        }
+
+        accNbr = this.getAccNbr(end_nbr);
+        if (accNbr == null || StringUtils.isEmpty(accNbr.getNum_code())) {
+            throw new RuntimeException("结束号码无效，请检查");
+        }
+
+        //获取可用的卡数量
+        AccNbr p_accNbr = new AccNbr();
+        p_accNbr.setState(Consts.CARD_INFO_STATE_0);
+        p_accNbr.setP_apply_show_parent_num("yes");
+        p_accNbr.setQuery_type(Consts.ACCNBR_QUERY_TYPE_00A);
+        p_accNbr.setBegin_nbr(begin_nbr);
+        p_accNbr.setEnd_nbr(end_nbr);
+
+
+        Map accMap = listc(p_accNbr);
+        String ableCloud_count = (String) accMap.get("ableCloud_count");
+        if (StringUtil.isEmpty(ableCloud_count))
+            ableCloud_count = "0";
+        Integer canUsedCountInt = new Integer(ableCloud_count).intValue();
+
+        //号码区间大于1，不允许申请
+        List lanIds = this.getLanCounts(begin_nbr, end_nbr, p_accNbr);
+        if (!ListUtil.isEmpty(lanIds) && lanIds.size() > 1) {
+            throw new RuntimeException("只能申请同本地网号码，请检查！");
+        }
+
+
+        //区间限制
+        List limitScope = cacheUtil.doDcPublicQuery(Consts.DC_PUBLIC_DEF_ACC_SCOPE_LIMIT);
+        String limit = (String) ((Map) limitScope.get(0)).get("codea");
+        if (StringUtils.isEmpty(limit))
+            limit = "0";
+
+
+        if (new Long(canUsedCountInt) > (goodsApply.getGoods_num() + new Integer(limit).intValue())) {
+            throw new RuntimeException("申请号码区间太大,请重新输入！");
+        }
+
+
+        //号码预占
+        String begin_accnbr = orderRequst.getGoodsApply().getBegin_nbr();
+        String end_accnbr = orderRequst.getGoodsApply().getEnd_nbr();
+        String ship_state = "";
+        String appendSql = "";
+        String whereCond = "";
+        if (ManagerUtils.isFirstPartner()) { //一级向电信申请
+            ship_state = Consts.SHIP_STATE_0;
+            appendSql = "  ship_state ='" + Consts.SHIP_STATE_0 + "'"; //预占中
+            whereCond = "  and to_userid is null  and ship_state is null ";
+
+
+            //根据其始号码结束号码获取本地网
+            Order uOrder = new Order();
+            uOrder.setOrder_id(order.getOrder_id());
+            uOrder.setAccept_status(null);
+            uOrder.setLan_id(getLanId(begin_accnbr, end_accnbr));
+            orderNFlowManager.updateOrder(uOrder);
+
+
+        } else if (ManagerUtils.isSecondPartner()) { //二级像一级申请
+            ship_state = Consts.SHIP_STATE_00;
+            appendSql = " ship_state ='" + Consts.SHIP_STATE_00 + "'"; //调拨二级不需要电信处理
+            AdminUser adminUser = ManagerUtils.getAdminUser();
+            whereCond = " and ship_state ='" + Consts.SHIP_STATE_5 + "' and to_userid ='" + adminUser.getParuserid() + "' "; //查询上级已调拨库存
+        }
+
+        //分配库存
+        String updateSql = SF.orderSql("SERVICE_PHONE_NO_UPDATE_BY_STATE") + "  and num_code between  '" + begin_accnbr + "' and '" + end_accnbr + "' " + whereCond + " ";
+        this.baseDaoSupport.execute(updateSql, order.getOrder_id(), ship_state);
+
+
+    }
+
+
+    //取消、撤单资源重置
+    @Override
+	public void resetAccNbrByOrderId(String orderId) {
+        Order order = orderManager.get(orderId);
+        AdminUser adminUser = orderUtils.getAdminUserById(order.getUserid());
+        if (Consts.CURR_FOUNDER3 == adminUser.getFounder()) //一级分销商订单
+            this.baseDaoSupport.execute(SF.orderSql("SERVICE_PHONE_NO_RESET_BY_ORD_ID"), orderId);
+        else if (Consts.CURR_FOUNDER2 == adminUser.getFounder()) {
+            this.baseDaoSupport.execute(SF.orderSql("SERVICE_PHONE_NO_UPDATE_BY_ORD_ID"), orderId);
+        }
+
+    }
+
+    //合约卡调拨预占
+    @Override
+    @SuppressWarnings("unused")
+    public void transfer_phone_no_for_accept(OrderRequst orderRequst, OrderResult orderResult) {
+        Order order = orderResult.getOrder();
+        String to_userid = orderResult.getOrder().getUserid();
+        String from_userid = ManagerUtils.getUserId();
+
+        String appendSql = "";
+        String whereCond = "";
+
+        //更新一级分销商
+        AdminUser fAdminUser = orderUtils.getAdminUserById(orderResult.getOrder().getUserid());
+        if (ManagerUtils.isNetStaff()) { //电信调拨给一级
+            appendSql = " first_userid = '" + order.getUserid() + "' , first_orderid ='" + order.getOrder_id() + "', ship_state ='" + Consts.SHIP_STATE_2 + "'"; //处理中
+            whereCond = "  and ship_state ='" + Consts.SHIP_STATE_0 + "'"; //处理中
+        } else if (ManagerUtils.isFirstPartner()) { //一级调拨给二级
+            appendSql = " ship_state ='" + Consts.SHIP_STATE_22 + "'"; //设置为处理中
+            whereCond = " and  ship_state ='" + Consts.SHIP_STATE_00 + "'"; //查询预占的
+        }
+
+        //分配库存
+        //String updateSql ="update es_phone_no  cf set  from_userid = ?, to_userid = ?, "+appendSql+" ,deal_time="+DBTUtil.current()+"  where  order_id = ? and rownum<=? " +whereCond;
+        String updateSql = SF.orderSql("SERVICE_PHONE_NO_UPDATE") + "from_userid = ?, to_userid = ?, " + appendSql + " ,deal_time=" + DBTUtil.current() + "  where  order_id = ? " + DBTUtil.andRownum("?") + whereCond;
+        this.baseDaoSupport.execute(updateSql, from_userid, to_userid, order.getOrder_id(), order.getGoods_num());
+
+    }
+
+
+    //调拨成功后，将已预占、且没有处理成功的释放掉
+    @Override
+	public void resetUnUsedAccNbrOrderId(String orderId) {
+        Order order = orderManager.get(orderId);
+        AdminUser adminUser = orderUtils.getAdminUserById(order.getUserid());
+        if (Consts.CURR_FOUNDER3 == adminUser.getFounder()) //一级分销商订单
+            this.baseDaoSupport.execute(SF.orderSql("SERVICE_PHONE_NO_RESET_BY_SHIP_STATE"), orderId, Consts.SHIP_STATE_2);
+        else if (Consts.CURR_FOUNDER2 == adminUser.getFounder()) {
+            this.baseDaoSupport.execute(SF.orderSql("SERVICE_PHONE_NO_UPDATE_BY_SHIP_STATE"), orderId, Consts.SHIP_STATE_00);
+        }
+    }
+
+
+    @Override
+	public void updateAccNbrByOrderId(String orderId, String ship_state) {
+        this.baseDaoSupport.execute(SF.orderSql("SERVICE_SHIP_STATE_UPDATE"), orderId, ship_state);
+    }
+
+
+    public String getLanId(String begin_accnbr, String end_accnbr) {
+        String sql = SF.orderSql("SERVICE_LAN_ID_SELECT").replaceAll("#begin", " '" + begin_accnbr + "' ").replaceAll("#end", " '" + end_accnbr + "' ") + DBTUtil.andRownum("2");
+        return this.baseDaoSupport.queryForString(sql);
+    }
+
+
+    public IOrderNFlowManager getOrderNFlowManager() {
+        return orderNFlowManager;
+    }
+
+    public void setOrderNFlowManager(IOrderNFlowManager orderNFlowManager) {
+        this.orderNFlowManager = orderNFlowManager;
+    }
+
+
+    /**
+     * 导入号码
+     *
+     * @param inList
+     * @return
+     */
+    @Override
+	public BatchResult importPhoneNum(List inList) {
+        BatchResult batchResult = new BatchResult();
+
+        String batchId = this.baseDaoSupport.getSequences("s_es_cust_returned");
+        int sucNum = 0;                        //成功返档条数
+        int failNum = 0;                    //返档失败条数
+        String err_msg = "";
+        List<Object[]> list = new ArrayList<Object[]>();
+
+        if (inList != null && !inList.isEmpty()) {
+            for (int i = 0; i < inList.size(); i++) {
+
+                Map<String, Object> map = (Map<String, Object>) inList.get(i);
+
+                String use_type = (String) map.get("use_type");
+                if (!StringUtil.isEmpty(use_type) && !("00A".equals(use_type) || "00B".equals(use_type))) {
+                    throw new RuntimeException("导入号码用途无效，请按格式填写，如：00A网厅号码、00B分销号码");
+                }
+                String num_id = baseDaoSupport.getSequences("S_ES_PHONE_NO");
+                Object[] obj = new Object[]{num_id, map.get("num_code"), map.get("area_code"),
+                        map.get("min_consume"), map.get("min_month"), new Date(),
+                        "0", batchId, ManagerUtils.getUserId(), use_type, map.get("acc_level"), map.get("pre_cash")};
+                list.add(obj);
+            }
+        }
+
+        try {
+            insert(list);
+            sucNum = inList.size();
+            failNum = 0;
+        } catch (Exception e) {
+            err_msg = e.getMessage();
+            failNum = inList.size();
+            sucNum = 0;
+            e.printStackTrace();
+        }
+
+        batchResult.setErr_msg(err_msg);
+        batchResult.setBatchId(batchId);
+        batchResult.setSucNum(sucNum);
+        batchResult.setFailNum(failNum);
+        return batchResult;
+    }
+
+    public void insert(List<Object[]> list) {
+        this.baseDaoSupport.batchExecute(SF.orderSql("SERVICE_PHONE_NO_INSERT"), list);
+    }
+
+
+    @Override
+	public int isExistsPhoneNo(List list) {
+
+        int count = 0;
+
+        if (list != null && !list.isEmpty()) {
+            for (int i = 0; i < list.size(); i++) {
+                Map<String, Object> map = (Map<String, Object>) list.get(i);
+                StringBuffer sql = new StringBuffer();
+                sql.append(SF.orderSql("SERVICE_ACC_NBR_COUNT"));
+                sql.append(" and num_code = '" + map.get("num_code") + "'");
+
+                String item = this.baseDaoSupport.queryForString(sql.toString());
+
+                if (!StringUtil.isEmpty(item)) {
+                    count = count + Integer.valueOf(item);
+                }
+            }
+        }
+        return count;
+    }
+
+    public IOrderUtils getOrderUtils() {
+        return orderUtils;
+    }
+
+    public void setOrderUtils(IOrderUtils orderUtils) {
+        this.orderUtils = orderUtils;
+    }
+
+    public ICacheUtil getCacheUtil() {
+        return cacheUtil;
+    }
+
+    public void setCacheUtil(ICacheUtil cacheUtil) {
+        this.cacheUtil = cacheUtil;
+    }
+
+    public IOrderManager getOrderManager() {
+        return orderManager;
+    }
+
+    public void setOrderManager(IOrderManager orderManager) {
+        this.orderManager = orderManager;
+    }
+
+
+}

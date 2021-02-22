@@ -1,0 +1,93 @@
+package com.powerise.ibss.taglibs;
+
+import java.io.IOException;
+
+import javax.servlet.ServletRequest;
+import javax.servlet.jsp.JspException;
+import javax.servlet.jsp.tagext.TagSupport;
+
+import org.apache.log4j.Logger;
+
+import com.powerise.ibss.framework.ErrorOBJ;
+
+public class Errors  extends TagSupport{
+   private int error_code;
+   private String error_msg;
+   private int mode;
+   private int dtype;
+   private static Logger logger = Logger.getLogger(Errors.class);
+   public int doStartTag() throws JspException {
+      String out ="";
+      ServletRequest request =pageContext.getRequest();
+      if(request.getAttribute("Error") !=null 
+         || pageContext.getSession().getAttribute("Error") !=null){
+         //得到保存在Request中的错误信息
+         ErrorOBJ error =request.getAttribute("Error")==null?
+                  (ErrorOBJ)pageContext.getSession().getAttribute("Error"):
+                  (ErrorOBJ)request.getAttribute("Error");
+         String ecode ="", emsg="", eexp="";
+         switch(mode){
+            case 1://打印错误信息
+               emsg =error.ERROR_MSG==null?"":error.ERROR_MSG;
+               break;
+            case 2://打印错误号、错误信息、异常信息
+               ecode ="错误号："+error.ERROR_CODE+";";
+               emsg ="错误信息："
+                  +(error.ERROR_MSG==null?"":error.ERROR_MSG)+";";
+               eexp ="异常信息："+
+                  ((error.ERROR_EXP==null?"":error.ERROR_EXP));
+               break;
+            default://打印错误号、错误信息
+               ecode ="错误号："+error.ERROR_CODE+";";
+               emsg ="错误信息："
+                  +(error.ERROR_MSG==null?"":error.ERROR_MSG);
+         }
+         pageContext.getSession().removeAttribute("Error");   
+         try{
+            //if(dtype ==1)
+//            emsg =Utility.replace(emsg,"\n","");
+//            eexp =Utility.replace(eexp,"\n","");
+//            emsg =Utility.replace(emsg,"\r\n","\\n");
+//            eexp =Utility.replace(eexp,"\r\n","\\n");
+//            emsg =Utility.replace(emsg,"\"","＂");
+//            eexp =Utility.replace(eexp,"\"","＂");
+            if(dtype ==1)
+               out ="<script language='javascript'>\n alert(\""+ecode+"\\n"+emsg+"\\n"+eexp+"\");</script>";   
+            else
+               out =ecode+"<br>"+emsg+"<br>"+eexp;
+            pageContext.getOut().print(out);
+         }catch(IOException io){
+            //logger.info("print error tag information exist error!");
+        	 logger.info("print error tag information exist error!");
+            io.printStackTrace();
+         }
+         return SKIP_PAGE;
+      }
+
+      return (EVAL_PAGE);
+   }
+   public void setErrorCode(int p0){
+      error_code =p0;
+   }
+   public void setErrorMsg(String p0){
+      error_msg =p0;
+   }
+   public int getErrorCode(){
+      return error_code;
+   }
+   public String getErrorMsg(){
+      return error_msg;
+   }
+   public void setMode(int p0){
+      mode =p0;
+   }
+   public int getMode(){
+      return mode;
+   }
+   public void setDtype(int p0){
+      dtype =p0;
+   }
+   public int getDtype(){
+      return dtype;
+   }
+}

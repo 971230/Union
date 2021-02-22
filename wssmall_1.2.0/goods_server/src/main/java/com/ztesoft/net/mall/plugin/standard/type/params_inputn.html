@@ -1,0 +1,90 @@
+<#if paramList?exists >
+<div class="new_box_cont">
+	<#list paramList as group >
+		<#if group.showGroupName??>
+			<div class="title">
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${group.name }
+				<input type="hidden" name="goodsExtData.groupnames" value="${ group.name}" />
+				<input type="hidden" name="goodsExtData.paramnums" value="${ group.paramNum}" />
+			</div>
+		</#if>
+		<table width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_form">
+			<tr>
+				<#list group.subParamList as gparam>
+				<th style="width:130px">
+					<input type="hidden" name="goodsExtData.paramnames" value="${ gparam.name}" />
+					<#if gparam.required?? && gparam.required=='YES'><span class="red">*</span></#if>${gparam.name }：
+				</th>
+				<td>
+					<#if gparam.attrvaltype??>
+						<#if gparam.attrvaltype=='0'>
+							<input type="text" name="goodsExtData.paramvalues" class="ipt_new" style="width:150px;" value="${gparam.value!'' }"
+								<#if gparam.required?? && gparam.required=='YES'>required="true"</#if>/>
+							<input type="hidden" name="goodsExtData.attrvaltype" value="${gparam.attrvaltype!''}">
+							<input type="hidden" name="goodsExtData.ename" value="${gparam.ename!''}">
+							<input type="hidden" name="goodsExtData.attrcode" value="${gparam.attrcode!''}">
+							<input type="hidden" name="goodsExtData.attrtype" value="${gparam.attrtype!''}">
+							<input type="hidden" name="goodsExtData.required" value="${gparam.required!'NO'}">
+						</#if>
+						<#if gparam.attrvaltype=='1'>
+							<input type="hidden" class="ipt_new" name="goodsExtData.attrvaltype" value="${gparam.attrvaltype!''}">
+							<input type="hidden" name="goodsExtData.ename" value="${gparam.ename!''}">
+							<input type="hidden" name="goodsExtData.attrcode" value="${gparam.attrcode!''}">
+							<input type="hidden" name="goodsExtData.attrtype" value="${gparam.attrtype!''}">
+							<input type="hidden" name="goodsExtData.required" value="${gparam.required!'NO'}">
+							<select name="goodsExtData.paramvalues" style="width:150px;" <#if gparam.required?? && gparam.required=='YES'>required="true"</#if>>
+							
+								<option value="">--请选择--</option>
+								<#if gparam.dropdownValues??>
+									<#list gparam.dropdownValues as dropdown>
+										<#if dropdown.value??>
+											<option value="${dropdown.value}" <#if gparam.value?? && gparam.value==dropdown.value>selected="true"</#if>>${dropdown.value_desc}</option>
+										</#if>
+									</#list>
+								</#if>
+							</select>
+							
+						</#if>
+						
+					<#else>
+						<input type="text" name="goodsExtData.paramvalues" class="input_text" value="${gparam.value!'' }"/>						
+					</#if>
+				</td>
+				</#list>
+				<!-- 这里是为了防止当一行的列数小于3时，列不对齐的情况所做的处理  -->
+				<#if (group.subParamList?size<3)>
+				<#assign hiddenTd = (3-group.subParamList?size)>
+				<#list 1..hiddenTd as ht>
+					<th style="width:130px;visibility:hidden;">占位域${ht}</th>
+					<td>
+						<input type="hidden" disabled="true"/>
+					</td>
+				</#list>
+				</#if>
+				<!-- 这里是为了防止当一行的列数小于3时，列不对齐的情况所做的处理 -->
+			</tr>
+		</table>
+	</#list>
+</div>
+<#else>
+	<div class="remind_n_div">
+		<span><img src="${ctx}/shop/admin/goodsN/images/ic_remind.png" width="16" height="16" /></span>
+		<p>此商品类型没有配置商品参数，请 <a id="addParamsBtn" href="javascript:void(0);">点此添加！</a></p>
+	</div>
+	<div id="paramsEditDialog"></div>
+	<script type="text/javascript">
+	$(function(){
+		Eop.Dialog.init({id:"paramsEditDialog",title:"编辑商品类型",width:"1180px",height:"500px"});
+		$("#addParamsBtn").unbind("click").bind("click",function(){
+			var type_id = $("#type_select").val();
+			if(!type_id){
+				alert("请选择商品类型");
+				return ;
+			}
+			Eop.Dialog.open("paramsEditDialog");
+			var url = "type!editParams.do?ajax=yes&type_id="+type_id;
+			$("#paramsEditDialog").load(url,{},function(){});
+		});
+	});
+	</script>
+</#if>

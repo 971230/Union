@@ -1,0 +1,73 @@
+package com.ztesoft.net.eop.resource.model;
+
+import java.io.Serializable;
+
+
+/**
+ * 日志表用户扩展字段
+ * @author hu.yi
+ * @date 2013.11.05
+ */
+public class AttrUserInfo implements  Serializable{
+	
+	private String cust_name;	//客户名称
+	private String cust_id;		//客户id
+	private String phoneno;		//手机号码（用户）
+	private String brand;		//手机品牌
+	private String price;		//业务金额
+	private String phone_lan_name;	//号码归属地市名称
+	private String phone_lan_id;	//号码归属地市编码
+	private String ip_ads;	//IP地址
+	
+	
+	
+	public String getCust_name() {
+		return cust_name;
+	}
+	public void setCust_name(String cust_name) {
+		this.cust_name = cust_name;
+	}
+	public String getCust_id() {
+		return cust_id;
+	}
+	public void setCust_id(String cust_id) {
+		this.cust_id = cust_id;
+	}
+	public String getPhoneno() {
+		return phoneno;
+	}
+	public void setPhoneno(String phoneno) {
+		this.phoneno = phoneno;
+	}
+	public String getBrand() {
+		return brand;
+	}
+	public void setBrand(String brand) {
+		this.brand = brand;
+	}
+	public String getPrice() {
+		return price;
+	}
+	public void setPrice(String price) {
+		this.price = price;
+	}
+	public String getPhone_lan_id() {
+		return phone_lan_id;
+	}
+	public void setPhone_lan_id(String phone_lan_id) {
+		this.phone_lan_id = phone_lan_id;
+	}
+	public String getPhone_lan_name() {
+		return phone_lan_name;
+	}
+	public void setPhone_lan_name(String phone_lan_name) {
+		this.phone_lan_name = phone_lan_name;
+	}
+	public String getIp_ads() {
+		return ip_ads;
+	}
+	public void setIp_ads(String ip_ads) {
+		this.ip_ads = ip_ads;
+	}
+	
+}

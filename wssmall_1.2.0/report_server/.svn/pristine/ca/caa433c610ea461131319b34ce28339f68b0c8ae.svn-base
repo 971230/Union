@@ -1,0 +1,26 @@
+/*    */ package com.ztesoft.crm.report.generator.json.elements;
+/*    */ 
+/*    */ import com.ztesoft.crm.report.document.Node;
+/*    */ import com.ztesoft.crm.report.lang.ObjectSerializer;
+/*    */ import java.io.OutputStream;
+/*    */ import java.util.HashMap;
+/*    */ 
+/*    */ public class JsonNode extends Node
+/*    */ {
+/* 25 */   private HashMap attributes = new HashMap();
+/*    */ 
+/*    */   public void setAttribute(String name, Object o) {
+/* 28 */     this.attributes.put(name, o);
+/*    */   }
+/*    */ 
+/*    */   public void output(OutputStream output, String encoding) throws Exception
+/*    */   {
+/* 33 */     output.write(
+/* 34 */       new ObjectSerializer().toJavaScriptObject(this.attributes).getBytes(encoding));
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.generator.json.elements.JsonNode
+ * JD-Core Version:    0.5.3
+ */

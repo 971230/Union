@@ -1,0 +1,31 @@
+package com.powerise.ibss.util;
+
+import zte.net.ecsord.common.CommonDataFactory;
+
+public class RuleUtil {
+	private static String use_new_table_time = "2016-10-26 23:30:00";
+
+	public static String replaceTableNameForOrgBySql(String sql) {
+		sql = sql.replaceAll("es_rule_exe_log_his", "<log_his_table_name>");
+		sql = sql.replaceAll("ES_RULE_EXE_LOG_HIS", "<log_his_table_name>");
+		sql = sql.replaceAll("es_rule_exe_log", "<log_table_name>");
+		sql = sql.replaceAll("ES_RULE_EXE_LOG", "<log_table_name>");
+		
+		sql = sql.replaceAll("<log_his_table_name>", "es_rule_exe_log_his_org");
+		sql = sql.replaceAll("<log_table_name>", "es_rule_exe_log_org");
+		return sql;
+	}
+	
+	public static boolean useOrgTable(String order_id) {
+		//根据订单ID获取订单的创建时间
+//		String tid_time = CommonDataFactory.getInstance().getAttrFieldValue(order_id, "tid_time");
+////		logger.info(order_id+"--------------------tid_time----------------------"+tid_time);
+//		if(use_new_table_time == null) return false;
+//		
+//		//如果订单的创建时间小于割接时间点，则使用org源数据表 es_rule_exe_log_org es_rule_exe_log_his_org
+//		if(tid_time.compareTo(use_new_table_time) < 0) {
+//			return true;
+//		}
+		return false;
+	}
+}

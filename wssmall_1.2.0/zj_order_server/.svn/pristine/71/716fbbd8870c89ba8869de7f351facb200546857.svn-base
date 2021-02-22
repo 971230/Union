@@ -1,0 +1,270 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import params.ZteRequest;
+import params.ZteResponse;
+import rule.params.coqueue.req.CoQueueRuleReq;
+import util.Utils;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.base.req.BusiCompRequest;
+import zte.net.ecsord.params.base.resp.BusiCompResponse;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.ecaop.req.AopSmsSendReq;
+import zte.net.ecsord.params.ecaop.resp.AopSmsSendResp;
+import zte.net.ecsord.params.zb.req.NotifyDeliveryZBRequest;
+import zte.net.ecsord.params.zb.req.NotifyOrderInfoZBRequest;
+import zte.net.ecsord.params.zb.req.NotifyRouteInfoZBRequest;
+import zte.net.ecsord.params.zb.req.StateSynToZBRequest;
+import zte.net.ecsord.params.zb.resp.NotifyDeliveryResponse;
+import zte.net.ecsord.params.zb.resp.NotifyOrderInfoZBResponse;
+import zte.net.ecsord.params.zb.resp.NotifyRouteInfoZBResponse;
+import zte.net.ecsord.params.zb.resp.StateSynToZBResponse;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.Task;
+import com.ztesoft.api.TaskThreadPool;
+import com.ztesoft.api.ThreadPoolFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.model.CoQueue;
+import com.ztesoft.net.mall.core.service.ICoQueueManager;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import consts.ConstsCore;
+
+/**
+ * 订单状态同步总部商城定时任务
+ * @author suns
+ *
+ */
+public class NotifyStatusToZbTimer {
+	private static Logger logger = Logger.getLogger(NotifyStatusToZbTimer.class);
+	@Resource
+	private ICoQueueManager coQueueManager;
+	private static final int maxNum = 200;  //每次扫描200条
+	private static final Object _KEY = new Object();
+	
+	@SuppressWarnings("static-access")
+	public void notifyStatus() {
+		if(!CheckTimerServer.isMatchServer(this.getClass().getName(),"notifyStatus"))
+		return ;
+ 		
+ 		//查询当前server主机环境，当前server为生产主机环境，则查询当前归属主机+未归属主机的订单信息；当前server为非生产主机环境，则查询当前归属主机
+ 		String local_env_status="00A";
+ 		String local_env_code="ecsord_ceshi";
+ 		String local_env_type ="ecsord_ceshi";
+ 		Map hostEnvMap = BeanUtils.getCurrHostEnv();
+ 		local_env_status = (String)hostEnvMap.get("env_status");
+ 		local_env_code = (String)hostEnvMap.get("env_code");
+ 		local_env_type = (String)hostEnvMap.get("env_type");
+ 		if ("ecsord".equals(local_env_type)) { // 临时方式先写死去转换
+ 			local_env_code = "ecsord_a".equals(local_env_code)?"ecsord_server_a":local_env_code;
+ 			local_env_code = "ecsord_b".equals(local_env_code)?"ecsord_server_b":local_env_code;
+ 		}
+ 		
+ 		logger.info("NotifyStatusToZbTimer========notifyStatus=======begin");
+ 		synchronized (_KEY) {
+ 			List<CoQueue> coQueueLst = coQueueManager.getForABGrayJob(
+ 					new String[]{"CO_NOTIFYSTATUS_ZB","CO_DELIVERYNOTIFY_ZB","CO_ROUTE_NOTIFY_ZB","CO_ORDERINFONOTIFY_ZB","CO_ABNORMALTOZB"}, this.maxNum,local_env_status,local_env_code,true); //修改脚本，生产环境查询es_abgray_ord_env_rel存在的记录，或者不存在的记录，否则非生产环境，则完全匹配。
+ 			logger.info("NotifyStatusToZbTimer====count:" + coQueueLst!=null?coQueueLst.size():0);
+ 			CoQueueRuleReq coQueueRuleReq = null;
+ 			for (CoQueue coQueue : coQueueLst) {
+ 				coQueueRuleReq = new CoQueueRuleReq();
+ 				coQueueRuleReq.setObject_id(coQueue.getObject_id());
+ 				coQueueRuleReq.setCoQueue(coQueue);
+ 				logger.info("订单状态通知总部商城Job,订单"+coQueue.getObject_id()+" Job环境为："+local_env_code+"  环境状态"+local_env_status);
+ 				Map params = new HashMap();
+ 				coQueueRuleReq.setParams(params);
+ 				TaskThreadPool taskThreadPool = new TaskThreadPool(new Task(coQueueRuleReq) {
+ 					public ZteResponse execute(ZteRequest zteRequest) {
+						CoQueueRuleReq coQueueRuleReq =(CoQueueRuleReq)(zteRequest);
+						CoQueue coQueue = coQueueRuleReq.getCoQueue();
+ 						try {
+ 							String service_code = coQueue.getService_code();
+ 							String contents = coQueue.getContents()==null?"":coQueue.getContents();
+ 							String ret_msg = "";
+
+							ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+ 							if ("CO_NOTIFYSTATUS_ZB".equals(service_code)) { // 状态通知
+ 								logger.info("CO_NOTIFYSTATUS_ZB====="+coQueueRuleReq.getObject_id());
+ 	 							JSONObject json = JSONObject.fromObject(contents);
+ 	 							String stateTag = json.getString("stateTag")==null?"":json.getString("stateTag");
+ 	 							String stateChgReason = json.getString("stateChgReason")==null?"":json.getString("stateChgReason");
+ 	 							String stateChgDesc = json.getString("stateChgDesc")==null?"":json.getString("stateChgDesc");
+ 	 							// 调用状态通知接口通知总部
+ 	 							StateSynToZBRequest request = new StateSynToZBRequest();
+ 	 							request.setNotNeedReqStrOrderId(coQueueRuleReq.getObject_id()); // 订单号
+ 	 							request.setNotNeedReqStrStateTag(stateTag); // 状态标记
+ 	 							request.setNotNeedReqStrStateChgReason(stateChgReason); // 变更原因
+ 	 							request.setNotNeedReqStrStateChgDesc(stateChgDesc); // 变更描述
+ 	 							if (StringUtils.isNotBlank(request.getNotNeedReqStrStateTag()) 
+ 	 									&& StringUtils.isNotBlank(request.getNotNeedReqStrStateChgReason())) {
+ 	 								StateSynToZBResponse response = client.execute(request, StateSynToZBResponse.class);
+ 	 								if (response.getOrders()!=null&&response.getOrders().size()>0) {
+ 	 									ret_msg = response.getOrders().get(0).getRespDesc();
+ 	 								}else{
+ 	 									ret_msg = response.getRespDesc();
+ 	 								}
+ 	 								if (ret_msg!=null) ret_msg = ret_msg.length()>100?ret_msg.substring(0, 99):ret_msg;
+ 	 								if(!EcsOrderConsts.INF_RESP_CODE_0000.equals(response.getRespCode())) {
+ 	 	 	 							coQueueManager.modifyStatus(coQueue.getCo_id(), "-1", "code:"+response.getRespCode()+";msg:"+ret_msg);
+ 	 	 	 							String smsContent="[状态通知]错误内容["+ret_msg+"]";
+ 	 	 	 						    NotifyStatusToZbTimer.smsSend(coQueue,smsContent);
+ 	 								} else {
+ 	 		 							coQueueManager.del(coQueue.getCo_id());
+ 	 								}
+ 	 							} else {
+ 	 	 							coQueueManager.modifyStatus(coQueue.getCo_id(), "-1", "状态参数不存在!");
+ 	 	 							String smsContent="[状态通知]错误内容[状态参数不存在!]";
+	 	 	 						NotifyStatusToZbTimer.smsSend(coQueue,smsContent);
+ 	 							}
+ 							} else if ("CO_DELIVERYNOTIFY_ZB".equals(service_code)) { // 发货信息通知
+ 								logger.info("CO_DELIVERYNOTIFY_ZB====="+coQueueRuleReq.getObject_id());
+ 								NotifyDeliveryZBRequest req = new NotifyDeliveryZBRequest();
+ 								req.setNotNeedReqStrOrderId(coQueueRuleReq.getObject_id());
+ 								NotifyDeliveryResponse infResp = client.execute(req, NotifyDeliveryResponse.class);
+ 								if (infResp.getRespCode().equals(EcsOrderConsts.ZB_INF_RESP_CODE_0000)){
+ 									CommonDataFactory.getInstance().updateAttrFieldValue(coQueueRuleReq.getObject_id(), 
+ 											new String[]{AttrConsts.ZB_STATUS}, 
+ 											new String[]{EcsOrderConsts.ZB_ORDER_STATE_N09});
+ 		 							coQueueManager.del(coQueue.getCo_id());
+ 								}else {
+ 	 	 							coQueueManager.modifyStatus(coQueue.getCo_id(), "-1", "code:"+infResp.getRespCode()+";msg:"+Utils.substringByCon(infResp.getRespDesc(),0,100));
+ 	 	 							String smsContent="[发货信息通知]错误内容["+Utils.substringByCon(infResp.getRespDesc(),0,30)+"]";
+	 	 	 						NotifyStatusToZbTimer.smsSend(coQueue,smsContent);
+ 								}
+ 							} else if ("CO_ROUTE_NOTIFY_ZB".equals(service_code)) { // 路由信息通知
+ 								logger.info("CO_ROUTE_NOTIFY_ZB====="+coQueueRuleReq.getObject_id());
+ 								NotifyRouteInfoZBRequest req = new NotifyRouteInfoZBRequest();
+ 								req.setNotNeedReqStrOrderId(coQueueRuleReq.getObject_id());
+
+ 								OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(coQueueRuleReq.getObject_id());
+ 								if(orderTree==null)req.setNotNeedReqStrIsHis(true);
+ 								else req.setNotNeedReqStrIsHis(false);
+ 								NotifyRouteInfoZBResponse infResp = client.execute(req, NotifyRouteInfoZBResponse.class);
+ 								if (infResp.getRespCode().equals(EcsOrderConsts.ZB_INF_RESP_CODE_SUCC)){
+ 		 							coQueueManager.del(coQueue.getCo_id());
+ 								}else {
+ 	 	 							coQueueManager.modifyStatus(coQueue.getCo_id(), "-1", "code:"+infResp.getRespCode()+";msg:"+Utils.substringByCon(infResp.getRespDesc(),0,100));
+ 	 	 							String smsContent="[路由信息通知]错误内容["+Utils.substringByCon(infResp.getRespDesc(),0,30)+"]";
+	 	 	 						NotifyStatusToZbTimer.smsSend(coQueue,smsContent);
+ 								}
+ 							} else if ("CO_ORDERINFONOTIFY_ZB".equals(service_code)) { // 订单信息变更通知
+ 								logger.info("CO_ORDERINFONOTIFY_ZB====="+coQueueRuleReq.getObject_id());
+ 								NotifyOrderInfoZBRequest req = new NotifyOrderInfoZBRequest();
+ 								req.setNotNeedReqStrOrderId(coQueueRuleReq.getObject_id());
+ 								NotifyOrderInfoZBResponse infResp = client.execute(req, NotifyOrderInfoZBResponse.class);
+ 								if (infResp.getRespCode().equals(EcsOrderConsts.ZB_INF_RESP_CODE_0000)){
+ 									CommonDataFactory.getInstance().updateAttrFieldValue(coQueueRuleReq.getObject_id(), 
+ 											new String[]{AttrConsts.ZB_STATUS}, 
+ 											new String[]{EcsOrderConsts.ZB_ORDER_STATE_N03});
+ 		 							coQueueManager.del(coQueue.getCo_id());
+ 								}else {
+ 	 	 							coQueueManager.modifyStatus(coQueue.getCo_id(), "-1", "code:"+infResp.getRespCode()+";msg:"+Utils.substringByCon(infResp.getRespDesc(),0,100));
+ 	 	 							String smsContent="[订单信息变更通知]错误内容["+Utils.substringByCon(infResp.getRespDesc(),0,30)+"]";
+	 	 	 						NotifyStatusToZbTimer.smsSend(coQueue,smsContent);
+ 								}
+ 							}else if ("CO_ABNORMALTOZB".equals(service_code)) { // 订单异常通知总部  宋琪
+ 								logger.info("CO_ABNORMALTOZB====="+coQueueRuleReq.getObject_id());
+ 								//调用组件
+ 								BusiCompRequest busi = new BusiCompRequest();
+ 								Map queryParams = new HashMap();
+ 								queryParams.put("msg", coQueue.getContents().toString());
+ 								//queryParams.put(EcsOrderConsts.EXCEPTION_FROM, EcsOrderConsts.EXCEPTION_FROM_ORD);
+ 								queryParams.put("order_id", coQueueRuleReq.getObject_id());
+ 								busi.setEnginePath("zteCommonTraceRule.notifyOrderAbnormalToZB");
+ 								busi.setOrder_id(coQueueRuleReq.getObject_id());
+ 								busi.setQueryParams(queryParams);
+ 								BusiCompResponse busiResp = CommonDataFactory.getInstance().execBusiComp(busi);
+ 								//验证是否执行成功
+ 								if (busiResp.getError_code().equals("0")){
+ 									CommonDataFactory.getInstance().updateAttrFieldValue(coQueueRuleReq.getObject_id(), 
+ 											new String[]{AttrConsts.ZB_STATUS}, 
+ 											new String[]{EcsOrderConsts.ZB_ORDER_STATE_N03});
+ 		 							coQueueManager.del(coQueue.getCo_id());
+ 								}else {
+ 	 	 							coQueueManager.modifyStatus(coQueue.getCo_id(), "-1", "code:"+busiResp.getError_code()+";msg:"+Utils.substringByCon(busiResp.getError_msg(),0,100));
+ 	 	 							String smsContent="[订单异常通知总部]错误内容["+Utils.substringByCon(busiResp.getError_code(),0,30)+"]";
+	 	 	 						NotifyStatusToZbTimer.smsSend(coQueue,smsContent);
+ 								}
+
+ 								
+ 								
+ 							}else{
+ 	 							coQueueManager.modifyStatus(coQueue.getCo_id(), "-1", "未匹配到处理逻辑");
+ 	 							String smsContent="[路由信息通知]错误内容[未匹配到处理逻辑]";
+ 	 	 						NotifyStatusToZbTimer.smsSend(coQueue,smsContent);
+ 							}
+ 							
+ 						} catch (Exception e) {
+ 							e.printStackTrace();
+ 							coQueueManager.modifyStatus(coQueue.getCo_id(), "-1", e.getMessage());
+ 						}
+ 						return new ZteResponse();
+ 					}
+ 				});
+ 				coQueueManager.lock(coQueue.getCo_id());  //锁单（不要下次再被扫到）
+ 				ThreadPoolFactory.orderExecute(taskThreadPool); //异步单线程执行
+ 			}
+		}
+ 		logger.info("NotifyStatusToZbTimer========notifyStatus=======end");
+	}
+
+	public ICoQueueManager getCoQueueManager() {
+		return coQueueManager;
+	}
+
+	public void setCoQueueManager(ICoQueueManager coQueueManager) {
+		this.coQueueManager = coQueueManager;
+	}
+	
+	
+	private static void smsSend(CoQueue coQueue,String msg){
+		//短信提醒
+		String order_id=coQueue.getObject_id();
+		Integer deal_num=coQueue.getDeal_num();
+		if(deal_num!=null&&deal_num>=3){//最后一次扫描发送失败才发送短信通知
+			try {
+				
+				msg="[云订单系统提示]["+order_id+"]"+msg;
+				ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+				ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+				String bill_num=cacheUtil.getConfigInfo("SMS_BILL_NUM");
+				String receive_phonenums=cacheUtil.getConfigInfo("SMS_RECEIVE_PHONENUMS");
+				if(!StringUtils.isEmpty(receive_phonenums)){
+					String[] receive_phonenums_array=receive_phonenums.split(",");
+					for (String receive_phonenum : receive_phonenums_array) {
+						AopSmsSendReq smsSendReq = new AopSmsSendReq();
+						smsSendReq.setSms_data(msg);
+						smsSendReq.setBill_num(bill_num);//短信发送号码
+						smsSendReq.setService_num(receive_phonenum);
+						smsSendReq.setOrder_id(order_id);
+						AopSmsSendResp smsSendResp = client.execute(smsSendReq, AopSmsSendResp.class);
+						if(smsSendResp!=null&&ConstsCore.ERROR_SUCC.equals(smsSendResp.getError_code())){
+							logger.info("定时任务失败数据提醒内容发送成功！");
+						}
+						else{
+							logger.info("定时任务失败数据提醒内容发送失败！");
+						}
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+}

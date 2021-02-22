@@ -1,0 +1,28 @@
+<script type="text/javascript" src="memberprice.js"></script>
+<div style="display: none;"  tabid="tab_1"  class=" division" id='price_div_tab' style='border:0px solid red;width:100px;'>
+	<div style='border:0px solid red;width:50%;' >
+	<table id="body1_price" class="form-table" style='text-align:center;width:330px;'>
+		<thead>
+	        <tr>
+	        	<th style='width:100px;text-align:right;padding-right:30px;'>会员等级</th>
+	        	<th style='text-align:left;'>汇率</th>
+	 			<th style='text-align:left;'>价格(元)</th>
+	         </tr>
+     	</thead>
+		<tbody id="body1">
+	 		<tr id="price_data_tpl" style="display:none;">
+	 			<td name="price.name" style='width:100px;text-align:right;padding-right:30px;'>普通会员：</td>
+	 			<td>
+	 				<select name="price.lv_discount">
+	 					<option value="-1">请选择</option>
+	 				</select>
+	 			</td>
+	 			<td><input type="text" name="price.lvPrice" value="-999"/></td>
+	 			<input type="hidden" name="price.lvid"  value=""/>
+	 		</tr>
+			
+		</tbody>
+	</table>
+</div>
+<div id="memberpricedlg"></div>		
+</div>

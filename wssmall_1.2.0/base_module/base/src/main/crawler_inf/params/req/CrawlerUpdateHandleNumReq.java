@@ -1,0 +1,61 @@
+package params.req;
+
+import com.ztesoft.api.ApiRuleException;
+import params.ZteRequest;
+
+public class CrawlerUpdateHandleNumReq extends ZteRequest{
+
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "zte.net.ecsord.updateCrawlerHandleNum";
+	}
+	
+	private String ip;
+	
+	private String port;
+	
+	private String threadName;
+	
+	private int handleNum;
+
+	public int getHandleNum() {
+		return handleNum;
+	}
+
+	public void setHandleNum(int handleNum) {
+		this.handleNum = handleNum;
+	}
+
+	public String getIp() {
+		return ip;
+	}
+
+	public void setIp(String ip) {
+		this.ip = ip;
+	}
+
+	public String getPort() {
+		return port;
+	}
+
+	public void setPort(String port) {
+		this.port = port;
+	}
+
+	public String getThreadName() {
+		return threadName;
+	}
+
+	public void setThreadName(String threadName) {
+		this.threadName = threadName;
+	}
+	
+
+}

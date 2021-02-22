@@ -1,0 +1,8 @@
+	<option value="">选择货品型号</option>
+	<#if brandModelList??>
+	<#list brandModelList as model>
+		<option value="${model.model_code }">
+			${model.model_name }
+		</option>
+	</#list>
+	</#if>

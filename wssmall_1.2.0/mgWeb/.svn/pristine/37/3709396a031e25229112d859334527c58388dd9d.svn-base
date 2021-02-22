@@ -1,0 +1,91 @@
+{
+  "@type": "com.ztesoft.net.cmsline.paramsj.template.req.EditStoreTemplateReq",
+  "page_id": "100001",
+  "template": {
+    "extensionData": null,
+    "adPhone": "",
+    "adPhoto": null,
+    "adPhotoId": 0,
+    "adPhotoTitle": "",
+    "adPhotoUrl": "",
+    "adText": "在线商城",
+    "adType": 2,
+    "adUrl": "http://www.baidu.com/",
+    "borderStyle": 0,
+    "description": "",
+    "device": 1,
+    "footer": "",
+    "header": "",
+    "headerStyle": 0,
+    "helpTitle": [
+      {
+        "extensionData": null,
+        "name": "注册登录"
+      },
+      {
+        "extensionData": null,
+        "name": "找回密码"
+      },
+      {
+        "extensionData": null,
+        "name": "如何下单"
+      },
+      {
+        "extensionData": null,
+        "name": "单据状态"
+      },
+      {
+        "extensionData": null,
+        "name": "快递选择"
+      },
+      {
+        "extensionData": null,
+        "name": "配送时间"
+      },
+      {
+        "extensionData": null,
+        "name": "线下付款"
+      },
+      {
+        "extensionData": null,
+        "name": "网银支付"
+      },
+      {
+        "extensionData": null,
+        "name": "退货换货"
+      },
+      {
+        "extensionData": null,
+        "name": "取消订单"
+      },
+      {
+        "extensionData": null,
+        "name": "购物卡"
+      },
+      {
+        "extensionData": null,
+        "name": "折扣卡"
+      }
+    ],
+    "helpTitleJson": "[{\"Name\":\"注册登录\"},{\"Name\":\"找回密码\"},{\"Name\":\"如何下单\"},{\"Name\":\"单据状态\"},{\"Name\":\"快递选择\"},{\"Name\":\"配送时间\"},{\"Name\":\"线下付款\"},{\"Name\":\"网银支付\"},{\"Name\":\"退货换货\"},{\"Name\":\"取消订单\"},{\"Name\":\"购物卡\"},{\"Name\":\"折扣卡\"}]",
+    "id": 99192,
+    "keyword": "",
+    "logo": "${staticserver}/themes/default/cmsline/Content/Common/images/def_logo.jpg",
+    "logoPhotoId": 0,
+    "logoType": 0,
+    "mainStyle": 0,
+    "majorColor": 10,
+    "minorColor": 0,
+    "name": "在线商城",
+    "saveLevel": 2,
+    "searchKey": "",
+    "showHeader": true,
+    "showHeaderAd": false,
+    "showHelp": true,
+    "showNav": true,
+    "showZhuyun": false,
+    "storeId": 16528,
+    "templateId": 3,
+    "title": ""
+  }
+}

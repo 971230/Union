@@ -1,0 +1,72 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.ztesoft.cache.CacheList;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.model.AttrTypeRela;
+import com.ztesoft.net.mall.core.service.IAttrTypeRelaManager;
+
+public class AttrTypeRelaManager extends BaseSupport<AttrTypeRela> implements IAttrTypeRelaManager {
+
+	static INetCache cache;
+	static {
+		cache = (INetCache) com.ztesoft.net.cache.common.CacheFactory.getCacheByType("");
+	}
+	public static int NAMESPACE = Const.CACHE_SPACE_ORDERSTD;
+	static int time = Const.CACHE_TIME_ORDERSTD;// 缺省缓存20天,memcache最大有效期是30天
+
+	@Override
+	public List<AttrTypeRela> getAttrTypeRela(String busiType) {
+		List<AttrTypeRela> attrTypeRelaList = new ArrayList<AttrTypeRela>();
+		String preKey = busiType + "_ES_BUSINESS_TYPE_ATTR_RELA";
+		String sql = "SELECT busi_type_attr_rela_id, busi_type_id, table_name,"
+				+ " handler_class, sort FROM es_business_type_attr_rela WHERE busi_type_id = ?  order by sort asc ";
+		attrTypeRelaList = (List<AttrTypeRela>) cache.get(NAMESPACE, preKey);
+		if (!ListUtil.isEmpty(attrTypeRelaList)) {
+			return attrTypeRelaList;
+		} else {
+			attrTypeRelaList = baseDaoSupport.queryForList(sql, AttrTypeRela.class, busiType);
+			if (null != attrTypeRelaList && attrTypeRelaList.size() > 0) {
+				CacheList<AttrTypeRela> clist = new CacheList<AttrTypeRela>();
+				clist.addAll(attrTypeRelaList);
+				cache.set(NAMESPACE, preKey, clist, time);
+			}
+		}
+		return attrTypeRelaList;
+	}
+
+	@Override
+	public void refreshCache() {
+		String sql = "SELECT busi_type_attr_rela_id, busi_type_id, table_name,"
+				+ " handler_class, sort FROM es_business_type_attr_rela  order by sort asc";
+		List<AttrTypeRela> list = baseDaoSupport.queryForList(sql, AttrTypeRela.class);
+	
+		Map<String,List> map = new HashMap<String,List>();
+		for(AttrTypeRela attrTypeRela : list) {
+			String preKey = attrTypeRela.getBusi_type_id()+ "_ES_BUSINESS_TYPE_ATTR_RELA";
+			if(map.containsKey(preKey)) {
+				List<AttrTypeRela> mapList =(List<AttrTypeRela>)map.get(preKey);
+				mapList.add(attrTypeRela);
+				map.put(preKey, mapList);	
+			}else
+			{	
+				List<AttrTypeRela> mapList = new ArrayList<AttrTypeRela>();
+				mapList.add(attrTypeRela);
+				map.put(preKey, mapList);
+			}
+		}
+	   for(String preKey:map.keySet()) {
+		   CacheList<AttrTypeRela> clist = new CacheList<AttrTypeRela>();
+			clist.addAll(map.get(preKey));
+		   cache.set(NAMESPACE, preKey, clist, time);
+	   }
+	}
+
+}

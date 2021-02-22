@@ -1,0 +1,120 @@
+package com.ztesoft.net.mall.core.action.backend;
+
+import com.ztesoft.net.app.base.core.model.Partner;
+import com.ztesoft.net.app.base.core.model.PartnerAddress;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.service.IPartnerAddressManager;
+import com.ztesoft.net.mall.core.service.IPartnerManager;
+
+public class PartnerAddrAction extends WWAction{
+	
+	private IPartnerManager partnerManager;
+	private IPartnerAddressManager partnerAddressManger;
+	private Partner partner;
+	private PartnerAddress paraddr;
+	private PartnerAddress paraddr_s;
+	private String id;
+	private String addrid;
+	private boolean is_edit;
+	
+	public String list(){
+		
+	   this.webpage = this.partnerAddressManger.list(paraddr_s,this.getPage(),this.getPageSize());
+		
+		return "list";
+	}
+	public String add(){
+		paraddr=null;
+		return "input";
+	}
+	public String edit(){
+		
+		paraddr=partnerAddressManger.getPartnerAddrByAddrId(addrid);
+		
+		return "input";
+	}
+	public String delete(){
+		try {
+			String a []=id.split(",");
+			String idstr="";
+			for(int i=0;i<a.length;i++){
+				idstr+=a[i].replaceAll(a[i], "'"+a[i]+"'")+',';
+			}
+			idstr=idstr.substring(0,idstr.length()-1);
+			
+			partnerAddressManger.deleteAddr(idstr);
+			this.json = "{'result':0,'message':'删除成功'}";
+		} catch (RuntimeException e) {
+			this.json = "{'result':1,'message':'删除失败'}";
+		}
+		
+		return this.JSON_MESSAGE;
+	}
+	public String saveAddress(){
+		try {
+			if(paraddr!=null && paraddr.getAddr_id().length()!=0){
+				partnerAddressManger.edit(paraddr);
+				this.json = "{'result':0,'message':'修改成功','addrid':'"+paraddr.getAddr_id()+"'}";
+			}else{
+				partnerAddressManger.add(paraddr);
+				this.json = "{'result':0,'message':'新增成功','addrid':'"+paraddr.getAddr_id()+"'}";
+			}
+			
+		} catch (RuntimeException e) {
+			this.json = "{'result':1,'message':'保存失败'}";
+		}
+		
+		return this.JSON_MESSAGE;
+	}
+	
+	public IPartnerManager getPartnerManager() {
+		return partnerManager;
+	}
+	public void setPartnerManager(IPartnerManager partnerManager) {
+		this.partnerManager = partnerManager;
+	}
+	public Partner getPartner() {
+		return partner;
+	}
+	public void setPartner(Partner partner) {
+		this.partner = partner;
+	}
+	public IPartnerAddressManager getPartnerAddressManger() {
+		return partnerAddressManger;
+	}
+	public void setPartnerAddressManger(IPartnerAddressManager partnerAddressManger) {
+		this.partnerAddressManger = partnerAddressManger;
+	}
+	public PartnerAddress getParaddr_s() {
+		return paraddr_s;
+	}
+	public void setParaddr_s(PartnerAddress paraddr_s) {
+		this.paraddr_s = paraddr_s;
+	}
+	public String getId() {
+		return id;
+	}
+	public boolean isIs_edit() {
+		return is_edit;
+	}
+	public void setIs_edit(boolean is_edit) {
+		this.is_edit = is_edit;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getAddrid() {
+		return addrid;
+	}
+	public void setAddrid(String addrid) {
+		this.addrid = addrid;
+	}
+	public PartnerAddress getParaddr() {
+		return paraddr;
+	}
+	public void setParaddr(PartnerAddress paraddr) {
+		this.paraddr = paraddr;
+	}
+	
+	
+}

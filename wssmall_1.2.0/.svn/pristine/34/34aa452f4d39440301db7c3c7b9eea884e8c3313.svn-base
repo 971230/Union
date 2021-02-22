@@ -1,0 +1,126 @@
+package com.ztesoft.net.app.base.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.Notice;
+import com.ztesoft.net.app.base.core.service.INoticeManager;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import java.util.List;
+
+public class NoticeManagerImpl extends BaseSupport implements INoticeManager {
+
+	@Override
+	public Page ListAllNotice(String title,int pageSize, int pageNo) {
+	    StringBuffer sql = new StringBuffer();
+	    AdminUser adminUser = ManagerUtils.getAdminUser();
+	    String userid = adminUser.getUserid();//获取登录的userId
+	    String org_id = adminUser.getOrg_id();//获取登录用户的组织ID
+	    
+	    String parentOrgIDsql ="select a.parent_party_id from es_organization  a where a.party_id ='"+org_id+"'";
+	    String par_org_id = this.baseDaoSupport.queryForString(parentOrgIDsql);//获取父级组织
+	    
+	    Page page = null;
+	    
+	    sql.append("select a.*,org.org_name org_name,u.username user_name from es_notices a left join es_organization org on a.pubilsh_org_id=org.party_id left join es_adminuser u on a.user_id=u.userid where a.state=0");
+	    
+	    if(title!=null&&!"".equals(title)){
+	    	sql.append(" and a.title like '%");
+	    	sql.append(title);
+	    	sql.append("%'");
+	    }
+	    if(!"-1".equals(par_org_id)){
+	    	 sql.append(" and a.user_id=?");
+	    	 sql.append(" order by a.create_time desc");
+	    	 page = this.baseDaoSupport.queryForPage(sql.toString(), pageNo, pageSize, userid);
+	    }else{
+	    	 sql.append(" order by a.create_time desc");
+	         page = this.baseDaoSupport.queryForPage(sql.toString(),pageNo,pageSize);
+	    }
+	        return page;
+	}
+
+	@Override
+	public void addNotice(Notice notice) {
+		AdminUser adminUser = ManagerUtils.getAdminUser();
+		String userid = adminUser.getUserid();
+		String org_id = adminUser.getOrg_id();
+		String notice_id =this.baseDaoSupport.getSequences("ES_NOTICE_SEQ");
+		notice.setNotice_id(notice_id);
+		notice.setCreate_time(DBTUtil.current());
+		notice.setUser_id(userid);
+		notice.setPubilsh_org_id(org_id);
+		notice.setState(0);
+		this.baseDaoSupport.insert("es_notices", notice);
+		
+	}
+
+	@Override
+	public void deleteNotice(String notice_id) {
+		String sql ="update es_notices set state =1 where notice_id=?";
+		this.baseDaoSupport.execute(sql, notice_id);
+		
+	}
+
+	@Override
+	public void editNotice(Notice notice) {
+		// TODO Auto-generated method stub
+		this.baseDaoSupport.update("es_notices", notice, "notice_id ="+notice.getNotice_id());
+	}
+
+	@Override
+	public Notice getNotice(String notice_id) {
+		// TODO Auto-generated method stub
+	    String sql ="select * from es_notices where notice_id=?";
+		Notice notice = (Notice) this.baseDaoSupport.queryForObject(sql, Notice.class, notice_id);
+		return notice;
+	}
+
+	@Override
+	public boolean isMaxCount() {
+		boolean flag = false;
+		int maxCount = getMaxCount();
+	    String newNoticeCountSql = "select count(*) from es_notices where state=0 and "+DBTUtil.current()+" between begin_time and end_time and user_id=?";
+		
+		String userid =ManagerUtils.getUserId();
+		int count = this.baseDaoSupport.queryForInt(newNoticeCountSql, userid);
+		if(maxCount>count){
+			flag = true;
+		}
+	    return flag;
+	}
+   public int getMaxCount(){
+	    int maxCount = 0;
+	    String sql ="select pkey from es_dc_public where stype='8088'";
+	    maxCount = this.baseDaoSupport.queryForInt(sql);
+	    
+	    return maxCount;
+   }
+
+	@Override
+	public List getNewNoticeList() {
+		String org_id = ManagerUtils.getAdminUser().getOrg_id();
+		    
+		String parentOrgIDsql ="select a.parent_party_id from es_organization  a where a.party_id ='"+org_id+"'";
+	    String par_org_id = this.baseDaoSupport.queryForString(parentOrgIDsql);//获取父级组织
+	   
+		String sql  ="select a.notice_id notice_id,a.title notice_title,to_char(a.create_time,'YYYY-MM-DD') create_time , org.org_name org_name,u.username user_name from es_notices a left join es_organization org on a.pubilsh_org_id=org.party_id left join es_adminuser u on a.user_id=u.userid where a.state=0 and a.begin_time<="+DBTUtil.current()+" and a.end_time>="+DBTUtil.current()+" and pubilsh_org_id=? and rownum<=5";
+	    
+		return this.baseDaoSupport.queryForList(sql, par_org_id);
+		//return this.baseDaoSupport.queryForPage(sql, pageNo, pageSize, Notice.class, par_org_id);
+	}
+
+	@Override
+	public Page getMoreNoticeList(int pageSize, int pageNo) {
+		String org_id = ManagerUtils.getAdminUser().getOrg_id();
+		String parentOrgIDsql ="select a.parent_party_id from es_organization  a where a.party_id ='"+org_id+"'";
+	    String par_org_id = this.baseDaoSupport.queryForString(parentOrgIDsql);//获取父级组织
+	   
+		String sql  ="select a.* , org.org_name org_name,u.username user_name from es_notices a left join es_organization org on a.pubilsh_org_id=org.party_id left join es_adminuser u on a.user_id=u.userid where a.state=0 and a.begin_time<="+DBTUtil.current()+" and a.end_time>="+DBTUtil.current()+" and pubilsh_org_id=?";
+	  
+		return this.baseDaoSupport.queryForPage(sql, pageNo, pageSize, Notice.class, par_org_id);
+	}
+
+}

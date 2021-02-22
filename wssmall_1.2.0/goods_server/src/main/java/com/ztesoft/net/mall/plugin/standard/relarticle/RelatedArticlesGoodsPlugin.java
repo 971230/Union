@@ -1,0 +1,130 @@
+package com.ztesoft.net.mall.plugin.standard.relarticle;
+
+import com.ztesoft.net.eop.processor.core.freemarker.FreeMarkerPaser;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.plugin.goods.AbstractGoodsPlugin;
+import com.ztesoft.net.sqls.SF;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Map;
+
+public class RelatedArticlesGoodsPlugin extends AbstractGoodsPlugin {
+	private IDaoSupport baseDaoSupport;
+	@Override
+	public void addTabs() {
+		this.addTags(12, "相关文章");
+
+	}
+
+	@Override
+	public String onFillGoodsAddInput(HttpServletRequest request) {
+		FreeMarkerPaser freeMarkerPaser =FreeMarkerPaser.getInstance();
+		freeMarkerPaser.setPageName("RelatedArticles");
+		return freeMarkerPaser.proessPageContent();
+	}
+
+	@Override
+	public void onBeforeGoodsAdd(Map goods, HttpServletRequest request) {
+		
+
+	}
+
+	@Override
+	public String onFillGoodsEditInput(Map goods, HttpServletRequest request) {
+		FreeMarkerPaser freeMarkerPaser =FreeMarkerPaser.getInstance();
+		freeMarkerPaser.setPageName("RelatedArticles");
+		String sql  = SF.goodsSql("GOODS_ARTICLES_BY_ID");
+		List articleList  = this.baseDaoSupport.queryForList(sql, goods.get("goods_id"));
+		freeMarkerPaser.putData("articleList",articleList);
+		return freeMarkerPaser.proessPageContent();
+	}
+
+
+	private void processData(Map goods){
+		HttpServletRequest request  = ThreadContextHolder.getHttpRequest();
+		Integer goodsid  = Integer.valueOf( goods.get("goods_id").toString() );
+		String[] articleidAr = request.getParameterValues("articleid");
+		String[] titleAr = request.getParameterValues("title");
+		this.baseDaoSupport.execute(SF.goodsSql("GOODS_ARTICLES_DEL"), goodsid);
+		int i=0;
+		if(articleidAr!=null){
+		for(String articleid: articleidAr){
+			String title  = titleAr[i]; 
+			this.baseDaoSupport.execute(SF.goodsSql("GOODS_ARTICLES_INSERT"), articleid,goodsid,title);
+			
+			i++;
+		}
+		}
+	}
+	
+	
+	@Override
+	public void onAfterGoodsAdd(Map goods, HttpServletRequest request)
+			throws RuntimeException {
+		this.processData(goods);
+
+	}
+
+	@Override
+	public void onAfterGoodsEdit(Map goods, HttpServletRequest request) {
+		this.processData(goods);
+	}
+
+	
+	
+	
+	@Override
+	public void onBeforeGoodsEdit(Map goods, HttpServletRequest request) {
+		
+
+	}
+
+	@Override
+	public String getAuthor() {
+		
+		return "kingapex";
+	}
+
+	@Override
+	public String getId() {
+		
+		return "rel_article";
+	}
+
+	@Override
+	public String getName() {
+		
+		return "商品相关文章";
+	}
+
+	@Override
+	public String getType() {
+		
+		return "goods";
+	}
+
+	@Override
+	public String getVersion() {
+		
+		return "1.0";
+	}
+
+	@Override
+	public void perform(Object... params) {
+		
+
+	}
+
+	@Override
+	public IDaoSupport getBaseDaoSupport() {
+		return baseDaoSupport;
+	}
+
+	@Override
+	public void setBaseDaoSupport(IDaoSupport baseDaoSupport) {
+		this.baseDaoSupport = baseDaoSupport;
+	}
+
+}

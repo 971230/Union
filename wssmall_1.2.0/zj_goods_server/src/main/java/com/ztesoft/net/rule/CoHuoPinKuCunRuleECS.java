@@ -1,0 +1,127 @@
+package com.ztesoft.net.rule;
+
+
+import javax.annotation.Resource;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+
+import rule.impl.CoQueueBaseRule;
+import rule.params.coqueue.req.CoQueueRuleReq;
+import rule.params.coqueue.resp.CoQueueRuleResp;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.iservice.IGoodsService;
+import zte.params.store.req.InventoryApplyLogReq;
+import zte.params.store.resp.InventoryApplyLogResp;
+
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.inf.infclient.InfEntirty;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.service.IOrderServiceLocal;
+import com.ztesoft.net.util.SendInfoUtil;
+import com.ztesoft.remote.inf.IWarehouseService;
+
+
+/**
+ * 货品库存同步规则
+ * @author suns
+ *
+ */
+public class CoHuoPinKuCunRuleECS extends CoQueueBaseRule {
+	
+	private Logger logger = Logger.getLogger(CoHuoPinKuCunRuleECS.class);
+	
+	@Resource
+	IGoodsService goodsService;
+	
+	@Resource
+	IWarehouseService warehouseService;
+	
+	@Resource
+	IOrderServiceLocal orderServiceLocal;
+	
+	@Override
+	public CoQueueRuleResp coQueue(CoQueueRuleReq coQueueRuleReq) {
+		
+		logger.debug("货品库存同步");
+		CoQueueRuleResp coQueueRuleResp = new CoQueueRuleResp();
+		coQueueRuleResp.setResp_code(Consts.RESP_CODE_000);
+		
+		//获取货品库存日志信息
+		InventoryApplyLogReq req = new InventoryApplyLogReq();
+		req.setLog_id(coQueueRuleReq.getObject_id());
+		InventoryApplyLogResp resp = warehouseService.queryApplyLogById(req);
+		/**
+		 * 1、调接口同步数据
+		 */
+		try {
+			InfEntirty entity = new InfEntirty();
+			String rtnStr = InfEntirty.proInventorySyn(resp, coQueueRuleReq);
+			if (StringUtils.isEmpty(rtnStr)) {
+//				CommonTools.addError("-1", "货品库存接口同步失败");
+//				coQueueRuleResp.setResp_code("-1");
+				coQueueRuleResp.setResp_code(Consts.CO_QUEUE_STATUS_XYSB);
+				coQueueRuleResp.setResp_msg("货品库存接口同步失败,rtnStr");
+				coQueueRuleResp.setError_code("1");
+				coQueueRuleResp.setError_msg("货品库存接口同步失败,rtnStr");
+				return coQueueRuleResp;
+			}
+			
+			//http://192.168.17.115:8777/integrationweb/integration/goodsInventory.sync
+			SendInfoUtil siu = new SendInfoUtil();
+			//String is_physical_product = CommonDataFactory.getInstance().getDictCodeValue(StypeConsts.IS_PHYSICAL, product_type_id);
+			String serviceCode= CommonDataFactory.getInstance().getDictCodeValue("CO_KUCUN_INF", coQueueRuleReq.getCoQueue().getOrg_id_belong());
+
+			String sqlStr="SELECT e.addr FROM inf_addr e where e.service_code='"+serviceCode +"'";//+"' and a.org_id_belong='"+idBelong[i]+"'";
+			String url=orderServiceLocal.queryString(sqlStr);
+			if("".equals(url)&&"".equals(serviceCode)){
+				url=orderServiceLocal.queryString("SELECT e.addr FROM inf_addr e where e.service_code='CO_HUOPIN_KUCUN_"+coQueueRuleReq.getCoQueue().getOrg_id_belong() +"'");
+			}
+			if(url.startsWith("noSend")){
+				url = "";
+			}
+			logger.info("完整的报文："+rtnStr+"\nURL："+url);
+			String  huoping_fanghui = SendInfoUtil.postHttpReq(rtnStr, url);//"http://192.168.17.104:8777/integrationweb/integration/goodsInventory.sync"
+			logger.info("===============================货品库存同步返回信息="+huoping_fanghui);
+			logger.info("===============================货品库存同步返回信息="+huoping_fanghui);
+			
+			try {
+				String ret_val =  JSONObject.fromObject(huoping_fanghui).getJSONObject("goods_inventory_resp").get("resp_code").toString();
+				if ("0".equalsIgnoreCase(ret_val)) {
+//					coQueueRuleResp.setResp_code(Consts.RESP_CODE_000);
+					coQueueRuleResp.setError_code("0");
+					coQueueRuleResp.setError_msg("成功");
+					coQueueRuleResp.setResp_code(Consts.RESP_CODE_000);
+					coQueueRuleResp.setResp_msg("成功");
+				}
+				else{
+//					CommonTools.addError("-1", JSONObject.fromObject(huoping_fanghui).getJSONObject("prod_offer_resp").get("resp_msg").toString());
+//					coQueueRuleResp.setResp_code("-1");
+					coQueueRuleResp.setResp_code(Consts.CO_QUEUE_STATUS_XYSB);
+					coQueueRuleResp.setResp_msg(JSONObject.fromObject(huoping_fanghui).getJSONObject("goods_inventory_resp").get("resp_msg").toString());
+					coQueueRuleResp.setError_code("1");
+					coQueueRuleResp.setError_msg(JSONObject.fromObject(huoping_fanghui).getJSONObject("goods_inventory_resp").get("resp_msg").toString());
+				}
+			} catch (Exception e) {
+				// TODO: handle exception
+//				CommonTools.addError("-1", "订单系统返回失败:"+huoping_fanghui);
+//				coQueueRuleResp.setResp_code("-1");
+				coQueueRuleResp.setResp_code(Consts.CO_QUEUE_STATUS_XYSB);
+				coQueueRuleResp.setResp_msg(huoping_fanghui);
+				coQueueRuleResp.setError_code("1");
+				coQueueRuleResp.setError_msg(huoping_fanghui);
+			}
+			
+		} catch (Exception e) {
+			coQueueRuleResp.setResp_code(Consts.CO_QUEUE_STATUS_XYSB);
+			coQueueRuleResp.setResp_msg(e.getMessage());
+			coQueueRuleResp.setError_code("1");
+			coQueueRuleResp.setError_msg(e.getMessage());
+			// TODO: handle exception
+		}
+
+
+		return coQueueRuleResp;
+	}
+}

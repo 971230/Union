@@ -1,0 +1,116 @@
+package com.ztesoft.net.mall.core.utils;
+
+import java.util.List;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.service.IConfigInfoManager;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+import com.ztesoft.net.mall.core.service.IDictManager;
+import com.ztesoft.net.mall.core.service.impl.cache.ConfigInfoCacheProxy;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicSQLInfoCacheProxy;
+import com.ztesoft.net.mall.core.service.impl.cache.DictManagerCacheProxy;
+
+@SuppressWarnings("unchecked")
+public class CacheUtil extends BaseSupport implements ICacheUtil {
+	
+	private IConfigInfoManager configInfoManager;
+	private IDcPublicInfoManager dcPublicInfoManager;
+	private IDictManager dictManager;
+	
+	@Override
+	public List doDcSqlQuerry(String attr_code) {
+		// TODO Auto-generated method stub
+		DcPublicSQLInfoCacheProxy dcSql =new DcPublicSQLInfoCacheProxy();
+		return dcSql.getDropdownData(attr_code);
+	}
+	@Override
+	public List doDcPublicQuery(String stype) {
+		DcPublicInfoCacheProxy dcPublicCache=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		return dcPublicCache.getList(stype);
+	}
+	
+	@Override
+	public String doLanName(String lan_id) {
+		return this.baseDaoSupport.queryForString("select lan_name from es_lan where lan_id = '"+lan_id+"'");
+		//return dcPublicCache.getList(stype);
+	}
+	
+	@Override
+	public List<String> getPlanDbSourceFrom() {
+		return this.baseDaoSupport.queryForList("select distinct source_from from  es_goods where source_from is not null");
+	}
+	
+	/**
+	 * 获取es_config_info配置信息
+	 * @param cfId
+	 */
+	@Override
+	public String getConfigInfo(String cfId){
+		ConfigInfoCacheProxy configCache = new ConfigInfoCacheProxy(configInfoManager);
+		return configCache.getConfig(cfId);
+	}
+	@Override
+	public List getConfigList(String preId){
+		ConfigInfoCacheProxy configCache = new ConfigInfoCacheProxy(configInfoManager);
+		return configCache.getConfigList(preId);
+	}
+	
+	/**
+	 * 
+	 * 刷新缓存方法，可添加其他数据表缓存刷新
+	 */
+	@Override
+	public void refreshCache(){
+		//es_config_info表数据缓存刷新
+		ConfigInfoCacheProxy configCache = new ConfigInfoCacheProxy(configInfoManager);
+		logger.info("------refresh config ------");
+		configCache.refreshCache();			
+		
+	}
+	/**
+	 * 
+	 * 刷新缓存方法，可添加其他数据表缓存刷新
+	 */
+	@Override
+	public void refreshDictCache(){
+		DictManagerCacheProxy dictCache = new DictManagerCacheProxy(dictManager);
+		dictCache.refreshCache();			
+		
+	}
+
+	/**
+	 * 
+	 * 刷新缓存方法，可添加其他数据表缓存刷新
+	 */
+	@Override
+	public void refreshDcPublicCache(){
+		DcPublicInfoCacheProxy dcPublicCache=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		dcPublicCache.refreshCache();
+		
+	}
+	
+	public IConfigInfoManager getConfigInfoManager() {
+		return configInfoManager;
+	}
+
+	public void setConfigInfoManager(IConfigInfoManager configInfoManager) {
+		this.configInfoManager = configInfoManager;
+	}
+	
+	public IDcPublicInfoManager getDcPublicInfoManager() {
+		return dcPublicInfoManager;
+	}
+
+	public void setDcPublicInfoManager(IDcPublicInfoManager dcPublicInfoManager) {
+		this.dcPublicInfoManager = dcPublicInfoManager;
+	}
+
+	public IDictManager getDictManager() {
+		return dictManager;
+	}
+
+	public void setDictManager(IDictManager dictManager) {
+		this.dictManager = dictManager;
+	}
+}

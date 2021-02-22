@@ -1,0 +1,84 @@
+package com.ztesoft.net.server.servlet.impl;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.codehaus.jackson.map.ObjectMapper;
+
+import zte.net.ecsord.params.nd.req.DispatchingNumReceivingNDRequset;
+import zte.net.ecsord.params.nd.resp.DispatchingNumReceivingNDResponse;
+
+
+import com.google.gson.Gson;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.server.servlet.ICommonServlet;
+
+/**
+ * 南都闪电送派工工号接口
+ * 
+ * @author zhang.jun
+ */
+public class NDSdsOperToOrderServlet implements ICommonServlet {
+    private final static Log log = LogFactory.getLog(NDSdsOperToOrderServlet.class);
+    private  static String interfaceName="【南都派工号接收】";
+   
+
+    /**
+	 * 南都闪电送派工工号接口
+	 */
+    @Override
+    public String service(String reqString) throws Exception {
+    	log.info(interfaceName+"请求的字符串："+reqString);
+    	String returnString = null;
+    	if(StringUtils.isNotBlank(reqString)) {
+    		DispatchingNumReceivingNDRequset req = null;
+    		Gson gson = new Gson();
+    		try {
+    			req = gson.fromJson(reqString, DispatchingNumReceivingNDRequset.class);
+            	returnString=dealOtherDealUser(req);
+    		} catch (Exception e) {
+    			e.printStackTrace();
+    			log.info(interfaceName+"解析JSON字符串出错");
+    			throw new Exception(interfaceName+"解析JSON字符串出错");
+    		}
+    	} else {
+    		returnString = "请求参数为空";
+    	}
+    	return returnString;
+    }
+
+    /**
+	 * 具体业务处理
+	 * @param sdsProtocol
+	 * @return
+	 */
+	public String dealOtherDealUser(DispatchingNumReceivingNDRequset req)throws Exception  {
+		DispatchingNumReceivingNDResponse  resp=new DispatchingNumReceivingNDResponse();
+		String jsonString="";
+		try {
+			//dubbo客户端
+        	ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+        	//dubbo调用
+        	resp =  client.execute(req, DispatchingNumReceivingNDResponse.class);
+			
+         } catch (Exception e) {
+	    	  if(resp==null){
+	    		  resp=new DispatchingNumReceivingNDResponse();
+	    	  }
+	    	  resp.setErrorCode(EcsOrderConsts.ND_INF_FAIL_CODE);
+	    	  resp.setErrorMessage(interfaceName+"接口处理错误描述:"+e.getMessage());
+			log.info(interfaceName+"接口处理错误描述:"+e.getMessage());
+		}
+		resp.setActiveNo(req.getActiveNo());
+		//JSONObject jsonObject = JSONObject.fromObject(resp);
+		 ObjectMapper mapper = new ObjectMapper();
+		 jsonString = mapper.writeValueAsString(resp);
+         jsonString = jsonString.replaceAll("\":null", "\":\"\"");
+		return jsonString;
+	}
+
+
+}

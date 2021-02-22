@@ -1,0 +1,283 @@
+/*     */ package com.ztesoft.crm.report.config.elements;
+/*     */ 
+/*     */ import com.ztesoft.crm.report.lang.ArrayListEx;
+/*     */ import com.ztesoft.crm.report.lang.ObjectPropertyUtils;
+/*     */ import com.ztesoft.crm.report.lang.Utils;
+/*     */ import java.io.Serializable;
+/*     */ import java.util.Iterator;
+/*     */ import java.util.List;
+/*     */ 
+/*     */ public class Element
+/*     */   implements Serializable
+/*     */ {
+/*     */   private static final long serialVersionUID = 3215654844448599317L;
+/*     */   private ArrayListEx attachProperties;
+/*     */   private ArrayListEx childs;
+/*     */   private StringBuffer content;
+/*     */   private String id;
+/*     */   private ArrayListEx ignoreProperties;
+/*     */   private boolean initialized;
+/*     */   private int uuid;
+/*     */   private String parentId;
+/*     */ 
+/*     */   public Element()
+/*     */   {
+/*  23 */     this.attachProperties = new ArrayListEx();
+/*  24 */     this.childs = new ArrayListEx();
+/*     */ 
+/*  27 */     this.ignoreProperties = new ArrayListEx();
+/*  28 */     this.initialized = false;
+/*  29 */     this.uuid = 0;
+/*     */ 
+/*  31 */     this.childs = new ArrayListEx();
+/*  32 */     setIgnoreProperty("class");
+/*  33 */     setIgnoreProperty("content");
+/*  34 */     setIgnoreProperty("element");
+/*  35 */     setIgnoreProperty("elements");
+/*  36 */     setIgnoreProperty("childElements");
+/*  37 */     setIgnoreProperty("parentId");
+/*     */   }
+/*     */ 
+/*     */   public String toString()
+/*     */   {
+/*  42 */     return super.toString();
+/*     */   }
+/*     */ 
+/*     */   public final void add(Element el)
+/*     */   {
+/*  51 */     this.childs.add(el);
+/*     */   }
+/*     */ 
+/*     */   public final String getParentId()
+/*     */   {
+/*  60 */     return this.parentId;
+/*     */   }
+/*     */ 
+/*     */   public final void appendContent(String c) {
+/*  64 */     if (this.content == null)
+/*  65 */       this.content = new StringBuffer();
+/*  66 */     this.content.append(c);
+/*     */   }
+/*     */ 
+/*     */   public final ArrayListEx childs()
+/*     */   {
+/*  73 */     return this.childs;
+/*     */   }
+/*     */ 
+/*     */   public final Element getChildElement(Class clazz) {
+/*  77 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/*  78 */       Element el = (Element)objs.next();
+/*  79 */       if (el.getClass().equals(clazz)) {
+/*  80 */         return el;
+/*     */       }
+/*     */     }
+/*  83 */     return null;
+/*     */   }
+/*     */ 
+/*     */   public final ArrayListEx getChildElements(Class clazz) {
+/*  87 */     ArrayListEx arr = new ArrayListEx();
+/*  88 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/*  89 */       Element el = (Element)objs.next();
+/*  90 */       if (el.getClass().equals(clazz)) {
+/*  91 */         arr.add(el);
+/*     */       }
+/*     */     }
+/*  94 */     return arr;
+/*     */   }
+/*     */ 
+/*     */   public final ArrayListEx getChildElements(Class clazz, String id) {
+/*  98 */     ArrayListEx arr = new ArrayListEx();
+/*  99 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 100 */       Element el = (Element)objs.next();
+/* 101 */       if ((el.getClass().equals(clazz)) && (el.getId().equals(id))) {
+/* 102 */         arr.add(el);
+/*     */       }
+/*     */     }
+/* 105 */     return arr;
+/*     */   }
+/*     */ 
+/*     */   public final String getContent()
+/*     */   {
+/* 112 */     return ((this.content != null) ? this.content.toString() : "");
+/*     */   }
+/*     */ 
+/*     */   public final Element getElement(Class clazz) {
+/* 116 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 117 */       Element el = (Element)objs.next();
+/* 118 */       Element map = null;
+/* 119 */       if (el.getClass().equals(clazz)) {
+/* 120 */         return el;
+/*     */       }
+/* 122 */       map = el.getElement(clazz);
+/* 123 */       if (map != null)
+/* 124 */         return map;
+/*     */     }
+/* 126 */     return null;
+/*     */   }
+/*     */ 
+/*     */   public final List select(ElementSelector selector, boolean deep) {
+/* 130 */     ArrayListEx arr = new ArrayListEx();
+/* 131 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 132 */       Element el = (Element)objs.next();
+/* 133 */       if (selector.match(el)) {
+/* 134 */         arr.add(el);
+/*     */       }
+/*     */ 
+/* 137 */       if (deep) {
+/* 138 */         arr.addAll(el.select(selector, deep));
+/*     */       }
+/*     */     }
+/* 141 */     return arr;
+/*     */   }
+/*     */ 
+/*     */   public final Element getElement(String id) {
+/* 145 */     if (Utils.isEmpty(id)) {
+/* 146 */       return null;
+/*     */     }
+/* 148 */     if ((!(Utils.isEmpty(this.id))) && (this.id.equals(id)))
+/* 149 */       return this;
+/* 150 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 151 */       Element el = ((Element)objs.next()).getElement(id);
+/* 152 */       if (el != null)
+/* 153 */         return el;
+/*     */     }
+/* 155 */     return null;
+/*     */   }
+/*     */ 
+/*     */   public final ArrayListEx getElements(Class clazz) {
+/* 159 */     ArrayListEx arr = new ArrayListEx();
+/* 160 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 161 */       Element el = (Element)objs.next();
+/* 162 */       if (el.getClass().equals(clazz)) {
+/* 163 */         arr.add(el);
+/*     */       }
+/* 165 */       arr.addAll(el.getElements(clazz));
+/*     */     }
+/* 167 */     return arr;
+/*     */   }
+/*     */ 
+/*     */   public final ArrayListEx getElements(Class clazz, String id) {
+/* 171 */     ArrayListEx arr = new ArrayListEx();
+/* 172 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 173 */       Element el = (Element)objs.next();
+/* 174 */       if ((el.getClass().equals(clazz)) && (el.getId().equals(id))) {
+/* 175 */         arr.add(el);
+/*     */       }
+/* 177 */       arr.addAll(el.getElements(clazz, id));
+/*     */     }
+/* 179 */     return arr;
+/*     */   }
+/*     */ 
+/*     */   public final String getId()
+/*     */   {
+/* 186 */     return this.id;
+/*     */   }
+/*     */ 
+/*     */   private String getUUID() {
+/* 190 */     this.uuid += 1;
+/* 191 */     return "el" + this.uuid;
+/*     */   }
+/*     */ 
+/*     */   protected void init(Element top) {
+/*     */   }
+/*     */ 
+/*     */   public final void initialize(Element top) {
+/* 198 */     if (!(this.initialized)) {
+/* 199 */       this.initialized = true;
+/* 200 */       if (this instanceof Report) {
+/* 201 */         this.uuid = getMaxId();
+/*     */       }
+/* 203 */       if (Utils.isEmpty(this.id))
+/* 204 */         this.id = top.getUUID();
+/* 205 */       for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 206 */         Element el = (Element)objs.next();
+/* 207 */         el.parentId = this.id;
+/* 208 */         el.initialize(top);
+/*     */       }
+/* 210 */       init(top);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   protected final int getMaxId() {
+/* 215 */     int i = 0;
+/* 216 */     if ((this.id != null) && (this.id.startsWith("el"))) {
+/* 217 */       i = Utils.parseInt(this.id.replaceAll("el", ""), 0);
+/*     */     }
+/* 219 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 220 */       Element el = (Element)objs.next();
+/* 221 */       int a = el.getMaxId();
+/* 222 */       if (i < a) {
+/* 223 */         i = a;
+/*     */       }
+/*     */     }
+/* 226 */     return i;
+/*     */   }
+/*     */ 
+/*     */   protected final void setAttachProperty(String name)
+/*     */   {
+/* 231 */     String[] args = name.split("[,]");
+/* 232 */     for (int i = 0; i < args.length; ++i)
+/* 233 */       this.attachProperties.add(args[i]);
+/*     */   }
+/*     */ 
+/*     */   public final void setContent(String content)
+/*     */   {
+/* 241 */     this.content = new StringBuffer(content);
+/*     */   }
+/*     */ 
+/*     */   public void setId(String id)
+/*     */   {
+/* 250 */     this.id = id;
+/*     */   }
+/*     */ 
+/*     */   protected final void setIgnoreProperty(String name) {
+/* 254 */     String[] args = name.split("[,]");
+/* 255 */     for (int i = 0; i < args.length; ++i)
+/* 256 */       this.ignoreProperties.add(args[i]);
+/*     */   }
+/*     */ 
+/*     */   public final String toXML() {
+/* 260 */     String tagName = null;
+/* 261 */     StringBuffer sb = new StringBuffer();
+/* 262 */     Package p = super.getClass().getPackage();
+/* 263 */     if (p == null)
+/* 264 */       tagName = super.getClass().getName();
+/*     */     else
+/* 266 */       tagName = super.getClass().getName().substring(
+/* 267 */         p.getName().length() + 1);
+/* 268 */     tagName = tagName.substring(0, 1).toLowerCase() + 
+/* 269 */       tagName.substring(1);
+/* 270 */     sb.append("<").append(tagName);
+/*     */ 
+/* 272 */     String[] props = ObjectPropertyUtils.getPropertyNames(this);
+/* 273 */     for (int i = 0; i < props.length; ++i) {
+/* 274 */       String name = props[i];
+/* 275 */       if (this.ignoreProperties.contains(name))
+/*     */         continue;
+/* 277 */       Object v = ObjectPropertyUtils.getString(this, name);
+/* 278 */       if (Utils.isEmpty(v))
+/*     */         continue;
+/* 280 */       if (!(v.getClass().equals(String.class))) {
+/*     */         continue;
+/*     */       }
+/* 283 */       sb.append(" ");
+/* 284 */       sb.append(name).append("=\"").append(v).append("\"");
+/*     */     }
+/* 286 */     sb.append(">");
+/* 287 */     if (!(Utils.isEmpty(getContent()))) {
+/* 288 */       sb.append("<![CDATA[").append(getContent()).append("]]>");
+/*     */     }
+/*     */ 
+/* 291 */     for (Iterator objs = this.childs.iterator(); objs.hasNext(); ) {
+/* 292 */       Element el = (Element)objs.next();
+/* 293 */       sb.append(el.toXML());
+/*     */     }
+/* 295 */     sb.append("</").append(tagName).append(">");
+/* 296 */     return sb.toString();
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.config.elements.Element
+ * JD-Core Version:    0.5.3
+ */

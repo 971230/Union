@@ -1,0 +1,210 @@
+package zte.net.iservice.impl;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import params.adminuser.resp.UserWdLoginResp;
+import params.req.PartnerSSOReq;
+
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.remote.basic.inf.IFeeQueryBasicService;
+import com.ztesoft.remote.inf.IAdvService;
+import com.ztesoft.remote.inf.IArticleService;
+import com.ztesoft.remote.inf.INewsService;
+import com.ztesoft.remote.inf.INoticeService;
+import com.ztesoft.remote.params.adv.req.AdColumnReq;
+import com.ztesoft.remote.params.adv.req.AdvAddReq;
+import com.ztesoft.remote.params.adv.req.AdvCountReq;
+import com.ztesoft.remote.params.adv.req.AdvDeleteReq;
+import com.ztesoft.remote.params.adv.req.AdvHomeReq;
+import com.ztesoft.remote.params.adv.req.AdvListReq;
+import com.ztesoft.remote.params.adv.req.AdvPageReq;
+import com.ztesoft.remote.params.adv.req.AdvPosReq;
+import com.ztesoft.remote.params.adv.req.AdvReq;
+import com.ztesoft.remote.params.adv.req.DelAdvReq;
+import com.ztesoft.remote.params.adv.resp.AdColumnResp;
+import com.ztesoft.remote.params.adv.resp.AdvAddResp;
+import com.ztesoft.remote.params.adv.resp.AdvCountResp;
+import com.ztesoft.remote.params.adv.resp.AdvDeleteResp;
+import com.ztesoft.remote.params.adv.resp.AdvHomeResp;
+import com.ztesoft.remote.params.adv.resp.AdvListResp;
+import com.ztesoft.remote.params.adv.resp.AdvPageResp;
+import com.ztesoft.remote.params.adv.resp.AdvResp;
+import com.ztesoft.remote.params.adv.resp.EmptyParamOutResp;
+import com.ztesoft.remote.params.article.req.ArticleReq;
+import com.ztesoft.remote.params.article.req.DelArticleReq;
+import com.ztesoft.remote.params.article.resp.ArticleResp;
+import com.ztesoft.remote.params.article.resp.DelArticleResp;
+import com.ztesoft.remote.params.news.req.NewsCountReq;
+import com.ztesoft.remote.params.news.req.NewsPageReq;
+import com.ztesoft.remote.params.news.req.NewsReq;
+import com.ztesoft.remote.params.news.req.NewsVoReq;
+import com.ztesoft.remote.params.news.resp.NewsCountResp;
+import com.ztesoft.remote.params.news.resp.NewsPageResp;
+import com.ztesoft.remote.params.news.resp.NewsResp;
+import com.ztesoft.remote.params.notice.req.NoticeDetailReq;
+import com.ztesoft.remote.params.notice.req.NoticePageReq;
+import com.ztesoft.remote.params.notice.req.NoticeReq;
+import com.ztesoft.remote.params.notice.resp.NoticeDetailResp;
+import com.ztesoft.remote.params.notice.resp.NoticePageResp;
+import com.ztesoft.remote.params.notice.resp.NoticeResp;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+/**
+ * Created with IntelliJ IDEA.
+ * User: guangping
+ * Date: 2014-01-22 15:54
+ * To change this template use File | Settings | File Templates.
+ */
+@ServiceMethodBean(version="1.0")
+@Service
+public class ZteAdvOpenService  implements IAdvService,IArticleService,INewsService,INoticeService{
+
+//    @Resource
+    private IAdvService advService;
+    
+//    @Resource
+    private IArticleService articleService;
+
+//    @Resource
+    private INewsService newsService;
+    
+//    @Resource
+    private INoticeService noticeService;
+    
+//    @Resource
+	private IFeeQueryBasicService feeQueryBasicService;
+    
+    private void init() {
+    	if (null == advService) advService = ApiContextHolder.getBean("advService");
+    	if (null == articleService) articleService = ApiContextHolder.getBean("articleService");
+    	if (null == newsService) newsService = ApiContextHolder.getBean("newsService");
+    	if (null == noticeService) noticeService = ApiContextHolder.getBean("noticeService");
+    	if (null == feeQueryBasicService) feeQueryBasicService = ApiContextHolder.getBean("feeQueryBasicService");
+    }    
+    
+    
+	@ServiceMethod(method="com.ztesoft.remote.adv.queryAdByAcId",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdvResp queryAdByAcId(AdvReq advReq) {
+		this.init();
+		return advService.queryAdByAcId(advReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.adv.delAdvbyStaffNo",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public EmptyParamOutResp delAdvbyStaffNo(DelAdvReq delAdvReq) {
+		this.init();
+		return advService.delAdvbyStaffNo(delAdvReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.adv.getAdvCount",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdvCountResp getAdvCount(AdvCountReq advCountReq) {
+		this.init();
+		return advService.getAdvCount(advCountReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.adv.getAdColumnDetail",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdColumnResp getAdColumnDetail(AdColumnReq adColumnReq) {
+		this.init();
+		return advService.getAdColumnDetail(adColumnReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.adv.listAllAdvPos",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdColumnResp listAllAdvPos(AdvPosReq advPosReq) {
+		this.init();
+		return advService.listAllAdvPos(advPosReq);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.adv.listAdvPage",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdvPageResp listAdvPage(AdvPageReq advPageReq) {
+		this.init();
+		AdvPageResp advPageResp = advService.listAdvPage(advPageReq);
+		advPageResp.setError_code("0");
+		return advPageResp;
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.adv.getHomeAdv",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdvHomeResp getHomeAdv(AdvHomeReq advHomeReq) {
+		this.init();
+		return advService.getHomeAdv(advHomeReq);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.adv.add",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdvAddResp addAdv(AdvAddReq req){
+		this.init();
+		return advService.addAdv(req);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.adv.delete",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdvDeleteResp deleteAdv(AdvDeleteReq req){
+		this.init();
+		return advService.deleteAdv(req);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.adv.list",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public AdvListResp listAdv(AdvListReq req){
+		this.init();
+		return advService.listAdv(req);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.article.getArticleById",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+    public ArticleResp getArticleById(ArticleReq articleReq) {
+		this.init();
+		return articleService.getArticleById(articleReq);
+	}
+	
+	@ServiceMethod(method="com.ztesoft.remote.article.delArticleByStaffNo",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public DelArticleResp delArticleByStaffNo(DelArticleReq delArticleReq) {
+		this.init();
+		return articleService.delArticleByStaffNo(delArticleReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.news.queryNews",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NewsResp queryNews(NewsReq newsReq) {
+		this.init();
+		return newsService.queryNews(newsReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.news.getNewsPage",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NewsPageResp getNewsPage(NewsPageReq newsPageReq) {
+		this.init();
+		return newsService.getNewsPage(newsPageReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.news.getNewsVo",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NewsResp getNewsVo(NewsVoReq newsVoReq) {
+		this.init();
+		return newsService.getNewsVo(newsVoReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.news.getNewsCount",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NewsCountResp getNewsCount(NewsCountReq newsCountReq) {
+		this.init();
+		return newsService.getNewsCount(newsCountReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.notice.queryNotice",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NoticeResp queryNotice(NoticeReq noticeReq) {
+		this.init();
+		return noticeService.queryNotice(noticeReq);
+	}
+
+	@ServiceMethod(method="com.ztesoft.remote.notice.queryNoticeDetails",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NoticeDetailResp queryNoticeDetails(NoticeDetailReq noticeReq) {
+		this.init();
+		return noticeService.queryNoticeDetails(noticeReq);
+	}
+	
+	
+	@ServiceMethod(method="com.ztesoft.remote.notice.listNoticePage",version="1.0",needInSession= NeedInSessionType.NO,timeout = 600000)
+	public NoticePageResp listNotice(NoticePageReq noticePageReq) {
+		this.init();
+		return noticeService.listNotice(noticePageReq);
+	}
+	
+}

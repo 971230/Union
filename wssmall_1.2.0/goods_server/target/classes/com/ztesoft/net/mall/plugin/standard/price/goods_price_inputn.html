@@ -1,0 +1,31 @@
+<script type="text/javascript" src="memberpricen.js"></script>
+<div style="width:500px;" id="lvPriceDiv">
+	<table id="body1_price" width="100%" border="0" cellspacing="0" cellpadding="0" class="grid_b_s">
+		<tr>
+			<td class="title" style="text-align:right;padding-right:30px;">会员等级</td>
+			<td class="title" style='text-align:left;'>价格公式</td>
+			<td class="title" style='text-align:left;'>价格(元)</td>
+		</tr>
+		<#if !goods?exists || !goods.have_spec?exists || goods.have_spec==0>
+		<#if priceList?exists>
+			<#list priceList as price>
+			<tr>
+				<td name="goodsExtData.name" style='width:100px;text-align:right;padding-right:30px;'>${price.name}</td>
+				<td>
+					<select name="goodsExtData.lv_discount" style="width:60px;">
+						<#if discountList?exists>
+							<#list discountList as discount>
+								<option value="${discount.pkey}" <#if price.lv_discount?exists && discount.pkey?exists && (price.lv_discount==discount.pkey?number)>selected="selected"</#if>>${discount.pname}</option>
+							</#list>
+						</#if>
+					</select>
+				</td>
+				<td><input type="text" name="goodsExtData.lvPrice" value="${price.lv_price!''}"/></td>
+				<input type="hidden" name="goodsExtData.lvid"  value="${price.lv_id}"/>
+			</tr>
+			</#list>
+		</#if>
+		</#if>
+	</table>
+</div>
+<div id="memberpricedlg"></div>

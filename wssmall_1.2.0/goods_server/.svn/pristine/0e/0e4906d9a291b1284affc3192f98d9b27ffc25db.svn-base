@@ -1,0 +1,494 @@
+package com.ztesoft.mall.core.action.backend;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.Article;
+import com.ztesoft.net.app.base.core.model.DataLog;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.app.base.core.service.ISettingService;
+import com.ztesoft.net.eop.resource.IDataLogManager;
+import com.ztesoft.net.eop.sdk.user.IUserService;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.eop.sdk.utils.UploadUtil;
+import com.ztesoft.net.eop.sdk.utils.ValidCodeServlet;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.Comments;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.support.CommentDTO;
+import com.ztesoft.net.mall.core.service.ICommentsManager;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.remote.inf.IArticleService;
+import com.ztesoft.remote.params.article.req.ArticleReq;
+import params.member.req.MemberByIdReq;
+import params.member.req.MemberPointAddReq;
+import params.member.req.MemberPointCheckReq;
+import params.member.req.MemberPointReq;
+import params.member.resp.MemberByIdResp;
+import params.member.resp.MemberPointAddResp;
+import params.member.resp.MemberPointCheckResp;
+import params.member.resp.MemberPointResp;
+import services.MemberInf;
+import services.MemberPointInf;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 咨询、评论管理
+ * 
+ * @author 李志富 lzf<br/>
+ *         2010-1-27 下午02:38:07<br/>
+ *         version 1.0<br/>
+ * <br/>
+ */
+public class CommentsAction extends WWAction {
+
+	
+	private ICommentsManager commentsManager;
+	private MemberPointInf memberPointServ;
+	private MemberInf memberServ;
+	private String object_type;
+	private Long object_id;
+	private Integer count;// 在页面上显示的数量
+	private Comments comments;
+	private CommentDTO commentDTO;
+	
+	private String id;
+	private String comment_id;
+	private Integer direct_show = 0;//设置前台发表的评论是否直接可见
+	private List commentsList;
+	private String commentType;
+	private ISettingService settingService;
+	private String valid_code;
+	private String validcode;  //1需要验证码；0不需要
+	private String managerid;
+	
+	private IGoodsManager goodsManager;
+	private IArticleService articleService;
+	private Goods goods;
+	private Article article;
+	private String target;
+	
+	private String imgFileName;
+	private File img;
+	
+	
+	public String getCommentType() {
+		return commentType;
+	}
+
+	public void setCommentType(String commentType) {
+		this.commentType = commentType;
+	}
+
+	/**
+	 * 取得评论或咨询信息，以及其回复的列表
+	 * 正式使用时应该是以Ajax的方式传递进来object_type/object_id/page/pagesize参数的值
+	 * 
+	 * @return
+	 */
+	public String list() {
+		String pageSize_com = settingService.getSetting("comments", "pageSize");
+		pageSize_com = pageSize_com == null ? "5" : pageSize_com;
+		this.webpage = commentsManager.pageComments_Display(this.getPage(),
+				Integer.valueOf(pageSize_com), object_id, object_type, commentType);
+		commentsList= (List)webpage.getResult();
+		commentsList = commentsList==null?new ArrayList():commentsList;
+		return "list";
+	}
+	
+	public String bglist() {
+		this.webpage = commentsManager.pageComments(this.getPage(),
+				this.getPageSize(), object_type);
+		return "bglist";
+	}
+	
+	public String trashlist(){
+		this.webpage = commentsManager.pageCommentsTrash(this.getPage(),
+				this.getPageSize(), object_type);
+		return "trashlist";
+	}
+	
+	public String detail(){
+		IUserService userService = UserServiceFactory.getUserService();
+		managerid = userService.getCurrentManagerId();
+		commentDTO = commentsManager.getComments(comment_id);
+		this.target = "";
+		if("goods".equals(commentDTO.getComments().getCommenttype())){
+			this.goods = this.goodsManager.getGoods(commentDTO.getComments().getObject_id());
+			this.target = "相关商品：" + goods.getName(); 
+		}else if("wssdetails".equals(commentDTO.getComments().getCommenttype())){
+			this.goods = this.goodsManager.getGoods(commentDTO.getComments().getObject_id());
+			this.target = "相关商品：" + goods.getName(); 
+		}else{
+			ArticleReq articleReq = new ArticleReq();
+			articleReq.setId(commentDTO.getComments().getObject_id());
+			this.article = this.articleService.getArticleById(articleReq).getArticle();
+		
+			this.target = "相关文章：" + article.getTitle();
+		}
+		return "detail";
+	}
+	
+	public String delete(){
+		try{
+			commentsManager.deleteComments(id);
+			this.json = "{'result':0,'message':'操作成功'}";
+		}catch(RuntimeException e){
+			e.printStackTrace();
+			this.json = "{'result':1,'message':'操作失败'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	public String revert(){
+		try{
+			commentsManager.revert(id);
+			this.json = "{'result':0,'message':'操作成功'}";
+		}catch(RuntimeException e){
+			e.printStackTrace();
+			this.json = "{'result':1,'message':'操作失败'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	public String clean(){
+		try{
+			commentsManager.cleanComments(id);
+			this.json = "{'result':0,'message':'操作成功'}";
+		}catch(RuntimeException e){
+			e.printStackTrace();
+			this.json = "{'result':1,'message':'操作失败'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	private IDataLogManager dataLogManager;
+	public String add() {
+		
+		if(img!=null && imgFileName!=null){
+			 comments.setImg( UploadUtil.upload(img, imgFileName, "goods") );
+		}
+		
+		IUserService userService = UserServiceFactory.getUserService();
+		Member member = userService.getCurrentMember();
+		if(member == null){
+			member = new Member();
+			member.setMember_id("0");
+			member.setName("匿名");
+		}
+		String msg = "，待管理员审核后显示";
+		try {
+			if("1".equals(validcode)){  //如果启用了验证码
+				Object realCode = ThreadContextHolder.getSessionContext().getAttribute(ValidCodeServlet.SESSION_VALID_CODE+"comments");
+				if(!valid_code.equals(realCode)){
+					this.json = "{'state':1,'message':'验证码不正确'}";
+					return this.JSON_MESSAGE;
+				}
+			}
+			if (this.direct_show == 1) {
+				comments.setDisplay("true");
+				msg = "";
+			}
+			if(managerid!=null){//判断是否后台已登录
+				member.setMember_id(UserServiceFactory.getUserService().getCurrentManagerId());
+				member.setName("管理员");
+				try{
+					Comments parentcomments = commentsManager.getComments(comments.getFor_comment_id()).getComments();
+					parentcomments.setDisplay("true");
+					commentsManager.updateComments(parentcomments);
+				}catch(RuntimeException e){
+					e.printStackTrace();
+					this.json = "{'result':1,'message':'操作失败'}";
+				}
+			}
+			
+			comments.setAuthor(member.getName());
+			comments.setAuthor_id(member.getMember_id());
+			comments.setTime(DBTUtil.current());
+			commentsManager.addComments(comments);
+			DataLog datalog  = new DataLog();
+			datalog.setContent("标题:"+comments.getTitle()+"<br>内容"+ comments.getAcomment());
+			datalog.setLogtype("评论");
+			datalog.setOptype("添加");
+			dataLogManager.add(datalog);
+			
+			this.json = "{'state':0,'message':'发表成功" + msg + "'}";
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			this.json = "{'state':1,'message':'发生未知异常'}";
+		}
+
+		return this.JSON_MESSAGE;
+	}
+	
+	public String hide() {
+		try{
+			comments = commentsManager.getComments(comment_id).getComments();
+			comments.setDisplay("false");
+			commentsManager.updateComments(comments);
+			this.json = "{'result':0,'message':'操作成功'}";
+		}catch(RuntimeException e){
+			e.printStackTrace();
+			this.json = "{'result':1,'message':'操作失败'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	public String show() {
+		try{
+			comments = commentsManager.getComments(comment_id).getComments();
+			comments.setDisplay("true");
+			commentsManager.updateComments(comments);
+			
+			
+			/**
+			 * ------------
+			 * 增加会员积分
+			 * ------------
+			 */
+			
+			Member member = null;
+			
+			MemberByIdReq req = new MemberByIdReq();
+			req.setMember_id(comments.getAuthor_id());
+			MemberByIdResp resp = memberServ.getMemberById(req);
+			if("0".equals(resp.getError_code())){
+				member = resp.getMember();
+			}
+			if(member !=null && !"".equals(member.getMember_id())){//判断是否是会员
+				//判断是否是带图片的评论
+				String type = MemberPointInf.TYPE_COMMENT;
+				if( !StringUtil.isEmpty(comments.getImg() ) ){
+					type = MemberPointInf.TYPE_COMMENT_IMG;
+				}
+				
+				MemberPointCheckReq mpReq = new MemberPointCheckReq();
+				mpReq.setType(type);
+				MemberPointCheckResp mpResp = memberPointServ.checkIsOpen(mpReq);
+				
+				if(mpResp.isResult()){
+					if(!StringUtil.isEmpty(comments.getAuthor_id())){
+						MemberPointReq mpReq1 = new MemberPointReq();
+						mpReq1.setType(type);
+						MemberPointResp resp2 = memberPointServ.getItemPointByName(mpReq1);
+						if(resp2 != null){
+							MemberPointAddReq req3 = new MemberPointAddReq();
+							req3.setPoint(resp2.getPoint());
+							req3.setMember_id(comments.getAuthor_id());
+							MemberPointAddResp resp3 = memberPointServ.addNewPointHistory(req3);
+						}
+					}
+				}
+			}
+
+			
+			
+			this.json = "{'result':0,'message':'操作成功'}";
+		}catch(RuntimeException e){
+			e.printStackTrace();
+			this.json = "{'result':1,'message':'操作失败'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+	
+	public String deletealone() {
+		//对于回复的删除是直接删除
+		id = comment_id.toString();
+		commentsManager.cleanComments(id);
+		this.msgs.add("删除成功");
+		return this.MESSAGE;
+	}
+
+	public ICommentsManager getCommentsManager() {
+		return commentsManager;
+	}
+
+	public void setCommentsManager(ICommentsManager commentsManager) {
+		this.commentsManager = commentsManager;
+	}
+
+	public String getObject_type() {
+		return object_type;
+	}
+
+	public void setObject_type(String objectType) {
+		object_type = objectType;
+	}
+
+	public Long getObject_id() {
+		return object_id;
+	}
+
+	public void setObject_id(Long objectId) {
+		object_id = objectId;
+	}
+
+	public Integer getCount() {
+		return count;
+	}
+
+	public void setCount(Integer count) {
+		this.count = count;
+	}
+
+	public Comments getComments() {
+		return comments;
+	}
+
+	public void setComments(Comments comments) {
+		this.comments = comments;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getComment_id() {
+		return comment_id;
+	}
+
+	public void setComment_id(String commentId) {
+		comment_id = commentId;
+	}
+
+	public CommentDTO getCommentDTO() {
+		return commentDTO;
+	}
+
+	public void setCommentDTO(CommentDTO commentDTO) {
+		this.commentDTO = commentDTO;
+	}
+
+	public Integer getDirect_show() {
+		return direct_show;
+	}
+
+	public void setDirect_show(Integer directShow) {
+		direct_show = directShow;
+	}
+
+	public List getCommentsList() {
+		return commentsList;
+	}
+
+	public void setCommentsList(List commentsList) {
+		this.commentsList = commentsList;
+	}
+
+	public void setSettingService(ISettingService settingService) {
+		this.settingService = settingService;
+	}
+
+	public String getValid_code() {
+		return valid_code;
+	}
+
+	public void setValid_code(String validCode) {
+		valid_code = validCode;
+	}
+
+	public String getValidcode() {
+		return validcode;
+	}
+
+	public void setValidcode(String validcode) {
+		this.validcode = validcode;
+	}
+
+	public String getManagerid() {
+		return managerid;
+	}
+
+	public void setManagerid(String managerid) {
+		this.managerid = managerid;
+	}
+
+	public IDataLogManager getDataLogManager() {
+		return dataLogManager;
+	}
+
+	public void setDataLogManager(IDataLogManager dataLogManager) {
+		this.dataLogManager = dataLogManager;
+	}
+
+	public IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+
+	public void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+
+	public Goods getGoods() {
+		return goods;
+	}
+
+	public void setGoods(Goods goods) {
+		this.goods = goods;
+	}
+
+	public String getTarget() {
+		return target;
+	}
+
+	public void setTarget(String target) {
+		this.target = target;
+	}
+
+
+    public void setArticleService(IArticleService articleService) {
+        this.articleService = articleService;
+    }
+
+    public Article getArticle() {
+		return article;
+	}
+
+	public void setArticle(Article article) {
+		this.article = article;
+	}
+
+	public String getImgFileName() {
+		return imgFileName;
+	}
+
+	public void setImgFileName(String imgFileName) {
+		this.imgFileName = imgFileName;
+	}
+
+	public File getImg() {
+		return img;
+	}
+
+	public void setImg(File img) {
+		this.img = img;
+	}
+
+	public MemberPointInf getMemberPointServ() {
+		return memberPointServ;
+	}
+
+	public void setMemberPointServ(MemberPointInf memberPointServ) {
+		this.memberPointServ = memberPointServ;
+	}
+
+	public MemberInf getMemberServ() {
+		return memberServ;
+	}
+
+	public void setMemberServ(MemberInf memberServ) {
+		this.memberServ = memberServ;
+	}
+
+	public ISettingService getSettingService() {
+		return settingService;
+	}
+
+	
+}

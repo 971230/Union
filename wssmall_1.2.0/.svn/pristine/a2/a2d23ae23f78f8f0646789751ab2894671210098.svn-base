@@ -1,0 +1,126 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.service.ITaskJobManager;
+
+public class TaskJobManager extends BaseSupport implements ITaskJobManager {
+	
+	
+	public void dealTask(){
+		try {
+			//修改=== mochunrun 2014-4-21
+			/*IJobTaskService jobTaskService = SpringContextHolder.getBean("jobTaskService");
+			JobTaskCheckedReq req = new JobTaskCheckedReq();
+			req.setClassName(TaskJobManager.class.getName());
+			req.setMethod("dealTask");
+			JobTaskCheckedResp resp = jobTaskService.checkedJobTask(req);
+			if(!resp.isCanRun())
+				return ;*/
+			
+			//if (!CheckSchedulerServer.isMatchServer()) {
+			//	return;
+			//}
+			updateFinisedTask();
+			updatePersonalTask();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private void updateFinisedTask(){
+		
+		String sql = " select e.task_id, e.detail_id, nvl(sum(e.numb),0) total_num from (" +
+					 " select a.task_id, b.detail_id, a.task_name, " +
+					 " (case when a.task_cate='0' then nvl(c.num,0) when a.task_cate='1' then to_number(nvl(c.price,'0'))/100 end) numb "+
+					 " from es_task a, es_taskdetail b, es_works_log c "+
+					 " where a.task_id = b.task_id "+
+					 " and b.userid = c.op_id "+
+					 " and a.task_type = c.business_code "+
+					 " and "+DBTUtil.current()+">=a.begin_date "+
+					 " and "+DBTUtil.current()+"<=a.end_date "+
+					 " and c.business_status='0') e group by e.task_id, e.detail_id ";
+		
+		List list = this.daoSupport.queryForList(sql, null);
+		if(!ListUtil.isEmpty(list)){
+			for(int i=0; i<list.size(); i++){
+				Map map = (Map)list.get(i);
+				String task_id = Const.getStrValue(map, "task_id");
+				String detail_id = Const.getStrValue(map, "detail_id");
+				String total_num = Const.getStrValue(map, "total_num");
+				
+				String sql1 = " update (select a.task_id, b.detail_id, b.finished_num from es_task a, es_taskdetail b "+
+							  " where a.task_id = b.task_id "+
+							  " and a.task_id = ? "+
+							  " and b.detail_id = ? "+
+							  " and a.task_cate = '0') e set e.finished_num = ? ";
+				
+				String sql2 = " update (select a.task_id, b.detail_id, b.finished_amount from es_task a, es_taskdetail b "+
+				  			  " where a.task_id = b.task_id "+
+				  			  " and a.task_id = ? "+
+				  			  " and b.detail_id = ? "+
+				  			  " and a.task_cate = '1') e set e.finished_amount = ? ";
+				
+				this.daoSupport.execute(sql1, task_id, detail_id, Integer.valueOf(total_num));
+				this.daoSupport.execute(sql2, task_id, detail_id, Integer.valueOf(total_num));
+			}
+		}
+	}
+	
+	private void updatePersonalTask(){
+		
+		String sql = " select a.task_id, a.task_cate, " +
+					 " (case when a.task_cate='0' then b.finished_num when a.task_cate='1' then b.finished_amount end ) finished_num, b.userid " +
+					 " from es_task a, es_taskdetail b where a.task_id=b.task_id and a.state='003' and "+DBTUtil.current()+">=a.begin_date and "+DBTUtil.current()+"<= a.end_date ";
+		try{
+				List list = this.daoSupport.queryForList(sql, null);
+				
+				if(!ListUtil.isEmpty(list)){
+					for(int i=0; i < list.size(); i++){
+						Map map = (Map)list.get(i);
+						String task_id = Const.getStrValue(map, "task_id");
+						String task_cate = Const.getStrValue(map, "task_cate");
+						String userid = Const.getStrValue(map, "userid");
+						String finished_num = null== Const.getStrValue(map, "finished_num")?"0":Const.getStrValue(map, "finished_num") ;
+						String sql1 = " select sum(e.finished_num) total_num from (select a.task_id, b.finished_num "+
+							       	  " from (select task_id, task_name, task_num, task_cate from es_task "+
+							          " connect by prior task_id = p_task_id "+
+							          " start with p_task_id=?) a, es_taskdetail b where a.task_id = b.task_id and a.task_cate='0' "+
+							          " union "+
+							          " select a.task_id, b.finished_amount finished_num "+
+							          " from (select task_id, task_name, task_num, task_cate from es_task "+
+							          " connect by prior task_id = p_task_id "+
+							          " start with p_task_id=?) a, es_taskdetail b where a.task_id = b.task_id and a.task_cate='1' "+
+							          ") e ";
+						int a = this.daoSupport.queryForInt(sql1, task_id, task_id);
+						if(a >0){
+							Map fields = new HashMap();
+							if("0".equals(task_cate)){
+								fields.put("finished_num", a + Integer.valueOf(finished_num));
+							}else{
+								fields.put("finished_amount", a + Integer.valueOf(finished_num));
+							}
+						
+							Map where = new HashMap();
+							where.put("task_id", task_id);
+							where.put("userid", userid);
+						
+							this.daoSupport.update("es_taskdetail", fields, where);
+						}
+					
+					}
+				}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	
+}

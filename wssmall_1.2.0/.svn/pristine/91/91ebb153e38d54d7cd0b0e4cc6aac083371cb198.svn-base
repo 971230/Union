@@ -1,0 +1,63 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<!-- 定义父模块 -->
+	 <parent>
+	     <groupId>com.ztesoft.crm.pass</groupId>
+	     <artifactId>ebusiness</artifactId>
+	     <version>1.0.0-SNAPSHOT</version>
+	     <relativePath>../../</relativePath>
+	 </parent>
+	 
+	 <!-- 定义坐标 -->
+	 <artifactId>task_server</artifactId>
+	 <packaging>jar</packaging>
+	 <name>task_server-jar</name>
+	 <description>电商平台(联通)task_server模块</description>
+
+
+	<dependencies>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>base</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+
+	<!-- 继承的插件 -->
+  	<build>
+  		<plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+    <distributionManagement>
+		<snapshotRepository>
+			<id>nexus-snapshots</id>
+			<name>ztesoft distribution snapshot repository</name>
+			<url>http://10.45.47.168:8081/nexus/content/repositories/snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
+</project>

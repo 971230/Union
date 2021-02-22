@@ -1,0 +1,118 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.GoodsUsage;
+import com.ztesoft.net.mall.core.service.IGoodsUsageManager;
+import com.ztesoft.net.sqls.SF;
+import org.apache.commons.beanutils.BeanUtils;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+
+public class GoodsUsageManager extends BaseSupport<GoodsUsage> implements
+		IGoodsUsageManager {
+
+	@Override
+	public void edit(GoodsUsage usage,String goodsid) {
+		if (logger.isDebugEnabled()) {
+			logger.debug("开始修改阀值数据...");
+		}
+		Map usageMap = this.po2Map(usage);
+		this.baseDaoSupport.update("goods_usage", usageMap, " goods_id="+goodsid+" and usageid="+usage.getUsageid());
+		if (logger.isDebugEnabled()) {
+			logger.debug("保存阀值数据完成.");
+		}
+	}
+	
+	@Override
+	public GoodsUsage getGoodsUsageByGoodsid(String goods_id,String userid,String usageid) {
+		String sql = SF.goodsSql("GET_GOODS_USAGEBYGOODSID");
+		return this.baseDaoSupport.queryForObject(sql, GoodsUsage.class,goods_id,userid,usageid);
+	}
+	@Override
+	public List<GoodsUsage> findGoodsUsageList(String userid, String goods_id) {
+		String sql = SF.goodsSql("FIND_GOODS_USAGELIST");
+		return this.baseDaoSupport.queryForList(sql, GoodsUsage.class,goods_id,userid,Consts.GOODS_USAGE_STATE_1);
+	}
+	
+	/**
+	 * add by chenzw ： 商品申请页面本地网下拉框 只显示通过审核的
+	 */
+	@Override
+	public List getLanByGoodsId(String goodsId){
+	
+		String sql = SF.goodsSql("GET_LAN_BY_GOODSID");
+		return this.baseDaoSupport.queryForList(sql.toString(), goodsId);
+	}
+	
+	
+	@Override
+	public List<Map> getCardStock() {
+		
+		String sql = SF.goodsSql("GET_CARD_STOCK");
+		
+		logger.debug("==== getCardStock sql ====: " + sql);
+		return baseDaoSupport.queryForList(sql);
+	}
+	
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public void stockWarning(List<Map> cardStockList) {
+		if (cardStockList == null || cardStockList.isEmpty()) {
+			return;
+		}
+		for (Map map : cardStockList) {
+			
+			String userid = (String) map.get("userid");
+			String goodsName = (String) map.get("goods_name");
+			String usageid = (String) map.get("usageid");
+			String state = (String) map.get("state");
+			BigDecimal stock_num = (BigDecimal) map.get("stock_num");
+			BigDecimal baseline_num = (BigDecimal) map.get("baseline_num");
+			
+			try {		
+				// 不用update 
+//				String sql = "update es_goods_usage t set t.stock_num = ? where t.usageid = ?";
+//				baseDaoSupport.execute(sql, stock_num, usageid);
+				
+				if (Consts.GOODS_USAGE_STATE_0.equals(state) &&  stock_num.intValue() <= baseline_num.intValue()  ) {
+					logger.info("==== usageid " + usageid + " 库存量 " + stock_num + " 小于等于阈值 " + baseline_num + " ====");
+					//smsManager.addCardStockWaringMsg(userid, goodsName, stock_num.intValue(), baseline_num.intValue());
+				}
+			} catch (Exception e) {
+				logger.info("==== usageid " + usageid + " 更新库存出现异常====" + e);
+			}
+		}
+	}
+
+	/**
+	 * 将po对象中有属性和值转换成map
+	 * 
+	 * @param po
+	 * @return
+	 */
+	protected Map po2Map(Object po) {
+		Map poMap = new HashMap();
+		Map map = new HashMap();
+		try {
+			map = BeanUtils.describe(po);
+		} catch (Exception ex) {
+		}
+		Object[] keyArray = map.keySet().toArray();
+		for (int i = 0; i < keyArray.length; i++) {
+			String str = keyArray[i].toString();
+			if (str != null && !str.equals("class")) {
+				if (map.get(str) != null) {
+					poMap.put(str, map.get(str));
+				}
+			}
+		}
+		return poMap;
+	}
+
+}

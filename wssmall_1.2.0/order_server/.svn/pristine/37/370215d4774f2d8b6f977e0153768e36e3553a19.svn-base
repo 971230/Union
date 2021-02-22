@@ -1,0 +1,48 @@
+package com.ztesoft.net.mall.core.action.order.service.contract;
+
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.mall.core.action.order.collect.CommonCollectHander;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.sqls.SF;
+
+public class ContractCollectHander  extends CommonCollectHander {
+
+	/**
+	 * 订单采集
+	 *shop/admin/collect!addOrder
+	 * 1、商品申请入口，调用地址为
+	 */
+	public void collect() {
+		super.collect();
+	}
+
+	@Override
+	public void display() {
+		super.display();
+	}
+
+	@Override
+	public void execute() {
+		if(OrderStatus.SOURCE_FROM_TAOBAO.equals(getOrderRequst().getGoodsApply().getSource_from())){ //外系统订单同步
+			super.syOrder();
+		}else{
+			
+
+			//事物控制，将方法锁定
+			this.baseDaoSupport.execute(SF.orderSql("SERVICE_DC_PUBLIC_SELECT"),"CONTRACT");
+			
+			
+			//设置支付方式
+			getOrderRequst().getGoodsApply().setPayment_id(Consts.PAYMENT_ID_BANK);
+			super.execute();
+			super.addLog("商品申请:"+getOrderRequst().getGoodsApply().getApply_desc());
+			
+			//合约卡调拨
+			accNbrManager.transfer_phone_no_for_collect(getOrderRequst(), getOrderResult());
+			
+			setCanNext(false);
+		}
+		
+	}
+
+}

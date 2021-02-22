@@ -1,0 +1,95 @@
+package com.ztesoft.net.mall.core.service.impl.cache;
+
+import java.util.List;
+
+import com.ztesoft.net.app.base.core.model.ArticleCat;
+import com.ztesoft.net.eop.resource.model.EopSite;
+import com.ztesoft.net.eop.sdk.context.EopContext;
+import com.ztesoft.net.framework.cache.AbstractCacheProxy;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.service.IArticleCatManager;
+
+public class ArticleCatCacheProxy extends AbstractCacheProxy<List<ArticleCat>> implements
+		IArticleCatManager {
+	
+	
+	private IArticleCatManager articleCatManager ;
+	public ArticleCatCacheProxy(IArticleCatManager articleCatManager) {
+		super(Consts.article_cat_cacheName);
+		this.articleCatManager = articleCatManager;
+	}
+	
+	private String getKey(){
+		EopSite site  = EopContext.getContext().getCurrentSite();
+		return Consts.article_cat_cacheName+"_"+site.getUserid() +"_"+site.getId();
+	}
+	private void cleanCache(){
+		EopSite site  = EopContext.getContext().getCurrentSite();
+		this.cache.remove(getKey());
+	}
+
+	
+	@Override
+	public int delete(String catId) {
+		int r = this.articleCatManager.delete(catId);
+		if(r==0){
+			this.cleanCache();
+		}
+		return r;
+	}
+
+	
+	@Override
+	public ArticleCat getById(String catId) {
+		return this.articleCatManager.getById(catId);
+	}
+
+	
+	@Override
+	public List listChildById(String catId) {
+		List<ArticleCat> catList  = this.cache.get(this.getKey());
+		if(catList== null ){
+			catList  = this.articleCatManager.listChildById(catId);
+			this.cache.put(this.getKey(), catList);
+			if(this.logger.isDebugEnabled()){
+				this.logger.debug("load article cat form database");
+			}
+		}else{
+			if(this.logger.isDebugEnabled()){
+				this.logger.debug("load article cat form cache");
+			}
+		}
+		
+		return catList;
+	}
+
+	
+	@Override
+	public List listHelp(String catId) {
+		return this.articleCatManager.listHelp(catId);
+	}
+
+	
+	@Override
+	public void saveAdd(ArticleCat cat) {
+		this.articleCatManager.saveAdd(cat);
+		this.cleanCache();
+	}
+
+	
+	@Override
+	public void saveSort(String[] catIds, int[] catSorts) {
+		this.articleCatManager.saveSort(catIds, catSorts);
+		this.cleanCache();
+	}
+
+	
+	@Override
+	public void update(ArticleCat cat) {
+		this.articleCatManager.update(cat);
+		this.cleanCache();
+	}
+
+
+
+}

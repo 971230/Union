@@ -1,0 +1,284 @@
+package com.ztesoft.net.aspect;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.AfterThrowing;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.Pointcut;
+import org.springframework.stereotype.Component;
+
+import params.ZteResponse;
+import zte.params.ecsord.req.GetOrderByInfIdReq;
+import zte.params.ecsord.req.GetOrderByOutTidReq;
+import zte.params.ecsord.resp.GetOrderByInfIdResp;
+import zte.params.ecsord.resp.GetOrderByOutTidResp;
+
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.cache.CacheMap;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.inf.communication.client.bo.ICommClientBO;
+import com.ztesoft.inf.framework.dao.SeqUtil;
+import com.ztesoft.net.cache.common.CacheFactory;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.utils.CacheUtil;
+import commons.CommonTools;
+
+/**
+ * 接口服务端，日志保存
+ */
+@Component
+@Aspect
+public class InfApiAspect{
+
+	public static ThreadLocal<Boolean> IS_REFERSH_CACHE = new ThreadLocal<Boolean>();
+	
+	private INetCache cache = CacheFactory.getCacheByType("");
+	public static int space = 134;
+	private  ICommClientBO commClientBO;
+	private  ICommClientBO getICommClientBO(){
+		if(commClientBO==null){
+			commClientBO = SpringContextHolder.getBean("commClientBO");
+		}
+		return commClientBO;
+	}
+	public void refershCache(){
+		IS_REFERSH_CACHE.set(true);
+		List serviceList = getICommClientBO().getRemoteServiceList();
+		getRemoteService(((Map)serviceList.get(0)).get("apiname").toString());
+	}
+	
+	public boolean isRefershCache(){
+		Boolean flag = IS_REFERSH_CACHE.get();
+		if(flag==null)return false;
+		return flag;
+	}
+
+	private Map getRemoteService(String apiName){
+		Map map = new HashMap();
+		if(!isRefershCache()){
+			map = (Map)cache.get(apiName);
+		}
+		if(null!=map&&map.size()>0){
+			return map;
+		}else{
+			List serviceList = getICommClientBO().getRemoteServiceList();
+			for(int i=0;i<serviceList.size();i++){
+				HashMap serMap = (HashMap)serviceList.get(i);	
+				CacheMap cMap = new CacheMap();
+				cMap.putAll(serMap);
+				cache.set(serMap.get("apiname").toString(), cMap);
+			}
+			return (Map)cache.get(apiName);
+		}
+	}
+	// 配置切入点,该方法无方法体,主要为方便同类中其他方法使用此处配置的切入点
+	@Pointcut("execution(* zte.net.iservice.impl.*InfServices.*(..))")
+	public void aspect() {}
+
+	// 配置后置返回通知,使用在方法aspect()上注册的切入点
+	@AfterReturning(pointcut="aspect()", returning="retVal")
+	public void afterReturn(JoinPoint joinPoint, ZteResponse retVal) {
+		try{
+			Object[] args = joinPoint.getArgs();
+			Map<String,String> orderMap = getReqOrderId(args[0]);
+			if(null==orderMap){return;}
+			String respXml = CommonTools.beanToJsonNCls(retVal);
+			Method method = args[0].getClass().getMethod("getInf_log_id");
+			String log_id = (String)method.invoke(args[0]);
+			this.updateInfLog(orderMap,args[0],log_id, respXml);
+			
+		}catch(Exception e){}
+	}
+	
+	@Before("aspect()")
+	public void before(JoinPoint joinPoint) {
+		try{
+			Object[] args = joinPoint.getArgs();
+			Map<String,String> orderMap = getReqOrderId(args[0]);
+			if(null==orderMap){return;}
+			//日志id
+			String log_id = new SeqUtil().getNextSequence("INF_COMM_CLIENT_CALLLOG", "LOG_ID");
+			Method method = args[0].getClass().getMethod("setInf_log_id",String.class);
+			method.invoke(args[0], log_id);
+			String reqXml = CommonTools.beanToJsonNCls(args[0]);
+			this.insertInfLog(log_id, reqXml, orderMap);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	private Map<String,String> getReqOrderId(Object req) {
+		String className = req.getClass().getName();
+		String methodName = className.substring(className.lastIndexOf(".")+1);
+		Map serMap = getRemoteService(methodName);
+		if(null==serMap||serMap.size()==0){
+			return null;
+		}
+		String apiParam = serMap.get("apiparam").toString();
+		String servicecode = serMap.get("servicecode").toString();
+		String opCode = serMap.get("opcode").toString();
+		String orderId = getOrderId(req,apiParam);
+		String ecsOrderId = "";
+		if(null==orderId||"".equals(orderId)){
+			if(opCode.equals("orderInfExec")){
+				orderId = getOrderId(CommonTools.beanToJsonNCls(req), "OrderId");
+			}else{
+				return null;
+			}
+		}
+		ZteClient client= ClientFactory.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_ECSORD);
+		if("ZB".equals(servicecode)){
+			GetOrderByInfIdReq oreq = new GetOrderByInfIdReq();
+			oreq.setZb_inf_id(orderId);
+			try{
+				GetOrderByInfIdResp oresp = client.execute(oreq, GetOrderByInfIdResp.class);
+				if(null!=oresp){
+					ecsOrderId = oresp.getOrder_id();
+				}
+			}catch(Exception e){
+				e.printStackTrace();
+			}		
+		}else if("WYG".equals(servicecode))	{
+			GetOrderByOutTidReq getOrderByOutTidReq = new GetOrderByOutTidReq();
+			getOrderByOutTidReq.setOut_tid(orderId);
+			try{
+				GetOrderByOutTidResp resp = client.execute(getOrderByOutTidReq, GetOrderByOutTidResp.class);
+				if(null!=resp){
+					ecsOrderId = resp.getOrder_id();
+				}
+			}catch(Exception e){
+				e.printStackTrace();
+			}	
+		}
+		if(null==ecsOrderId||"".equals(ecsOrderId)){
+			ecsOrderId = orderId;
+		}
+		Map<String,String> orderMap = new HashMap<String,String>();
+		orderMap.put("ecsorderId", ecsOrderId);
+		orderMap.put("orderId", orderId);
+		orderMap.put("opCode", opCode);
+		return orderMap;
+	}
+
+	// 配置抛出异常后通知,使用在方法aspect()上注册的切入点
+	@AfterThrowing(pointcut = "aspect()", throwing = "ex")
+	public void afterThrow(JoinPoint joinPoint,Throwable ex) throws IllegalAccessException, InvocationTargetException {
+		try{
+			Object[] args = joinPoint.getArgs();
+			Map<String,String> orderMap = getReqOrderId(args[0]);
+			if(null==orderMap){return;}
+			Method method = args[0].getClass().getMethod("getInf_log_id");
+			String log_id = (String)method.invoke(args[0]);
+			this.updateInfLog(orderMap,args[0],log_id, ex.getMessage());
+			
+		}catch(Exception e){}
+	}
+	
+	private void insertInfLog(String log_id, String reqXml,Map<String,String> orderMap){
+		try{
+			String orderId = orderMap.get("orderId");
+			String opCode = orderMap.get("opCode");
+			String ecsOrderId = orderMap.get("ecsorderId");
+			List<Object> infList = new ArrayList<Object>();
+			infList.add(new Timestamp(System.currentTimeMillis()));
+			infList.add(new Timestamp(System.currentTimeMillis()));
+			infList.add(opCode);
+			infList.add("");
+			infList.add(reqXml);
+			infList.add("");
+			infList.add("0");
+			infList.add("服务端接口");
+			infList.add(reqXml);
+			infList.add("");
+			infList.add("");
+			infList.add("");
+			infList.add(ecsOrderId);
+			infList.add(orderId);
+			infList.add("in");
+			infList.add(log_id);
+			getICommClientBO().logCall(infList);
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	private void updateInfLog(Map<String,String> orderMap,Object o,String log_id, String respXml){
+		getICommClientBO().updateCallLog(orderMap,o,log_id, respXml);
+	}
+	
+	private String getOrderId(Object obj,String beans){
+		String bean = "";
+		String value = "";
+		if(beans.indexOf(".")>0){
+			bean = beans.substring(0, beans.indexOf("."));
+		}else{
+			bean = beans;
+		}
+		try{			
+			Class clz = obj.getClass();
+			if(clz.getName().indexOf("ArrayList")>0){
+				List list = (List)obj;
+				obj = list.get(0);
+				clz = obj.getClass();
+			}
+			Field[] field = clz.getDeclaredFields();			
+			for(Field f:field){
+				String fName = f.getName();
+				if(bean.equals(fName)){
+					f.setAccessible(true);
+					if(beans.contains(".")){
+						Object subObj = f.get(obj);
+						value = getOrderId(subObj,beans.substring(beans.indexOf(".")+1, beans.length()));
+					}else{
+						value = (String)f.get(obj);
+					}
+					//value = (String)MethodUtils.invokeMethod(storeRequest, "get"+changeField.substring(0,1).toUpperCase()+changeField.substring(1),null);
+				}
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return value;
+	}
+	private String getOrderId(String json,String node){
+		String reg = "\""+node+"(\\\\{0,1})\":(\\\\{0,1})\"([A-Za-z0-9]+)(\\\\{0,1})\"";
+		Pattern p = Pattern.compile(reg);
+		Matcher matcher = p.matcher(json);
+		String orderId = "";
+		while(matcher.find()){
+			orderId = matcher.group();
+			orderId = orderId.replace(node, "").replaceAll("\\\\", "").replaceAll("\"", "").replace(":", "");
+			if(!StringUtil.isEmpty(orderId)){
+				break;
+			}
+		}
+		return orderId;
+	}
+	/**
+	 * 
+	 * @Description: 异常系统开关控制
+	 * @param cfId
+	 * @return   
+	 * @author shen.qiyu
+	 * @date 2015年12月11日
+	 */
+	public String getConfigInfoValueByCfId(String cfId){
+		CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		return cacheUtil.getConfigInfo(cfId);
+	}
+}

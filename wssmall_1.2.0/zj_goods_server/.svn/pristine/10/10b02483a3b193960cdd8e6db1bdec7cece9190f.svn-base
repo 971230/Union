@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	
+	<bean id="coDingDanRule"       class="com.ztesoft.net.rule.CoDingDanRuleECS"       parent="baseSupport" />
+	<bean id="coPinPaiRule"       class="com.ztesoft.net.rule.CoPinPaiRuleECS"       parent="baseSupport" />
+	<bean id="coHaoMaRule"         class="com.ztesoft.net.rule.CoHaoMaRuleECS"         parent="baseSupport" />
+	<bean id="coHuoPinKuCunRule"   class="com.ztesoft.net.rule.CoHuoPinKuCunRuleECS"   parent="baseSupport" />
+	<bean id="coXingHaoRule"   class="com.ztesoft.net.rule.CoXingHaoRuleECS"   parent="baseSupport" />
+	<bean id="coFenLeiRule"   class="com.ztesoft.net.rule.CoFenLeiRuleECS"   parent="baseSupport" />
+	
+    <bean id="CoShangPinKuCunRule" class="com.ztesoft.net.rule.CoShangPinKuCunRuleECS"   parent="baseSupport" />
+	<bean id="CoHuoDongRule" class="com.ztesoft.net.rule.CoHuoDongRuleECS"   parent="baseSupport" />
+	
+	
+	<bean id="coHuoPinRule" class="com.ztesoft.net.rule.CoHuoPinRuleECS"   parent="baseSupport" />
+	<bean id="coShangPinRule" class="com.ztesoft.net.rule.CoShangPinRuleECS"   parent="baseSupport" />
+    <bean id="orderEcsManager" class="com.ztesoft.net.service.impl.OrderEcsManager"   parent="baseSupport" />
+    <bean id="orderStandarService" class="com.ztesoft.net.rule.order.OrderStandarService"   parent="baseSupport" />
+	<bean id="orderStandardizing" class="com.ztesoft.net.rule.order.OrderStandardizing" />
+	<bean id="gProdOrderStandardizing" class="com.ztesoft.net.rule.order.GProdOrderStandardizing" />
+	<bean id="taobaoAcceptRule" class="services.TaobaoAcceptRule"/>
+	<bean id="taobaoNAcceptRule" class="services.TaobaoNAcceptRule"/>
+	<bean id="goodsImportRule" class="com.ztesoft.net.rule.GoodsImportRuleECS"  parent="baseSupport" ></bean>
+	<bean id="numeroImportRule" class="com.ztesoft.net.rule.NumeroImportRuleECS"  parent="baseSupport" ></bean>
+	<bean id="terminalImportRule" class="com.ztesoft.net.rule.TerminalImportRuleECS"  parent="baseSupport" ></bean>
+	
+	<bean id="orderMangerLocal" class="com.ztesoft.net.service.OrderMangerLocal"/>
+	<bean id="orderServiceLocal" class="com.ztesoft.net.service.OrderServiceLocal"/>
+	<bean id="dbUtils" class="com.ztesoft.net.outter.inf.service.DBUtils" parent="baseSupport"/>
+	<bean id="goodsXmlParseManager" class="com.ztesoft.net.outter.inf.service.GoodsXmlParseManager" parent="baseSupport"/>
+	<bean id="hsGoodsManager" class="com.ztesoft.net.outter.inf.huasheng.HuaShengGoodsManager" parent="baseSupport"/>
+	
+	
+	
+	<bean id="outerInfTimerService" class="com.ztesoft.net.mall.core.timer.OuterInfTimerService" scope="singleton"/>
+	<bean id="outterECSTmplManager" class="com.ztesoft.net.outter.inf.service.OutterECSTmplManager" parent="baseSupport"></bean>
+	<bean id="taobaoService" class="com.ztesoft.net.outter.inf.taobao.TaobaoService"/>
+	<bean id="outerOrderSync" class="com.ztesoft.net.outter.inf.abs.OuterOrderSync"/>
+	<bean id="taobaoErrorService" class="com.ztesoft.net.outter.inf.taobao.TaobaoErrorService"/>
+	 <bean id="edbFenXiaoOrderService" class="com.ztesoft.net.service.EdbFenXiaoOrderService"/>
+	<bean id="taobaoFenXiaoService" class="com.ztesoft.net.outter.inf.taobao.TaobaoFenXiaoService"/> 
+	<bean id="taobaoFenXiaoErrorService" class="com.ztesoft.net.outter.inf.taobao.TaobaoFenXiaoErrorService"/> 
+	<bean id="jstService" class="com.ztesoft.net.outter.inf.taobao.JSTService"/> 
+	<bean id="taobaoOrdStdService" class="com.ztesoft.net.outter.inf.taobao.TaobaoOrdStdService"/>
+	<bean id="huashengGoodsService" class="com.ztesoft.net.outter.inf.huasheng.HuaShengGoodsService"/>
+	<bean id="communityManager" class="com.ztesoft.net.service.impl.CommunityManager" scope="singleton"/>
+                                      
+</beans>	

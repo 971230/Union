@@ -1,0 +1,50 @@
+.info_line ul{ min-height:65px;_height:70px; border-bottom:1px dotted #a6a5a5; position:relative;}
+.info_line ul:hover{ background:#f7f7f7; cursor:pointer;}
+.info_line ul.current{background:#f7f7f7; cursor:pointer;}
+
+.info_friend_center h3{ color:#0078b6; font-size:14px; font-weight:bold; padding-top:5px; padding-left:2px;}
+.info_friend_center .msg{ padding-top:5px;line-height:15px;  font-size:12px;padding-left:2px;}
+
+.info_content{display:inline;_display:inline-block;height:23px;font-size:14px;line-height:23px;color:black;}
+
+.time{color:#999;}
+
+.contentPanel {
+	border-top: 1px solid #BADDF9;
+	border-right: 1px solid #BADDF9;
+	border-bottom: 1px solid #BADDF9;
+	border-left: 1px solid #BADDF9;
+	padding:3px;
+	height: 350px;
+	overflow:auto;
+	position: absolute;
+	z-index: 999999;
+	top: 0px;
+	left: 0px;
+	background-color:#FFFFFF;
+	display: block;
+}
+
+.item {
+	/* height: 20px;
+	overflow-y: auto; */
+	cursor: pointer;
+	overflow-x: hidden;
+	text-align: left;
+	padding-top:8px;
+	width:100%;
+	border-bottom:1px dotted #ECE9D8;
+	background-color:white;
+	color: #5c5c5c;
+	font-weight:normal;
+	
+}
+
+.highlight {
+	color: #2A00E1;
+	font-weight: bold;
+	
+}
+.divhover {
+	background-color: #E8F2FE;
+}

@@ -1,0 +1,73 @@
+package com.ztesoft.rop.security;
+
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.rop.core.utils.TEA;
+import com.ztesoft.rop.common.RopRequestContext;
+import com.ztesoft.rop.db.RopDaoImpl;
+
+public class ReadDbBaseAppSecretManager implements AppSecretManager {
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private RopRequestContext ropRequestContext = null;
+
+    /**
+     * 取得应用的密码
+     */
+    @Override
+    public String getSecret(String appKey) {
+        // TODO Auto-generated method stub
+
+        if (null == appKey || appKey.equalsIgnoreCase("")) {
+            return null;
+        }
+
+        try {
+            RopDaoImpl dao = new RopDaoImpl();
+            Map<String, String> pramas = new HashMap<String, String>();
+            pramas.put("APP_KEY", appKey);
+
+            Map resultMap = dao.findAppSecretByAppkey(pramas);
+
+            if (null == resultMap || resultMap.isEmpty()) {
+                return null;
+            }
+            //
+            if (ropRequestContext != null) {
+                ropRequestContext.setOtherObject(resultMap);
+            }
+
+            String key = "app_secret";
+            String secret = (String) resultMap.get(key);
+
+            return TEA.Decrypt(secret);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
+    public boolean isValidAppKey(String appKey) {
+        // TODO Auto-generated method stub
+        return getSecret(appKey) != null;
+    }
+
+    @Override
+	public RopRequestContext getRopRequestContext() {
+        return ropRequestContext;
+    }
+
+    @Override
+	public void setRopRequestContext(RopRequestContext ropRequestContext) {
+        this.ropRequestContext = ropRequestContext;
+    }
+
+}

@@ -1,0 +1,364 @@
+package zte.net.common.rule;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import util.Utils;
+import zte.net.common.annontion.context.action.ZteMethodAnnontion;
+import zte.net.common.annontion.context.action.ZteServiceAnnontion;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.common.SpecConsts;
+import zte.net.ecsord.params.base.req.BusiCompRequest;
+import zte.net.ecsord.params.base.resp.BusiCompResponse;
+import zte.net.ecsord.params.busi.req.AttrTmResourceInfoBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.ecaop.resp.TerminalStatusQueryChanageResp;
+import zte.net.ecsord.params.wyg.req.StatuSynchReq;
+import zte.net.ecsord.rule.tache.TacheFact;
+import zte.net.ecsord.utils.SpecUtils;
+import zte.net.params.req.PlanRuleTreeExeReq;
+import zte.net.params.resp.PlanRuleTreeExeResp;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.consts.ZjEcsOrderConsts;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.OrderReleaseRecord;
+import com.ztesoft.net.model.BusiDealResult;
+import com.ztesoft.net.service.IOrdPickingTacheManager;
+
+import commons.CommonTools;
+import consts.ConstsCore;
+
+/**
+ *
+ * 3.5.4 订单预拣货规则集_预拣货规则处理
+ * @author wu.i
+ */
+@ZteServiceAnnontion(trace_name="ZteOrderPickingTraceRule",trace_id="1",version="1.0",desc="预拣货环节业务通知组件")
+public  class ZteOrderPickingTraceRule extends ZteTraceBaseRule {
+	@Resource
+	private IOrdPickingTacheManager ordPickingTacheManager;
+	
+	/**
+	 *预拣货环节
+	 */
+	@Override
+	@ZteMethodAnnontion(name="预拣货环节入口",group_name="拣货环节",order="1",page_show=true,path="orderPickingTraceRule.exec")
+	public BusiCompResponse engineDo(BusiCompRequest busiCompRequest) {
+		String orderId = busiCompRequest.getOrder_id();
+		OrderBusiRequest orderBusiRequest = CommonDataFactory.getInstance().getOrderTree(orderId).getOrderBusiRequest();
+		orderBusiRequest.setStatus(ZjEcsOrderConsts.DIC_ORDER_STATUS_3);
+		orderBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+		orderBusiRequest.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+		orderBusiRequest.store();
+		
+		BusiCompResponse resp = new BusiCompResponse();
+		//更新订单状态
+		String order_id = busiCompRequest.getOrder_id();
+		OrderTreeBusiRequest orderTree =CommonDataFactory.getInstance().getOrderTree(order_id);
+		OrderBusiRequest order=orderTree.getOrderBusiRequest();
+		order.setStatus(ZjEcsOrderConsts.DIC_ORDER_STATUS_3);
+		order.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+		order.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+		order.store();
+		
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 同步到外部商城 同步备注信息到淘宝
+	 * @throws ApiBusiException 
+	 */
+	@ZteMethodAnnontion(name = "同步到外部商城（拣货环节）", group_name = "拣货环节", order = "2", page_show = true, path = "ZteOrderPickingTraceRule.preChangeStatusToMall")
+	public BusiCompResponse preChangeStatusToMall(
+			BusiCompRequest busiCompRequest) throws ApiBusiException {
+		BusiCompResponse resp = new BusiCompResponse();
+		String order_id = busiCompRequest.getOrder_id();
+		BusiDealResult synTB = ordPickingTacheManager.synOrdToTBMall(order_id);
+		if(!synTB.getError_code().equals(EcsOrderConsts.TB_INF_RESP_CODE_0000))
+			CommonTools.addBusiError(synTB.getError_code(), synTB.getError_msg());
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+
+	/**
+	 * 订单信息同步到WMS
+	 * @throws ApiBusiException 
+	 */
+	@ZteMethodAnnontion(name="订单信息同步到WMS（拣货环节）",group_name="拣货环节",order="3",page_show=true,path="ZteOrderPickingTraceRule.orderSynToWms")
+	public BusiCompResponse orderSynToWms(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String order_id = busiCompRequest.getOrder_id();
+		String order_model = CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.ORDER_MODEL);
+		if(StringUtils.isEmpty(order_model)){
+			CommonTools.addBusiError(EcsOrderConsts.BUSI_DEAL_RESULT_FAIL, "生产模式属性为空!");
+		}
+		BusiDealResult synWMS = ordPickingTacheManager.synOrdInfToWMS(order_id);
+		if (!synWMS.getError_code().equals(EcsOrderConsts.WMS_INF_RESP_CODE_0000))
+			CommonTools.addBusiError(synWMS.getError_code(), synWMS.getError_msg());
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+		
+	}
+	/**
+	 * 获取终端串号 
+	 */
+	@ZteMethodAnnontion(name="获取终端串号（拣货环节）",group_name="拣货环节",order="4",page_show=true,path="ZteOrderPickingTraceRule.wmsSynPickNotify")
+	public BusiCompResponse wmsSynPickNotify(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		BusiDealResult recProd = ordPickingTacheManager.recProdInfFromWMS(busiCompRequest);
+		if(!recProd.getError_code().equals(EcsOrderConsts.ZB_INF_RESP_CODE_0000))
+			CommonTools.addBusiError(recProd.getError_code(), recProd.getError_msg());
+		resp.setResponse(recProd.getResponse());
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	/**
+	 *拣货完成通知总部
+	 * @throws ApiBusiException 
+	 */
+	@ZteMethodAnnontion(name="拣货完成通知总部（拣货环节）",group_name="拣货环节",order="5",page_show=true,path="ZteOrderPickingTraceRule.prePickToZb")
+	public BusiCompResponse prePickToZb(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String order_id = busiCompRequest.getOrder_id();
+		BusiDealResult notifyProd = ordPickingTacheManager.notifyProdInfToZB(order_id);
+		if (!notifyProd.getError_code().equals(EcsOrderConsts.ZB_INF_RESP_CODE_0000))
+			CommonTools.addBusiError(notifyProd.getError_code(), notifyProd.getError_msg());
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 下一步（环节跳转）
+	 */
+	@ZteMethodAnnontion(name="下一步（拣货环节）",group_name="拣货环节",order="6",page_show=true,path="ZteOrderPickingTraceRule.nextStep")
+	public BusiCompResponse nextStep(BusiCompRequest busiCompRequest){
+		BusiCompResponse resp = this.nextflow(busiCompRequest,false,"C");
+		String orderId = busiCompRequest.getOrder_id();
+		
+		String isAop = CommonDataFactory.getInstance().getAttrFieldValue(orderId, AttrConsts.IS_AOP);
+		if(StringUtils.equals(EcsOrderConsts.IS_DEFAULT_VALUE, isAop)){//aop的在这里通知新商城
+			/*StatuSynchReq statuSyn = new StatuSynchReq(orderId,EcsOrderConsts.DIC_ORDER_NODE_C,EcsOrderConsts.DIC_ORDER_NODE_C_DESC,EcsOrderConsts.ORDER_STANDARDING_1,EcsOrderConsts.ORDER_NODE_C_SUCCESS,"");
+			//通知商城
+			CommonDataFactory.getInstance().notifyNewShop(statuSyn);*/
+		}
+		
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 下一步[next异步]（环节跳转）
+	 */
+	@ZteMethodAnnontion(name="下一步[next异步]（拣货环节）",group_name="拣货环节",order="7",page_show=true,path="ZteOrderPickingTraceRule.nextStepAsyn")
+	public BusiCompResponse nextStepAsyn(BusiCompRequest busiCompRequest){
+		// 下一步后面的操作异步处理
+		if (busiCompRequest.getQueryParams() != null) {
+			busiCompRequest.getQueryParams().put("deal_from", EcsOrderConsts.DEAL_FROM_INF);
+		}		
+
+		String orderId = busiCompRequest.getOrder_id();
+		
+		String isAop = CommonDataFactory.getInstance().getAttrFieldValue(orderId, AttrConsts.IS_AOP);
+		if(StringUtils.equals(EcsOrderConsts.IS_DEFAULT_VALUE, isAop)){//aop的在这里通知新商城
+			StatuSynchReq statuSyn = new StatuSynchReq(orderId,EcsOrderConsts.DIC_ORDER_NODE_C,EcsOrderConsts.DIC_ORDER_NODE_C_DESC,EcsOrderConsts.ORDER_STANDARDING_1,EcsOrderConsts.ORDER_NODE_C_SUCCESS,"");
+			//通知商城
+			CommonDataFactory.getInstance().notifyNewShop(statuSyn);
+		}
+		
+		BusiCompResponse resp = this.nextflow(busiCompRequest,false,"C");
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 终端查询--暂时没用上
+	 */
+	@ZteMethodAnnontion(name="[AOP]终端查询",group_name="拣货环节",order="8",page_show=true,path="zteOrderPickingTraceRule.termiResourceQueryAop")
+	public BusiCompResponse termiResourceQueryAop(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		BusiDealResult recProd = ordPickingTacheManager.synQueryTmResourceInfo(busiCompRequest.getOrder_id(),EcsOrderConsts.AOP_TERMINAL_OCCUPIEDFLAG_0);
+		if(!recProd.getError_code().equals(EcsOrderConsts.AOP_SUCCESS_0000)){
+			CommonTools.addBusiError(recProd.getError_code(), recProd.getError_msg());
+		}
+		resp.setResponse(recProd.getResponse());
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 终端预占
+	 */
+	@ZteMethodAnnontion(name="[AOP]终端预占",group_name="拣货环节",order="9",page_show=true,path="zteOrderPickingTraceRule.termiResourcePreOccupancyAop")
+	public BusiCompResponse termiResourcePreOccupancyAop(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String orderId = busiCompRequest.getOrder_id();
+		
+		//预占
+		BusiDealResult recProd = ordPickingTacheManager.synQueryTmResourceInfo(orderId,EcsOrderConsts.AOP_TERMINAL_OCCUPIEDFLAG_1);
+		if(!recProd.getError_code().equals(EcsOrderConsts.AOP_SUCCESS_0000)){
+			CommonTools.addBusiError(recProd.getError_code(), recProd.getError_msg());
+		}else{
+			//获取商品小类
+			String cat_id = CommonDataFactory.getInstance().getAttrFieldValue(orderId, AttrConsts.GOODS_CAT_ID);
+			//社会机全国合约惠机C1，终端预占成功后，不需要校验机型，但需要记录旧串号字段
+			if(StringUtils.isNotEmpty(cat_id) && 
+					EcsOrderConsts.GOODS_CAT_MACHINE_YOUHUI_C1.equals(cat_id)){
+				//保存旧资源串码
+				String recode = CommonDataFactory.getInstance().getAttrFieldValue(orderId, AttrConsts.TERMINAL_NUM);
+				CommonDataFactory.getInstance().updateAttrFieldValue(orderId, new String[]{AttrConsts.OLD_TERMINAL_NUM}, 
+						new String[]{recode});
+			}else{
+				//预占成功的话，比较机型
+				
+				//获取接口返回的机型
+				TerminalStatusQueryChanageResp temvo = (TerminalStatusQueryChanageResp) recProd.getResponse();
+				String modelcodeAop = temvo.getResourcesRsp().get(0).getMachineTypeCode();
+				
+				//获取订单商品机型
+				List<Goods> products = SpecUtils.getEntityProducts(orderId);
+				Goods entity = null;
+				String modelcode = "";
+				for(int i=0;i<products.size();i++){
+					Goods product = products.get(i);
+					//取手机终端，上网卡硬件，配件货品
+					if(SpecConsts.TYPE_ID_10000.equals(product.getType_id()) 
+							|| SpecConsts.TYPE_ID_10006.equals(product.getType_id())
+							|| SpecConsts.TYPE_ID_10003.equals(product.getType_id())){
+						entity = product;
+						break;
+					}
+				}
+				if(entity!=null && !StringUtils.isEmpty(entity.getBrand_code()) 
+						&& !StringUtils.isEmpty(entity.getColor()) && !StringUtils.isEmpty(entity.getModel_code()) && !StringUtils.isEmpty(entity.getSn())){
+					//entity.getColor();
+					//entity.getModel_code();
+					modelcode = entity.getSn();//机型编码
+				}
+				//比较接口机型和订单商品配置机型
+				if(!StringUtils.equals(modelcode, modelcodeAop)){	
+					//机型不符，则把旧资源释放
+					ordPickingTacheManager.releaseResource(orderId,EcsOrderConsts.AOP_TERMINAL_OCCUPIEDFLAG_3);
+					
+					//异常抛出，供前台展示
+					CommonTools.addBusiError("-9999", "录入的终端串号与订单购买机型不符,请检查!(录入串号的机型:"+modelcodeAop+",购买机型:"+modelcode+")");				
+				}else{
+					String recode = CommonDataFactory.getInstance().getAttrFieldValue(orderId, AttrConsts.TERMINAL_NUM);
+					//保存旧资源串码
+					CommonDataFactory.getInstance().updateAttrFieldValue(orderId, new String[]{AttrConsts.OLD_TERMINAL_NUM}, 
+						new String[]{recode});
+				}
+			}
+		}
+		
+		resp.setResponse(recProd.getResponse());
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");		
+		return resp;
+	}
+	
+	/**
+	 * 终端批量预占
+	 * @param busiCompRequest
+	 * @return
+	 * @throws ApiBusiException
+	 */
+	@ZteMethodAnnontion(name="[AOP]终端预占-批量",group_name="拣货环节",order="10",page_show=true,path="zteOrderPickingTraceRule.termiPreOccupancyBatchAop")
+	public BusiCompResponse termiResourcePreOccBatchAop(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String orderId = busiCompRequest.getOrder_id();
+		
+		//预占
+		BusiDealResult recProd = ordPickingTacheManager.termiResourcePreOccBatchAop(orderId,EcsOrderConsts.AOP_TERMINAL_OCCUPIEDFLAG_1);
+		if(!recProd.getError_code().equals(EcsOrderConsts.AOP_SUCCESS_0000)){
+			CommonTools.addBusiError(recProd.getError_code(), recProd.getError_msg());
+		}
+		
+		resp.setResponse(recProd.getResponse());
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");		
+		return resp;
+	}
+	
+//	/**
+//	 * 终端预定 -暂时无用
+//	 */
+//	@ZteMethodAnnontion(name="[AOP]终端预定",group_name="拣货环节",order="11",page_show=true,path="zteOrderPickingTraceRule.termiResourceOccupancyAop")
+//	public BusiCompResponse termiResourceOccupancyAop(BusiCompRequest busiCompRequest) throws ApiBusiException{
+//		BusiCompResponse resp = new BusiCompResponse();
+//		BusiDealResult recProd = ordPickingTacheManager.synQueryTmResourceInfo(busiCompRequest.getOrder_id(),EcsOrderConsts.AOP_TERMINAL_OCCUPIEDFLAG_2);
+//		if(!recProd.getError_code().equals(EcsOrderConsts.AOP_SUCCESS_0000)){
+//			CommonTools.addBusiError(recProd.getError_code(), recProd.getError_msg());
+//		}
+//		resp.setResponse(recProd.getResponse());
+//		resp.setError_code("0");
+//		resp.setError_msg("执行成功");
+//		return resp;
+//	}	
+	
+	/**
+	 * 终端串号更换
+	 */
+	@ZteMethodAnnontion(name="[AOP]串号更换释放旧串号",group_name="拣货环节",order="11",page_show=true,path="zteOrderPickingTraceRule.termiResourceChangeRelease")
+	public BusiCompResponse termiResourceChangeRelease(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String order_id = busiCompRequest.getOrder_id();
+		BusiDealResult recProd = ordPickingTacheManager.releaseResourceForOldTerminal(order_id,EcsOrderConsts.AOP_TERMINAL_OCCUPIEDFLAG_99);
+		if(!recProd.getError_code().equals(EcsOrderConsts.AOP_SUCCESS_0000)){
+			OrderReleaseRecord record = new OrderReleaseRecord();
+			record.setOrder_id(order_id);
+			record.setType(EcsOrderConsts.PRODUCT_TYPE_TERMINAL);
+			record.setSerial_or_num(CommonDataFactory.getInstance().getAttrFieldValue(order_id, AttrConsts.OLD_TERMINAL_NUM));
+			List<AttrTmResourceInfoBusiRequest> tmResourceInfoBusiRequests = CommonDataFactory.getInstance().getOrderTree(order_id).getTmResourceInfoBusiRequests();
+			record.setOccupied_essid(tmResourceInfoBusiRequests.get(0).getOccupied_essId());
+			record.setDeal_desc(recProd.getError_msg());
+			Utils.saveReleaseRecord(record);
+		}
+		resp.setResponse(recProd.getResponse());
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	
+	@ZteMethodAnnontion(name="[AOP]终端预占方案",group_name="拣货环节",order="12",page_show=true,path="zteOrderPickingTraceRule.termiResourceOccPlan")
+	public BusiCompResponse termiResourceOccPlan(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		TacheFact fact = new TacheFact();
+		fact.setOrder_id(busiCompRequest.getOrder_id());
+		req.setPlan_id(EcsOrderConsts.TERMI_PRE_OCCUPANCY_AOP);
+		req.setFact(fact);
+		req.setDeleteLogs(true);
+		PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+		BusiCompResponse busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);
+		if (!StringUtils.equals(busiResp.getError_code(), ConstsCore.ERROR_SUCC)) {
+			CommonTools.addBusiError("-99999", busiResp.getError_msg());
+		}
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	@ZteMethodAnnontion(name="终端串号录入",group_name="拣货环节",order="13",page_show=true,path="zteOrderPickingTraceRule.terminalNumberInput")
+	public BusiCompResponse terminalNumberInput(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+}

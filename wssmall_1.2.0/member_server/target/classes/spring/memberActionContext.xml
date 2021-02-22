@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+	
+	<!--  管理员-->
+	<bean id="userAdminAction" class="com.ztesoft.net.app.base.core.action.UserAdminAction" scope="prototype"></bean>
+	
+	<!-- 个人中心 -->
+    <bean id = "userCenter" class = "com.ztesoft.net.app.base.core.action.UserCenterAction" scope ="prototype"></bean>
+	
+	<bean id="agentAction" class="com.ztesoft.net.mall.core.action.backend.AgentAction" scope="prototype"/>
+	<bean id="memberAction" class="com.ztesoft.net.mall.core.action.backend.MemberAction" scope="prototype"/>
+	<bean id="memberPriceAction" class="com.ztesoft.net.mall.core.action.backend.MemberPriceAction" scope="prototype"/>
+	<bean id="memberFavoriteAction" class="com.ztesoft.net.mall.widget.member.MemberFavoriteAction" scope="prototype"/>
+	<bean id="memberAuthAction" class="com.ztesoft.net.mall.core.action.backend.MemberAuthAction" scope="prototype"/>
+	<!-- 友情连接 -->
+	<bean id="friendsLinkAction" class="com.ztesoft.net.app.base.core.action.FriendsLinkAction" scope="prototype" />
+	
+	<!--  留言板-->
+ 	<bean id="guestBookAction" class="com.ztesoft.net.app.base.core.action.GuestBookAction" scope="prototype" />
+</beans>

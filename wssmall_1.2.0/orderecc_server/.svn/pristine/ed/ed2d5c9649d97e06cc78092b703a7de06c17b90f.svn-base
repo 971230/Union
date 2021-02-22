@@ -1,0 +1,157 @@
+package com.ztesoft.check.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.ztesoft.check.model.Biz;
+import com.ztesoft.check.model.BizCheckFilter;
+import com.ztesoft.check.model.BizFunRel;
+import com.ztesoft.check.model.BizRequirements;
+import com.ztesoft.check.service.IBizCheckFilterManager;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.ReflectionUtil;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.sqls.SF;
+
+public class BizCheckFilterManager extends BaseSupport<BizCheckFilter> implements
+		IBizCheckFilterManager {
+
+	/**
+	 * 根据状态查询不需要校验的过滤因子
+	 */
+	public List<BizCheckFilter> queryFilterListByParam(Map<String,String> params) {
+		List<BizCheckFilter> filters = new ArrayList<BizCheckFilter>();
+		StringBuffer sql = new StringBuffer(SF.eccSql("CHECK_FILTER_LIST"));
+		if(null == params || params.size() == 0){
+			filters = this.baseDaoSupport.queryForList(sql.toString(), BizCheckFilter.class);
+		}else{
+			sql.append(" where 1 = 1 ");
+			List paramList = new ArrayList();
+			if(params.containsKey("status") && !"".equals(params.get("status"))){
+				sql.append(" and status = ?");
+				paramList.add(params.get("status"));
+			}
+			if(params.containsKey("attr_name") && !"".equals(params.get("attr_name"))){
+				sql.append(" and attr_name = ?");
+				paramList.add(params.get("attr_name"));
+			}
+			if(params.containsKey("attr_code") && !"".equals(params.get("attr_code"))){
+				sql.append(" and attr_code = ?");
+				paramList.add(params.get("attr_code"));
+			}
+			if(params.containsKey("required_id") && !"".equals(params.get("required_id"))){
+				sql.append(" and required_id = ?");
+				paramList.add(params.get("required_id"));
+			}
+			if(params.containsKey("biz_name") && !"".equals(params.get("biz_name"))){
+				sql.append(" and biz_name = ?");
+				paramList.add(params.get("biz_name"));
+			}
+			filters = this.baseDaoSupport.queryForList(sql.toString(), BizCheckFilter.class,new Object[]{paramList.toArray()});
+		}
+		return filters;
+	}
+
+	/**
+	 * 修改单条过滤因子的状态、校验值、条件关系
+	 */
+	public void modifyFilterItem(BizCheckFilter filterItem) {
+		List<String> param = new ArrayList<String>();
+		if("0".equals(filterItem.getPre_log())){
+			param.add("&&");
+		}else if("1".equals(filterItem.getPre_log())){
+			param.add("||");
+		}else{
+			param.add("");
+		}
+		param.add(filterItem.getZ_value());
+		param.add(filterItem.getZ_cvalue());
+		param.add(filterItem.getStatus());
+		param.add(filterItem.getRequired_id());
+		this.baseDaoSupport.execute(SF.eccSql("CHECK_FILTER_UPDATE_0"), param.toArray());
+	}
+	
+	//输入参数转换为Model类
+	public BizCheckFilter parseMap2Bean(Map<String,String> params){
+		BizCheckFilter filterDto = new BizCheckFilter();
+		if(params.containsKey("biz_name")){
+			filterDto.setBiz_name(params.get("biz_name"));
+		}
+		if(params.containsKey("opt_index")){
+			filterDto.setOpt_index(params.get("opt_index"));
+		}
+		if(params.containsKey("attr_name")){
+			filterDto.setAttr_name(params.get("attr_name"));
+		}
+		if(params.containsKey("attr_code")){
+			filterDto.setAttr_code(params.get("attr_code"));
+		}
+		if(params.containsKey("z_value")){
+			filterDto.setZ_value(params.get("z_value"));
+		}
+		if(params.containsKey("z_cvalue")){
+			filterDto.setZ_cvalue(params.get("z_cvalue"));
+		}
+		if(params.containsKey("pre_log")){
+			filterDto.setPre_log(params.get("pre_log"));
+		}
+		if(params.containsKey("status")){
+			filterDto.setStatus(params.get("status"));
+		}
+		if(params.containsKey("required_id")){
+			filterDto.setRequired_id(params.get("required_id"));
+		}
+		return filterDto;
+	}
+	
+	//Model类转换为Map
+	public Map<String,String> parseBean2Map(BizCheckFilter filterItem){
+		Map<String,String> map = new HashMap<String,String>();
+		map.put("biz_name", filterItem.getBiz_name());
+		map.put("opt_index", filterItem.getOpt_index());
+		map.put("attr_name", filterItem.getAttr_name());
+		map.put("attr_code", filterItem.getAttr_code());
+		map.put("z_value", filterItem.getZ_value());
+		map.put("z_cvalue", filterItem.getZ_cvalue());
+		map.put("pre_log", filterItem.getPre_log());
+		map.put("status", filterItem.getStatus());
+		map.put("required_id", filterItem.getRequired_id());
+		return map;
+	}
+	
+	@Override
+	public List bizFactorCfgList() {
+		String sql = SF.eccSql("BIZREQUIREMENTS_ANTI_LIST");
+		//List<BizFatorCfg> list = this.daoSupport.queryForList(sql, BizFatorCfg.class);
+		List list = this.daoSupport.queryForLists(sql);
+		return list;
+	}
+
+	/**
+	 * 新增过滤项目
+	 * @param filterDto
+	 * @param list
+	 */
+	@Override
+	public void saveCheckFilter(Biz biz,ArrayList<BizRequirements> list) {
+		String biz_id ="-"+ this.baseDaoSupport.getSequences("S_ES_BIZ");
+		biz.setBiz_id(biz_id);
+		this.baseDaoSupport.insert("ecc_biz", biz);
+		int i = 0;
+		for(BizRequirements bizRequirements : list){
+			if(!StringUtil.isEmpty(bizRequirements.getCheck()) && "1".equals(bizRequirements.getCheck())&& !StringUtil.isEmpty(bizRequirements.getZ_value())){
+				bizRequirements.setBiz_id(biz_id);
+				Map br = ReflectionUtil.po2Map(bizRequirements);
+				String required_id = this.baseDaoSupport.getSequences("S_ES_BIZ_REQUIREMENTS");
+				br.put("required_id", required_id);
+				br.put("opt_index", String.valueOf(++i));
+				br.remove("check");
+				this.baseDaoSupport.insert("ecc_biz_requirements", br);
+			}
+		}
+		
+	}
+
+}

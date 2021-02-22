@@ -1,0 +1,116 @@
+package com.ztesoft.net.ecsord.params.ecaop.req;
+
+import java.util.Map;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.service.IOrderInfManager;
+import com.ztesoft.net.util.ZjCommonUtils;
+
+import params.ZteRequest;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+
+public class PromoteProductReq extends ZteRequest{
+	
+	@ZteSoftCommentAnnotationParam(name = "订单号", type = "String", isNecessary = "Y", desc = "订单系统内部订单")
+	private String notNeedReqStrOrderId;
+	@ZteSoftCommentAnnotationParam(name = "产品ID", type = "String", isNecessary = "Y", desc = "产品ID")
+	private String product_id;
+	@ZteSoftCommentAnnotationParam(name = "联通服务号码", type = "String", isNecessary = "Y", desc = "联通服务号码")
+	private String service_num;
+	@ZteSoftCommentAnnotationParam(name = "外部系统流水号", type = "String", isNecessary = "Y", desc = "外部系统流水号")
+	private String out_serial_no;
+	@ZteSoftCommentAnnotationParam(name = "外部操作员编码", type = "String", isNecessary = "Y", desc = "外部操作员编码")
+	private String out_operator;
+	@ZteSoftCommentAnnotationParam(name = "外部渠道编码", type = "String", isNecessary = "Y", desc = "外部渠道编码")
+	private String out_channel;
+	@ZteSoftCommentAnnotationParam(name = "操作类型", type = "String", isNecessary = "Y", desc = "操作类型 VERIFY 校验;SUBS 订购;UNSUBS 退订，非空 ;PRESUBS订购预提交 ;PREUNSUBS退订预提交")
+	private String op_type="PRESUBS";
+
+	public String getNotNeedReqStrOrderId() {
+		return notNeedReqStrOrderId;
+	}
+	public void setNotNeedReqStrOrderId(String notNeedReqStrOrderId) {
+		this.notNeedReqStrOrderId = notNeedReqStrOrderId;
+	}
+	public String getProduct_id() {
+		IOrderInfManager orderInfManager = SpringContextHolder.getBean("orderInfManager");
+		Map map = orderInfManager.qryGoodsDtl(notNeedReqStrOrderId);
+		product_id = com.ztesoft.ibss.common.util.Const.getStrValue(map, "sn")+"";
+		return product_id;
+	}
+	public void setProduct_id(String product_id) {
+		this.product_id = product_id;
+	}
+	public String getService_num() {
+		service_num = CommonDataFactory.getInstance().getAttrFieldValue(notNeedReqStrOrderId, AttrConsts.PHONE_NUM);
+		return service_num;
+	}
+	public void setService_num(String service_num) {
+		this.service_num = service_num;
+	}
+	public String getOut_serial_no() {
+		return out_serial_no;
+	}
+	public void setOut_serial_no(String out_serial_no) {
+		this.out_serial_no = out_serial_no;
+	}
+	public String getOut_operator() {
+		String OUT_OPERATOR = CommonDataFactory.getInstance().getAttrFieldValue(notNeedReqStrOrderId, AttrConsts.OUT_OPERATOR);
+		if(!StringUtil.isEmpty(OUT_OPERATOR)){
+			out_operator = OUT_OPERATOR;
+		}else{
+			out_operator = ZjCommonUtils.getGonghaoInfoByOrderId(notNeedReqStrOrderId).getUser_code();
+		}
+		return out_operator;
+	}
+	public void setOut_operator(String out_operator) {
+		this.out_operator = out_operator;
+	}
+	public String getOut_channel() {
+		String OUT_OFFICE = CommonDataFactory.getInstance().getAttrFieldValue(notNeedReqStrOrderId, AttrConsts.OUT_OFFICE);
+		if(!StringUtil.isEmpty(OUT_OFFICE)){
+			out_channel = OUT_OFFICE;
+		}else{
+			out_channel = ZjCommonUtils.getGonghaoInfoByOrderId(notNeedReqStrOrderId).getDept_id();
+		}
+		return out_channel;
+	}
+	public void setOut_channel(String out_channel) {
+		this.out_channel = out_channel;
+	}
+	public String getOp_type() {
+		String order_from = CommonDataFactory.getInstance().getAttrFieldValue(notNeedReqStrOrderId, AttrConsts.ORDER_FROM);
+		String type_id = CommonDataFactory.getInstance().getAttrFieldValue(notNeedReqStrOrderId, AttrConsts.GOODS_TYPE);
+		if(!StringUtil.isEmpty(type_id) && StringUtil.equals(type_id, "172501418202000419")) {
+			if(!StringUtil.isEmpty(order_from) && StringUtil.equals(order_from, "10093")) {
+				op_type="SUBS";
+			}else if (!StringUtil.isEmpty(order_from) && StringUtil.equals(order_from, "10081")){
+				op_type="SUBS";
+			}else{
+				op_type="PRESUBS";
+			}
+		}else{
+			op_type="PRESUBS";
+		}
+		//流量包子产品，来源自传播为订购
+		return op_type;
+	}
+	public void setOp_type(String op_type) {
+		this.op_type = op_type;
+	}
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "com.zte.unicomService.zj.broadband.promoteProductReq";
+	}
+	
+}

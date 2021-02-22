@@ -1,0 +1,555 @@
+package com.ztesoft.net.mall.core.action.ddgj;
+
+import java.net.URLDecoder;
+
+import java.util.List;
+import java.util.Map;
+
+import params.member.req.MemberByIdReq;
+import params.member.resp.MemberByIdResp;
+import services.MemberInf;
+import zte.net.iservice.IDlyTypeAddressService;
+import zte.net.iservice.IGoodsService;
+import zte.net.iservice.IOrderServices;
+import zte.net.iservice.IPaymentConfigService;
+import zte.params.cfg.req.PaymentConfigListReq;
+import zte.params.cfg.resp.PaymentConfigListResp;
+import zte.params.goods.req.GoodsGetReq;
+import zte.params.goods.resp.GoodsGetResp;
+import zte.params.order.req.DlyTypeListReq;
+import zte.params.order.req.OrderOuterQryReq;
+import zte.params.order.resp.DlyTypeListResp;
+import zte.params.order.resp.OrderOuterQryResp;
+
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.model.DlyType;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.model.OrderQueryParam;
+import com.ztesoft.net.mall.core.model.PayCfg;
+import com.ztesoft.net.mall.core.service.IOrderCommentManager;
+import com.ztesoft.net.mall.core.service.IOrderHisManager;
+
+public class OrderHistoryAction extends WWAction{
+
+	private IOrderHisManager orderHisManager;
+	private IDlyTypeAddressService dlyTypeAddressService;
+    private IPaymentConfigService paymentConfigService;
+    private IOrderServices orderServices;
+    private MemberInf memberServ;
+    private IGoodsService goodServices;
+	
+	private OrderQueryParam ordParam;
+    private String startTime;    //开始时间
+    private String endTime;    //结束时间
+    private String sourceFrom;    //经销商来源
+    private String orderName;    //订单名称
+    private String orderCode;        //订单编号
+    private String userid;        //分销商id
+    private String username;
+    private Integer state; //根据订单状态过滤
+    private String action = "all";
+    private String orderstatus = "-1";
+    private Order order;
+    
+    private String phoneNo;//联系电话
+    private String deliveryNo;//物流单号
+    private String netPhoneNo;//入网号
+    private String terminalNo;//终端串码
+    private String dlyTypeId;//配送方式ID
+    private String payment_id;//支付方式
+    //条件
+    private List<DlyType> dlyTypeList;
+    private List<PayCfg> paymentList;
+    
+    //订单基本信息
+    private String order_id;
+    private Order orderInfo;
+    private OrderOuter orderOuter;
+    private PayCfg payCfg;
+    private Member member;
+    
+    private List itemList;
+    private IOrderCommentManager orderCommentManager;
+	private List orderExceptionList;
+	
+	//子订单列表
+    private String goods_id;
+    private List<Map> orderItems;
+    private Map<String,String> goods;
+    
+    private List<Map> shipLogList;
+    private List<Map> reshipLogList;
+    private List<Map> chshipLogList;
+    private List payLogList;
+    private List refundList;
+    
+    public String hisPaymentLog() {
+        payLogList = this.orderHisManager.listPayLogs(order_id.trim(), 1);
+        refundList = this.orderHisManager.listPayLogs(order_id.trim(), 2);
+        return "his_payment_log";
+    }
+    
+    public String hisShippingLog() {
+        shipLogList = orderHisManager.listDelivery(order_id.trim(), 1);
+        reshipLogList = orderHisManager.listDelivery(order_id.trim(), 2);
+        chshipLogList = orderHisManager.listDelivery(order_id.trim(), 3);
+        return "his_shipping_log";
+    }
+	
+	public String hisOrderItems(){
+		orderItems = orderHisManager.listHisGoodsItems(order_id);
+		if(orderItems!=null && orderItems.size()>0){
+			Object obj = orderItems.get(0).get("goods_id");
+			if(obj!=null){
+				goods_id = obj.toString();
+				try{
+					goodsInfo();
+				}catch(Exception ex){
+					ex.printStackTrace();
+				}
+			}
+		}
+		return "his_order_items";
+	}
+	
+	public String goodsInfo(){
+		try{
+			GoodsGetReq req = new GoodsGetReq();
+			req.setGoods_id(goods_id);
+			GoodsGetResp resp = goodServices.getGoods(req);
+			goods =resp.getData();
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}
+		return "goods_info";
+	}
+    
+    
+    public String queryHisOrderInfo(){
+		order = orderHisManager.getHisOrder(order_id);
+		itemList = orderHisManager.listHisGoodsItems(order_id);
+		if(OrderStatus.ORDER_EXCEPTION_99==order.getStatus())
+			orderExceptionList = orderCommentManager.listUnComments(order_id);
+		return "his_order_info";
+	}
+    
+    public String hisCenter(){
+		DlyTypeListReq req = new DlyTypeListReq();
+		DlyTypeListResp resp = dlyTypeAddressService.listDlyType(req);
+		dlyTypeList = resp.getDlyTypeList();
+		PaymentConfigListReq preq = new PaymentConfigListReq();
+		PaymentConfigListResp presp = paymentConfigService.listPaymentCfgList(preq);
+		paymentList = presp.getPaymentCfgList();
+		listOrderHis();
+		return "his_center";
+    }
+	
+	public String listOrderHis(){
+		if("请输入商品名称".equals(orderName))orderName=null;
+		if("请输入订单编号".equals(orderCode))orderCode=null;
+        if (ordParam == null)
+            ordParam = new OrderQueryParam();
+        ordParam.setStartTime(startTime);
+        ordParam.setEndTime(endTime);
+        ordParam.setSourceFrom(sourceFrom);
+        ordParam.setState(state);
+        ordParam.setAction(action);
+        try{
+        	ordParam.setOrderName(URLDecoder.decode(orderName==null?"":orderName, "UTF-8"));
+        	ordParam.setUserName(URLDecoder.decode(username==null?"":username, "UTF-8"));
+        }catch(Exception ex){
+        	ex.printStackTrace();
+        }
+        ordParam.setOrderId(orderCode);
+        ordParam.setUserid(userid);
+        ordParam.setOrderstatus(orderstatus);
+        ordParam.setPhoneNo(phoneNo);
+        ordParam.setDeliveryNo(deliveryNo);
+        ordParam.setNetPhoneNo(netPhoneNo);
+        ordParam.setTerminalNo(terminalNo);
+        ordParam.setDlyTypeId(dlyTypeId);
+        ordParam.setPayment_id(payment_id);
+        webpage = orderHisManager.queryHisOrder(this.getPage(), this.getPageSize(), 0, ordParam, null);
+
+		return "list";
+	}
+	
+	public String hisOrderBase(){
+		//获取订单基本信息
+		orderInfo = orderHisManager.getHisOrder(order_id);
+		
+		//获取外系统订单信息
+		OrderOuterQryReq orderOuterQryReq = new OrderOuterQryReq();
+		orderOuterQryReq.setOrder_id(order_id);
+		OrderOuterQryResp orderOuterQryResp = orderServices.qryOrderOuter(orderOuterQryReq);
+		if(orderOuterQryResp != null){
+			this.orderOuter = orderOuterQryResp.getOrderOuter();
+		}
+		
+		//获取支付方式
+		if(this.orderInfo != null){
+			PaymentConfigListReq paymentConfigListReq = new PaymentConfigListReq();
+			paymentConfigListReq.setPayment_id(String.valueOf(this.orderInfo.getPayment_id()));
+			PaymentConfigListResp paymentConfigListResp = this.paymentConfigService.listPaymentCfgList(paymentConfigListReq);
+			this.paymentList = paymentConfigListResp.getPaymentCfgList();
+		}
+		if(!ListUtil.isEmpty(paymentList)){
+			for (int i = 0; i < paymentList.size(); i++) {
+				this.payCfg = paymentList.get(0);
+			}
+		}
+		
+		
+		//获取会员信息
+		if(this.orderInfo != null){
+			MemberByIdReq memberByIdReq = new MemberByIdReq();
+			memberByIdReq.setMember_id(this.orderInfo.getMember_id());
+			MemberByIdResp memberByIdResp = this.memberServ.getMemberById(memberByIdReq);
+			this.member = memberByIdResp.getMember();
+		}
+		
+		return "his_order_base";	//跳转订单基本信息
+	}
+
+	public IOrderHisManager getOrderHisManager() {
+		return orderHisManager;
+	}
+
+	public void setOrderHisManager(IOrderHisManager orderHisManager) {
+		this.orderHisManager = orderHisManager;
+	}
+
+	public IDlyTypeAddressService getDlyTypeAddressService() {
+		return dlyTypeAddressService;
+	}
+
+	public void setDlyTypeAddressService(
+			IDlyTypeAddressService dlyTypeAddressService) {
+		this.dlyTypeAddressService = dlyTypeAddressService;
+	}
+
+	public IPaymentConfigService getPaymentConfigService() {
+		return paymentConfigService;
+	}
+
+	public void setPaymentConfigService(IPaymentConfigService paymentConfigService) {
+		this.paymentConfigService = paymentConfigService;
+	}
+
+	public IOrderServices getOrderServices() {
+		return orderServices;
+	}
+
+	public void setOrderServices(IOrderServices orderServices) {
+		this.orderServices = orderServices;
+	}
+
+	public MemberInf getMemberServ() {
+		return memberServ;
+	}
+
+	public void setMemberServ(MemberInf memberServ) {
+		this.memberServ = memberServ;
+	}
+
+	public OrderQueryParam getOrdParam() {
+		return ordParam;
+	}
+
+	public void setOrdParam(OrderQueryParam ordParam) {
+		this.ordParam = ordParam;
+	}
+
+	public String getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(String startTime) {
+		this.startTime = startTime;
+	}
+
+	public String getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
+	}
+
+	public String getSourceFrom() {
+		return sourceFrom;
+	}
+
+	public void setSourceFrom(String sourceFrom) {
+		this.sourceFrom = sourceFrom;
+	}
+
+	public String getOrderName() {
+		return orderName;
+	}
+
+	public void setOrderName(String orderName) {
+		this.orderName = orderName;
+	}
+
+	public String getOrderCode() {
+		return orderCode;
+	}
+
+	public void setOrderCode(String orderCode) {
+		this.orderCode = orderCode;
+	}
+
+	public String getUserid() {
+		return userid;
+	}
+
+	public void setUserid(String userid) {
+		this.userid = userid;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	public Integer getState() {
+		return state;
+	}
+
+	public void setState(Integer state) {
+		this.state = state;
+	}
+
+	public String getAction() {
+		return action;
+	}
+
+	public void setAction(String action) {
+		this.action = action;
+	}
+
+	public String getOrderstatus() {
+		return orderstatus;
+	}
+
+	public void setOrderstatus(String orderstatus) {
+		this.orderstatus = orderstatus;
+	}
+
+	public String getPhoneNo() {
+		return phoneNo;
+	}
+
+	public void setPhoneNo(String phoneNo) {
+		this.phoneNo = phoneNo;
+	}
+
+	public String getDeliveryNo() {
+		return deliveryNo;
+	}
+
+	public void setDeliveryNo(String deliveryNo) {
+		this.deliveryNo = deliveryNo;
+	}
+
+	public String getNetPhoneNo() {
+		return netPhoneNo;
+	}
+
+	public void setNetPhoneNo(String netPhoneNo) {
+		this.netPhoneNo = netPhoneNo;
+	}
+
+	public String getTerminalNo() {
+		return terminalNo;
+	}
+
+	public void setTerminalNo(String terminalNo) {
+		this.terminalNo = terminalNo;
+	}
+
+	public String getDlyTypeId() {
+		return dlyTypeId;
+	}
+
+	public void setDlyTypeId(String dlyTypeId) {
+		this.dlyTypeId = dlyTypeId;
+	}
+
+	public String getPayment_id() {
+		return payment_id;
+	}
+
+	public void setPayment_id(String payment_id) {
+		this.payment_id = payment_id;
+	}
+
+	public List<DlyType> getDlyTypeList() {
+		return dlyTypeList;
+	}
+
+	public void setDlyTypeList(List<DlyType> dlyTypeList) {
+		this.dlyTypeList = dlyTypeList;
+	}
+
+	public List<PayCfg> getPaymentList() {
+		return paymentList;
+	}
+
+	public void setPaymentList(List<PayCfg> paymentList) {
+		this.paymentList = paymentList;
+	}
+
+	public String getOrder_id() {
+		return order_id;
+	}
+
+	public void setOrder_id(String order_id) {
+		this.order_id = order_id;
+	}
+
+	public Order getOrderInfo() {
+		return orderInfo;
+	}
+
+	public void setOrderInfo(Order orderInfo) {
+		this.orderInfo = orderInfo;
+	}
+
+	public OrderOuter getOrderOuter() {
+		return orderOuter;
+	}
+
+	public void setOrderOuter(OrderOuter orderOuter) {
+		this.orderOuter = orderOuter;
+	}
+
+	public PayCfg getPayCfg() {
+		return payCfg;
+	}
+
+	public void setPayCfg(PayCfg payCfg) {
+		this.payCfg = payCfg;
+	}
+
+	public Member getMember() {
+		return member;
+	}
+
+	public void setMember(Member member) {
+		this.member = member;
+	}
+
+	public Order getOrder() {
+		return order;
+	}
+
+	public void setOrder(Order order) {
+		this.order = order;
+	}
+
+	public List getItemList() {
+		return itemList;
+	}
+
+	public void setItemList(List itemList) {
+		this.itemList = itemList;
+	}
+
+	public IOrderCommentManager getOrderCommentManager() {
+		return orderCommentManager;
+	}
+
+	public void setOrderCommentManager(IOrderCommentManager orderCommentManager) {
+		this.orderCommentManager = orderCommentManager;
+	}
+
+	public List getOrderExceptionList() {
+		return orderExceptionList;
+	}
+
+	public void setOrderExceptionList(List orderExceptionList) {
+		this.orderExceptionList = orderExceptionList;
+	}
+
+	public IGoodsService getGoodServices() {
+		return goodServices;
+	}
+
+	public void setGoodServices(IGoodsService goodServices) {
+		this.goodServices = goodServices;
+	}
+
+	public String getGoods_id() {
+		return goods_id;
+	}
+
+	public void setGoods_id(String goods_id) {
+		this.goods_id = goods_id;
+	}
+
+	public List<Map> getOrderItems() {
+		return orderItems;
+	}
+
+	public void setOrderItems(List<Map> orderItems) {
+		this.orderItems = orderItems;
+	}
+
+	public Map<String, String> getGoods() {
+		return goods;
+	}
+
+	public void setGoods(Map<String, String> goods) {
+		this.goods = goods;
+	}
+
+	public List<Map> getShipLogList() {
+		return shipLogList;
+	}
+
+	public void setShipLogList(List<Map> shipLogList) {
+		this.shipLogList = shipLogList;
+	}
+
+	public List<Map> getReshipLogList() {
+		return reshipLogList;
+	}
+
+	public void setReshipLogList(List<Map> reshipLogList) {
+		this.reshipLogList = reshipLogList;
+	}
+
+	public List<Map> getChshipLogList() {
+		return chshipLogList;
+	}
+
+	public void setChshipLogList(List<Map> chshipLogList) {
+		this.chshipLogList = chshipLogList;
+	}
+
+	public List getPayLogList() {
+		return payLogList;
+	}
+
+	public void setPayLogList(List payLogList) {
+		this.payLogList = payLogList;
+	}
+
+	public List getRefundList() {
+		return refundList;
+	}
+
+	public void setRefundList(List refundList) {
+		this.refundList = refundList;
+	}
+	
+}

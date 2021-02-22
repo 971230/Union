@@ -1,0 +1,813 @@
+<%@ page contentType="text/html;charset=UTF-8"%>
+
+<%@ include file="/commons/taglibs.jsp"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>订单归集</title>
+<script src="<%=request.getContextPath()%>/ecs_ord/js/autoord.js"></script>
+<script src="<%=request.getContextPath()%>/ecs_ord/js/preDealOrder.js"></script>
+<script src="<%=request.getContextPath()%>/ecs_ord/js/WdatePicker.js"></script>
+<script src="<%=request.getContextPath()%>/ecs_ord/js/calendar.js"></script>
+<script src="<%=request.getContextPath()%>/ecs_ord/js/new_order_receive.js"></script>
+<style type="text/css">
+.red {
+	color: red;
+} 
+</style>
+</head>
+<body>
+
+<div class="gridWarp">
+
+<form action="" method="post" id="aito_order_f">
+		 <input type="hidden" name="btnType" value="ordList"/>
+			<div class="searchBx">
+        	<!-- <a href="javascript:void(0);" id="hide_params_tb" class="arr open">收起</a>
+        	<a href="javascript:void(0);" id="show_params_tb" class="arr close" style="display:none;">展开</a>
+        	<input type="hidden" name="params.query_btn_flag" value="yes" /> -->
+        	<table id="params_tb" width="100%" border="0" cellspacing="0" cellpadding="0" class="tab_form">
+             <tbody id="tbody_A">
+                <tr>
+                     <th>流程环节：</th>
+		             <td>
+		                	 <script type="text/javascript">
+                	$(function(){
+												////XMJ修改开始
+                		$("#flow_id_ivp,#flow_id_a,#flow_id_dv").bind("click",function(e){    //给按钮注册单击事件，点击显示DIV
+                	        $("#flow_id_dv").show();    //显示DIV
+                	        e.stopPropagation();//阻止事件冒泡
+                		})
+            	    		
+						$(document).bind("click",function(){    
+                	        $("#flow_id_dv").hide();    //隐藏DIV
+                	  	}) 
+
+					   $("#flow_id_cancel1,#flow_id_cancel2").bind("click",function(e){
+                		   $("#flow_id_dv").hide();
+                           e.stopPropagation();//阻止事件冒泡
+                		}); 
+                	   ////XMJ修改结束                		
+                		$("#flow_id_checkall").bind("click",function(){
+                			if(this.checked){
+                				$("input[name=flow_id]").attr("checked","checked");
+                				$("#flow_id_dv li").addClass("curr");
+                			}else{
+                				$("input[name=flow_id]").removeAttr("checked");
+                				$("#flow_id_dv li").removeClass("curr");
+                			}
+                			selectFlowId();
+                		});
+                	
+                		
+                		$("input[name=flow_id]").bind("click",function(){
+                			if(this.checked){
+                				$(this).parents("li").addClass("curr");
+                			}else{
+                				$(this).parents("li").removeClass("curr");
+                			}
+                			selectFlowId();
+                		});
+                		
+                		initCheckBox("flow_id_hivp","flow_id");
+                		
+                	});
+                	
+                	function selectFlowId(){
+            			var regions = $("input[name=flow_id]:checked");
+            			var regionNames = "";
+            			var regionIds = "";
+            			regions.each(function(idx,item){
+            				var name = $(item).attr("c_name");
+            				var rid = $(item).attr("value");
+            				regionNames += name+",";
+            				regionIds += rid+",";
+            			});
+            			if(regionIds.length>1){
+            				regionIds = regionIds.substr(0,regionIds.length-1);
+            				regionNames = regionNames.substr(0,regionNames.length-1);
+            			}
+            			$("#flow_id_ivp").val(regionNames);
+            			$("#flow_id_hivp").val(regionIds);
+            		}
+                </script>
+                	<span class="selBox" style="width:120px;">
+                    	<input type="text" name="params.flow_id_c" id="flow_id_ivp" value="${params.flow_id_c }" class="ipt" readonly="readonly" />
+                    	<input type="hidden" name="params.flow_id" value="${params.flow_id }" id="flow_id_hivp" />
+                    	<a href="javascript:void(0);" class="selArr" id="flow_id_a"></a>
+                        <div class="selOp" style="display:none;" id="flow_id_dv">
+                        	<div class="allSel">
+                            	<label><input type="checkbox" id="flow_id_checkall">全选</label>
+                                <label><a href="javascript:void(0);" class="aCancel" id="flow_id_cancel1">关闭</a></label>
+                                <label><a href="javascript:void(0);" class="aClear" id="flow_id_cancel2"></a></label>
+                            </div>
+                            <div class="listItem">
+                            	<ul>
+                            		<c:forEach items="${flowTraceList }" var="pt">
+                            			<c:if test="${query_type=='bss_parallel' && (pt.pkey=='F' || pt.pkey=='H' || pt.pkey=='J' || pt.pkey=='L')}">
+                            				<li name="flow_id_li"><input type="checkbox" name="flow_id" value="${pt.pkey }" c_name="${pt.pname }"><span name="flow_id_span">${pt.pname }</span></li>
+                            			</c:if>
+                            			<c:if test="${query_type==null || query_type!='bss_parallel'}">
+                            				<li name="flow_id_li"><input type="checkbox" name="flow_id" value="${pt.pkey }" c_name="${pt.pname }"><span name="flow_id_span">${pt.pname }</span></li>
+                            			</c:if>
+                            		</c:forEach>
+                                </ul>
+                            </div>
+                        </div>
+                    </span>
+		              </td>
+                
+                	<th>外部单号：</th>
+	                <td>
+	                	<input type="text" name="params.out_tid" value="${params.out_tid }" style="width:138px;" class="ipt_new">
+	                </td>
+	                <th>内部单号：</th>
+	                <td>
+	                	<input type="text" name="params.order_id" value="${params.order_id }" style="width:138px;" class="ipt_new">
+	                </td>
+                </tr>
+                <tr>
+                   <th>业务号码：</th>
+	               <td>
+	               		<input type="text" name="params.phone_num" value="${params.phone_num }" style="width:138px;" class="ipt_new">
+	               </td>
+                     
+                    	
+                    	 <%-- <th>选择城市：</th>
+                <td>
+                <script type="text/javascript">
+                	$(function(){
+
+											////XMJ修改开始
+                		$("#region_ivp,#region_a,#region_div").bind("click",function(e){    //给按钮注册单击事件，点击显示DIV
+                	        $("#region_div").show();    //显示DIV
+                	        e.stopPropagation();//阻止事件冒泡
+                		})
+            	    		
+						$(document).bind("click",function(){    
+                	        $("#region_div").hide();    //隐藏DIV
+                	  	}) 
+
+					   $("#regionCancel,#regionCancel2").bind("click",function(e){
+                		   $("#region_div").hide();
+                           e.stopPropagation();//阻止事件冒泡
+                		}); 
+            		////XMJ修改结束                		
+                		$("#regioncheckAll").bind("click",function(){
+                			if(this.checked){
+                				$("input[name=region_id]").attr("checked","checked");
+                				$("#region_div li").addClass("curr");
+                			}else{
+                				$("input[name=region_id]").removeAttr("checked");
+                				$("#region_div li").removeClass("curr");
+                			}
+                			selectRegions();
+                		});
+                		
+                		
+                		$("input[name=region_id]").bind("click",function(){
+                			if(this.checked){
+                				$(this).parents("li").addClass("curr");
+                			}else{
+                				$(this).parents("li").removeClass("curr");
+                			}
+                			selectRegions();
+                		});
+                		
+                		initCheckBox("region_hivp","region_id");
+                		
+                	});
+                	
+                	function selectRegions(){
+            			var regions = $("input[name=region_id]:checked");
+            			var regionNames = "";
+            			var regionIds = "";
+            			regions.each(function(idx,item){
+            				var name = $(item).attr("c_name");
+            				var rid = $(item).attr("value");
+            				regionNames += name+",";
+            				regionIds += rid+",";
+            			});
+            			if(regionIds.length>1){
+            				regionIds = regionIds.substr(0,regionIds.length-1);
+            				regionNames = regionNames.substr(0,regionNames.length-1);
+            			}
+            			$("#region_ivp").val(regionNames);
+            			$("#region_hivp").val(regionIds);
+            		}
+                </script>
+                	<span class="selBox" style="width:120px;">
+                    	<input type="text" name="params.order_city_code_c" id="region_ivp" value="${params.order_city_code_c }" class="ipt" readonly="readonly">
+                    	<input type="hidden" name="params.order_city_code" value="${params.order_city_code }" id="region_hivp" />
+                    	<a id="region_a" href="javascript:void(0);" class="selArr"></a>
+                        <div id="region_div" class="selOp" style="display:none;">
+                        	<div class="allSel">
+                            	<label><input type="checkbox" id="regioncheckAll">全选</label>
+                                <label><a href="javascript:void(0);" class="aCancel" id="regionCancel">关闭</a></label>
+                                <label><a href="javascript:void(0);" class="aClear" id="regionCancel2"></a></label>
+                            </div>
+                            <div class="listItem">
+                            	<ul>
+	                            	<c:forEach items="${regionList }" var="rg">
+	                            		<li><input type="checkbox" name="region_id" value="${rg.region_id }" c_name="${rg.local_name }"><span name="region_li">${rg.local_name }</span></li>
+	                            	</c:forEach>
+                                </ul>
+                            </div>
+                        </div>
+                    </span>
+                </td> --%>
+                   
+                    <th>创建时间：</th>
+	                <td>
+	                   <input type="text" name="params.create_start" value="${params.create_start }" readonly="readonly" class="ipt_new" onfocus="WdatePicker({dateFmt:'yyyy-MM-dd HH:mm:ss'})">-
+	                    <input type="text" name="params.create_end" value="${params.create_end }" readonly="readonly" class="ipt_new" onfocus="WdatePicker({dateFmt:'yyyy-MM-dd HH:mm:ss'})">
+	                </td>
+	            	<th>商品名称：</th>
+	             	<td>
+                		<input type="text" class="ipt_new" style="width:138px;" name="params.goods_name" value="${params.goods_name }"/>
+	              	</td> 
+	            </tr>
+
+	            <tr>
+	              <th>订单来源：</th>
+                	<td>
+                	<script type="text/javascript">
+                		$(function(){ ////XMJ修改开始
+                    		$("#order_from_vp,#order_from_a,#order_from_dv").bind("click",function(e1){    //给按钮注册单击事件，点击显示DIV
+                    	        $("#order_from_dv").show();    //显示DIV
+                    	        e1.stopPropagation();//阻止事件冒泡
+                    		})
+                	    		
+    						$(document).bind("click",function(e1){    
+                    	        $("#order_from_dv").hide();    //隐藏DIV
+                    	  	}) 
+
+    					   $("#order_from_cancel1,#order_from_cancel2").bind("click",function(e1){
+                    		   $("#order_from_dv").hide();
+                               e1.stopPropagation();//阻止事件冒泡
+                    		}); 
+                    	   ////XMJ修改结束                			
+                			$("#order_from_chack_all").bind("click",function(){
+                    			if(this.checked){
+                    				$("input[name=order_from]").attr("checked","checked");
+                    				$("#order_from_dv li").addClass("curr");
+                    			}else{
+                    				$("input[name=order_from]").removeAttr("checked");
+                    				$("#order_from_dv li").removeClass("curr");
+                    			}
+                    			selectOrderFroms();
+                    		});
+                    		
+                    		$("input[name=order_from]").bind("click",function(){
+                    			if(this.checked){
+                    				$(this).parents("li").addClass("curr");
+                    			}else{
+                    				$(this).parents("li").removeClass("curr");
+                    			}
+                    			selectOrderFroms();
+                    		});
+                    		
+                    		initCheckBox("order_from_ivp","order_from");
+                    	});
+                    	
+                    	function selectOrderFroms(){
+                			var regions = $("input[name=order_from]:checked");
+                			var regionNames = "";
+                			var regionIds = "";
+                			regions.each(function(idx,item){
+                				var name = $(item).attr("c_name");
+                				var rid = $(item).attr("value");
+                				regionNames += name+",";
+                				regionIds += rid+",";
+                			});
+                			if(regionIds.length>1){
+                				regionIds = regionIds.substr(0,regionIds.length-1);
+                				regionNames = regionNames.substr(0,regionNames.length-1);
+                			}
+                			$("#order_from_vp").val(regionNames);
+                			$("#order_from_ivp").val(regionIds);
+                		}
+                    	
+                    	//初始化多选框
+                    	function initCheckBox(value_id,check_box_name){
+                    		var cv = $("#"+value_id).val();
+                    		if(cv){
+                    			var arr = cv.split(",");
+                    			for(i=0;i<arr.length;i++){
+                    				var item = arr[i];
+                        			var obj = $("input[type=checkbox][name="+check_box_name+"][value="+item+"]");
+                        			obj.attr("checked","checked");
+                        			obj.parents("li").addClass("curr");
+                    			}
+                    		}
+                    	}
+                	</script>
+                	<span class="selBox" style="width: 120px;"> 
+	                	<input type="text" name="params.order_from_c" id="order_from_vp" value="${params.order_from_c }" class="ipt" readonly="readonly">
+						<input type="hidden" name="params.order_from" value="${params.order_from }" id="order_from_ivp" /> 
+						<a href="javascript:void(0);" id="order_from_a" class="selArr"></a>
+						<div class="selOp" style="display: none;" id="order_from_dv">
+							<div class="allSel">
+								<label><input type="checkbox" id="order_from_chack_all">全选</label> 
+								<label><a href="javascript:void(0);" class="aCancel" id="order_from_cancel1">关闭</a></label> 
+								<label><a href="javascript:void(0);" class="aClear" id="order_from_cancel2"></a></label>
+							</div>
+							<div class="listItem">
+								<ul>
+									<c:forEach items="${order_from_list }" var="of">
+										<li name="order_from_li"><input type="checkbox" name="order_from" value="${of.value }" c_name="${of.value_desc }">
+											<span name="order_from_span">${of.value_desc }</span>
+										</li>
+									</c:forEach>
+								</ul>
+							</div>
+						</div>
+					</span>
+				</td>
+	              
+	            <th>归属地市：</th>
+				<td>
+					<select name="params.order_city_code" class="ipt_new" onchange="queryCountyByCity(this)" style="width: 160px;">
+						<option value="">--请选择--</option>
+						<c:forEach var="of" items="${regionList}">
+							<option value="${of.region_id}" ${of.region_id==params.order_city_code?'selected':'' }>&nbsp;${of.local_name}</option>
+						</c:forEach>
+					</select>
+				</td>
+				<th>县分：</th>
+				<td>
+					<select id="order_county_code" name="params.order_county_code" class="ipt_new" style="width: 160px;">
+						<option value="" >--请选择--</option>
+						<c:forEach items="${countyList}" var="ds">
+	               			<option value="${ds.field_value}" ${ds.field_value==params.order_county_code?'selected':''}>${ds.field_value_desc}</option>
+	               		</c:forEach>
+					</select>	
+				</td>
+	            </tr>
+	            <tr>
+	            <th>联系电话：</th>
+	            <td><input type="text" class="ipt_new" style="width:138px;" name="params.ship_tel" value="${params.ship_tel}"/></td>
+	             <th>种子用户号码：</th>
+	          		   <td>
+	                	<input type="text" name="params.share_svc_num" value="${params.share_svc_num }" style="width:138px;" class="ipt_new">
+	              	</td> 
+	             
+	             <th>证件上传状态：</th>
+					<td>
+						<select name="params.if_Send_Photos" class="ipt_new" id="if_Send_Photos" style="width: 171px;height: 20px;">
+							<option value="">请选择</option>
+								<c:forEach items="${order_vplan_list}" var="of">
+									<option value="${of.value}" ${of.value==params.if_Send_Photos?'selected':'' } >${of.value_desc }</option>
+								</c:forEach>
+						</select> 
+					</td>
+						
+	            </tr>
+	            
+	            <tr>
+	            	<td></td>
+					<td>
+					<a href="javascript:void(0);" id="ord_receive" class="dobtn" style="margin-left: 5px;">领取选中记录</a>
+					<a href="javascript:void(0);" id="query_order_s" class="dobtn" style="margin-left:5px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;查&nbsp;&nbsp;&nbsp;&nbsp;询&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
+					</td>
+	            </tr>
+	            </tbody>
+                
+            </table>
+        </div>
+			
+</form>
+
+
+		<div class="right_warp">
+			<form action="" id="order_list_fm">
+
+				<grid:grid from="webpage" formId="aito_order_f" asynModel="1">
+					<grid:header>
+						<grid:cell width="5%" style="text-align:center; ">状态<input type="checkbox" id="checkAlls" /></grid:cell>
+						<grid:cell width="10%">归属地市/县分</grid:cell>
+						<grid:cell width="20%">订单信息</grid:cell>
+						<grid:cell width="24%">客户信息</grid:cell>
+						<grid:cell width="16%">商品信息</grid:cell>
+						<grid:cell width="15%">订单状态</grid:cell>
+						<grid:cell width="20%">详情/备注</grid:cell>
+						<%-- <grid:cell >校验信息</grid:cell>
+				<grid:cell ></grid:cell>
+				<grid:cell >操作</grid:cell> --%>
+
+					</grid:header>
+					<grid:body item="order">
+						<grid:cell clazz="alignCen" width="10%">
+							<i title="" class="" id="warning_li_${order.order_id }"></i>
+							<input type="hidden" name="orderids" value="${order.order_id }" />
+							<input id="check" type="checkbox" name="orderidArray" value="${order.order_id }" />
+						</grid:cell>
+						<grid:cell>${order.order_city_code}<c:if test="${order.order_county_code!=null}">/${order.order_county_code}</c:if></grid:cell>
+						<grid:cell>
+									<div class="list_t">
+										<ul>
+											<li><span>订单来源：</span>
+											<div>${order.order_from_n }</div></li>
+											<li><span>内部编号：</span>
+											<div>${order.order_id}</div></li>
+											<li><span>成交时间：</span>
+											<div>${order.tid_time }</div></li>
+										</ul>
+									</div>
+						</grid:cell>
+						
+						<grid:cell>
+									<div class="list_t">
+										<ul>
+										   <li><span>联系电话：</span>
+											<div>${order.ship_tel}</div></li>
+											<li><span>客户名称：</span>
+											<div>${order.ship_name}</div></li>
+											<li><span>客户地址：</span>
+											 <div>${order.ship_addr}</div></li>
+										</ul>
+									</div>
+						</grid:cell>
+						
+						<grid:cell>
+									<div class="order_pri">
+										<p class="tit">${order.goods_name }</p>
+										<p class="tit">￥：${order.sell_price }</p>
+										<p class="ps">业务号码：${order.acc_nbr }</p>
+									</div>
+						</grid:cell>
+						<grid:cell>
+									<div class="order_pri">
+										<p class="tit f_bold">流程环节：${order.flow_trace_n }</p>
+										<p class="tit f_bold">${order.is_work_custom }</p>
+										<p class="tit f_bold">处理人信息：${order.deal_name }</p>
+									</div>
+						</grid:cell> 
+						<grid:cell>
+							<a href="javascript:void(0);" value="${order.order_id}" orderType="${order.orderType}" name="orderDetails" class="dobtn" style="margin-left: 1px;">详情</a>
+							<a href="javascript:void(0);" value="${order.order_id}" orderType="${order.orderType}" name="addRemarks" class="dobtn" style="margin-left: 1px;">添加备注</a>		 
+						</grid:cell>
+					</grid:body>
+				</grid:grid>
+				<input type="hidden" id="order_id_hidden" /> <input type="hidden"
+					id="isListBtn" value="true" />
+				<!-- 后续把权限控制加上，admin 和库管人员可以见 -->
+				<!-- <input type="button"  name="terminal_num_batch_bt" id="terminal_num_batch_bt"  value="批量确认" /> -->
+				<!--  	<a href="javascript:void(0);" class="dobtn" style="margin-left:5px;" name="terminal_num_batch_bt" id="terminal_num_batch_bt">批量确认</a> -->
+			</form>
+
+			<div class="clear"></div>
+		</div>
+	</div>
+	</div>
+	<div id="choose_user_div"></div>
+
+	<div id="addCommentsDlg">
+		<form method="post" id="saveCommentsForm">
+			<table border="0" cellpadding="0">
+				<tr>
+					<textarea rows="4" cols="50" name="dealDesc" id="dealDesc"></textarea>
+				</tr>
+				<tr>
+					<td><input type="button" name="sava_comments"
+						id="sava_comments" order_id=""
+						style="margin-left: 165px; margin-top: 6px;" class="graybtn1"
+						value="确&nbsp;定" onclick="addComments()" /></td>
+				</tr>
+			</table>
+		</form>
+	</div>
+
+	<br />
+	<br />
+	<br />
+<div id="addRemarks"></div>
+<div id="orderDetails"></div>
+<div id="queryCountyListDlg"></div>
+	<script type="text/javascript">
+		//添加备注功能
+		
+		
+		
+		
+		$("#resetBtn").click(function (){
+			document.getElementById("district_code").value = "";
+			document.getElementById("order_county_name").value = "";
+		});
+		
+		$("#query_order_s").bind("click",function() {
+					$.Loading.show("正在加载所需内容，请稍侯...");
+					$("#aito_order_f").attr("action",
+							ctx + "/shop/admin/ordAuto!getOrderReceiveList.do")
+							.submit();
+				});
+
+		function openCommentsDlg(orderId) {
+			$("#addCommentsDlg").load();
+			Eop.Dialog.open("addCommentsDlg");
+			$("#sava_comments").attr("order_id", orderId);
+		}
+		
+		function querycountyId(){
+			Eop.Dialog.open("queryCountyListDlg");
+			var url= ctx+"/shop/admin/ordAuto!list.do?ajax=yes";
+			$("#queryCountyListDlg").load(url,{},function(){});
+		}	
+		
+		function addComments() {
+			var comments = $("#dealDesc").val();
+			if (comments != "") {
+				var order_Id = $("#sava_comments").attr("order_id");
+				var url = app_path
+						+ "/shop/admin/orderFlowAction!saveOrderComments.do?ajax=yes&order_id="
+						+ order_Id;
+				var saveBack = function(reply) {
+					if (reply.result == 0) {
+						alert("备注添加成功");
+						Eop.Dialog.close("addCommentsDlg");
+					}
+					$("#dealDesc").val("");
+				};
+				Cmp.ajaxSubmit('saveCommentsForm', '', url, {}, saveBack,
+						'json');
+			} else {
+				alert("备注不能为空");
+			}
+		}
+	</script>
+
+
+
+
+	<script type="text/javascript">
+		$(function() {
+
+			var jsonBack = function(reply) {
+				alert(reply.message);
+				if (reply.result == 0) {
+					$("#query_order_s").click();
+					//or
+					/* 
+					$.Loading.show("正在加载所需内容，请稍侯...");
+					$("#aito_order_f").attr("action",
+							ctx + "/shop/admin/ordAuto!showOrderList.do?query_type=order_receive&orderReceiveRetrunMark=1")
+							.submit();
+					*/
+					
+					/* var url = window.location.href;
+					window.location.href = url; */
+					// var url   = "/shop/admin/ordAuto!orderReceive.do?query_type=order_receive;
+					//window.location.reload();
+				}
+			}
+
+			$("#ord_receive")
+					.click(
+							function() {
+								
+								var len = $("[name='orderidArray']:checked").length;
+								debugger;
+								var order_idArr = [];
+								$("[name='orderidArray']:checked").each(
+										function() {
+											var order_id = $(this).val();
+											order_idArr.push(order_id);
+										});
+								var lockOrderIdStr = order_idArr.join(",");
+								var url = "/shop/admin/ordAuto!orderReceive.do?ajax=yes&lockOrderIdStr="
+										+ lockOrderIdStr;
+								Cmp.excute('', url, {}, jsonBack, 'json');
+
+							});
+			$("#ord_refresh").click(function(){
+				location.href = "/shop/admin/ordAuto!showOrderList.do?query_type=order_receive2";
+			});
+			/*  $("[name='orderidArray']").click(function(){
+				 var order_idArr=1;
+				 alert(order_idArr++);
+				 var order_id = $(this).val();
+				 order_idArr.push(order_id);
+			  });
+			 */
+
+			$("#checkAlls").bind("click", function() {
+				$("input[type=checkbox][name=orderidArray]").trigger("click");
+			});
+			$(".gridbody").removeClass("gridbody").addClass("grid_w_div");
+			$("#order_list_fm div table").addClass("grid_w").attr("width",
+					"100%").attr("border", "0").attr("cellspacing", "0").attr(
+					"cellpadding", "0");
+			$("#order_list_fm .page").wrap("<form class=\"grid\"></form>");
+			$("#order_list_fm div table tbody tr")
+					.unbind("click")
+					.bind(
+							"click",
+							function() {
+								var $this = $(this);
+								var obj = $this.find("div.dddd").children("a");
+								var order_id = obj.attr("order_id");
+								var order_from = obj.attr("order_from");
+								var exception_status = obj
+										.attr("exception_status");
+								var visible_status = obj.attr("visible_status");
+								var sq = obj.attr("sq");
+								if (!sq)
+									sq = "01";
+								var expType = obj.attr("exptype");
+								if (!expType)
+									expType = "0";
+
+								var page_hide = "list,expType" + expType + ","
+										+ sq;
+								if ("1" == exception_status) {
+									page_hide += ",exception";
+								}/* else{
+												page_hide += ",detail";
+											} */
+								var q_type = "${query_type}";
+								if ("1" != visible_status || "ycl" == q_type) {
+									//显示可见订单处理按钮
+									var btn = "";
+									if ("ycl" == q_type)
+										btn = "ycl";
+									//OrdBtns.showBtns(order_id,page_hide,btn);
+								}
+
+								$this.siblings("tr").removeClass("curr");
+								$this.addClass("curr");
+								/* 点击tr时，暂时不需要锁定
+								//$this.find("i.lock").attr("class", "unlock");
+								$.ajax({
+									type : "post",
+									async : false,
+									url : "ordAuto!order_lock.do?ajax=yes&order_id="+order_id,
+									data : {},
+									dataType : "json",
+									success : function(data) {
+										if (data.result == "0") {
+											$this.find("i.lock").attr("class", "unlock");
+										} else {
+											$this.find("i.unlock").attr("class", "lock");
+										}
+									}
+								});
+								 */
+								if (order_from == '10012') {
+									$
+											.ajax({
+												type : "post",
+												async : false,
+												url : "ordReturned!returnedApplyFromTaobao.do?ajax=yes&order_id="
+														+ order_id,
+												data : {},
+												dataType : "json",
+												success : function(data) {
+													if (data.result == "0") {
+														window.location
+																.reload();
+													}
+												}
+											});
+								}
+
+							});
+			//查看订单详细
+			$("a[name=inner_order_id]").bind(
+					"click",
+					function() {
+						/* try{
+							if (event.stopPropagation) {
+							    event.stopPropagation();
+							 } else if (window.event) {
+							    window.event.cancelBubble = true;
+							 }
+						}catch(e){
+							
+						} */
+						var $this = $(this);
+						var order_id = $(this).attr("order_id");
+
+						//$this.find("i.lock").attr("class", "unlock");
+						$.ajax({
+							type : "post",
+							async : false,
+							url : "ordAuto!order_lock.do?ajax=yes&order_id="
+									+ order_id,
+							data : {},
+							dataType : "json",
+							success : function(data) {
+								if (data.result == "0") {
+									$this.find("i.lock")
+											.attr("class", "unlock");
+								} else {
+									$this.find("i.unlock")
+											.attr("class", "lock");
+								}
+							}
+						});
+
+						var o_url = $this.attr("detail_url");
+						if (o_url == '' || o_url == null
+								|| o_url == 'undefined') {
+							var resultUrl = AutoFlow.getActionUrl(order_id);
+							alert(resultUrl);
+							var resultObj = resultUrl.split("|");
+							if (resultObj[0] == 0) {
+								o_url = resultObj[1];
+							} else {
+								alert(resultObj[1]);
+								return false;
+							}
+						}
+						if (o_url && o_url.indexOf("?") != -1) {
+							o_url += "&order_id=" + order_id
+									+ "&query_type=${query_type}";
+						} else {
+							o_url += "?order_id=" + order_id
+									+ "&query_type=${query_type}";
+						}
+						var url = ctx + "/" + o_url;
+						//var url = ctx+"/shop/admin/ordAuto!showDetail.do?order_id="+order_id;
+						window.location.href = url;
+						//shop/admin/orderFlowAction!preDealOrd.do
+					});
+		});
+	</script>
+
+
+	<script type="text/javascript">
+		/* 异步检查预警信息*/
+		$(document).ready(function() {
+			//queryWarning();
+
+		});
+
+		function queryWarning() {
+			//获取
+			var orderids = "";
+			$("input[name='orderids']").each(function(i) {
+				var order_id = $(this).val();
+				if (i == 0) {
+					orderids += order_id;
+				} else {
+					orderids += "," + order_id;
+				}
+			});
+
+			if (orderids != "") {
+				$.ajax({
+					type : "post",
+					async : false,
+					url : "ordAuto!order_warning.do?ajax=yes",
+					data : {
+						"order_ids" : orderids
+					},
+					dataType : "json",
+					success : function(data) {
+						if (data.result == '0') {
+							var datalist = data.list;
+							for (var i = 0; i < datalist.length; i++) {
+								var owResult = datalist[i];
+								var order_id = owResult.order_id;
+								var warning_colo = owResult.warning_colo;
+								var out_time = owResult.out_time;
+								var run_time = owResult.run_time;
+								var titleMsg = "当前环节已开始" + run_time + "分钟，超时"
+										+ out_time + "分钟！";
+								$("#warning_li_" + order_id).addClass(
+										warning_colo);
+								$("#warning_li_" + order_id).attr("title",
+										titleMsg);
+
+							}
+						}
+
+					}
+				});
+			}
+
+		};
+		
+		//县分由地市联动展示
+		function queryCountyByCity(e){
+			//var city = e.value;//表单会把值带过去
+			var url = ctx + "/shop/admin/ordAuto!getCountyListByCity.do?ajax=yes";
+			Cmp.ajaxSubmit('aito_order_f', '', url, {}, function(responseText) {
+				if (responseText.result == 0) {
+					//alert(responseText.message);
+					var str = responseText.list;
+					var list=eval("("+str+")"); 
+					$("#order_county_code").empty(); //清空
+					$("#order_county_code").append("<option value=''>--请选择--</option>");
+					$.each(list, function (index, obj) {
+						$("#order_county_code").append("<option value='"+obj.field_value+"'>"+obj.field_value_desc+"</option>");
+					});
+				} else {
+					alert(responseText.message);
+				}
+			}, 'json');
+		};
+	</script>
+</body>
+</html>

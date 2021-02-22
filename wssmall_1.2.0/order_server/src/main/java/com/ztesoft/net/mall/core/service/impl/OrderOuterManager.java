@@ -1,0 +1,490 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import params.req.ShopMappingReq;
+import params.resp.ShopMappingResp;
+import services.GoodsInf;
+import services.GoodsTypeInf;
+import services.PartnerInf;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.app.base.plugin.fileUpload.BatchResult;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.action.order.IOrderDirector;
+import com.ztesoft.net.mall.core.action.order.OrderBuilder;
+import com.ztesoft.net.mall.core.action.order.OrderRequst;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.AccNbr;
+import com.ztesoft.net.mall.core.model.Cloud;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.GoodsApply;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.model.OrderOuterQueryParam;
+import com.ztesoft.net.mall.core.model.support.GoodsTypeDTO;
+import com.ztesoft.net.mall.core.service.IAccNbrManager;
+import com.ztesoft.net.mall.core.service.ICloudManager;
+import com.ztesoft.net.mall.core.service.IOrderOuterManager;
+import com.ztesoft.net.mall.core.service.IOrderUtils;
+import com.ztesoft.net.mall.core.service.impl.cache.IGoodsCacheUtil;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+/**
+ * 订单管理
+ *
+ * @author wui
+ */
+
+public class OrderOuterManager extends BaseSupport implements IOrderOuterManager {
+
+    ICacheUtil cacheUtil;
+    IGoodsCacheUtil goodsCacheUtil;
+    public IGoodsCacheUtil getGoodsUtil() {
+		return goodsCacheUtil;
+	}
+
+
+	public void setGoodsUtil(IGoodsCacheUtil goodsCacheUtil) {
+		this.goodsCacheUtil = goodsCacheUtil;
+	}
+
+	IOrderUtils orderUtils;
+    ICloudManager cloudManager;
+    IAccNbrManager accNbrManager;
+    PartnerInf partnerServ;
+    IOrderDirector orderDirector;
+    @Resource
+    private GoodsInf goodsServ;
+
+    @Resource
+    private GoodsTypeInf goodsTypeServ;
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Page listn(int pageNO, int pageSize, int disabled, OrderOuterQueryParam ordParam, String order) {
+        StringBuffer sqls = new StringBuffer(SF.orderSql("SERVICE_ORD_OUTER_SELECT"));
+        StringBuffer countSql = new StringBuffer(SF.orderSql("SERVICE_ORD_OUTER_COUNT"));
+        order = StringUtils.isEmpty(order) ? "t.order_id desc" : order;
+
+        StringBuffer wheresqls = new StringBuffer();
+        if (null != ordParam && ordParam.getOrder_id() != null && !ordParam.getOrder_id().equals("")) {
+            wheresqls.append(" and order_id = '" + ordParam.getOrder_id() + "'");
+        }
+        if (null != ordParam && ordParam.getBatch_id() != null && !ordParam.getBatch_id().equals("")) {
+            wheresqls.append("  and ( t.userid = '" + ManagerUtils.getAdminUser().getUserid() + "' or batch_id = '" + ordParam.getBatch_id() + "' ) ");
+        } else {
+            wheresqls.append("  and  t.userid = '" + ManagerUtils.getAdminUser().getUserid() + "' ");
+        }
+        wheresqls.append("and not exists (select 1 from es_order_rel rel where rel.z_order_id = t.order_id) ");
+
+        wheresqls.append(" order by " + order);
+
+        sqls.append(wheresqls);
+        countSql.append(wheresqls);
+        Page page = this.baseDaoSupport.queryForCPage(sqls.toString(), pageNO, pageSize, OrderOuter.class, countSql.toString());
+        return page;
+    }
+
+
+    @Override
+	public OrderOuter getOrderByOrderId(String orderId) {
+        OrderOuter orderOuter = (OrderOuter) this.baseDaoSupport.queryForObject(SF.orderSql("SERVICE_ORD_OUTER_SELECT_BY_ID"), OrderOuter.class, orderId);
+        return orderOuter;
+    }
+
+    @Override
+	public BatchResult importOrd(List inList, String service_name) {
+        BatchResult batchResult = new BatchResult();
+
+        String batchId = this.baseDaoSupport.getSequences("s_es_cust_returned");
+        int sucNum = 0;                        //成功返档条数
+        int failNum = 0;                    //返档失败条数
+        Map map = new HashMap();
+        String error_message = "";
+
+        for (int i = 0; i < inList.size(); i++) {
+            map = (Map) inList.get(i);
+            OrderOuter orderOuter = new OrderOuter();
+
+            try {
+                String goods_id = Const.getStrValue(map, "goods_id");
+                String user_id = "";
+                String order_type = Const.getStrValue(map, "order_type");
+                String lan_id = Const.getStrValue(map, "lan_id");
+                String acc_nbr = Const.getStrValue(map, "acc_nbr");
+                String goods_num = Const.getStrValue(map, "goods_num");
+                String certi_type = Const.getStrValue(map, "certi_type");
+                String shopId = Const.getStrValue(map, "shop_id");
+                if (StringUtils.isEmpty(goods_num))
+                    goods_num = "1";
+                if (StringUtils.isEmpty(certi_type))
+                    certi_type = Consts.CERTI_TYPE_P;
+
+                //云卡机资料反档为订购
+                if (service_name.equals(Consts.BATCH_ORDER_CUSTRETURNRD_LAN) || service_name.equals(Consts.BATCH_ORDER_CUSTRETURNRD)) {
+                    order_type = OrderStatus.ORDER_TYPE_1;
+                    Cloud cloud = cloudManager.getCloudByAccNbr(acc_nbr);
+                    if (cloud == null)
+                        error_message = "导入用户号码" + acc_nbr + "无效";
+                    else
+                        lan_id = cloud.getLan_id();
+                } else if (service_name.equals(Consts.BATCH_ORDER_CONTRACT)) {
+                    order_type = OrderStatus.ORDER_TYPE_1;
+                    AccNbr accNbr = accNbrManager.getAccNbr(acc_nbr);
+                    if (accNbr == null)
+                        error_message = "导入用户号码" + acc_nbr + "无效";
+                    else
+                        lan_id = accNbr.getArea_code(); //获取本地网
+                }
+                String goods_name = "";
+                Goods goods = goodsCacheUtil.getGoodsById(goods_id);
+                if (goods == null || StringUtils.isEmpty(goods.getGoods_id()))
+                    error_message = "导入商品id" + goods_id + "无效";
+                else
+                    goods_name = goods.getName();
+
+                Map shopMap = new HashMap();
+                try {
+                	
+                	ShopMappingReq shopMappingReq = new ShopMappingReq();
+                	shopMappingReq.setShopId(shopId);
+
+                	ShopMappingResp shopMappingResp = partnerServ.getUserInfoByShopCode(shopMappingReq);
+                	
+                    shopMap = new HashMap();
+                    if(shopMappingResp != null){
+                    	shopMap = shopMappingResp.getShopMap();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                if (shopMap.isEmpty()) {
+                    error_message = "导入商户id" + shopId + "无效";
+                } else {
+                    user_id = (String) shopMap.get("userid");
+                    if (StringUtils.isEmpty(user_id)) {
+                        error_message = "关联用户id失败，商户id：" + shopId;
+                    }
+                }
+
+                String order_id = this.baseDaoSupport.getSeqByTableName("es_order");
+                orderOuter.setAcc_nbr(acc_nbr);
+                orderOuter.setCust_name(Const.getStrValue(map, "cust_name"));
+                orderOuter.setCerti_number(Const.getStrValue(map, "certi_number"));
+                orderOuter.setCerti_type(certi_type);
+                orderOuter.setOrder_id(order_id);
+                orderOuter.setComments(Const.getStrValue(map, "comments"));
+                orderOuter.setCreate_time(DBTUtil.current());
+                orderOuter.setGoods_id(goods_id);
+                orderOuter.setGoods_name(goods_name);
+                orderOuter.setGoods_num(goods_num);
+                orderOuter.setLan_id(lan_id);
+                orderOuter.setOffer_name(Const.getStrValue(map, "offer_name"));
+                orderOuter.setOrder_amount(Const.getStrValue(map, "order_amount"));
+                orderOuter.setOrder_type(order_type);
+                orderOuter.setRemark(Const.getStrValue(map, "remark"));
+                orderOuter.setShip_addr(Const.getStrValue(map, "ship_addr"));
+                orderOuter.setShip_day(Const.getStrValue(map, "ship_day"));
+                orderOuter.setShip_mobile(Const.getStrValue(map, "ship_mobile"));
+                orderOuter.setShip_name(Const.getStrValue(map, "ship_name"));
+                orderOuter.setTerminal_code(Const.getStrValue(map, "terminal_code"));
+                orderOuter.setTerminal_name(Const.getStrValue(map, "terminal_name"));
+                orderOuter.setUserid(user_id);
+                orderOuter.setOld_sec_order_id(Const.getStrValue(map, "old_sec_order_id"));
+                orderOuter.setSec_order_id(Const.getStrValue(map, "sec_order_id"));
+                orderOuter.setSource_from(OrderStatus.SOURCE_FROM_TAOBAO);
+                orderOuter.setIccid(Const.getStrValue(map, "iccid"));
+                try {
+                    //外系统同步订单没有session
+                    orderOuter.setImport_userid(ManagerUtils.getUserId());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                orderOuter.setBatch_id(batchId);
+                orderOuter.setImport_state(Consts.IMPORT_STATE_0);
+                if (!StringUtils.isEmpty(error_message))
+                    throw new RuntimeException(error_message);
+
+                try {
+                    goodsSy(order_id, orderOuter);
+                } catch (RuntimeException e) {
+                    error_message = "订单同步失败，订单同步流程不成功：" + e.getMessage();
+                }
+
+                if (StringUtils.isEmpty(error_message)) {
+                    insert(orderOuter);
+                    sucNum++;
+                }
+            } catch (RuntimeException e) {
+                e.printStackTrace();
+                error_message = e.getMessage();
+                failNum++;
+                //以下写入必须字段，并插入数据
+                orderOuter.setComments("订单导入失败，请检查数据格式" + e.getMessage());
+                orderOuter.setImport_state(Consts.IMPORT_STATE_1);
+                orderOuter.setBatch_id(batchId);
+                insert(orderOuter);
+            }
+        }
+
+        batchResult.setErr_msg(error_message);
+        batchResult.setBatchId(batchId);
+        batchResult.setSucNum(sucNum);
+        batchResult.setFailNum(failNum);
+        return batchResult;
+    }
+
+
+    /**
+     * 商品申请流程 触发条件：前台商品申请时触发
+     */
+    private void goodsSy(String orderid, OrderOuter orderOuter) {
+        GoodsApply goodsApply = new GoodsApply();
+        goodsApply.setGoods_num(Integer.valueOf(orderOuter.getGoods_num()));
+        goodsApply.setSales_price(Double.valueOf(orderOuter.getOrder_amount()) / new Integer(orderOuter.getGoods_num()).intValue());
+        goodsApply.setApply_desc("淘宝订单同步");
+        goodsApply.setSource_from(OrderStatus.SOURCE_FROM_TAOBAO);
+        goodsApply.setShip_addr(orderOuter.getShip_addr());
+        goodsApply.setShip_day(orderOuter.getShip_day());
+        goodsApply.setUserid(orderOuter.getUserid());
+        goodsApply.setShip_name(orderOuter.getShip_name());
+        goodsApply.setShip_tel(orderOuter.getShip_mobile());
+        goodsApply.setOrder_type(orderOuter.getOrder_type());
+        goodsApply.setGoods_id(orderOuter.getGoods_id());
+
+        if (Consts.CURR_FOUNDER_3.equals(orderUtils.getAdminUserById(orderOuter.getUserid()).getFounder() + ""))
+            goodsApply.setShip_id(Consts.SHIP_ID_PARTNER_ONE);
+        if (Consts.CURR_FOUNDER_2.equals(orderUtils.getAdminUserById(orderOuter.getUserid()).getFounder() + ""))
+            goodsApply.setShip_id(Consts.SHIP_ID_PARTNER_TWO);
+        goodsApply.setPayment_id(Consts.PAYMENT_ID_BANK);
+
+        Goods goods = goodsServ.getGoods(orderOuter.getGoods_id());
+        GoodsTypeDTO goodsType = goodsTypeServ.get(goods.getType_id());
+        orderDirector.getOrderBuilder().buildOrderFlow();
+        OrderRequst orderRequst = new OrderRequst();
+        orderRequst.setService_name(goodsType.getType_code());
+        orderRequst.setFlow_name(OrderBuilder.COLLECT);
+        orderRequst.setAccept_action(OrderStatus.ACCEPT_ACTION_ORDER);
+        orderRequst.setGoodsApply(goodsApply);
+        orderRequst.setOrderOuter(orderOuter);
+        orderDirector.perform(orderRequst);
+
+    }
+
+    /**
+     * 外系统订单同步接口
+     *
+     * @param request
+     */
+    @Override
+	@SuppressWarnings("unchecked")
+    public String outOrderSync(String request) {
+        StringBuffer result = new StringBuffer();
+        try {
+            StringBuffer xmlMapper = new StringBuffer();
+            xmlMapper.append("	<MapperContext>");
+            xmlMapper.append(" 	<XpathImplicitCollection xpath='/root/request' nodeName='order_info' fieldName='order_info'/>");
+            xmlMapper.append("	</MapperContext>");
+            Map reqMap = xmlToMap(request, xmlMapper.toString());
+            Map req = (Map) reqMap.get("request");
+            List<Map> orderList = (List) req.get("order_info");
+            String order_type = req.get("order_type").toString();
+            BatchResult batchResult = importOrd(orderList, order_type);
+            if (!StringUtils.isEmpty(batchResult.getErr_msg())) {
+                result.append("<result>0001</result><message>订单同步异常：" + batchResult.getErr_msg() + "</message>");
+                String batchId = batchResult.getBatchId();
+                if (null != batchId && !batchId.isEmpty()) {
+                    String sql = "select * from es_order_outer where import_state = '1' and batch_id = ?";
+                    List<OrderOuter> failList = this.baseDaoSupport.queryForList(sql, OrderOuter.class, batchId);
+                    if (null != failList && !failList.isEmpty()) {
+                        for (OrderOuter order : failList) {
+                            result.append("<failList>");
+                            result.append("		<spec_order_id>" + order.getSec_order_id() + "</spec_order_id>");
+                            result.append("</failList>");
+                        }
+                    }
+                }
+            } else {
+                result.append("<result>000</result><message>订单同步成功</message>");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.append("<result>0001</result><message>订单同步异常：" + e.getMessage() + "</message>");
+        }
+        return result.toString();
+    }
+
+    @Override
+	public int isExistsOrder(List list) {
+
+        int count = 0;
+
+        if (list != null && !list.isEmpty()) {
+            for (int i = 0; i < list.size(); i++) {
+                Map<String, Object> map = (Map<String, Object>) list.get(i);
+
+                StringBuffer sql = new StringBuffer();
+                String order_type = (String) map.get("order_type");
+                if (Consts.BATCH_ORDER_CUSTRETURNRD_LAN.equals(order_type) || Consts.BATCH_ORDER_CUSTRETURNRD.equals(order_type)) {
+                    order_type = OrderStatus.ORDER_TYPE_1;
+                } else if (Consts.BATCH_ORDER_CONTRACT.equals(order_type)) {
+                    order_type = OrderStatus.ORDER_TYPE_1;
+                }
+
+                sql.append("select count(1) from es_order_outer where ");
+                sql.append(" acc_nbr = '" + map.get("acc_nbr") + "'");
+                sql.append(" and order_type = '" + order_type + "'");
+                sql.append(" and import_state = '" + Consts.IMPORT_STATE_0 + "'");
+
+                String item = this.baseDaoSupport.queryForString(sql.toString());
+
+                if (!StringUtils.isEmpty(item)) {
+                    count = count + Integer.valueOf(item);
+                }
+            }
+        }
+        return count;
+    }
+    
+    /**
+	 * 将xml串转换为Map结构
+	 * @author pzh
+	 * @param xmlStr 报文串
+	 * @param xmlMapperStr  报文转换模板
+	 * @return
+	 */
+	public static Map xmlToMap(String xmlStr, String xmlMapperStr) {
+		Map retMap = new HashMap();
+//		try {
+//			MapperContext mapperCtx = new MapperContextBuilder().build(xmlMapperStr);
+//			Document resultDoc = DomUtils.newDocument(xmlStr, true); // resultStr.getAsDocument();
+//			Template tempTransformTemplate = TemplateUtils.createTemplate(xmlStr);
+//			
+//			Map rootMap = new HashMap();
+//			rootMap.put("doc", NodeModel.wrap(resultDoc));
+//			
+//			TemplateUtils.addUtils(rootMap);
+//			StringWriter out = new StringWriter();
+//			tempTransformTemplate.process(rootMap, out);
+//			xmlStr = out.toString();
+//			XStream xstream = XStream.instance();
+//			retMap = (Map)xstream.fromXML(xmlStr, mapperCtx);
+//			
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			throw new RuntimeException("报文解析出错：" + e.getMessage());
+//		}
+		return retMap;
+	}
+
+
+    @Override
+	public List<OrderOuter> getListByBatchId(String batchId) {
+
+        String sql = SF.orderSql("SERVICE_ORD_OUTER_SELECT_BY_BATCH");//处理成功
+        return this.baseDaoSupport.queryForList(sql, OrderOuter.class, batchId);
+    }
+
+    @Override
+	public void insert(OrderOuter orderOuter) {
+
+        this.baseDaoSupport.insert("order_outer", orderOuter);
+    }
+
+
+    @Override
+	public void deleteOrder(String orderIds) {
+
+        if (!StringUtils.isEmpty(orderIds)) {
+            for (int i = 0; i < orderIds.split(",").length; i++) {
+                String orderid = orderIds.split(",")[i];
+
+                String sql = SF.orderSql("SERVICE_ORD_OUTER_DELETE")+"and order_id = '" + orderid + "'";
+
+                this.baseDaoSupport.execute(sql);
+            }
+        }
+
+    }
+
+    //淘宝订单同步到分销订单系统
+    @Override
+	public String sysorder(String request) {
+        StringBuffer result = new StringBuffer();
+        try {
+            StringBuffer xmlMapper = new StringBuffer();
+            xmlMapper.append("	<MapperContext>");
+            xmlMapper.append(" 	<XpathImplicitCollection xpath='/root/request' nodeName='order_info' fieldName='cloud_info'/>");
+            xmlMapper.append("	</MapperContext>");
+            Map reqMap = xmlToMap(request, xmlMapper.toString());
+
+
+        } catch (Exception e) {
+            result.append("<result>0001</result><message>号码同步异常：" + e.getMessage() + "</message>");
+        }
+        return result.toString();
+    }
+
+    public PartnerInf getPartnerServ() {
+		return partnerServ;
+	}
+
+
+	public void setPartnerServ(PartnerInf partnerServ) {
+		this.partnerServ = partnerServ;
+	}
+
+
+	public ICacheUtil getCacheUtil() {
+        return cacheUtil;
+    }
+
+    public void setCacheUtil(ICacheUtil cacheUtil) {
+        this.cacheUtil = cacheUtil;
+    }
+
+    public IOrderUtils getOrderUtils() {
+        return orderUtils;
+    }
+
+    public void setOrderUtils(IOrderUtils orderUtils) {
+        this.orderUtils = orderUtils;
+    }
+
+    public ICloudManager getCloudManager() {
+        return cloudManager;
+    }
+
+    public void setCloudManager(ICloudManager cloudManager) {
+        this.cloudManager = cloudManager;
+    }
+
+    public IAccNbrManager getAccNbrManager() {
+        return accNbrManager;
+    }
+
+    public void setAccNbrManager(IAccNbrManager accNbrManager) {
+        this.accNbrManager = accNbrManager;
+    }
+
+    public IOrderDirector getOrderDirector() {
+        return orderDirector;
+    }
+
+    public void setOrderDirector(IOrderDirector orderDirector) {
+        this.orderDirector = orderDirector;
+    }
+}

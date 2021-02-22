@@ -1,0 +1,609 @@
+/**
+ * 
+ */
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.jdbc.core.RowMapper;
+
+import zte.params.order.resp.GrabRedPkgResp;
+
+import com.powerise.ibss.framework.FrameException;
+import com.ztesoft.ibss.common.util.DateUtil;
+import com.ztesoft.ibss.common.util.StringUtils;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.model.Coupons;
+import com.ztesoft.net.mall.core.model.CouponsRedPackageSearch;
+import com.ztesoft.net.mall.core.model.MemberCoupon;
+import com.ztesoft.net.mall.core.model.Promotion;
+import com.ztesoft.net.mall.core.model.PromotionRedPkg;
+import com.ztesoft.net.mall.core.model.PromotionRedPkgDetail;
+import com.ztesoft.net.mall.core.service.ICouponManager;
+import com.ztesoft.net.mall.core.service.IPromotionRedManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+/**
+ * @author ZX
+ * PromotionRedImpl.java
+ * 2015-3-16
+ */
+public class PromotionRedManager extends BaseSupport implements IPromotionRedManager {
+	
+	@Resource
+	private ICouponManager couponManager;	
+	
+	@Override
+	public Page redlist(CouponsRedPackageSearch redSearch, int pageNo, int pageSize, String order) {
+		StringBuilder sql = new StringBuilder("SELECT " +
+				" T.ID," +
+				" T.NAME," +
+				" T.TYPE," +
+				" T.NUM," +
+				" T.MEMO," +
+				" T.USEDNUM," +
+				" T.CREATE_TIME," +
+				" T.SOURCE_FROM," +
+				" T.AMOUNT" +
+				" FROM ES_PROMOTION_REDPKG T");
+		sql.append(" WHERE 1=1");
+		if (StringUtils.isNotEmpty(redSearch.getRedName())) {
+			sql.append(" AND T.NAME Like '%"+redSearch.getRedName()+"%'");
+		}
+		if (StringUtils.isNotEmpty(redSearch.getRedCreateTime())) {
+			sql.append(" AND TO_CHAR(T.CREATE_TIME, 'yyyy-MM-dd')='"+redSearch.getRedCreateTime()+"'");
+		}
+		sql.append(" AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+		return this.baseDaoSupport.queryForPage(sql.toString(), pageNo, pageSize, new RowMapper(){
+			@Override
+			public PromotionRedPkg mapRow(ResultSet rs, int arg1) throws SQLException {
+				PromotionRedPkg pkg = new PromotionRedPkg();
+				pkg.setId(String.valueOf(rs.getString("ID")));
+				pkg.setName(String.valueOf(rs.getString("NAME")));
+				pkg.setType(String.valueOf(rs.getString("TYPE")));
+				pkg.setNum(String.valueOf(rs.getInt("NUM")));
+				pkg.setMemo(String.valueOf(rs.getString("MEMO")));
+				pkg.setUsednum(String.valueOf(rs.getInt("USEDNUM")));
+				pkg.setCreate_time(String.valueOf(rs.getString("CREATE_TIME")));
+				pkg.setSource_from(String.valueOf(rs.getString("SOURCE_FROM")));
+				pkg.setAmount(String.valueOf(rs.getInt("AMOUNT")));
+				return pkg;
+			}
+		});
+	}
+
+	@Override
+	public String addred(PromotionRedPkg promotionRedPkg) {
+		if (promotionRedPkg != null) {
+			promotionRedPkg.setId(this.daoSupport.getSequences("SEQ_RED_ID", "1", 18));
+			promotionRedPkg.setUsednum("0"); // 默认"0"个
+			String create_time = "";
+			try {
+				create_time = DateUtil.getTime2();
+			} catch (FrameException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			promotionRedPkg.setCreate_time(create_time);
+			this.baseDaoSupport.insert("ES_PROMOTION_REDPKG", promotionRedPkg);
+			redcreate(promotionRedPkg.getId());
+			return promotionRedPkg.getId();
+		} else {
+			return "";
+		}
+	}
+	
+	@Override
+	public String redcreate(String red_id) {
+		StringBuilder sql = new StringBuilder("SELECT T.* FROM ES_PROMOTION_REDPKG T");
+				sql.append(" WHERE 1=1");
+				sql.append(" AND T.ID='"+red_id+"'");
+				sql.append(" AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+		List<Map> p_list = baseDaoSupport.queryForList(sql.toString());
+		if (p_list != null && p_list.size()>0) {
+			Map map = p_list.get(0);
+			String red_type = map.get("TYPE").toString().trim();
+			int red_num = Integer.parseInt(map.get("NUM").toString());
+			String red_amount = map.get("AMOUNT").toString();
+			if (red_type.equals("001") || red_type.equals("003")) { // 001-普通红包, 002-话费红包
+				double d_amount = Double.parseDouble(red_amount);
+				String avg = String.valueOf(d_amount/red_num); // 普通红包平均分配总金额
+				Promotion req = new Promotion();
+				req = createRedPromotion(req, avg);
+				createCpnsAndRedDetail(red_num, req.getPmt_id(), red_id);
+			} else if (red_type.equals("002")) { // 随机红包
+				List<String> d_list = random(red_amount, red_num); // 随机生成红包
+				if (d_list != null && d_list.size() > 0) {
+					for (int i = 0; i<d_list.size(); i ++) {
+						Promotion req = new Promotion();
+						req = createRedPromotionActivity(req, red_amount);
+						createCpnsAndRedDetail(1, req.getPmt_id(), red_id); // 有几个随机红包，创建几个活动
+					}
+				}
+			}
+			return "0";
+		} else {
+			return "-1";
+		}
+	}
+	
+	@Override
+	public PromotionRedPkg redview(String red_id) {
+		StringBuilder sql = new StringBuilder("SELECT T.* FROM ES_PROMOTION_REDPKG T WHERE T.ID='"+red_id+"'" +
+				" AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+		List<PromotionRedPkg> redpkg = baseDaoSupport.queryForList(sql.toString(), PromotionRedPkg.class);
+		return redpkg!=null&&redpkg.size()>0?redpkg.get(0):null;
+	}
+	
+	@Override
+	public String grabredpkg(String red_id, String member_id, GrabRedPkgResp resp) {
+		StringBuilder sql = new StringBuilder("SELECT T.* FROM ES_PROMOTION_REDPKG T" +
+				" WHERE T.ID='"+red_id+"' AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+		List<PromotionRedPkg> redpkg_list = baseDaoSupport.queryForList(sql.toString(), PromotionRedPkg.class);
+		if (redpkg_list == null || redpkg_list.size() <= 0) {
+			resp.setError_code("-4");
+			resp.setError_msg("没有相应的红包！");
+			return "-4";
+		}
+		PromotionRedPkg redpkg = redpkg_list.get(0);
+		int usernum = Integer.valueOf(redpkg.getUsednum()); // 红包已使用数
+		int rednum = Integer.valueOf(redpkg.getNum()); // 红包总数
+		if ((usernum-rednum) >= 0) {
+			resp.setError_code("-1");
+			resp.setError_msg("红包已抢光！");
+			return "-1";
+		}
+		StringBuilder sql_member_red = new StringBuilder("SELECT T.* FROM ES_PROMOTION_REDPKG_DETAIL T, ES_MEMBER_COUPON TT");
+			sql_member_red.append(" WHERE T.SOURCE_FROM=TT.SOURCE_FROM");
+			sql_member_red.append(" AND T.CPNS_CODE=TT.MEMC_CODE");
+			sql_member_red.append(" AND T.REDPKGID='"+red_id+"'");
+			sql_member_red.append(" AND TT.MEMBER_ID='"+member_id+"'");
+		List<Map> list_member_red = baseDaoSupport.queryForList(sql_member_red.toString());
+		if (list_member_red!=null&&list_member_red.size()>0) {
+			if ((usernum-rednum) >= 0) {
+				resp.setError_code("-2");
+				resp.setError_msg("一个会员只能一个红包！");
+				return "-2";
+			}
+		}
+		StringBuilder sql_redpkg_detail = new StringBuilder("SELECT T.* FROM ES_PROMOTION_REDPKG_DETAIL T");
+			sql_redpkg_detail.append(" WHERE T.REDPKGID='"+red_id+"' AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+		List<PromotionRedPkgDetail> redpkgdetail_list = 
+				baseDaoSupport.queryForList(sql_redpkg_detail.toString(), PromotionRedPkgDetail.class);
+		for (PromotionRedPkgDetail proRedPkgDetail : redpkgdetail_list) {
+			if (proRedPkgDetail.getState().equals("0")) { // 0-生成，1-已发放，2-已使用
+				MemberCoupon membercoupon = new MemberCoupon();
+				String error_code = createMemberCoupon(proRedPkgDetail, membercoupon, red_id, member_id, resp);
+				if (error_code.equals("0")) {
+					resp.setMemc_code(membercoupon.getMemc_code());
+					resp.setAmount(membercoupon.getMemc_price());
+					resp.setError_code("0");
+					resp.setError_msg("成功！");
+					return error_code;
+				}
+				return "";
+			}
+		}
+		return "";
+	}
+	
+	@Override
+	public PromotionRedPkg rededit(String red_id, String name, String memo) {
+		PromotionRedPkg redpkg = new PromotionRedPkg();
+		StringBuilder sql = new StringBuilder("SELECT T.* FROM ES_PROMOTION_REDPKG T");
+				sql.append(" WHERE 1=1");
+				sql.append(" AND T.ID='"+red_id+"'");
+				sql.append(" AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+		List<PromotionRedPkg> redPkgList = baseDaoSupport.queryForList(sql.toString(), PromotionRedPkg.class);
+		redpkg = redPkgList.get(0);
+		redpkg.setName(name);
+		redpkg.setMemo(memo);
+		baseDaoSupport.update("ES_PROMOTION_REDPKG", redpkg, 
+				"ID='"+red_id+"' AND SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+		return redpkg;
+	}
+	
+	@Override
+	public List<PromotionRedPkgDetail> redCpnsList(String red_id) {
+		List<PromotionRedPkgDetail> redpkgList = new ArrayList<PromotionRedPkgDetail>();
+		StringBuilder sql = new StringBuilder("SELECT");
+			sql.append(" T.CPNS_ID,");
+			sql.append(" T.CPNS_CODE,");
+			sql.append(" T.STATE,");
+			sql.append(" TT.MEMBER_ID,");
+			sql.append(" (SELECT M.UNAME FROM ES_MEMBER M WHERE M.MEMBER_ID=TT.MEMBER_ID) UNAME,");
+			sql.append(" TT.MEMC_CODE,");
+			sql.append(" T.CREATE_TIME,");
+			sql.append(" T.REDPKGID,");
+			sql.append(" T.UPDATE_TIME");
+			sql.append(" FROM");
+			sql.append(" ES_PROMOTION_REDPKG_DETAIL T,");
+			sql.append(" ES_MEMBER_COUPON TT");
+			sql.append(" WHERE 1=1");
+			sql.append(" AND T.SOURCE_FROM=TT.SOURCE_FROM(+)");
+			sql.append(" AND T.CPNS_CODE=TT.MEMC_CODE(+)");
+			sql.append(" AND T.REDPKGID='"+red_id+"'");
+		redpkgList = baseDaoSupport.queryForList(sql.toString(), PromotionRedPkgDetail.class);
+		return redpkgList;
+	}
+	
+	@Override
+	public String reddel(String red_ids) {
+		String[] ids = red_ids.split(",");
+		for (String red_id : ids) {
+			StringBuilder sql_red_detail = new StringBuilder("SELECT T.* FROM ES_PROMOTION_REDPKG_DETAIL T" +
+					" WHERE T.REDPKGID='"+red_id+"' AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+			List<Map> list = baseDaoSupport.queryForList(sql_red_detail.toString());
+			if (list != null && list.size() > 0) {
+				StringBuilder sql = new StringBuilder("SELECT T.* FROM ES_PROMOTION_REDPKG T WHERE " +
+						"T.ID='"+red_id+"' AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+				PromotionRedPkg redpkg = (PromotionRedPkg) baseDaoSupport.queryForObject(sql.toString(), PromotionRedPkg.class);
+				return redpkg.getName();
+			}
+			StringBuilder sql = new StringBuilder("DELETE FROM ES_PROMOTION_REDPKG T WHERE " +
+					"T.ID='"+red_id+"' AND T.SOURCE_FROM='"+ManagerUtils.getSourceFrom()+"'");
+			baseDaoSupport.execute(sql.toString());
+		}
+		return "0";
+	}
+	
+	private String createMemberCoupon(PromotionRedPkgDetail proRedPkgDetail,
+			MemberCoupon membercoupon, String red_id, String member_id, GrabRedPkgResp resp) {
+		String cur_date = ""; // 当前时间
+		String cur_date_1 = "";
+		String couponCode = ""; // 优惠券编码
+		try {
+			cur_date = DateUtil.getTime2();
+			cur_date_1 = DateUtil.getTime5();
+		} catch (FrameException e) {
+			e.printStackTrace();
+		}
+		StringBuilder sql = new StringBuilder("SELECT"); 
+			sql.append(" TT.PMT_SOLUTION,");
+			sql.append(" T.CPNS_GEN_QUANTITY,");
+			sql.append(" T.CPNS_PREFIX");
+			sql.append(" FROM ES_COUPONS T, ES_PROMOTION TT");
+			sql.append(" WHERE 1=1");
+			sql.append(" AND T.SOURCE_FROM=TT.SOURCE_FROM");
+			sql.append(" AND T.PMT_ID=TT.PMT_ID");
+			sql.append(" AND T.CPNS_STATUS='1'");
+			sql.append(" AND T.CPNS_TYPE='1'");
+			sql.append(" AND T.CPNS_ID='"+proRedPkgDetail.getCpns_id()+"'");
+			sql.append(" AND TO_CHAR(TT.PMT_TIME_END, 'yyyyMMddhhmmss')>'"+cur_date_1+"'");
+		List<Map> list = this.daoSupport.queryForList(sql.toString());
+		if (list != null && list.size() > 0) {
+			Map coupons = list.get(0);
+			couponCode = this.makeCouponCode(Integer.valueOf(coupons.get("CPNS_GEN_QUANTITY").toString()) + 1, 
+					coupons.get("CPNS_PREFIX").toString(), member_id);
+		} else {
+			resp.setError_code("-3");
+			resp.setError_msg("无法生成优惠券编码");
+			return "-3";
+		}
+		membercoupon.setCpns_id(proRedPkgDetail.getCpns_id());
+		membercoupon.setMemc_code(couponCode);
+		membercoupon.setMember_id(member_id);
+		membercoupon.setMemc_enabled("true");
+		membercoupon.setMemc_gen_orderid("");
+		membercoupon.setMemc_gen_time(cur_date);
+		membercoupon.setMemc_source("a");
+		membercoupon.setMemc_used_times(0);
+		membercoupon.setMemc_price(list.get(0).get("PMT_SOLUTION").toString());
+		baseDaoSupport.insert("ES_MEMBER_COUPON", membercoupon);
+		updateRedPkgDetail(proRedPkgDetail, membercoupon, red_id);
+		updateRedPkg(red_id);
+		return "0";
+	}
+	
+	/**
+	 * 抢红包后更新ES_PROMOTION_REDPKG_DETAIL表，状态、优惠券编码、
+	 * @param red_id
+	 * @param redPkgDetail_id
+	 */
+	private void updateRedPkgDetail(PromotionRedPkgDetail proRedPkgDetail, 
+			MemberCoupon membercoupon, String red_id) {
+		proRedPkgDetail.setCpns_code(membercoupon.getMemc_code());
+		proRedPkgDetail.setState("1"); //0-生成 1-发放 2-使用
+		baseDaoSupport.update("ES_PROMOTION_REDPKG_DETAIL", proRedPkgDetail,
+				"ID='"+proRedPkgDetail.getId()+"' AND REDPKGID='"+red_id+"'");
+	}
+	/**
+	 * 抢红包后更新ES_PROMOTION_REDPKG表，红包已使用个数
+	 * @param red_id
+	 */
+	private void updateRedPkg(String red_id) {
+		StringBuilder sql = new StringBuilder("select t.* from ES_PROMOTION_REDPKG t " +
+				"where t.id='"+red_id+"' and t.source_from='"+ManagerUtils.getSourceFrom()+"'");
+		PromotionRedPkg redpkg = (PromotionRedPkg) baseDaoSupport.queryForObject(sql.toString(), PromotionRedPkg.class);
+		String usednum = redpkg.getUsednum();
+		int num = (Integer.valueOf(usednum))+1;
+		redpkg.setUsednum(String.valueOf(num));
+		baseDaoSupport.update("ES_PROMOTION_REDPKG", redpkg, "id='"+redpkg.getId()+"'");
+	}
+	
+	/**
+	 * 生成优惠卡号
+	 * 
+	 * @param num
+	 * @param prefix
+	 * @param member_id
+	 * @return
+	 */
+	private String makeCouponCode(int num, String prefix, String member_id) {
+		try {
+			return prefix + DateUtil.getTime5() + member_id + num;
+		} catch (FrameException e) {
+			e.printStackTrace();
+		}
+		return "";
+	}
+	private Promotion createRedPromotionActivity (Promotion req , String red_amount) {
+//		String S_ES_PROMOTION_ACTIVITY = baseDaoSupport.getSequences("S_ES_PROMOTION_ACTIVITY", "1", 18);
+		String cur_date = "";
+		String cur_ten_date = "";
+		try {
+			cur_date = DateUtil.getTime1();
+			cur_ten_date = new SimpleDateFormat(DateUtil.DATE_FORMAT_1).
+					format(DateUtil.addDay(new Date(), 10)); // 当前时间十天后
+		} catch (FrameException e) {
+			e.printStackTrace();
+		}
+//		PromotionActivity activity = new PromotionActivity();
+//		AdminUser au = ManagerUtils.getAdminUser();
+//		String userid = au.getUserid();
+//		if(Const.ADMIN_RELTYPE_SUPPER_STAFF.equalsIgnoreCase(au.getReltype()))
+//			userid = au.getUserid();
+//		if(ManagerUtils.isAdminUser())
+//			userid="-1";
+//		activity.setId(S_ES_PROMOTION_ACTIVITY);
+//		activity.setUserid(userid);
+//		activity.setName("促销红包 "+S_ES_PROMOTION_ACTIVITY);
+//		activity.setEnable(1); // 可用
+//		activity.setBegin_time(cur_date);
+//		activity.setEnd_time(cur_ten_date);
+//		activity.setBrief(""); // 待定
+//		activity.setPmt_code(S_ES_PROMOTION_ACTIVITY);
+//		this.baseDaoSupport.insert("es_promotion_activity", activity);
+		String S_ES_PROMOTION = baseDaoSupport.getSequences("S_ES_PROMOTION", "1", 18);
+    	Promotion promotion = new Promotion();
+    	promotion.setPmt_id(S_ES_PROMOTION);
+    	promotion.setPmta_id("");
+        promotion.setPmts_id("goodsDiscountPlugin");
+    	promotion.setPmt_time_begin(cur_date);
+    	promotion.setPmt_time_end(cur_ten_date);
+    	promotion.setPmt_solution(red_amount);
+    	promotion.setPmt_describe("促销红包 " + S_ES_PROMOTION);
+    	promotion.setPmt_type("1");
+        promotion.setPmt_update_time(System.currentTimeMillis());
+        promotion.setDisabled("false");
+        promotion.setPmt_ifsale("true");
+        promotion.setPromotion_type("006");
+        this.baseDaoSupport.insert("es_promotion", promotion);
+        return promotion;
+	}
+	
+	/**
+	 * 创建普通红包活动
+	 * @param req
+	 * @param red_amount
+	 */
+	private Promotion createRedPromotion(Promotion req , String red_amount) {
+		Promotion pro = new Promotion();
+		String cur_date = "";
+		String cur_ten_date = "";
+		try {
+			cur_date = DateUtil.getTime1();
+			cur_ten_date = new SimpleDateFormat(DateUtil.DATE_FORMAT_1).
+					format(DateUtil.addDay(new Date(), 10)); // 当前时间十天后
+		} catch (FrameException e) {
+			e.printStackTrace();
+		}
+//		
+//		String S_ES_PROMOTION_ACTIVITY = baseDaoSupport.getSequences("S_ES_PROMOTION_ACTIVITY", "1", 18);
+//		AdminUser au = ManagerUtils.getAdminUser();
+//		String userid = au.getUserid();
+//		PromotionActivity activity = new PromotionActivity();
+//		if(Const.ADMIN_RELTYPE_SUPPER_STAFF.equalsIgnoreCase(au.getReltype()))
+//			userid = au.getUserid();
+//		if(ManagerUtils.isAdminUser())
+//			userid="-1";
+//		activity.setId(S_ES_PROMOTION_ACTIVITY);
+//		activity.setUserid(userid);
+//		activity.setName("促销红包 "+S_ES_PROMOTION_ACTIVITY);
+//		activity.setEnable(1); // 可用
+//		activity.setBegin_time(cur_date);
+//		activity.setEnd_time(cur_ten_date);
+//		activity.setBrief(""); // 待定
+//		activity.setPmt_code(S_ES_PROMOTION_ACTIVITY);
+//		this.baseDaoSupport.insert("es_promotion_activity", activity);
+		
+		String S_ES_PROMOTION = baseDaoSupport.getSequences("S_ES_PROMOTION", "1", 18);
+		pro.setPmt_id(S_ES_PROMOTION);
+		pro.setPmts_id("goodsDiscountPlugin");
+		pro.setPmta_id("");
+		pro.setPmt_time_begin(cur_date);
+		pro.setPmt_time_end(cur_ten_date);
+		pro.setOrder_money_from(0.00);
+		pro.setOrder_money_to(0.00);
+		pro.setSeq(0);
+		pro.setPmt_type("1"); // 0为促销活动规则\n  1为优惠促销规则
+		pro.setPmt_belong(0);
+		pro.setPmt_bond_type(0);
+		pro.setPmt_describe("促销红包"+S_ES_PROMOTION);
+		pro.setPmt_solution(String.valueOf(red_amount));
+		pro.setPmt_update_time(System.currentTimeMillis());
+		pro.setPmt_basic_type("goods");
+		pro.setDisabled("false");
+		pro.setPmt_ifsale("true");
+		pro.setPromotion_type(EcsOrderConsts.PMT_TYPE_ZHIJIANG);
+		pro.setPmt_distype(0);
+		savePro(pro); // 创建活动
+		String[] goodsidArray = new String[]{"-1"}; // -1适用所有商品
+		saveGoodsPmt(pro.getPmt_id() , goodsidArray);
+		Integer[] memberLvIdArray = new Integer[]{-1}; // -1适用所有会员
+		saveMemberLv(pro.getPmt_id() , memberLvIdArray);
+		return pro;
+	}
+	
+	/**
+	 * 创建优惠券
+	 * @param num
+	 * @param pmt_id
+	 * @param red_id
+	 */
+	private void createCpnsAndRedDetail(int num, String pmt_id, String red_id) {
+		for (int i = 0; i < num; i ++) {
+			// 2, 生成优惠券关联红包活动
+			Coupons coupons = new Coupons();
+			String seq_num = this.daoSupport.getSequences("S_ES_COUPONS", "1", 18);
+			coupons.setCpns_id(seq_num);
+			coupons.setCpns_name("红包"+seq_num);
+			coupons.setPmt_id(pmt_id);
+			coupons.setCpns_prefix(seq_num);
+			coupons.setCpns_gen_quantity(0);
+			coupons.setCpns_key("");
+			coupons.setCpns_status("1"); // 0-禁用，1-启用
+			coupons.setCpns_type(1); // 0-a类优惠券，1-b类优惠券
+			coupons.setCpns_point(0);
+			couponManager.add(coupons); // 创建优惠券
+			String cpns_id = coupons.getCpns_id();
+			
+			// 3, 生成优惠券编码
+			PromotionRedPkgDetail redPkgDetail = new PromotionRedPkgDetail();
+			String create_time = "";
+			try {
+				create_time = DateUtil.getTime1();
+			} catch (FrameException e) {
+				e.printStackTrace();
+			}
+			String red_detail_id = this.baseDaoSupport.getSequences("SEQ_RED_DETAIL_ID", "1", 18);
+			redPkgDetail.setId(red_detail_id);
+			redPkgDetail.setCpns_id(cpns_id);
+			redPkgDetail.setCreate_time(create_time);
+			redPkgDetail.setRedpkgid(red_id);
+			redPkgDetail.setState("0"); // 0-生成，1-已发放，2-已使用
+			redPkgDetail.setUpdate_time(create_time);
+			List<PromotionRedPkgDetail> redDetailList = new ArrayList<PromotionRedPkgDetail>();
+			redDetailList.add(redPkgDetail);
+			savePromotionRedDetail(redDetailList);
+		}
+	}
+	
+	/**
+	 * ZX add
+	 * @param redDetailList
+	 * @return
+	 */
+	private String savePromotionRedDetail(List<PromotionRedPkgDetail> redDetailList) {
+		if (redDetailList != null && redDetailList.size() > 0) {
+			for (PromotionRedPkgDetail prd : redDetailList)
+				baseDaoSupport.insert("ES_PROMOTION_REDPKG_DETAIL", prd);
+		}
+		return "-1";
+	}
+	
+	/**
+     * 保存会员级别关联
+     *
+     * @param pmtid
+     * @param memberLvIdArray
+     */
+    private void saveMemberLv(String pmtid, Integer[] memberLvIdArray) {
+    	
+        for (Integer memberLvId : memberLvIdArray) {
+
+            this.baseDaoSupport.execute(SF.goodsSql("SAVE_MEMBER_LV"), pmtid, memberLvId);
+        }
+    }
+    
+    /**
+     * 保存商品关联
+     *
+     * @param pmtid
+     * @param goodsIdArray
+     */
+    private void saveGoodsPmt(String pmtid, String[] goodsIdArray) {
+    	
+        for (String goodsid : goodsIdArray) {
+            this.baseDaoSupport.execute(SF.goodsSql("PMT_GOODS_INSERT"), pmtid, goodsid);
+        }
+    }
+    
+    /**
+     * 保存活动
+     * @param pro
+     */
+    private void savePro(Promotion promotion) {
+    	if (promotion == null) throw new IllegalArgumentException("param promotion is NULL");
+        if (promotion.getPmt_describe() == null)
+            throw new IllegalArgumentException("param promotion 's Pmt_describe is NULL");
+        if (promotion.getPmts_id() == null) throw new IllegalArgumentException("param promotion 's Pmts_id is NULL");
+        if (promotion.getPmt_time_begin() == null)
+            throw new IllegalArgumentException("param promotion 's pmt_time_begin is NULL");
+        if (promotion.getPmt_time_end() == null)
+            throw new IllegalArgumentException("param promotion 's Pmt_time_end is NULL");
+        promotion.setPmt_update_time(new java.util.Date().getTime());
+        promotion.setDisabled("false");
+        promotion.setPmt_basic_type("goods");
+
+        this.baseDaoSupport.insert("promotion", promotion);
+        String pmtid = promotion.getPmt_id();
+        promotion.setPmt_id(pmtid);
+    }
+
+	/**
+	 * 生成随机红包
+	 * @param amount
+	 * @param num
+	 * @return
+	 */
+	private List<String> random(String s_amount, int num) {
+		double d_amount = Double.parseDouble(s_amount); // 红包总金额
+		List<String> d_list = new ArrayList<String>(); // 产生的随机红包
+		List<Double> d_random_list = new ArrayList<Double>(); // 有多少个红包就有多少个随机数
+		double d_random_total = 0.00; // 随机数的总数
+		DecimalFormat df = new DecimalFormat("#.00");
+		for (int i=0; i<num; i++) {
+			double d_1 = Math.random();
+			d_random_list.add(d_1);
+			d_random_total += d_1;
+		}
+		for (int i=0; i<d_random_list.size(); i++) {
+			d_list.add(df.format((d_random_list.get(i)/d_random_total)*d_amount));
+		}
+		return d_list;
+	}
+
+	@Override
+	public String addredbypage(PromotionRedPkg promotionRedPkg) {
+		if (promotionRedPkg != null) {
+			promotionRedPkg.setId(this.daoSupport.getSequences("SEQ_RED_ID", "1", 18));
+			promotionRedPkg.setUsednum("0"); // 默认"0"个
+			String create_time = "";
+			try {
+				create_time = DateUtil.getTime2();
+			} catch (FrameException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			promotionRedPkg.setCreate_time(create_time);
+			this.baseDaoSupport.insert("ES_PROMOTION_REDPKG", promotionRedPkg);
+			return promotionRedPkg.getId();
+		} else {
+			return "";
+		}
+	}
+	
+}

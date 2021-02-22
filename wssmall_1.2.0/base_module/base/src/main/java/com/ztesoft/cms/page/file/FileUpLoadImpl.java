@@ -1,0 +1,97 @@
+package com.ztesoft.cms.page.file;
+
+import com.ztesoft.ibss.common.util.CrmConstants;
+import com.ztesoft.ibss.common.util.DateFormatUtils;
+import org.directwebremoting.util.Logger;
+
+import javax.servlet.ServletException;
+import java.io.File;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+
+public class FileUpLoadImpl extends UpLoadInf {
+    private Logger log= Logger.getLogger(FileUpLoadImpl.class);
+
+    public FileUpLoadImpl() {
+        super();
+    }
+
+    @Override
+	public void downLoad() throws Exception {
+
+    }
+
+    @Override
+	public void delete(String pathname) throws Exception {
+        File file = new File(pathname);
+        file.delete();
+    }
+
+    //读取文件保存到本地 /res/+日期+/images/
+    @Override
+	public Map upLoad(Object object)throws Exception {
+        try {
+           // MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) object;
+            // 保存到硬盘
+//            multipartRequest.setCharacterEncoding("GBK");
+//            String Filename = multipartRequest.getParameter("Filename");
+//            String mode = multipartRequest.getParameter("mode");
+//            String file_name = multipartRequest.getParameter("fileName");// 文件名
+//           // MultipartFile item = multipartRequest.getFile("uploadFile");
+//            if ("wssnet_up_load".equals(mode)) {
+//                item = multipartRequest.getFile("picdata");
+//                file_name = Filename;
+//            }
+//
+        	Map fileMap=new HashMap();//saveLocalFile(item, multipartRequest,getFileName(file_name));
+            return fileMap;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new ServletException(ex);
+        }
+    }
+
+    //生成文件名
+    private synchronized String getFileName(String file_name){
+        String arg0=file_name.substring(file_name.lastIndexOf("."));
+        return DateFormatUtils.formatDate(new Date(System.currentTimeMillis()), CrmConstants.DATE_TIME_FORMAT_14)+arg0;
+    }
+
+
+    //上传的文件保存在本地
+//    private Map saveLocalFile(MultipartFile arg0,MultipartHttpServletRequest arg1,String file_name){
+//        if(null==arg0 || null==arg1)return null;
+//
+//        Map map=new HashMap();
+//        String defaultPath=FileEditUtil.KEY.RES+"/upload/"+FileEditUtil.getCurrDay()+"/"+FileEditUtil.KEY.IMAGES+"/";
+//        try {
+//            String realPath=arg1.getRealPath("/");
+//            String folder=realPath+"/temp"+defaultPath;
+//            String path=folder+file_name;
+//            String localPath=defaultPath+file_name;
+//            File folders=new File(folder);
+//            if(!folders.exists())folders.mkdirs();
+//            File new_file=new File(path);
+//            new_file.delete();
+//            new_file.createNewFile();
+//            arg0.transferTo(new_file);
+//
+//            map.put("FILE_ITEM",new_file); //文件对象
+//            map.put("ACCESS_PATH",localPath); //本地文件路径
+//            map.put("FILE_NAME",file_name); //文件名称
+//            map.put("FILE_SIZE",String.valueOf(arg0.getSize()));  //文件大小
+//            //设置FileBean
+//            FileBean fileBean=new FileBean();
+//            fileBean.setPath(localPath);
+//            fileBean.setFolder(defaultPath);
+//            map.put("FILE_BEAN",fileBean);
+//        } catch (IOException e) {
+//            log.debug("FileUpLoadImpl.saveLocalFile 文件上传出错!");
+//            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+//        }
+//        return map;
+//    }
+
+}

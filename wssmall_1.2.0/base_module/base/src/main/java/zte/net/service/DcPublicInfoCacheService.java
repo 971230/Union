@@ -1,0 +1,223 @@
+package zte.net.service;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import services.ServiceBase;
+import zte.net.ecsord.params.pub.req.BPackageDependElementGetReq;
+import zte.net.ecsord.params.pub.req.DcPublicExtListReq;
+import zte.net.ecsord.params.pub.req.DictRelationListReq;
+import zte.net.ecsord.params.pub.req.DropdownDataReq;
+import zte.net.ecsord.params.pub.req.KPackageDependElementGetReq;
+import zte.net.ecsord.params.pub.req.LogiCompCodeGetReq;
+import zte.net.ecsord.params.pub.req.LogiCompPersonGetReq;
+import zte.net.ecsord.params.pub.req.PostRegionGetReq;
+import zte.net.ecsord.params.pub.req.RegionListReq;
+import zte.net.ecsord.params.pub.req.ZbDictCodeValueGetReq;
+import zte.net.ecsord.params.pub.resp.BPackageDependElementListResp;
+import zte.net.ecsord.params.pub.resp.DcPublicExtListResp;
+import zte.net.ecsord.params.pub.resp.DictRelationListResp;
+import zte.net.ecsord.params.pub.resp.DropdownDataResp;
+import zte.net.ecsord.params.pub.resp.KPackageDependElementListResp;
+import zte.net.ecsord.params.pub.resp.LogiCompCodeGetResp;
+import zte.net.ecsord.params.pub.resp.LogiCompPersonGetResp;
+import zte.net.ecsord.params.pub.resp.PostRegionGetResp;
+import zte.net.ecsord.params.pub.resp.RegionListResp;
+import zte.net.ecsord.params.pub.resp.ZbDictCodeValueGetResp;
+import zte.net.iservice.IDcPublicInfoCacheService;
+import zte.params.goods.req.DcPublicInfoCacheProxyReq;
+import zte.params.goods.resp.DcPublicInfoCacheProxyResp;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotation;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.service.IDcPublicInfoManager;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicInfoCacheProxy;
+import com.ztesoft.net.mall.core.service.impl.cache.DcPublicSQLInfoCacheProxy;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+
+@ServiceMethodBean(version="1.0")
+@Service
+public class DcPublicInfoCacheService extends ServiceBase implements IDcPublicInfoCacheService {
+
+	@Resource
+	protected IDcPublicInfoManager dcPublicInfoManager;
+
+	
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "取字典映射数据", summary = "取字典映射数据")
+	public DcPublicInfoCacheProxyResp getDictRelationValue(
+			DcPublicInfoCacheProxyReq req) {
+		DcPublicInfoCacheProxy proxy = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		DcPublicInfoCacheProxyResp resp = new DcPublicInfoCacheProxyResp();
+		Map field = proxy.getDictRelationValue(req.getStype(), req.getValue(), req.getValue_from());
+		resp.setDict_relation_value(Const.getStrValue(field, "dict_relation_value"));
+		resp.setDict_relation_value_desc(Const.getStrValue(field, "dict_relation_value_desc"));
+		return resp;
+	}
+
+
+	@Override
+	public DcPublicExtListResp listDcPublicData(DcPublicExtListReq req) {
+		String stype = req.getStype();
+		DcPublicInfoCacheProxy dcPublicCache=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		List staticList = dcPublicCache.getdcPublicExtList(stype);
+		
+		DcPublicExtListResp resp = new DcPublicExtListResp();
+		resp.setStaticList(staticList);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "取物流公司人员静态数据", summary = "取物流公司人员静态数据", isOpen = false)
+	public LogiCompPersonGetResp getLogiCompPersonData(LogiCompPersonGetReq req) {
+		String post_id=req.getPost_id();
+		String city_code=req.getCity_code();
+		DcPublicInfoCacheProxy dcPublicCache=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		Map staticList =dcPublicCache.getLogiCompanyPerson(post_id, city_code);
+		LogiCompPersonGetResp resp=new LogiCompPersonGetResp();
+		resp.setStaticList(staticList);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "取订单外部状态静态数据", summary = "取订单外部状态静态数据", isOpen = false)
+	public DictRelationListResp getDictRelationListData(
+			DictRelationListReq req) {
+		String stype=req.getStype();
+		DcPublicInfoCacheProxy dcPublicCache=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		List datas=dcPublicCache.getDictRelationListData(stype);
+		DictRelationListResp resp=new DictRelationListResp();
+		resp.setAttrList(datas);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "取es_dc_sql静态数据", summary = "取es_dc_sql静态数据", isOpen = false)
+	public DropdownDataResp getDropdownData(DropdownDataReq req) {
+		String attrCode=req.getAttrCode();
+		DcPublicSQLInfoCacheProxy dcPublicCache=new DcPublicSQLInfoCacheProxy(dcPublicInfoManager);
+		List datas=dcPublicCache.getDropdownData(attrCode);
+		DropdownDataResp resp=new DropdownDataResp();
+		resp.setDropDownList(datas);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "取es_post_region寄件方信息", summary = "取es_post_region寄件方信息", isOpen = false)
+	public PostRegionGetResp getPostRegionData(PostRegionGetReq req) {
+		String lan_code = req.getLan_code();
+		DcPublicInfoCacheProxy proxy=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		Map postRegion = proxy.getPostRegion(lan_code);
+		PostRegionGetResp resp = new PostRegionGetResp();
+		resp.setPostRegion(postRegion);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+
+	@Override
+	public RegionListResp listRegions(RegionListReq req) {
+		DcPublicInfoCacheProxy proxy=new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		List<Map> regions = proxy.getReionsList();
+		RegionListResp resp = new RegionListResp();
+		resp.setRegionList(regions);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+
+	@Override
+	public ZbDictCodeValueGetResp getZbDictCodeValue(ZbDictCodeValueGetReq req) {
+		DcPublicInfoCacheProxy proxy = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		ZbDictCodeValueGetResp resp = new ZbDictCodeValueGetResp();
+		String other_system = req.getOther_system();
+		String field_name = req.getField_name();
+		String field_attr_id = req.getField_attr_id();
+		String field_value = req.getField_value();
+		resp.setZb_field_value(proxy.getZbDictCodeValue(other_system, field_name, field_attr_id, field_value));
+		return resp;
+	}
+
+
+	@Override
+	public LogiCompCodeGetResp getLogiCompanyCode(LogiCompCodeGetReq req) {
+		IDcPublicInfoManager dcPublicInfoManager = SpringContextHolder.getBean("dcPublicInfoManager");
+		DcPublicInfoCacheProxy proxy = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		List<Map> logiCompanies = proxy.getLogiCompanyList();
+		
+		String logi_company_code = null;
+		String post_id = req.getPost_id();
+		for(Map company : logiCompanies){
+			if(post_id.equals(Const.getStrValue(company, "id"))){
+				logi_company_code = Const.getStrValue(company, "company_code");
+				break ;
+			}
+		}
+		LogiCompCodeGetResp resp = new LogiCompCodeGetResp();
+		resp.setLogi_company_code(logi_company_code);
+		return resp;
+	}
+	
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "取必选包依赖元素", summary = "取必选包依赖元素", isOpen = false)
+	public BPackageDependElementListResp getBPackageDependElementList(BPackageDependElementGetReq req) {
+		IDcPublicInfoManager dcPublicInfoManager = SpringContextHolder.getBean("dcPublicInfoManager");
+		DcPublicInfoCacheProxy proxy = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		List bPackageDependElementList = proxy.getBPackageDependElementList(req.getProduct_id(),req.getFirst_payment());
+		BPackageDependElementListResp resp = new BPackageDependElementListResp();
+		resp.setbPackageDependElementList(bPackageDependElementList);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+	
+	@Override
+	@ZteSoftCommentAnnotation(type = "method", desc = "取可选包依赖元素", summary = "取可选包依赖元素", isOpen = false)
+	public KPackageDependElementListResp getKPackageDependElementList(KPackageDependElementGetReq req) {
+		IDcPublicInfoManager dcPublicInfoManager = SpringContextHolder.getBean("dcPublicInfoManager");
+		DcPublicInfoCacheProxy proxy = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		List kPackageDependElementList = proxy.getKPackageDependElementList(
+				req.getPackageBusiRequests(),req.getFirst_payment(),req.getProduct_id());
+		KPackageDependElementListResp resp = new KPackageDependElementListResp();
+		resp.setkPackageDependElementList(kPackageDependElementList);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+	
+	@Override
+	public void cacheFreedomGruopDependElement() {
+		IDcPublicInfoManager dcPublicInfoManager = SpringContextHolder.getBean("dcPublicInfoManager");
+		DcPublicInfoCacheProxy proxy = new DcPublicInfoCacheProxy(dcPublicInfoManager);
+		proxy.cacheFreedomGruopDependElement();
+	}
+	
+    
+}

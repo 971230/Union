@@ -1,0 +1,180 @@
+package zte.net.workCustomBean.common;
+
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import com.alibaba.fastjson.JSON;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.action.OrderReturnedAction;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.consts.ZjEcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.service.IEcsOrdManager;
+import com.ztesoft.net.service.IOrdIntentManager;
+import com.ztesoft.net.service.IOrderFlowManager;
+import com.ztesoft.net.service.workCustom.interfaces.IWorkCustomEngine;
+
+import consts.ConstsCore;
+import params.order.req.OrderHandleLogsReq;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+
+public class CloseOrderBean extends BasicBusiBean {
+	private Logger logger = Logger.getLogger(this.getClass());
+	
+	@Resource
+	private IOrdIntentManager ordIntentManager;
+	@Resource
+	private OrderReturnedAction orderReturnedAction;
+	@Resource
+	private IOrderFlowManager ordFlowManager;
+	@Resource
+	private IEcsOrdManager ecsOrdManager;
+	@Resource
+	private IWorkCustomEngine workCustomEngineManager;
+	
+	private String dealDesc;
+	private String returnedReasonCode;
+	private OrderTreeBusiRequest orderTree;
+
+	/**
+	 * 业务处理方法
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("rawtypes")
+	public String doBusi() throws Exception{
+		String json_param = this.getFlowData().getJson_param();
+		
+		if(org.apache.commons.lang.StringUtils.isNotBlank(json_param)){
+			Map map_param = JSON.parseObject(json_param);
+
+			this.dealDesc = (String) map_param.get("dealDesc");
+			this.returnedReasonCode = (String) map_param.get("returnedReasonCode");
+		}else{
+			String order_id = this.getFlowData().getOrderTree().getOrder_id();
+			
+			String contact_results_frist = CommonDataFactory.getInstance().
+					getAttrFieldValue(order_id, "contact_results_frist");
+			String contact_results_second = CommonDataFactory.getInstance().
+					getAttrFieldValue(order_id, "contact_results_second");
+			
+			if(org.apache.commons.lang.StringUtils.isBlank(contact_results_frist)
+					||  org.apache.commons.lang.StringUtils.isBlank(contact_results_second)){
+				this.dealDesc="退单";
+			}else {
+				IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+				String sql = "select a.results from es_customer_contact_results a WHERE a.result_id=?";
+				
+				String results_frist_name = "";
+				String results_second_name = "";
+				
+				results_frist_name = baseDaoSupport.queryForString(sql, contact_results_frist);
+				results_second_name = baseDaoSupport.queryForString(sql, contact_results_second);
+				
+				this.dealDesc = results_frist_name+","+results_second_name;
+			}
+			
+			
+		}
+		
+		this.orderTree = this.getFlowData().getOrderTree();
+		String order_model = this.orderTree.getOrderExtBusiRequest().getOrder_model();
+		if(EcsOrderConsts.ORDER_MODEL_07.equals(order_model)){
+			if(StringUtils.isEmpty(this.returnedReasonCode)){
+				throw new Exception("请填选择退单原因！");
+			}
+		}
+
+		OrderExtBusiRequest orderExtBusiRequest = this.orderTree.getOrderExtBusiRequest();
+		if(EcsOrderConsts.REFUND_DEAL_TYPE_02.equals(orderExtBusiRequest.getRefund_deal_type())){
+			throw new Exception("此单已申请退单，不能重复申请退单！");
+		}
+
+		String platType = orderExtBusiRequest.getPlat_type();
+		if(StringUtils.equals(platType, EcsOrderConsts.PLAT_TYPE_10061)) {
+			throw new Exception("华盛订单不允许操作退单！");
+		}
+
+		this.cancelOrder4CustomOrder();
+		
+		return "true";
+	}
+
+	/**
+	 * 后台等待环节的处理方法，用于后台等待环节的自动判断，
+	 * 不是后台等待环节的业务处理代码无需实现该方法
+	 * @return 可以继续往下执行，返回true;继续等待返回false
+	 * @throws Exception
+	 */
+	public boolean doBackWaitCheck() throws Exception{
+		return true;
+	}
+
+	/**
+	 * 自定义流程退单
+	 * @throws Exception
+	 */
+	private void cancelOrder4CustomOrder() throws Exception {
+		String order_id=this.getFlowData().getOrderTree().getOrder_id();
+		//当前操作员信息
+		AdminUser user = ManagerUtils.getAdminUser();
+
+		//退单状态
+		OrderExtBusiRequest orderExtBusiRequest = this.orderTree.getOrderExtBusiRequest();
+		orderExtBusiRequest.setRefund_deal_type(EcsOrderConsts.REFUND_DEAL_TYPE_02);
+		orderExtBusiRequest.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+		orderExtBusiRequest.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+		orderExtBusiRequest.store();
+
+		//记录退单原因
+		CommonDataFactory.getInstance().updateAttrFieldValue(order_id, 
+				new String[]{AttrConsts.REFUND_DESC,AttrConsts.RETURNED_REASON_CODE}, 
+				new String[]{EcsOrderConsts.REFUND_APPLY_DESC+""+this.dealDesc,this.returnedReasonCode});
+
+		//标记为非商城主动发起的退单
+		CommonDataFactory.getInstance().updateAttrFieldValue(order_id, 
+				new String[]{AttrConsts.ZB_REFUND_STATUS}, 
+				new String[]{EcsOrderConsts.NO_DEFAULT_VALUE});
+
+		//订单状态
+		OrderBusiRequest orderBusiReq = this.orderTree.getOrderBusiRequest();
+		orderBusiReq.setStatus(ZjEcsOrderConsts.DIC_ORDER_STATUS_13);
+		orderBusiReq.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+		orderBusiReq.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+		orderBusiReq.store();
+
+		//解锁订单
+		ecsOrdManager.unLock(order_id);
+
+		//写日志
+		String handler_comments = ZjEcsOrderConsts.REFUND_APPLY_DESC+""+this.dealDesc;
+		CommonDataFactory.getInstance().updateAttrFieldValue(order_id, 
+				new String[]{AttrConsts.REFUND_DESC}, 
+				new String[]{handler_comments});
+
+		OrderHandleLogsReq req = new OrderHandleLogsReq();
+		String flow_id = this.orderTree.getOrderExtBusiRequest().getFlow_id();
+		String flowTraceId = this.orderTree.getOrderExtBusiRequest().getFlow_trace_id();
+		req.setOrder_id(order_id);
+		req.setFlow_id(flow_id);
+		req.setFlow_trace_id(flowTraceId);
+		req.setComments(handler_comments);
+		req.setHandler_type(Const.ORDER_HANDLER_TYPE_RETURNED);
+		req.setType_code(EcsOrderConsts.REFUND_STATUS_04);
+		req.setOp_id(user.getUserid());
+		req.setOp_name(user.getUsername());
+
+		this.ordFlowManager.insertOrderHandLog(req);
+	}
+}

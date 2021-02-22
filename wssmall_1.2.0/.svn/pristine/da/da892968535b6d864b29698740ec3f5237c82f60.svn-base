@@ -1,0 +1,38 @@
+package zte.params.order.req;
+
+import params.ZteRequest;
+import zte.params.order.resp.DeliveryItemsQueryByDeIdResp;
+import zte.params.order.resp.DeliveryItemsQueryResp;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.framework.database.NotDbField;
+
+public class DeliveryItemsQueryByDeIdReq extends ZteRequest<DeliveryItemsQueryByDeIdResp> {
+	
+	private String delivery_id;
+	
+
+	@Override
+	@NotDbField
+	public void check() throws ApiRuleException {
+		
+	}
+
+	@Override
+	@NotDbField
+	public String getApiMethodName() {
+		return "zte.ordrService.order.delivery.items.type.queryByDeId";
+	}
+
+	public String getDelivery_id() {
+		return delivery_id;
+	}
+
+	public void setDelivery_id(String delivery_id) {
+		this.delivery_id = delivery_id;
+	}
+
+	
+
+}

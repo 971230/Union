@@ -1,0 +1,91 @@
+package com.ztesoft.net.sqls;
+
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+/**
+ * 
+ * @author wu.i
+ * 移植CRM代码
+ *
+ */
+public class Sqls_Task extends Sqls {
+
+	/*static class SingletonHolder {
+		static Sqls sqlsManager = new Sqls_Task();
+		static { 
+			try{
+				Map<String , String>  mysqls = sqlsManager.sqls;
+				Class o_sql_local_class = Class.forName(sqlsManager.getClass().getName() + "_LOCAL");
+				Sqls o_sql_local = (Sqls)o_sql_local_class.newInstance();
+				SqlUtil.initSqls(o_sql_local_class, o_sql_local , mysqls) ;
+			}catch(Exception ex){
+//				throw new RuntimeException(ex);
+			}
+		}
+	}*/
+	
+	public Sqls_Task(){
+		//SqlUtil.initSqls(Sqls_Task.class, this , sqls) ;
+	}
+	
+	/*public static Sqls getInstance() {
+		return SingletonHolder.sqlsManager;
+	}*/
+	
+	// 配置的SQL...
+
+	public String getSUB_GOODS_TYPE(){
+		return "select pkey sub_type_id,pname sub_type_name from es_dc_public where source_from is null and stype=2014081914 and codea=? ";
+	}
+	
+	public String getIMPORT_ALREADY_UPLOAD_DATA(){
+		return "select l.total_num,l.succ_num,l.fail_num,l.wait_num,m.id,m.log_id,m.batch_id,m.file_name,m.data_json,m.created_time,a.username oper_name,m.oper_id,decode(m.status,'0','未处理','1','成功','2','失败','未处理') status,m.deal_time,t.template_name, m.template_id,m.deal_desc from es_import_mid_data m,es_import_template t,es_adminuser a,es_import_logs l where t.template_id=m.template_id and t.source_from = m.source_from and a.userid=m.oper_id and l.log_id=m.log_id and m.source_from ='"+ManagerUtils.getSourceFrom()+"' ";
+	}
+	
+	public String getIMPORT_LOG_LIST(){
+		return "select t.* from es_import_logs t where t.source_from ='"+ManagerUtils.getSourceFrom()+"' ";
+	}
+	
+	public String getIMPORT_TEMPLATE_LIST(){
+		return "select t.template_id,t.template_type,t.template_name,t.rule_java,t.thread_num,t.max_num,t.status,t.template_columns,t.created_time,rule_desc, "+ 
+				" (select pname from es_dc_public p where p.source_from is null and p.stype=20140819 and p.pkey=t.type_id) type_name, "+
+				" (select pname from es_dc_public p where p.source_from is null and p.stype=2014081914 and p.pkey=t.sub_type_id) sub_type_name " +
+				"from es_import_template t where t.source_from='"+ManagerUtils.getSourceFrom()+"' ";
+	}
+	
+	public String getIMPORT_TEMPLATE(){
+		return "select template_id,template_type,created_time,type_id,sub_type_id,template_name,template_columns,rule_java,thread_num,max_num,rule_desc,status " +
+				"from es_import_template where source_from='"+ManagerUtils.getSourceFrom()+"' ";
+	}
+	
+	public String getIMPORT_TEMPLATE_DELETE(){
+		return "update es_import_template set status='00X' where source_from='"+ManagerUtils.getSourceFrom()+"' ";
+	}
+	
+	public String getIMPORT_TEMPLATE_COLUMN(){
+		return "select template_columns from es_import_template where source_from='"+ManagerUtils.getSourceFrom()+"' and template_id=? ";
+	}
+	
+	public String getMID_DATA_LIST(){
+		return "select id,log_id,batch_id,template_id,data_json from es_import_mid_data where source_from='"+ManagerUtils.getSourceFrom()+"' ";
+	}
+	
+	public String getMID_DATA_STATUS_UPDATE(){
+		return " update es_import_mid_data set status=?,deal_time=sysdate,deal_desc=? where id=? ";
+	}
+	
+	public String getLOG_SUCC_NUM_UPDATE(){
+		return " update es_import_logs log set log.succ_num=(select count(*) from es_import_mid_data md where md.status='"+Consts.MID_DATA_STATUS_1+"' and md.log_id=log.log_id)," +
+				"wait_num=(select count(*) from es_import_mid_data md where md.status='"+Consts.MID_DATA_STATUS_0+"' and md.log_id=log.log_id) where log.log_id=? ";
+	}
+	
+	public String getLOG_FAIL_NUM_UPDATE(){
+		return " update es_import_logs log set log.fail_num=(select count(*) from es_import_mid_data md where md.status='"+Consts.MID_DATA_STATUS_2+"' and md.log_id=log.log_id)," +
+				"wait_num=(select count(*) from es_import_mid_data md where md.status='"+Consts.MID_DATA_STATUS_0+"' and md.log_id=log.log_id) where log.log_id=? ";
+	}
+	
+	public String getIMPORT_MID_DATA_INSERT(){
+		return "insert into es_import_mid_data(log_id,batch_id,file_name,template_id,data_json,oper_id,status,deal_desc,source_from,id) " +
+				"values(?,?,?,?,?,?,?,?,?,?)";
+	}
+}

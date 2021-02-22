@@ -1,0 +1,41 @@
+package zte.net.common.params.req;
+
+import params.ZteBusiRequest;
+import zte.net.common.params.ZtePofBusiRequest;
+
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.framework.database.NotDbField;
+
+/**
+ * 
+ * @author wu.i 订单环节对象
+ * @param <T>
+ * 
+ */
+public class ZtePofInstUpdateRequest<T extends ZtePofBusiRequest> extends ZteBusiRequest {
+
+	private T updateRequest;
+
+
+	public T getUpdateRequest() {
+		return updateRequest;
+	}
+
+	public void setUpdateRequest(T updateRequest) {
+		this.updateRequest = updateRequest;
+	}
+
+	@Override
+	@NotDbField
+	public void check() throws ApiRuleException {
+
+	}
+
+
+	@Override
+	@NotDbField
+	public String getApiMethodName() {
+		return "zte.orderService.ztepofinst.pofupdate";
+	}
+
+}

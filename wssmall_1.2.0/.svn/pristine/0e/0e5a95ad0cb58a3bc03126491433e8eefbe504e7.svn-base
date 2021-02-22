@@ -1,0 +1,65 @@
+/*    */ package org.springframework.web.multipart.support;
+/*    */ 
+/*    */
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+
+/*    */
+/*    */
+/*    */
+/*    */
+/*    */
+/*    */
+/*    */
+/*    */ 
+/*    */ public class DefaultMultipartHttpServletRequest extends AbstractMultipartHttpServletRequest
+/*    */ {
+/*    */   private final Map multipartParams;
+/*    */ 
+/*    */   public DefaultMultipartHttpServletRequest(HttpServletRequest paramHttpServletRequest, Map paramMap1, Map paramMap2)
+/*    */   {
+/* 50 */     super(paramHttpServletRequest);
+/* 51 */     setMultipartFiles(paramMap1);
+/* 52 */     this.multipartParams = paramMap2;
+/*    */   }
+/*    */ 
+/*    */   public Enumeration getParameterNames()
+/*    */   {
+/* 57 */     HashSet localHashSet = new HashSet();
+/* 58 */     Enumeration localEnumeration = getRequest().getParameterNames();
+/* 59 */     while (localEnumeration.hasMoreElements()) {
+/* 60 */       localHashSet.add(localEnumeration.nextElement());
+/*    */     }
+/* 62 */     localHashSet.addAll(this.multipartParams.keySet());
+/* 63 */     return Collections.enumeration(localHashSet);
+/*    */   }
+/*    */ 
+/*    */   public String getParameter(String paramString) {
+/* 67 */     String[] arrayOfString = (String[])(String[])this.multipartParams.get(paramString);
+/* 68 */     if (arrayOfString != null) {
+/* 69 */       return arrayOfString.length > 0 ? arrayOfString[0] : null;
+/*    */     }
+/* 71 */     return getRequest().getParameter(paramString);
+/*    */   }
+/*    */ 
+/*    */   public String[] getParameterValues(String paramString) {
+/* 75 */     String[] arrayOfString = (String[])(String[])this.multipartParams.get(paramString);
+/* 76 */     if (arrayOfString != null) {
+/* 77 */       return arrayOfString;
+/*    */     }
+/* 79 */     return getRequest().getParameterValues(paramString);
+/*    */   }
+/*    */ 
+/*    */   public Map getParameterMap() {
+/* 83 */     HashMap localHashMap = new HashMap();
+/* 84 */     localHashMap.putAll(getRequest().getParameterMap());
+/* 85 */     localHashMap.putAll(this.multipartParams);
+/* 86 */     return localHashMap;
+/*    */   }
+/*    */ }
+
+/* Location:           C:\Users\Administrator\Desktop\spring-1.2.6.jar
+ * Qualified Name:     org.springframework.web.multipart.support.DefaultMultipartHttpServletRequest
+ * JD-Core Version:    0.6.0
+ */

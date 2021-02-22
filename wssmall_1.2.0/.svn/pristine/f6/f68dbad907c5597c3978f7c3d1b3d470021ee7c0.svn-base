@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+
+    <!-- ********************定时任务-系统缓存刷新开始******************** -->
+    <bean id="sysCacheTimer" class="com.ztesoft.net.mall.core.timer.SysCacheTimer"/>
+    <bean id="sysCacheJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="sysCacheTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发-->
+    <bean id="sysCacheTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="sysCacheJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+            <value>0 0 23 * * ?</value>
+        </property>
+    </bean>
+    
+    <!-- ********************定时任务-产-商品缓存刷新结束******************** -->
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="triggers">
+            <list>
+                 <ref bean="sysCacheTime"/>
+            </list>
+        </property>
+    </bean>
+</beans>

@@ -1,0 +1,123 @@
+package com.ztesoft.net.server.servlet.impl;
+
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+import org.dom4j.Document;
+import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
+
+import zte.net.ecsord.params.sf.req.RoutePushServiceRequset;
+import zte.net.ecsord.params.sf.resp.RoutePushServiceResponse;
+import zte.net.ecsord.params.sf.vo.WaybillRoute;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.server.servlet.ICommonServlet;
+
+/**
+ * 顺丰推送路由信息处理
+ */
+public class SFLogisticsInfoServlet implements ICommonServlet {
+
+	private final static Logger logger = Logger.getLogger(SFLogisticsInfoServlet.class);
+	
+	private static final String serviceName = "RoutePushService";
+	 private  static String interfaceName="【顺丰推送路由信息】";
+	@Override
+	public String service(String reqString) throws Exception {
+
+		// 解析报文返回内容
+		Element root = null;
+		Element bodyElement = null;
+		try {
+			SAXReader readerDom = new SAXReader();
+			logger.info(reqString);
+			reqString = reqString.replaceAll("&lt;", "<");
+			reqString = reqString.replace("{\"content\":\"", "");
+			reqString = reqString.replaceAll("\"}", "");
+			reqString = reqString.replace("\\", "");
+			reqString = reqString.replaceAll("＝", "=");
+			logger.info(reqString);
+			Document doc = readerDom.read(new ByteArrayInputStream(reqString
+				     .getBytes("UTF-8")));
+			root = doc.getRootElement();
+			bodyElement = root.element("Body");
+		} catch (Exception e) {
+			logger.info(interfaceName+"请求报文格式错误:"+e.getMessage());
+			e.printStackTrace();
+			RoutePushServiceResponse resp = new RoutePushServiceResponse();
+			resp.setRespOrderStatus(EcsOrderConsts.SF_INF_FAIL_CODE);
+			resp.setRespOrderDesc("请求报文格式错误!");
+			return getResultStr(SFLogisticsInfoServlet.serviceName, resp);
+			
+		}
+
+		RoutePushServiceRequset req = new RoutePushServiceRequset();
+		String serviceName = "";
+		try {
+			serviceName = root.attributeValue("service");
+			List<WaybillRoute> waybillRouteList = new ArrayList<WaybillRoute>();
+			WaybillRoute waybillRoute = null;
+			List<Element> postInfoList = bodyElement.elements("WaybillRoute");
+			if(postInfoList.isEmpty()) throw new Exception();
+			for (Element postInfo : postInfoList) {
+				waybillRoute = new WaybillRoute();
+				waybillRoute.setId(postInfo.attributeValue("id"));
+				waybillRoute.setOpCode(postInfo.attributeValue("opCode"));
+				waybillRoute.setRemark(postInfo.attributeValue("remark"));
+				waybillRoute.setAcceptTime(postInfo.attributeValue("acceptTime"));
+				waybillRoute.setAcceptAddress(postInfo.attributeValue("acceptAddress"));
+				waybillRoute.setOrderid(postInfo.attributeValue("orderid"));
+				waybillRoute.setMailno(postInfo.attributeValue("mailno"));
+				waybillRouteList.add(waybillRoute);
+			}
+			req.setWaybillRoute(waybillRouteList);
+		} catch (Exception e) {
+			logger.info(interfaceName+"请求报文参数错误:"+e.getMessage());
+			e.printStackTrace();
+			RoutePushServiceResponse resp = new RoutePushServiceResponse();
+			resp.setRespOrderStatus(EcsOrderConsts.SF_INF_FAIL_CODE);
+			resp.setRespOrderDesc("请求报文参数错误!");
+			return getResultStr(SFLogisticsInfoServlet.serviceName, resp);
+		}
+		// 接口调用-业务处理
+		RoutePushServiceResponse resp = null;
+		try {
+			ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+			resp =  client.execute(req, RoutePushServiceResponse.class);
+		} catch (Exception e) {
+			logger.info(interfaceName+"接口调用错误:"+e.getMessage());
+			e.printStackTrace();
+			resp = new RoutePushServiceResponse();
+			resp.setRespOrderStatus(EcsOrderConsts.SF_INF_FAIL_CODE);
+			resp.setRespOrderDesc("inf接口调用错误:"+e.getMessage());
+			return getResultStr(serviceName, resp);
+		}
+		
+		return getResultStr(serviceName, resp);
+
+	}
+
+	/**
+	 * 根据返回对象拼装xml返回报文
+	 * @param serviceName
+	 * @param resp
+	 * @return
+	 */
+	public String getResultStr(String serviceName, RoutePushServiceResponse resp) {
+		// 响应报文//<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+		String resultStr = "<Response service=\"" + serviceName + "\"><Head>" + resp.getRespOrderStatus() + "</Head>";
+		if (EcsOrderConsts.SF_INF_FAIL_CODE.equals(resp.getRespOrderStatus())) {
+			resultStr += "<ERROR code=\"-1\">" + resp.getRespOrderDesc() + "</ERROR>";
+		}else{
+			//resultStr +="<WaybillRouteResponse  orderid=\""+resp.getId()+"\"   orderid_error=\"\" ></WaybillRouteResponse>";
+		}
+		resultStr += "</Response>";
+		return resultStr;
+	}
+}

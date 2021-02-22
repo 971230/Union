@@ -1,0 +1,331 @@
+package com.ztesoft.rule.core.exe.def;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.drools.KnowledgeBase;
+import org.drools.runtime.StatefulKnowledgeSession;
+
+import com.ztesoft.rule.core.exe.IRuleConfigs;
+import com.ztesoft.rule.core.exe.IRuleContext;
+import com.ztesoft.rule.core.exe.IRuleExecutor;
+import com.ztesoft.rule.core.exe.IRuleFactDatas;
+import com.ztesoft.rule.core.exe.IRuleFacts;
+import com.ztesoft.rule.core.exe.IRulePartners;
+import com.ztesoft.rule.core.exe.IRuleResultHandler;
+import com.ztesoft.rule.core.exe.thread.IPartnerExecutorService;
+import com.ztesoft.rule.core.module.cache.FactCacheDatas;
+import com.ztesoft.rule.core.module.cfg.BizPlan;
+import com.ztesoft.rule.core.module.cfg.ConfigData;
+import com.ztesoft.rule.core.module.cfg.MidDataConfig;
+import com.ztesoft.rule.core.module.fact.DefFact;
+import com.ztesoft.rule.core.module.fact.ProcessFacts;
+import com.ztesoft.rule.core.module.filter.FactFilterManager;
+import com.ztesoft.rule.core.module.filter.IFactFilter;
+import com.ztesoft.rule.core.util.Const;
+
+public class DefDroolsRuleExecutor implements IRuleExecutor {
+//	protected final Logger logger = Logger.getLogger(getClass());
+	private static Logger logger = Logger.getLogger(DefDroolsRuleExecutor.class);
+	private IRuleContext ruleContext;
+	private IRulePartners rulePartners;
+	private IRuleFacts ruleFacts;
+	private IRuleFactDatas ruleFactDatas;
+
+	private IRuleConfigs ruleConfigs;
+
+	private KnowledgeBase kbase;
+
+	// private GlobalObject globalObject;
+	
+	private FactFilterManager factFilterManager;
+	
+	private IRuleResultHandler ruleResultHandler;
+	
+	private IPartnerExecutorService partnerExecutorService ;
+	
+
+	private List<IFactFilter> filters = null ;
+	private boolean hadLoadedFilters = false ;
+	/**
+	 * fact设置器
+	 * 
+	 * @param ksession
+	 * @param partner
+	 */
+	private ProcessFacts factsInserter(StatefulKnowledgeSession ksession, Map partner,
+			ConfigData configData) {
+		BizPlan plan = configData.getBizPlan();
+
+		
+		//2014-2-25 mochunrun修改 返回传过来的参数
+		if(plan.getParamMap()!=null)
+			partner.putAll(plan.getParamMap());
+		// 设置到partner中
+		partner.putAll(plan.toMap());
+		
+		if(!hadLoadedFilters){
+			filters = factFilterManager.loadFactFilters(plan.getPlan_id());
+			hadLoadedFilters = true ;
+		}
+		
+		// 中间表Fact数据
+		List<MidDataConfig> midDataCfgs = configData.getMdConfigs();
+		
+		//fact引用
+		ProcessFacts pf = new ProcessFacts();
+		
+		for (MidDataConfig midDataCfg : midDataCfgs) {
+
+			// 过滤处理
+			List<DefFact> srcFacts = ruleFacts.loadFacts(midDataCfg  , partner);
+			
+			logger.info("agent_id="+partner.get("id")+",size="+srcFacts.size()) ;
+			if (srcFacts == null || srcFacts.isEmpty())
+				continue;
+
+			List<DefFact> descList = new ArrayList<DefFact>();
+			//获取目标Fact
+			if (filters == null || filters.isEmpty()) {
+				descList.addAll(srcFacts);
+			} else {
+				for (DefFact fact : srcFacts) {
+					if (filters != null && !filters.isEmpty()
+							&& factFilterManager.doFilter(fact, filters))
+						continue;
+					descList.add(fact);
+				}
+			}
+
+			// 插入到wk中
+			for (DefFact fact : descList) {
+				fact.setPlan_id(plan.getPlan_id());
+				ksession.insert(fact);
+			}
+			
+			//备份
+			pf.addProcessFact(midDataCfg, descList, partner) ;
+		}
+
+		// 缓存相关Fact数据
+		FactCacheDatas factCacheDatas = ruleFactDatas.loadFactDatas(configData.getBizPlan().getPlan_code());
+		if (factCacheDatas != null && factCacheDatas.getFactDatas() != null
+				&& !factCacheDatas.getFactDatas().isEmpty())
+			ksession.insert(factCacheDatas.getFactDatas());
+		
+		return pf ;
+	}
+
+	private void processPartnersData(List<Map> partners, ConfigData configData) {
+		for (Map partner : partners) {
+			long s1 = System.currentTimeMillis();
+			try {
+				StatefulKnowledgeSession ksession = kbase.newStatefulKnowledgeSession();
+
+				// fact 插入
+				ProcessFacts pf = factsInserter(ksession, partner, configData);
+
+				// 存在规则流时，启动流程
+				if (configData.getBizPlan().getFlow_code() != null
+						&& !configData.getBizPlan().getFlow_code().isEmpty())
+					ksession.startProcess(configData.getBizPlan().getFlow_code());
+
+				// 启动所有规则
+				ksession.fireAllRules();
+
+				// 释放资源
+				ksession.dispose();
+
+				// 结果处理
+				ruleResultHandler.doExec(pf);
+
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
+			long s2 = System.currentTimeMillis();
+//			logger.info("process one agent cost time=["
+//					+ ((s2 - s1) ) + "]");
+		}
+
+	}
+
+
+	@Override
+	public void coreProcess(ConfigData configData ,int mold) {
+		
+		int pages = 0;
+		List<Map> partners = null;
+		if (Const.NO_MOLD == mold ) {// 全部加装,一次性处理完毕
+//			partnerNum < Const.WAIT_PROCESSING_PARTNER_NUM 
+			if(configData.getPlanEntityNum()==0){
+				//当没有配参与者时只返回方案数据与传过来的数据  2014-2-26 mochunrun   添加
+				partners = new ArrayList<Map>();
+				Map map = new HashMap();
+				partners.add(map);
+			}else{
+				partners = rulePartners.loadPartners(configData.getBizPlan());
+			}
+			processPartnersData(partners, configData);
+			
+		} else {// 1000一页
+			//统讲需要处理的数据量
+			//2014-2-27 mochunrun 改为统计所有的数据，所以分页需要重新设计 之前是按线程统计
+			int partnerNum = rulePartners.partnersSize(configData.getBizPlan()  , mold);
+			if(partnerNum==0)return ;
+			
+			if (partnerNum % Const.WAIT_PROCESSING_PARTNER_NUM == 0) {
+				pages = partnerNum / Const.WAIT_PROCESSING_PARTNER_NUM;
+			} else {
+				pages = partnerNum / Const.WAIT_PROCESSING_PARTNER_NUM + 1;
+			}
+			
+			//===========重新计算分页数 2014-2-27 mochunrun ==================
+			int threadNun = configData.getBizPlan().getThread_num();//总线程数
+			int modPartnerPages = partnerNum%threadNun;
+			int threadPartnerPages = partnerNum/threadNun;
+			if(mold==0)threadPartnerPages += modPartnerPages;
+			int startPage = 1;
+			if(mold>0){
+				startPage = threadPartnerPages*mold + 1 + modPartnerPages;
+			}
+			if(threadPartnerPages==0)return ;
+			//===========重新计算分页数 2014-2-27 mochunrun ==================
+			
+//			//FIXME for test : 
+//			if(pages>2) pages=3 ;
+			for (int pageNo = startPage; pageNo<=(startPage+threadPartnerPages); pageNo++) {
+				partners = rulePartners.loadPartners(configData.getBizPlan() , mold,pageNo, Const.WAIT_PROCESSING_PARTNER_NUM);
+				processPartnersData(partners, configData);
+			}
+		}
+	}
+
+	
+	@Override
+	public Object execute() {
+		// load up the knowledge base
+		// 实现configData可配置化处理
+		ConfigData configData = ruleConfigs.getConfigData();
+		/*try{
+			
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}*/
+		long s1 = System.currentTimeMillis();
+
+		kbase = (KnowledgeBase) ruleContext.getContext(configData);
+		long s3 = System.currentTimeMillis();
+
+//		logger.info("parse rule cost time="+(s3-s1));
+		
+		int planEntityNum = rulePartners.getPlanEntityCount(configData.getBizPlan().getPlan_id());
+		int partnerNum = rulePartners.partnersSize(configData.getBizPlan());
+		if (planEntityNum>0 && partnerNum == 0)
+			return null;
+		
+		configData.setPlanEntityNum(planEntityNum);
+		
+		//很新处理逻辑
+		if(Const.RUN_TIME_TIMMING.equals(configData.getRunType()) ){
+			partnerExecutorService.setConfig(configData) ;
+			partnerExecutorService.setPartnerNum(partnerNum) ;
+			partnerExecutorService.setRuleExecutor(this) ;
+			partnerExecutorService.multiProcess() ;
+		}else{
+			coreProcess(configData , Const.NO_MOLD) ;
+			//更新方案
+			try{
+				ruleFactDatas.expireCache(configData.getBizPlan().getPlan_code()) ;
+				ruleConfigs.updateConfigData() ;
+			}finally{
+				configData.setFinshed(true) ;
+			}
+		}
+		
+		long s2 = System.currentTimeMillis();
+//		logger.info("all p process  cost time=[" + ((s2 - s1) / 1000)
+//				+ "]");
+
+		// logger.close();
+		return null;
+	}
+
+	@Override
+	public IRuleFacts getRuleFacts() {
+		return ruleFacts;
+	}
+
+	@Override
+	public void setRuleFacts(IRuleFacts ruleFacts) {
+		this.ruleFacts = ruleFacts;
+	}
+
+	@Override
+	public IRulePartners getRulePartners() {
+		return rulePartners;
+	}
+
+	@Override
+	public void setRulePartners(IRulePartners rulePartners) {
+		this.rulePartners = rulePartners;
+	}
+
+	@Override
+	public IRuleFactDatas getRuleFactDatas() {
+		return ruleFactDatas;
+	}
+
+	@Override
+	public void setRuleFactDatas(IRuleFactDatas ruleFactDatas) {
+		this.ruleFactDatas = ruleFactDatas;
+	}
+
+	@Override
+	public IRuleConfigs getRuleConfigs() {
+		return ruleConfigs;
+	}
+
+	@Override
+	public void setRuleConfigs(IRuleConfigs ruleConfigs) {
+		this.ruleConfigs = ruleConfigs;
+	}
+
+	public FactFilterManager getFactFilterManager() {
+		return factFilterManager;
+	}
+
+	public void setFactFilterManager(FactFilterManager factFilterManager) {
+		this.factFilterManager = factFilterManager;
+	}
+
+	@Override
+	public IRuleContext getRuleContext() {
+		return this.ruleContext;
+	}
+
+	@Override
+	public void setRuleContext(IRuleContext context) {
+		this.ruleContext = context;
+	}
+
+	@Override
+	public void setRuleResultHandler(IRuleResultHandler ruleResultHandler) {
+		this.ruleResultHandler = ruleResultHandler;
+	}
+	
+
+
+	public IPartnerExecutorService getPartnerExecutorService() {
+		return partnerExecutorService;
+	}
+
+	@Override
+	public void setPartnerExecutorService(
+			IPartnerExecutorService partnerExecutorService) {
+		this.partnerExecutorService = partnerExecutorService;
+	}
+
+}

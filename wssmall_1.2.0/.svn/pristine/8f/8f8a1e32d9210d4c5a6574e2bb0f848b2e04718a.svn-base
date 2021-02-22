@@ -1,0 +1,307 @@
+package com.ztesoft.net.mall.core.model;
+
+import java.io.Serializable;
+import java.util.Date;
+
+import com.ztesoft.net.framework.database.NotDbField;
+
+public class GoodsImportLog implements Serializable {
+	private static final long serialVersionUID = 8084009345238655513L;
+	private String log_id;//日志ID
+	private String batch_id;//批次号
+	private Integer batch_amount;//该批次导入总数
+	private String file_name;//文件名称
+	private String oper_id;//导入工号
+	private String oper_name;//导入人员名称
+	private String rel_code;//活动编码
+	private String atv_code;//活动类型编码值
+	private String atv_name;//活动名称
+	private String atv_months;//活动期限
+	private String atv_desc;//活动描述
+	private String offer_terminals;//优惠购机方案
+	private Double deposit_fee;//预存金额
+	private Double order_return;//首月返还金额
+	private Double mon_return;//按月返还金额
+	private String product_code;//产品编码
+	private String product_name;//产品名称
+	private String goods_desc;//产品描述
+	private String prod_brand_desc;//产品品牌描述
+	private String fee_type;//付费类型
+	private String no_gen;//网别
+	private Double contract_fee;//合约费用
+	private String terminals_name;//机型名称
+	private String terminals_code;//机型编码
+	private String brand_name;//品牌
+	private String brand_code;//品牌编码
+	private String model_name;//型号
+	private String model_code;//型号编码
+	private String color_name;//颜色
+	private String color_code;//颜色编码
+	private String goods_type_name;//资源类别名称
+	private String created_date;//导入时间
+	private Integer deal_flag;//处理状态
+	private String status_date;//处理状态更新时间
+	private String deal_desc;//处理结果描述
+	private Integer deal_num;//处理次数
+	private String comments;//备注
+	private String param1;//备用字段1
+	private String param2;//备用字段2
+	private String param3;//备用字段3
+	private String param4;//备用字段4
+	private String param5;//备用字段5
+	public String getLog_id() {
+		return log_id;
+	}
+	public void setLog_id(String log_id) {
+		this.log_id = log_id;
+	}
+	public String getBatch_id() {
+		return batch_id;
+	}
+	public void setBatch_id(String batch_id) {
+		this.batch_id = batch_id;
+	}
+	public Integer getBatch_amount() {
+		return batch_amount;
+	}
+	public void setBatch_amount(Integer batch_amount) {
+		this.batch_amount = batch_amount;
+	}
+	public String getFile_name() {
+		return file_name;
+	}
+	public void setFile_name(String file_name) {
+		this.file_name = file_name;
+	}
+	public String getOper_id() {
+		return oper_id;
+	}
+	public void setOper_id(String oper_id) {
+		this.oper_id = oper_id;
+	}
+	@NotDbField
+	public String getOper_name() {
+		return oper_name;
+	}
+	public void setOper_name(String oper_name) {
+		this.oper_name = oper_name;
+	}
+	public String getRel_code() {
+		return rel_code;
+	}
+	public void setRel_code(String rel_code) {
+		this.rel_code = rel_code;
+	}
+	public String getAtv_code() {
+		return atv_code;
+	}
+	public void setAtv_code(String atv_code) {
+		this.atv_code = atv_code;
+	}
+	public String getAtv_name() {
+		return atv_name;
+	}
+	public void setAtv_name(String atv_name) {
+		this.atv_name = atv_name;
+	}
+	public String getAtv_months() {
+		return atv_months;
+	}
+	public void setAtv_months(String atv_months) {
+		this.atv_months = atv_months;
+	}
+	public String getAtv_desc() {
+		return atv_desc;
+	}
+	public void setAtv_desc(String atv_desc) {
+		this.atv_desc = atv_desc;
+	}
+	public String getOffer_terminals() {
+		return offer_terminals;
+	}
+	public void setOffer_terminals(String offer_terminals) {
+		this.offer_terminals = offer_terminals;
+	}
+	public Double getDeposit_fee() {
+		return deposit_fee;
+	}
+	public void setDeposit_fee(Double deposit_fee) {
+		this.deposit_fee = deposit_fee;
+	}
+	public Double getOrder_return() {
+		return order_return;
+	}
+	public void setOrder_return(Double order_return) {
+		this.order_return = order_return;
+	}
+	public Double getMon_return() {
+		return mon_return;
+	}
+	public void setMon_return(Double mon_return) {
+		this.mon_return = mon_return;
+	}
+	public String getProduct_code() {
+		return product_code;
+	}
+	public void setProduct_code(String product_code) {
+		this.product_code = product_code;
+	}
+	public String getProduct_name() {
+		return product_name;
+	}
+	public void setProduct_name(String product_name) {
+		this.product_name = product_name;
+	}
+	public String getGoods_desc() {
+		return goods_desc;
+	}
+	public void setGoods_desc(String goods_desc) {
+		this.goods_desc = goods_desc;
+	}
+	public String getProd_brand_desc() {
+		return prod_brand_desc;
+	}
+	public void setProd_brand_desc(String prod_brand_desc) {
+		this.prod_brand_desc = prod_brand_desc;
+	}
+	public String getFee_type() {
+		return fee_type;
+	}
+	public void setFee_type(String fee_type) {
+		this.fee_type = fee_type;
+	}
+	public String getNo_gen() {
+		return no_gen;
+	}
+	public void setNo_gen(String no_gen) {
+		this.no_gen = no_gen;
+	}
+	public Double getContract_fee() {
+		return contract_fee;
+	}
+	public void setContract_fee(Double contract_fee) {
+		this.contract_fee = contract_fee;
+	}
+	public String getTerminals_name() {
+		return terminals_name;
+	}
+	public void setTerminals_name(String terminals_name) {
+		this.terminals_name = terminals_name;
+	}
+	public String getTerminals_code() {
+		return terminals_code;
+	}
+	public void setTerminals_code(String terminals_code) {
+		this.terminals_code = terminals_code;
+	}
+	public String getBrand_name() {
+		return brand_name;
+	}
+	public void setBrand_name(String brand_name) {
+		this.brand_name = brand_name;
+	}
+	public String getBrand_code() {
+		return brand_code;
+	}
+	public void setBrand_code(String brand_code) {
+		this.brand_code = brand_code;
+	}
+	public String getModel_name() {
+		return model_name;
+	}
+	public void setModel_name(String model_name) {
+		this.model_name = model_name;
+	}
+	public String getModel_code() {
+		return model_code;
+	}
+	public void setModel_code(String model_code) {
+		this.model_code = model_code;
+	}
+	public String getColor_name() {
+		return color_name;
+	}
+	public void setColor_name(String color_name) {
+		this.color_name = color_name;
+	}
+	public String getColor_code() {
+		return color_code;
+	}
+	public void setColor_code(String color_code) {
+		this.color_code = color_code;
+	}
+	public String getGoods_type_name() {
+		return goods_type_name;
+	}
+	public void setGoods_type_name(String goods_type_name) {
+		this.goods_type_name = goods_type_name;
+	}
+	public String getCreated_date() {
+		return created_date;
+	}
+	public void setCreated_date(String created_date) {
+		this.created_date = created_date;
+	}
+	public Integer getDeal_flag() {
+		return deal_flag;
+	}
+	public void setDeal_flag(Integer deal_flag) {
+		this.deal_flag = deal_flag;
+	}
+	public String getStatus_date() {
+		return status_date;
+	}
+	public void setStatus_date(String status_date) {
+		this.status_date = status_date;
+	}
+	public String getDeal_desc() {
+		return deal_desc;
+	}
+	public void setDeal_desc(String deal_desc) {
+		this.deal_desc = deal_desc;
+	}
+	public Integer getDeal_num() {
+		return deal_num;
+	}
+	public void setDeal_num(Integer deal_num) {
+		this.deal_num = deal_num;
+	}
+	public String getComments() {
+		return comments;
+	}
+	public void setComments(String comments) {
+		this.comments = comments;
+	}
+	public String getParam1() {
+		return param1;
+	}
+	public void setParam1(String param1) {
+		this.param1 = param1;
+	}
+	public String getParam2() {
+		return param2;
+	}
+	public void setParam2(String param2) {
+		this.param2 = param2;
+	}
+	public String getParam3() {
+		return param3;
+	}
+	public void setParam3(String param3) {
+		this.param3 = param3;
+	}
+	public String getParam4() {
+		return param4;
+	}
+	public void setParam4(String param4) {
+		this.param4 = param4;
+	}
+	public String getParam5() {
+		return param5;
+	}
+	public void setParam5(String param5) {
+		this.param5 = param5;
+	}
+	
+	
+}

@@ -1,0 +1,33 @@
+<div class="areaBox">
+	<table cellspacing="0" cellpadding="0" border="0" width="100%">
+		<tbody>
+			<tr>
+				<th>
+					<a class="questionico" href="#"></a>标签：
+				</th>
+				<td id="tag_td_label">
+					<#list tagList as tag>
+					<label>
+						<input type="checkbox" style="outline-style: none;" name="tag_id"
+							value="${tag.tag_id }" id="tag_${tag.tag_id }" />
+						${tag.tag_name!'' }&nbsp;&nbsp;
+						<span class="help_icon" helpid="goods_tag"></span>
+
+					</label>
+					</#list>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+<script type="text/javascript">
+$( function() {
+	<#if tagRelList?exists >
+	<#list 	tagRelList as tr>
+		<#if tr??>
+			$("#tag_${tr}").attr("checked",true);
+		</#if> 
+	</#list>
+	</#if> 
+});
+</script>

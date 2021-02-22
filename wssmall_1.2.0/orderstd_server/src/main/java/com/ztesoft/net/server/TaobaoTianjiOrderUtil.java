@@ -1,0 +1,121 @@
+package com.ztesoft.net.server;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import params.req.TaoBaoTianjiOrderStandardReq;
+import params.resp.TaoBaoTianjiOrderStandardResp;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.iservice.IEcsServices;
+import zte.net.iservice.IOrderstdService;
+import zte.net.ord.params.busi.req.OrderQueueBusiRequest;
+
+import com.taobao.api.response.AlibabaTianjiSupplierOrderQueryResponse.DistributionOrderInfo;
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.model.Outer;
+import com.ztesoft.net.outter.inf.model.OuterError;
+
+import consts.ConstsCore;
+
+public class TaobaoTianjiOrderUtil extends AbsTaobaoTianjiService{
+	private static Logger logger = Logger.getLogger(TaobaoTianjiOrderUtil.class);
+	private static IOrderstdService orderstdService;
+	private IEcsServices ecsServices ;
+	
+	public IEcsServices getEcsServices(){
+		return ecsServices;
+	}
+	public void setEcsServices(IEcsServices ecsServices){
+		this.ecsServices = ecsServices;
+	}
+	
+    //获取归集系统请求报文
+	private static  String getReqContent(String co_id,boolean is_exception) {
+		String content = "";
+		OrderQueueBusiRequest orderQueue = new OrderQueueBusiRequest();
+		if(is_exception){
+			orderQueue = CommonDataFactory.getInstance().getOrderQueueFor(null, co_id);
+			logger.info("从失败队列获取请求报文============es_order_queue_fail");
+		}else{
+			orderQueue = CommonDataFactory.getInstance().getOrderQueue(null, co_id);
+			logger.info("从正常队列获取请求报文============es_order_queue");
+		}
+		if(orderQueue!=null){
+			content = orderQueue.getContents();
+		}
+		return content;
+	}
+
+	public List<Outer> executeInfService(String req_content,Map param,String end_time, String order_from,String co_id){
+		orderstdService = SpringContextHolder.getBean("orderstdService");
+		String inJson = req_content;
+		List<Outer> out_order_List = new ArrayList<Outer>();
+		try{
+			JSONObject jsonObj=JSONObject.fromObject(inJson); 
+			DistributionOrderInfo order = (DistributionOrderInfo)JSONObject.toBean(jsonObj, DistributionOrderInfo.class);
+			Outer o = packageOuter(order,order_from,end_time,null,null);
+			if(o != null){
+				out_order_List.add(o);
+			}
+		}catch (Exception e) {		
+			logger.info(e.getMessage(), e);
+		}
+		return out_order_List;
+	}
+	
+	public TaoBaoTianjiOrderStandardResp getOrderContent(TaoBaoTianjiOrderStandardReq req) throws Exception{
+		orderstdService = SpringContextHolder.getBean("orderstdService");
+		TaoBaoTianjiOrderStandardResp resp =  new TaoBaoTianjiOrderStandardResp();
+		Map param = JsonUtil.fromJson(req.getParams(), Map.class);
+		Map dyn_field = req.getDyn_field();
+		String order_from = "";
+		String end_time = "";//抓取订单时间
+		if (dyn_field != null) {
+			order_from = Const.getStrValue(dyn_field, "order_from");
+			end_time = Const.getStrValue(dyn_field, "end_time");
+		}
+		//从es_order_queue获取报文
+		String req_content = getReqContent(req.getBase_co_id(),req.isIs_exception());
+		logger.info("报文==================="+req_content);
+		if(StringUtils.isEmpty(req_content)){
+			OuterError ng = new OuterError("", "", "", "", order_from, req.getTaobaoOrderId()+"", "sysdate","orderinfoerror");
+			outterStdTmplManager.insertOuterError(ng);
+			resp.setError_msg("未获取到请求报文");
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+			return resp;
+		}
+		//组装为外部订单
+		List<Outer> out_order_List = executeInfService(req_content,param,end_time,order_from,req.getBase_co_id());
+        if(out_order_List==null||out_order_List.size()==0){
+			resp.setError_msg("同步失败,接口报文为空.");
+			resp.setError_code(ConstsCore.ERROR_FAIL);
+			return resp;
+		}
+		resp.setError_code(ConstsCore.ERROR_SUCC);
+		resp.setError_msg("同步订单成功");
+		resp.setOut_order_List(out_order_List);
+		return resp;
+	}
+	
+	
+	@Override
+	public void callback(List<Outer> list) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public List<Outer> executeInfService(String start_time, String end_time,
+			Map params, String order_from) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+}

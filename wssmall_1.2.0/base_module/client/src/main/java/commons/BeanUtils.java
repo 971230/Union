@@ -1,0 +1,374 @@
+package commons;
+
+import java.beans.BeanInfo;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.lang3.reflect.ConstructorUtils;
+
+import params.ZteBusiRequest;
+import params.ZteRequest;
+import params.ZteResponse;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Goods;
+
+public class BeanUtils {
+
+	public static final Exception EXCEPTION = new Exception();
+
+	public static void copyProperties(Object target, Object src) throws Exception {
+		if (target instanceof Map) {
+			Map targetMap = (Map) target;
+			if (src instanceof Map) {
+				targetMap.putAll((Map) src);
+			} else
+				targetMap.putAll(PropertyUtils.describe(src));
+		} else
+			org.apache.commons.beanutils.BeanUtils.copyProperties(target, src);
+	}
+	public static void setProperty(Object bean, String name, Object value) {
+		try {
+			PropertyUtils.setProperty(bean, name, value);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	public static Object getProperty(Object bean, String name, Object replace) {
+		try {
+			return PropertyUtils.getProperty(bean, name);
+		} catch (Exception e) {
+			if (replace == EXCEPTION)
+				throw new RuntimeException(e);
+			return replace;
+		}
+	}
+	public static Object getProperty(Object bean, String name) {
+		return getProperty(bean, name, EXCEPTION);
+	}
+	public static List toList(Object bean, String[] fields) {
+		List values = new ArrayList();
+		for (int i = 0; i < fields.length; i++) {
+			values.add(getProperty(bean, fields[i], ""));
+		}
+		return values;
+	}
+	public static void changeMapKey(Map map, String orgKey, String targetKey) {
+		if (map == null)
+			return;
+		if (map.containsKey(orgKey)) {
+			map.put(targetKey, map.get(orgKey));
+			map.remove(orgKey);
+		}
+	}
+	
+	/**
+	 * 
+	 * 
+	 * 处理流程：
+	 * 1、将现有的rop功能入参，出参对象转换为map格式写入数据库
+	 * 2、按转出的map格式将htpp数据格式提供给第三方系统调用
+	 * 3、第三方按指定的格式调用即可
+	 * @param paramMap
+	 * @param keys
+	 */
+
+	//////////////////////////add by wui sdk http工具转换类
+	public  static  void removeKeys(Map paramMap,String [] keys){
+		for (int i = 0; i < keys.length; i++) {
+			paramMap.remove(keys[i]);
+		}
+	}
+	@SuppressWarnings("rawtypes")
+	public static void beanToMap(Map paramMap, Object obj) throws Exception {
+		BeanUtils.copyProperties(paramMap, obj);
+		removeKeys(paramMap,new String []{"version","sign","sourceFrom","ropRequestContext","locale","remote_type","format","apiMethodName","textParams","method","appSecret","appKey","class"});
+		Iterator it = paramMap.keySet().iterator();
+		while (it.hasNext()) {
+			String key = (String) it.next();
+			Object value = paramMap.get(key);
+			if (value != null) {
+				String clsName = value.getClass().getName();
+				if (value instanceof ZteRequest || value instanceof ZteBusiRequest || value instanceof ZteResponse || clsName.indexOf("com.") > -1 || clsName.indexOf("zte.net.") > -1) {
+					Map subParamMap = new HashMap();
+					beanToMap(subParamMap, value);
+					paramMap.put(key, subParamMap);
+				}else if(value instanceof List){
+					List listVal = (List)value;
+					List subArrList = new ArrayList();
+					for (int i = 0; i < listVal.size(); i++) {
+						Object pvalue =listVal.get(i);
+						clsName = pvalue.getClass().getName();
+						if (value instanceof ZteRequest || value instanceof ZteBusiRequest || value instanceof ZteResponse || clsName.indexOf("com.") > -1 || clsName.indexOf("zte.net.") > -1) {
+							Map subParamMap = new HashMap();
+							beanToMap(subParamMap, pvalue);
+							subArrList.add(subParamMap);
+						}else{
+							subArrList.add(pvalue);
+						}
+					}
+					paramMap.put(key, subArrList);
+					
+				}
+			}
+		}
+	}
+	@SuppressWarnings("rawtypes")
+	public static Map bean2Map(Map paramMap, Object obj) throws Exception {
+		if(obj instanceof Goods)
+		{
+			paramMap = ((Goods) obj).BeanToMap();
+			return paramMap;
+		}
+		BeanUtils.copyProperties(paramMap, obj);
+		removeKeys(paramMap, new String[] { "userSessionId",
+				"sessionId", "serverUrl", "is_dirty", "asy", "db_action", "need_query", "version", "sign",
+				"sourceFrom", "ropRequestContext", "locale", "remote_type",
+				"format", "apiMethodName", "textParams", "method", "appSecret",
+				"appKey", "class", "changeFiels","feeId","orderTreeBusiRequest","orderTree","orderAttrList" });
+		removeContainPreKeys(paramMap, new String[] { "notNeedReqStr" });
+		Iterator it = paramMap.keySet().iterator();
+		while (it.hasNext()) {
+			String key = (String) it.next();
+			Object value = paramMap.get(key);
+			if (value != null) {
+				String clsName = value.getClass().getName();
+				if (value instanceof ZteRequest || value instanceof ZteBusiRequest || value instanceof ZteResponse || clsName.indexOf("com.") > -1 || clsName.indexOf("zte.net.") > -1) {
+					Map subParamMap = new HashMap();
+					bean2Map(subParamMap, value);
+					paramMap.put(key, subParamMap);
+				}else if(value instanceof List){
+					List listVal = (List)value;
+					List subArrList = new ArrayList();
+					for (int i = 0; i < listVal.size(); i++) {
+						Object pvalue =listVal.get(i);
+						if(pvalue != null){
+							clsName = pvalue.getClass().getName();
+							if (value instanceof ZteRequest || value instanceof ZteBusiRequest || value instanceof ZteResponse || clsName.indexOf("com.") > -1 || clsName.indexOf("zte.net.") > -1) {
+								Map subParamMap = new HashMap();
+								bean2Map(subParamMap, pvalue);
+								subArrList.add(subParamMap);
+							}else{
+								subArrList.add(pvalue);
+							}
+						}
+					}
+					paramMap.put(key, subArrList);
+				}
+			}else{
+				paramMap.put(key, null);
+			}
+		}
+		return paramMap;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public static void bean2MapForAOP(Map paramMap, Object obj) throws Exception {
+		BeanUtils.copyProperties(paramMap, obj);
+		removeKeys(paramMap, new String[] { "userSessionId",
+				"sessionId", "serverUrl", "is_dirty", "asy", "db_action", "need_query", "version", "sign",
+				"sourceFrom", "ropRequestContext", "locale", "remote_type",
+				"format", "apiMethodName", "textParams", "method", "appSecret",
+				"appKey", "class", "changeFiels","essOperInfo","orderTreeBusiRequest","orderTree","orderAttrList","ossOperId","operFlag","releaseCodes"});
+		removeContainPreKeys(paramMap, new String[] { "notNeedReqStr" });
+		Iterator it = paramMap.keySet().iterator();
+		while (it.hasNext()) {
+			String key = (String) it.next();
+			Object value = paramMap.get(key);
+			if (value != null) {
+				String clsName = value.getClass().getName();
+				if (value instanceof ZteRequest || value instanceof ZteBusiRequest || value instanceof ZteResponse || clsName.indexOf("com.") > -1 || clsName.indexOf("zte.net.") > -1) {
+					Map subParamMap = new HashMap();
+					bean2MapForAOP(subParamMap, value);
+					paramMap.put(key, subParamMap);
+				}else if(value instanceof List){
+					List listVal = (List)value;
+					List subArrList = new ArrayList();
+					for (int i = 0; i < listVal.size(); i++) {
+						Object pvalue =listVal.get(i);
+						if(pvalue != null){
+							clsName = pvalue.getClass().getName();
+							if (value instanceof ZteRequest || value instanceof ZteBusiRequest || value instanceof ZteResponse || clsName.indexOf("com.") > -1 || clsName.indexOf("zte.net.") > -1) {
+								Map subParamMap = new HashMap();
+								bean2MapForAOP(subParamMap, pvalue);
+								subArrList.add(subParamMap);
+							}else{
+								subArrList.add(pvalue);
+							}
+						}
+					}
+					paramMap.put(key, subArrList);
+				}
+			}else{
+				paramMap.put(key, null);
+			}
+		}
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public static void mapToBean(Map paramMap, Object object) throws Exception {
+//		logger.info(paramMap);
+		paramMap.remove("class");
+		BeanInfo beanInfo = Introspector.getBeanInfo(object.getClass()); // 获取类属性
+		// 给 JavaBean 对象的属性赋值
+		PropertyDescriptor[] propertyDescriptors = beanInfo
+				.getPropertyDescriptors();
+		for (int i = 0; i < propertyDescriptors.length; i++) {
+			PropertyDescriptor descriptor = propertyDescriptors[i];
+			String propertyName = descriptor.getName();
+//			logger.info("propertyName: " + propertyName);
+			if (paramMap.containsKey(propertyName)) {
+				Class propertyType = descriptor.getPropertyType();
+				Object propValue = paramMap.get(propertyName);
+				if (propValue == null)
+					continue;
+				if (propertyType.getSimpleName().equalsIgnoreCase("boolean")) {
+					propValue = Boolean.valueOf((String) propValue);
+				}
+				if (propertyType.getSimpleName().equalsIgnoreCase("Integer")) {
+					propValue = Integer.valueOf((String) propValue);
+				}
+				if (propertyType.getSimpleName().equalsIgnoreCase("long")) {
+					propValue = Long.valueOf((String) propValue);
+				}
+				if (propertyType.getSimpleName().equalsIgnoreCase("float")) {
+					propValue = Float.valueOf((String) propValue);
+				}
+				if (propertyType.getSimpleName().equalsIgnoreCase("double")) {
+					propValue = Double.valueOf((String) propValue);
+				}
+				if (propertyType.getSimpleName().equalsIgnoreCase("List")) {
+					List ppropValue = new ArrayList();
+					if(propValue instanceof Map)
+						ppropValue.add(propValue);
+					propValue = ppropValue;
+				}
+				if (propertyType.getName().indexOf("com.") > -1 || propertyType.getName().indexOf("zte.") > -1|| propertyType.getName().indexOf("service.") > -1) {
+					if(propValue instanceof String)
+						continue;
+					propValue =  ConstructorUtils.invokeConstructor(propertyType, null);
+					mapToBean((HashMap)paramMap.get(propertyName), propValue);
+				}
+				try {
+					if (propValue != null && descriptor.getWriteMethod() !=null)
+						descriptor.getWriteMethod().invoke(object,new Object[] { propValue });
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	public static String mapToJson(Map<String, String> map){
+    	if(map==null || map.size()==0) return null;
+    	String jsonStr = null;
+    	StringBuilder json = new StringBuilder();
+    	Iterator it = map.keySet().iterator();
+    	while(it.hasNext()){
+    		String key = (String) it.next();
+    		String value = map.get(key);
+    		json.append("'"+key+"':'"+value+"',");
+    	}
+    	if(json.length()>1){
+    		jsonStr = json.substring(0, json.length()-1);
+    	}
+    	jsonStr = "{"+jsonStr+"}";
+    	return jsonStr;
+    }
+	
+	/**
+	 * 订单关联环境信息
+	 * @param param
+	 */
+	public static void ordBindEvn(HashMap param){
+		IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupportGProd");
+		if(null == baseDaoSupport) return ;
+		String source_from = (String)param.get("source_from");
+		String order_id = (String)param.get("order_id");
+		String op_code = (String)param.get("op_code");
+		//记录接口回调的订单和环境信息<<begin
+		String portSysProp = System.getProperty(Consts.PORT_SYS_PROP);
+		String ord_env_rel_sql = "insert into es_abgray_ord_env_rel (order_id,ip_address,host,op_code,source_from) values('"+order_id+"',sys_context('userenv','ip_address')||':'||'"+portSysProp+"',sys_context('userenv','host'),'"+op_code+"','"+source_from+"')";
+		baseDaoSupport.execute(ord_env_rel_sql);
+		String env_code = baseDaoSupport.queryForString("select i.env_code from es_abgray_hostenv i where exists(select 1 from es_abgray_ord_env_rel j where i.host_info=j.ip_address and j.order_id=?)",order_id);
+		baseDaoSupport.execute("update es_abgray_ord_env_rel set env_code=? where order_id=?", env_code, order_id);
+		//记录接口回调的订单和环境信息<<end
+	}
+
+	/**
+	 * 
+	 * 处理流程：反射过程过滤指定前缀标签的字段
+	 * 
+	 * @param paramMap
+	 * @param keys
+	 */
+	public static void removeContainPreKeys(Map paramMap, String[] keys)
+			throws Exception {
+		HashMap m = new HashMap();
+		m.putAll(paramMap);
+		Iterator it = m.keySet().iterator();
+		while (it.hasNext()) {
+			String key = (String) it.next();
+			for (int i = 0; i < keys.length; i++) {
+				if (key.startsWith(keys[i])) {
+					paramMap.remove(key);
+				}
+			}
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static void main(String[] args) throws Exception {
+//		
+//		//TODO 测试工具类
+//		OrderAddReq orderAddReq = new OrderAddReq();
+//		
+//		List<Map> paramsl = new ArrayList<Map>();
+//		Map param = new HashMap();
+//		param.put("product_id", "201404010000000000");
+//		param.put("goods_num", "1");
+//		param.put("name", "吴辉");
+//		param.put("app_code", AppKeyEnum.APP_KEY_WSSMALL_LLKJ_AGENT.getAppKey());
+//		param.put("acc_nbr", "18911111111");
+//		paramsl.add(param);
+//		orderAddReq.setService_code("3");
+//		orderAddReq.setParamsl(paramsl);
+//		
+////		List<Map> paramsl = new ArrayList<Map>();
+////		Map param = new HashMap();
+////		param.put("product_id", "201402246578001832");
+////		param.put("goods_num", "1");
+////		param.put("name", "吴辉");
+////		param.put("app_code", AppKeyEnum.APP_KEY_WSSMALL_FJ.getAppKey());
+////		param.put("acc_nbr", "18911111111");
+////		paramsl.add(param);
+//////		paramsl.add(param);
+////		orderAddReq.setService_code("3");
+////		orderAddReq.setParamsl(paramsl);
+//
+////		GoodsAddReq goodsAddReq = new GoodsAddReq();
+////		Goods goods = new Goods();
+////		goods.setGoods_id("1111");
+////		goods.setAll_count(1);
+////		goodsAddReq.setGoods(goods);
+////		orderAddReq.setGoodsAddReq(goodsAddReq);
+//
+//		Map orderAddReqMap = new HashMap();
+//
+//		BeanUtils.beanToMap(orderAddReqMap, orderAddReq);
+//		orderAddReqMap.put("class",orderAddReq.getClass());
+//
+//		Object object = ConstructorUtils.invokeConstructor((Class)orderAddReqMap.get("class"), null);
+//		BeanUtils.mapToBean(orderAddReqMap, object);
+//		logger.info("22222222");
+
+	}
+}

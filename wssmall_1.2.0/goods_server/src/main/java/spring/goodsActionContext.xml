@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+	
+	<bean id="goodsAlbumAction" class="com.ztesoft.net.mall.core.action.facade.GoodsAlbumAction" scope="prototype"/>
+	<bean id="favoriteAction" class="com.ztesoft.net.mall.core.action.facade.FavoriteAction" scope="prototype"/>
+	<bean id="goodsListSetting" class="com.ztesoft.net.mall.widget.setting.GoodsListSetting" scope="prototype"/>
+	<bean id="shopIndexItemAction" class="com.ztesoft.mall.core.action.backend.ShopIndexItemAction" scope="prototype"/>
+	<bean id="brandAction" class="com.ztesoft.mall.core.action.backend.BrandAction" scope="prototype"/>
+	<bean id="brandModelAction" class="com.ztesoft.mall.core.action.backend.BrandModelAction" scope="prototype"/>
+	<bean id="freeOfferAction" class="com.ztesoft.mall.core.action.backend.FreeOfferAction" scope="prototype"/>
+	<bean id ="freeOfferCategoryAction"  class="com.ztesoft.mall.core.action.backend.FreeOfferCategoryAction" scope="prototype"></bean>
+	<bean id="goodsOrgAction" class="com.ztesoft.mall.core.action.backend.GoodsOrgAction" scope="prototype"/>
+	
+	<bean id="catAction" class="com.ztesoft.mall.core.action.backend.CatAction" scope="prototype"/>
+	<bean id="uploadPhoto" class="com.ztesoft.mall.core.action.backend.UploadPhoto" scope="prototype"/>
+	<bean id="batchGoodAction" class="com.ztesoft.mall.core.action.backend.BatchGoodAction" scope="prototype"/>
+	<bean id="goodsAction" class="com.ztesoft.mall.core.action.backend.GoodsAction" scope="prototype"/>
+	<bean id="goodsActionN" class="com.ztesoft.mall.core.action.backend.GoodsActionN" scope="prototype"/>
+	<bean id="goodsAreaAction" class="com.ztesoft.net.mall.core.action.backend.GoodsAreaAction" scope="prototype"/>
+	<bean id="selectorAction" class="com.ztesoft.mall.core.action.backend.SelectorAction" scope="prototype"/>
+	<bean id="bindAction" class="com.ztesoft.mall.core.action.backend.BindAction" scope="prototype"/>
+	<bean id="goodsUsageAction" class="com.ztesoft.net.mall.core.action.backend.GoodsUsageAction" scope="prototype"/>
+	<bean id="tagAction" class="com.ztesoft.mall.core.action.backend.TagAction" scope="prototype"/>
+	<bean id="activityAction" class="com.ztesoft.mall.core.action.backend.ActivityAction" scope="prototype"/>
+	
+	<bean id="specAction" class="com.ztesoft.mall.core.action.backend.SpecAction" scope="prototype"/>
+	<bean id="goodsSpecAction" class="com.ztesoft.net.mall.core.action.backend.GoodsSpecAction" scope="prototype"/>
+	<bean id="groupBuyAction" class="com.ztesoft.net.mall.core.action.backend.GroupBuyAction" scope="prototype"/>
+	<bean id="limitBuyAction" class="com.ztesoft.mall.core.action.backend.LimitBuyAction" scope="prototype"/>
+	<bean id="invoiceApplyAction" class="com.ztesoft.mall.core.action.backend.InvoiceApplyAction" scope="prototype"/>
+	<bean id="goodsFieldAction" class="com.ztesoft.net.mall.core.action.backend.GoodsFieldAction" scope="prototype"/>
+	<bean id="typeAction" class="com.ztesoft.mall.core.action.backend.TypeAction" scope="prototype"/>
+	<bean id="commentsAction" class="com.ztesoft.mall.core.action.backend.CommentsAction" scope="prototype" />
+ 	<bean id="goodsImportAction" class="com.ztesoft.net.mall.core.action.backend.GoodsImportAction" scope="prototype"/>
+ 	<bean id="galleryAction" class="com.ztesoft.net.mall.core.action.backend.GalleryAction" scope="prototype"/>
+ 	<bean id="goodsAuditAction" class="com.ztesoft.net.mall.core.action.backend.GoodsAuditAction" scope="prototype"/>
+	<bean id="goodsApplyAction" class="com.ztesoft.net.mall.core.action.backend.GoodsApplyAction" scope="prototype"/>
+	<bean id="catComplexAction" class="com.ztesoft.mall.core.action.backend.CatComplexAction" scope="prototype"/>
+    <bean id="goodsAgreementAction" class="com.ztesoft.net.mall.core.action.backend.GoodsAgreementAction" scope="prototype"/>
+	<bean id="warehouseAction" class="com.ztesoft.net.mall.core.action.backend.WarehouseAction" scope="prototype"/>
+	<bean id="ropAction" class="com.ztesoft.net.mall.core.action.backend.RopAction" scope="prototype"/>
+	<bean id="warehouseSeatAction" class="com.ztesoft.net.mall.core.action.backend.WarehouseSeatAction" scope="prototype"/>
+	<bean id="warehouseGoodsStoreAction" class="com.ztesoft.net.mall.core.action.backend.WarehouseGoodsStoreAction" scope="prototype"/>
+	<bean id="warehouseAssignAction" class="com.ztesoft.net.mall.core.action.backend.WarehouseAssignAction" scope="prototype"/>
+	<bean id="inventoryAction" class="com.ztesoft.net.mall.core.action.backend.InventoryAction" scope="prototype"/>
+	<bean id="goodsUserAction" class ="com.ztesoft.net.mall.core.action.backend.GoodsUserAction" scope="prototype"></bean>
+	<bean id="goodsCacheAction" class ="com.ztesoft.net.mall.core.action.backend.GoodsCacheAction" scope="prototype"></bean>
+	<bean id="contractConfigAction" class ="com.ztesoft.mall.core.action.backend.ContractConfigAction" scope="prototype"></bean>
+	<bean id="promotionRedAction" class="com.ztesoft.net.mall.core.action.backend.PromotionRedAction" scope="prototype"/>
+
+</beans>

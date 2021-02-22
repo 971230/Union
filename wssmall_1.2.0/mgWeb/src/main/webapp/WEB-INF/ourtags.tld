@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE taglib
+  PUBLIC "-//Sun Microsystems, Inc.//DTD JSP Tag Library 1.2//EN"
+  "http://java.sun.com/dtd/web-jsptaglibrary_1_2.dtd">
+
+<taglib>
+
+  <tlib-version>1.0</tlib-version>
+  <jsp-version>1.2</jsp-version>
+  <short-name>powerise</short-name>
+  <description>Examples for the Simple Tags chapter</description>
+
+<tag>
+    <name>staticinfo</name>
+    <tag-class>com.powerise.ibss.framework.taglib.StaticInfo</tag-class>
+    <body-content>empty</body-content>
+    <description>Inserts the current date into the page</description>
+    <attribute>
+    <name>name</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>methodName</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>nameField</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>valueField</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>value</name>
+    <required>false</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>param</name>
+    <required>false</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>noselected</name>
+    <required>false</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>others</name>
+    <required>false</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+  </tag>
+  <tag>
+    <name>resultset</name>
+    <tag-class>com.powerise.ibss.framework.taglib.ResultSet</tag-class>
+    <body-content>JSP</body-content>
+    <description>Inserts the current date into the page</description>
+    <attribute>
+    <name>methodName</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+  </tag>
+  <tag>
+    <name>param</name>
+    <tag-class>com.powerise.ibss.framework.taglib.Param</tag-class>
+    <body-content>empty</body-content>
+    <description>Inserts the current date into the page</description>
+    <attribute>
+    <name>name</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>value</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+  </tag>
+  <tag>
+    <name>getfield</name>
+    <tag-class>com.powerise.ibss.framework.taglib.GetField</tag-class>
+    <body-content>empty</body-content>
+    <description>Inserts the current date into the page</description>
+    <attribute>
+    <name>name</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+    <attribute>
+    <name>replace</name>
+    <required>false</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+  </tag>
+  <tag>
+    <name>beanparam</name>
+    <tag-class>com.powerise.ibss.framework.taglib.BeanParam</tag-class>
+    <body-content>JSP</body-content>
+    <description>Inserts the current date into the page</description>
+    <attribute>
+    <name>name</name>
+    <required>true</required>
+    <rtexprvalue>true</rtexprvalue>
+    </attribute>
+  </tag>
+</taglib>

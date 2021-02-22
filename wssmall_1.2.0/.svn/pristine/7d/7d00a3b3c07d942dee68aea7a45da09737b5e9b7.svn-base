@@ -1,0 +1,52 @@
+package zte.params.number.req;
+
+import params.ZteRequest;
+import zte.params.number.resp.NumberSynInfoResp;
+import zte.params.store.resp.InventoryApplyLogResp;
+
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+import com.ztesoft.remote.params.activity.resp.ActResp;
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.api.internal.utils.ApiUtils;
+
+/**
+ * 
+ * @author deng.yx
+ * 号码同步信息请求实体
+ *
+ */
+public class NumberSynInfoReq extends ZteRequest {
+	
+	@ZteSoftCommentAnnotationParam(name="号码同步信息批次号", type="String", isNecessary="Y", desc="batch_id：号码同步信息批次号")
+	private String batch_id;
+	
+	public Class<NumberSynInfoResp> getResponseClass() {
+		return NumberSynInfoResp.class;
+	}
+
+
+	@Override
+    public void check() throws ApiRuleException {
+        if (ApiUtils.isBlank(batch_id)) {
+            throw new ApiRuleException("-1","号码同步信息批次号【batch_id】不能为空!");
+        }
+    }
+
+    @Override
+    public String getApiMethodName() {
+        return "com.ztesoft.remote.number.queryNumSynInfo";
+    }
+
+
+	public String getBatch_id() {
+		return batch_id;
+	}
+
+
+	public void setBatch_id(String batch_id) {
+		this.batch_id = batch_id;
+	}
+
+
+
+}

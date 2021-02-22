@@ -1,0 +1,116 @@
+package com.ztesoft.net.server.servlet.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import zte.params.goods.req.BroadbandGoodsQryReq;
+import zte.params.goods.resp.BroadbandGoodsQryResp;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.outter.inf.service.DBUtils;
+import com.ztesoft.net.server.servlet.ICommonServlet;
+
+public class AdmissibleBroadbandGoodsQryServlet implements ICommonServlet {
+	private final static Log log = LogFactory.getLog(AdmissibleBroadbandGoodsQryServlet.class);
+	private  static String interfaceName="【小区可受理宽带商品查询接口】";
+	@Override
+	public String service(String reqString) throws Exception {
+		log.info(interfaceName+"请求的字符串："+reqString);
+		log.info(interfaceName+"请求的字符串："+reqString);
+		String serial_no = null;
+		String returnString = null;
+		BroadbandGoodsQryResp zteResponse = new BroadbandGoodsQryResp();
+		zteResponse.setResp_code("1");//默认失败
+		BroadbandGoodsQryReq req = null;
+		if(StringUtils.isNotBlank(reqString)) {
+			try {
+				reqString = reqString.replaceAll("\\s*", "");
+				JSONObject qryObject = JSONObject.parseObject(reqString); //将字符串{“id”：1}
+				if(qryObject.containsKey("product_query_req")){
+					qryObject = (JSONObject) qryObject.get("product_query_req");
+				}
+				serial_no = qryObject.getString("serial_no");
+				String type = qryObject.getString("type");//商品类型
+				String source_system = qryObject.getString("source_system");
+				JSONArray query_param = qryObject.getJSONArray("query_param");
+				DBUtils dbUtils = SpringContextHolder.getBean("dbUtils");
+				List<Map> resultList = new ArrayList<Map>();
+				for (int i = 0; i < query_param.size(); i++) {
+					String query_type = query_param.getJSONObject(i).getString("query_type");
+					String query_value =  query_param.getJSONObject(i).getString("query_value");
+					
+					if (!dbUtils.checkFieldValue("source_system", source_system)) {
+						zteResponse.setResp_msg("source_system未按协议取值");
+					}else if(!"01".equals(query_type) && !"02".equals(query_type) && !"03".equals(query_type)){
+						zteResponse.setResp_msg("query_type未按协议取值");
+					}else if("02".equals(query_type) || "03".equals(query_type)){
+						req = new BroadbandGoodsQryReq();
+						req.setCommunityCode(query_value);
+						req.setType(type);
+						req.setApiMethodName("com.goodsService.goods.qryAdmissibleBroadbandGoodsByCityOrCounty");
+						ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+						zteResponse = client.execute(req, BroadbandGoodsQryResp.class);
+						zteResponse.setResp_code("0");
+						zteResponse.setResp_msg("查询成功");
+						resultList.addAll(zteResponse.getProduct_list());
+					}else{
+						req = new BroadbandGoodsQryReq();
+						req.setCommunityCode(query_value);
+						req.setType(type);
+						ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+						zteResponse = client.execute(req, BroadbandGoodsQryResp.class);
+						zteResponse.setResp_code("0");
+						zteResponse.setResp_msg("查询成功");
+						resultList.addAll(zteResponse.getProduct_list());
+					}
+				}
+				//resultList去重
+				Map temp = new HashMap();
+				for (int i = 0; i < resultList.size(); i++) {
+					temp.put(resultList.get(i).get("prod_offer_code"), resultList.get(i));
+				}
+				resultList = new ArrayList<Map>(temp.values());
+				zteResponse.setProduct_list(resultList);
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.info(interfaceName+"解析JSON字符串出错");
+				log.info(interfaceName+"解析JSON字符串出错");
+				zteResponse.setResp_msg("解析JSON字符串出错");
+			}
+		} else {
+			zteResponse.setResp_msg("请求参数为空");
+		}
+
+		String resp_msg = zteResponse.getResp_msg();
+		if(null!=resp_msg&&resp_msg.length()>200){//返回信息限制在200字内
+			resp_msg = resp_msg.substring(0,200);
+			zteResponse.setResp_msg(resp_msg);
+		}
+
+		Map<String,Object> contentMap = new HashMap<String,Object>();
+		contentMap.put("resp_code", zteResponse.getResp_code());
+		contentMap.put("resp_msg", zteResponse.getResp_msg());
+		contentMap.put("product_list", zteResponse.getProduct_list());
+
+		Map<String,Object> rtnParams = new HashMap<String,Object>();
+		rtnParams.put("product_query_resp", contentMap);
+		returnString = JSONObject.toJSONString(rtnParams);
+
+		log.info(interfaceName+"返回的字符串："+returnString);
+		log.info(interfaceName+"返回的字符串："+returnString);
+		return returnString;
+	}
+
+}

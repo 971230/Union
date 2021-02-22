@@ -1,0 +1,120 @@
+  <div class="section GoodsEditSection" style="">
+        <div class="grid">
+            <table width="100%" cellspacing="0" cellpadding="3">
+                <col class="span-4 ColColorGray">
+                <col class="span-2 ColColorOrange">
+                <col class="textleft">
+                <thead>
+                <tr>
+                   
+                    <th>名称</th>
+                    <th>操作</th>
+
+                  <div class="comBtnDiv">
+					    <a class="graybtn1" style="margin-right:10px;" href="javascript:void(0)">
+					        <span id="addBuyWay">添加</span>
+					    </a>
+					    <a class="graybtn1" style="margin-right:10px;" href="javascript:void(0)">
+					        <span id="delBuyWay">清空</span>
+					    </a>
+					</div>
+
+                </tr>
+                </thead>
+          <input type="hidden" name="editGoodsId" id="editGoodsId" value="${editGoodsId}" >
+        <tbody id="buyWayNode">
+        <#if listGoodsBuyWay?exists>
+            <#list listGoodsBuyWay as goods>
+                <tr id="buyWay_${goods.goods_id}">
+                    <td>
+                        <div align="center">${goods.name}
+                            <input type='hidden' id="tr_${goods.goods_id}" name='rel_contract_inst' value="${goods.rel_contract_inst}" />
+                            <input type='hidden' name='goods_buyWays' value="${goods.goods_id}" />
+                        </div>
+                    </td>
+                    <td><div align="center"><a href='javascript:void(0)' name='delBuyWay'>删除</a>&nbsp&nbsp&nbsp;<a href='javascript:void(0)' goods_id='${goods.goods_id}' name='setContract' rel_contract_inst="${goods.rel_contract_inst}">设置合约</a></div></td>
+                </tr>
+            </#list>
+            
+        </#if>
+          
+        </tbody>
+    </table>
+ </div>
+</div>
+<div id="buyWaySelect"></div>
+<div id="contractSel"></div>
+<div id="listSelContract"></div>
+<script type="text/javascript">
+    var BuyWay = {
+        init: function () {
+           
+            this.bindEvent();
+            var self = this;
+            function appendGoods(goodsList) {
+                self.appendGoods(goodsList);
+            }
+
+            $("#addBuyWay").bind("click", function () {
+                GoodsBuyWay.open("buyWaySelect", appendGoods);
+            });
+        },
+        bindEvent: function () {
+            $("#buyWayNode [name='delBuyWay']").unbind("click");
+            $("#buyWayNode [name='delBuyWay']").bind("click", function () {
+                $(this).parents("tr").remove();
+            });
+             $("#buyWayNode [name='setContract']").unbind("click").bind("click", function () {
+               var goods_id = $(this).attr("goods_id");
+               var aGoodsId = $("#editGoodsId").val();
+              
+               contractSel.qryContract("contractSel", aGoodsId, goods_id);
+            
+                     
+            });
+           
+        },
+        appendGoods: function (goodsList) {
+            for (i in goodsList) {
+                var goods = goodsList[i];
+                if($("#buyWayNode #buyWay_"+goods.goods_id).length >=1){
+                	alert("已关联过合约"+goods.name);
+                	continue;
+                }
+                var html = "<tr id='buyWay_" + goods.goods_id + "'>";
+                html+= "<input type='hidden' id='tr_"+goods.goods_id+"' name='rel_contract_inst' value='' />";
+                // html+="<td><a href='javascript:void(0);' class='delete'></a></td>";
+                html += "<td><div align='center'>" + goods.name + "<input type='hidden' name='goods_buyWays' value='" + goods.goods_id + "' /><a href='javascript:void(0);' class='delete'/></div></td>";
+           //     html += "<td><div align='center'>" + goods.service_name + "</div></td>";
+                html += "<td><div align='center'><a href='javascript:void(0)' name='delBuyWay'>删除</a>&nbsp&nbsp&nbsp;<a href='javascript:void(0)' goods_id='"+goods.goods_id+"' name='setContract'>设置合约</a></div></td>";
+                html += "</tr>";
+                var htmlJq = $(html);
+                htmlJq.appendTo($("#buyWayNode"));
+                htmlJq.find("[name='delBuyWay']").bind("click", function () {
+                    $(this).closest("tr").remove();
+                });
+                htmlJq.find("[name='setContract']").bind("click", function () {
+                     var goods_id = $(this).attr("goods_id");
+                     var aGoodsId = $("#editGoodsId").val();
+                  
+                     //contractSel.openExitContract("contractSel", goods_id);
+                     contractSel.qryContract("contractSel", aGoodsId, goods_id);
+                });
+            }
+            this.bindEvent();
+        }
+    };
+	$(function(){
+		$.getScript(basePath + "js/GoodsBuyWay.js");
+	    $.getScript(basePath + "js/contractSel.js");
+	    Eop.Dialog.init({id: "buyWaySelect", modal: false, title: "关联购买方式", width: "750px"});
+	    Eop.Dialog.init({id: "contractSel", modal: false, title: "设置合约", width: "750px"});
+	    Eop.Dialog.init({id: "listSelContract", modal: false, title: "合约列表", width: "750px"});
+	    
+	    BuyWay.init();
+	
+	    $('#delBuyWay').bind('click', function () {
+	        $('#buyWayNode').empty();
+	    });
+	});
+    </script>

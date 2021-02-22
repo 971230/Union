@@ -1,0 +1,49 @@
+<div style="display: none;" class="form-table tab-panel" tabid="tab_15" id="contractTcRelTab">
+	<table>
+		<tr>
+			<div class="comBtnDiv">
+				<a href="javascript:void(0)" style="margin-right:10px;" class="graybtn1"  id="tcAddDialog"><span>添加套餐</span></a>&nbsp;&nbsp;&nbsp;&nbsp;
+				<a href="javascript:void(0)" style="margin-right:10px;" class="graybtn1"  id="deleteTcBtn"><span>删除套餐</span></a>&nbsp;&nbsp;&nbsp;&nbsp;
+			</div>
+		</tr>
+	</table>
+	<div id="tc_content" class="tableform" style="<#if offerList??>display:block;<#else>display:none;</#if>">
+		<div class="division" id ="contractDiv">
+		  <table width="100%" id="offerTables">
+		    <thead>
+				<tr>
+					<td style="width:20%;">套餐编码</td>
+					<td style="width:20%;">套餐名称</td>
+					<td style="width:10%;">档次</td>
+					<td style="width:20%;">操作</td>
+				</tr>
+		    </thead>
+		    <tbody id="tcNode">
+		    	<#if offerList??>
+		    		<#list offerList as offer>
+		    			<tr style="height:20px;">
+		    				<td>
+		    					${offer.sku!''}
+		    					<input type="hidden" value="${offer.goods_id}" name="goods_ids">
+		    					<input type="hidden" value="${offer.product_id}" name="product_ids">
+		    					<input type="hidden" value="CONTRACT_OFFER" name="rel_types">
+		    					<input type="hidden" name="rel_codes" value="${offer.rel_code!''}" />
+		    				</td>
+		    				<td>${offer.name!''}</td>
+		    				<td>${offer.stype_id!''}</td>
+		    				<td><a href="javascript:;"><img  class="delete" src="${ctx}/shop/admin/images/transparent.gif" > </a></td>
+		    			</tr>
+		    		</#list>
+		    	</#if>
+		    </tbody>
+	     </table>
+	    </div>
+	</div>
+	<script type="text/javascript">
+		$("img.delete").click(function(){
+			if(confirm("确定删除当前套餐吗？删除后不可回复！")){
+				$(this).parents("tr").remove();
+			}
+		});
+	</script>
+</div>

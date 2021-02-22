@@ -1,0 +1,715 @@
+package com.ztesoft.orderstd.service.impl;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import javax.annotation.Resource;
+
+import params.goods.sales.req.GoodsSalesReq;
+import params.member.req.RegisterReq;
+import params.member.resp.RegisterResp;
+import params.order.req.OrderSyReq;
+import params.order.resp.OrderOuterResp;
+import params.order.resp.OrderSyResp;
+import params.paycfg.req.PaymentCfgReq;
+import services.GoodsInf;
+import services.MemberCenterInf;
+import services.PaymentCfgInf;
+import services.ProductInf;
+import services.PromotionInf;
+import utils.GlobalThreadLocalHolder;
+import zte.net.iservice.IGoodsService;
+import zte.params.goods.req.GroupBuyEditReq;
+import zte.params.goods.req.GroupBuyReq;
+import zte.params.goods.req.LimitBuyReq;
+import zte.params.goods.req.LimitBuyUpdateReq;
+import zte.params.goods.resp.GroupBuyResp;
+import zte.params.goods.resp.LimitBuyResp;
+import zte.params.order.resp.OrderAddResp;
+import zte.params.store.req.InventoryReduceReq;
+import zte.params.store.resp.InventoryReduceResp;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.ReflectionUtil;
+import com.ztesoft.net.mall.core.model.CardInfRequest;
+import com.ztesoft.net.mall.core.model.Cart;
+import com.ztesoft.net.mall.core.model.DlyType;
+import com.ztesoft.net.mall.core.model.GoodsApply;
+import com.ztesoft.net.mall.core.model.GroupBuy;
+import com.ztesoft.net.mall.core.model.LimitBuy;
+import com.ztesoft.net.mall.core.model.LimitBuyGoods;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderItem;
+import com.ztesoft.net.mall.core.model.OrderLog;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.model.OrderRel;
+import com.ztesoft.net.mall.core.model.PayCfg;
+import com.ztesoft.net.mall.core.model.Product;
+import com.ztesoft.net.mall.core.model.Promotion;
+import com.ztesoft.net.mall.core.model.support.CartItem;
+import com.ztesoft.net.mall.core.model.support.OrderPrice;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.server.StdOrderServ;
+import com.ztesoft.net.sqls.SF;
+import com.ztesoft.orderstd.plugin.OrderPluginSBundle;
+import com.ztesoft.orderstd.service.ICartSManager;
+import com.ztesoft.orderstd.service.IDlyTypeManager;
+import com.ztesoft.orderstd.service.IOrderSManager;
+import com.ztesoft.remote.inf.IWarehouseService;
+import com.ztesoft.util.OrderThreadLocalHolder;
+
+import commons.CommonTools;
+
+public class OrderSManager extends  BaseSupport implements IOrderSManager{
+
+	private ICartSManager cartSManager;
+	
+	private IDlyTypeManager dlyTypeSManager;
+	private PaymentCfgInf paymentCfgServ;
+	private GoodsInf goodsServ;
+	@Resource
+	private IGoodsService goodServices;
+	private IWarehouseService warehouseService;
+	@Resource
+    private PromotionInf promotionServ;
+	private OrderPluginSBundle orderPluginSBundle;
+	private DecimalFormat df=new DecimalFormat("00000000");
+	/**
+	 * 按供货商提交订单
+	 * @作者 MoChunrun 
+	 * @创建日期 2013-8-15 
+	 * @param order
+	 * @param sessionid
+	 * @param staff_no
+	 * @return
+	 */
+	@Override
+	@SuppressWarnings("unchecked")
+	public Order add(OrderOuter cp,Member member,Order order,String sessionid,String staff_no) {
+//		logger.info(cp.getService_code()+"================servicecode==================");
+		if(order==null) throw new RuntimeException("error: order is null");
+		/**************************用户信息****************************/
+		order.setQuery_user_id(staff_no);
+		//非匿名购买
+		if(member!=null){
+			order.setMember_id(member.getMember_id());
+		}
+		/**************************计算价格、重量、积分****************************/
+		boolean  isProtected = order.getIs_protect().compareTo(1)==0;
+		OrderPrice orderPrice  =cartSManager.countPrice(cp,member,sessionid, order.getShipping_id(),  ""+order.getRegionid(), isProtected, true,staff_no);
+		
+		order.setGoods_amount( orderPrice.getGoodsPrice());
+		order.setWeight(orderPrice.getWeight());		
+		order.setDiscount(orderPrice.getDiscountPrice());
+		//设置原价钱
+		if(!StringUtil.isEmpty(cp.getP_order_amount())){
+			order.setOrder_amount(Double.valueOf(cp.getP_order_amount()));
+		}else{
+			order.setOrder_amount(orderPrice.getOrderPrice());
+		}
+		order.setProtect_price(orderPrice.getProtectPrice());
+		Double ship_amount = null;
+		if(!StringUtil.isEmpty(cp.getShip_amount())){
+			ship_amount = new Double(cp.getShip_amount());
+			order.setShipping_amount(ship_amount);
+			if(!StringUtil.isEmpty(cp.getP_order_amount())){
+				order.setOrder_amount(order.getOrder_amount()+ship_amount);//-orderPrice.getShippingPrice()
+			}else{
+				order.setOrder_amount(order.getOrder_amount()-orderPrice.getShippingPrice()+ship_amount);//
+			}
+		}else{
+			//没传邮费
+			if(!StringUtil.isEmpty(cp.getP_order_amount())){
+				order.setOrder_amount(order.getOrder_amount()+orderPrice.getShippingPrice());
+			}
+			order.setShipping_amount(orderPrice.getShippingPrice());
+		}
+		order.setGainedpoint(orderPrice.getPoint());
+		//配送方式名称
+		if(order.getShipping_id()!=null && !"".equals(order.getShipping_id())){
+			DlyType dlyType = dlyTypeSManager.getDlyTypeById(order.getShipping_id());
+			if(dlyType==null)  throw new RuntimeException("shipping not found count error");
+			order.setShipping_type(dlyType.getName() );
+		}
+		
+		/************支付方式价格及名称************************/
+		PaymentCfgReq reqid = new PaymentCfgReq();
+		reqid.setPayment_cfg_id(cp.getPayment_id()+"");
+		PayCfg payCfg =paymentCfgServ.queryPaymentCfgById(reqid).getPaymentCfg();
+		//PayCfg payCfg = this.paymentManager.get(order.getPayment_id());
+		order.setPaymoney(0d);
+		//PayCfg payCfg = this.paymentManager.get(order.getPayment_id());
+		//order.setPaymoney(this.paymentManager.countPayPrice(order.getOrder_id()));
+		order.setPayment_name( payCfg.getName());
+		order.setPayment_type(payCfg.getType());
+		
+		/************创建订单************************/
+		order.setCreate_time(DBTUtil.current());
+		order.setSn(this.createSn());
+		order.setStatus(OrderStatus.ORDER_NOT_PAY);
+		order.setDisabled(0);
+		order.setPay_status(OrderStatus.PAY_NO);
+		order.setShip_status(OrderStatus.SHIP_NO);	
+		
+		/************写入订单货物列表************************/
+		List<CartItem> itemList  = this.cartSManager.listGoods(member,sessionid,staff_no,cp.getCoupon());
+		List<CartItem> checkedItemList = new ArrayList<CartItem>();
+		for(CartItem item : itemList){
+			if("0".equals(item.getIs_checked())){
+				continue;
+			}
+			checkedItemList.add(item);
+		}
+		itemList = checkedItemList;
+		boolean flag = false;
+		boolean hasStore = false;
+		String goods = "[";
+		for(CartItem c:itemList){
+			Pattern pl = Pattern.compile(c.getMember_lv_id()+",*|,*"+c.getMember_lv_id(), Pattern.CASE_INSENSITIVE);
+			if(c.getMember_lv_id()!=null && !"".equals(c.getMember_lv_id()) && !pl.matcher(member.getLv_ids()).find()){
+				goods += c.getName()+",";
+				if(!flag)flag = true;
+			}
+			if(Const.MEMBER_LV_CHINA_TELECOM_DEP.equals(c.getMember_lv_id())){
+				GoodsSalesReq goodsSalesReq = new GoodsSalesReq();
+				goodsSalesReq.setGoods_id(c.getGoods_id());
+				goodsSalesReq.setLan_code(order.getLan_id());
+				int store = goodsServ.getGoodsStore(goodsSalesReq).getStores();
+				if(store!=-1 && store<c.getNum()){
+					goods += c.getName()+",";
+					if(!hasStore)hasStore=true;
+				}
+			}
+		}
+		if(goods.length()>1){
+			goods = goods.substring(0,goods.length()-1);
+		}
+		goods += "]";
+		if(flag)throw new RuntimeException("购物车有非当前登录用户会员价购买的商品"+goods);
+		if(hasStore)throw new RuntimeException("商品库存不足"+goods);
+		
+		if(!Const.ORDER_STAND_AUTO_SERVICE_CODE.equals(cp.getService_code())){
+			List pgkList  = this.cartSManager.listPgk(member,sessionid,staff_no);
+			
+			/***************赠品货物列表**************************/
+			List<CartItem> giftList  = cartSManager.listGift(member,sessionid,staff_no);
+			
+			/***************团购购物车列表**************************/
+			List<CartItem> groupList  = cartSManager.listGroupBuy(member,sessionid, staff_no); //add by wui,开放团购
+			
+			/***************秒杀购物车列表**************************/
+			List<CartItem> limitList  = cartSManager.listLimitBuy(member,sessionid, staff_no); //add by wui,开放秒杀
+			//捆绑
+			itemList.addAll(pgkList);
+			
+			orderNumVali(groupList,limitList);
+			
+			//团购
+			itemList.addAll(groupList);
+			
+			//秒杀
+			itemList.addAll(limitList);
+		}
+		
+		
+		
+		if(itemList.isEmpty()) throw new RuntimeException("创建订单失败，购物车为空");
+		
+		int gnum = 0;
+		for(CartItem c:itemList){
+			gnum+=c.getNum();
+		}
+		order.setGoods_num(gnum);
+		if("true".equals(order.getCreaterOrder())){
+			if("HB".equals(order.getSource_from())){
+				Map orderMap = ReflectionUtil.po2Map(order);
+				orderMap.put("col1", cp.getCol1());
+				orderMap.put("col2", cp.getCol2());
+				orderMap.put("col3", cp.getO_source_from());
+				this.baseDaoSupport.insert("order", orderMap);
+			}else{
+				this.baseDaoSupport.insert("order", order);
+			}
+			
+		}
+		String orderId = order.getOrder_id();
+		
+		this.saveGoodsItem(itemList,null, orderId,order,new GoodsApply());
+		
+		try{
+			//修改商品逻辑库存
+			if(!StringUtils.isEmpty(cp.getHouse_id())){
+				for(CartItem ci:itemList){
+					InventoryReduceReq iReq = new InventoryReduceReq();
+					//iReq.setOrder_id(cp.getOrg_id());
+					iReq.setOrg_id(cp.getOrg_id());
+					iReq.setGoods_id(ci.getGoods_id());
+					iReq.setNum(ci.getNum());
+					iReq.setHouse_id(cp.getHouse_id());
+					InventoryReduceResp resp = warehouseService.inventoryReduce(iReq);
+					//写消息队列
+					/*CoQueueAddReq coreq = new CoQueueAddReq();
+				    coreq.setCo_name("库存同步");
+				    coreq.setBatch_id(order.getOrder_id());
+				    coreq.setService_code(Consts.SERVICE_CODE_CO_SHANGPIN_KUCUN);
+				    coreq.setAction_code("M");
+				    coreq.setObject_type("SHANGPIN_KUCUN");
+				    coreq.setObject_id(order.getOrder_id());
+				    coreq.setOrg_id_str("");
+				    coreq.setOper_id("-1");
+					for(int j=0;j<3;j++){
+						try{
+							ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+							CoQueueAddResp coresp = client.execute(coreq, CoQueueAddResp.class);
+							//CoQueueAddResp coresp = coQueueService.add(coreq);
+							break ;
+						}catch(Exception ex){
+							ex.printStackTrace();
+							continue ;
+						}
+					}*/
+				}
+			}
+		}catch(Exception ex){
+			ex.printStackTrace();
+		}
+		
+		//if(giftList!=null && !giftList.isEmpty())
+		//this.saveGiftItem(giftList, orderId);
+		
+		//if(!Const.ORDER_STAND_AUTO_SERVICE_CODE.equals(cp.getService_code())){
+			/**
+			 * 应用订单优惠，送出优惠卷及赠品，并记录订单优惠方案
+			 */
+			if(member!=null){
+				this.promotionServ.applyOrderPmt(orderId, orderPrice.getOrderPrice(), member.getLv_id(),cp.getCoupon(),staff_no);
+				List<Promotion> pmtList =  promotionServ.list(orderPrice.getOrderPrice(), member.getLv_id(),cp.getCoupon());
+				for(Promotion pmt :pmtList){
+					String sql = SF.orderSql("SERVICE_ORDER_PMT_INSERT");
+					this.baseDaoSupport.execute(sql, pmt.getPmt_id(),orderId,pmt.getPmt_describe());
+				}
+				if(pmtList==null || pmtList.size()==0){
+					CartItem ci = (itemList!=null) ? itemList.get(0):null;
+					if(ci!=null){
+						pmtList = promotionServ.list(ci.getGoods_id(), member.getLv_id(), cp.getCoupon(), staff_no);
+						for(Promotion pmt :pmtList){
+							String sql = SF.orderSql("SERVICE_ORDER_PMT_INSERT");
+							this.baseDaoSupport.execute(sql, pmt.getPmt_id(),orderId,pmt.getPmt_describe());
+						}
+					}
+				}
+				
+			}
+		//}
+		
+		/************写入订单日志************************/
+		OrderLog log = new OrderLog();
+		log.setMessage("订单创建");
+		log.setOp_name(member.getUname());
+		log.setOrder_id(orderId);
+		this.addLog(log);
+		order.setOrder_id(orderId);
+		/**
+		 * 清空已结算的购物车
+		 */
+		if(itemList!=null && itemList.size()>0){
+			String productids = "";
+			for(CartItem c:itemList){
+				productids += c.getProduct_id()+",";
+			}
+			if(productids.length()>1)
+				productids = productids.substring(0,productids.length()-1);
+			cartSManager.clean(sessionid, true,productids);
+		}
+		
+		cartSManager.updateCheckedFlag(sessionid, 0l, 1);
+		order.setOrderprice(orderPrice);
+		this.orderPluginSBundle.onCreate(order, sessionid);
+		return order;
+	}
+	private String createSn(){
+		String sql = "select S_ES_ORDER_SN.Nextval from dual";
+		int sn = this.baseDaoSupport.queryForInt(sql);
+		return df.format(sn);
+	}
+	/**
+	 * 添加订单日志
+	 * @param log
+	 */
+	public void addLog(OrderLog log){
+		log.setOp_time(DBTUtil.current());
+//		this.baseDaoSupport.insert("order_log", log);
+	}
+	public void orderNumVali(List<CartItem> groupList,List<CartItem> limitList){
+		//团购数量判断
+		if(!groupList.isEmpty()){
+			for (CartItem groupItem:groupList) {
+					String spec_id =groupItem.getSpec_id();
+					GroupBuyReq req = new GroupBuyReq();
+					req.setGroupid(spec_id);
+					req.setGoodsid(groupItem.getGoods_id());
+					GroupBuyResp resp = goodServices.queryGroupBuy(req);
+					GroupBuy groupBuy = resp.getGroupBuy();
+					if(groupBuy !=null){
+						
+						int cart_num =groupItem.getNum(); //获取团购限制的数量
+						int buy_num = groupBuy.getBuy_count(); //获取购物车数量
+						int buyed_num = groupBuy.getBuyed_count(); //获取已购买数量
+						if((cart_num+buyed_num)>buy_num){
+							CommonTools.addFailError("已达团购的最大数量限制，团购失败！");
+						}else{ //小于，则做更新动作
+							GroupBuyEditReq editReq = new GroupBuyEditReq();
+							groupBuy.setBuyed_count(cart_num+buyed_num);
+							editReq.setGroupBuy(groupBuy);
+							goodServices.updateGroupByCount(editReq);
+						}
+						
+					}
+			}
+		}
+		//秒杀数量判断
+		if(!limitList.isEmpty()){
+			for (CartItem cartItem:limitList) {
+				String spec_id =cartItem.getSpec_id();
+				LimitBuyReq req = new LimitBuyReq();
+				req.setLimitbuyid(spec_id);
+				LimitBuyResp resp = goodServices.queryLimitBuy(req);
+				LimitBuy limitBuy = resp.getLimitBuy();
+				List<LimitBuyGoods> limitBuyGoods = limitBuy.getLimitBuyGoodsList();
+				if(!ListUtil.isEmpty(limitBuyGoods)){
+					for (LimitBuyGoods buyGoods :limitBuyGoods) {
+						if(buyGoods.getGoodsid().equals(cartItem.getGoods_id()))
+						{
+							int num =buyGoods.getNum(); //获取团购限制的数量
+							int cart_num = cartItem.getNum(); //获取购物车数量
+							int buyedNum = buyGoods.getBuy_num(); //获取已购买数量
+							if((cart_num+buyedNum)>num){
+								CommonTools.addFailError("已达秒杀的最大数量限制，秒杀失败！");
+							}else{ //小于，则做更新动作
+								LimitBuyUpdateReq limitBuyUpdateReq = new LimitBuyUpdateReq();
+								buyGoods.setBuy_num(cart_num+buyedNum);
+								limitBuyUpdateReq.setLimitBuyGoods(buyGoods);
+								goodServices.modLimitBuy(limitBuyUpdateReq);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	/**
+	 * 保存商品订单项
+	 * @param itemList
+	 * @param order_id
+	 */
+	private void saveGoodsItem(List itemList,OrderOuter orderOuter,String order_id,Order order,GoodsApply goodsApply){
+		List<OrderItem> orderItemList = new ArrayList<OrderItem>();
+		order.setOrderItemList(orderItemList);
+		for(int i=0;i<itemList.size();i++){
+			
+			CardInfRequest cardInfRequest =goodsApply.getCardInfRequest();
+			
+			OrderItem  orderItem = new OrderItem();
+			String itemid = this.baseDaoSupport.getSequences("s_es_order_items");
+			orderItem.setItem_id(itemid);
+			orderItemList.add(orderItem);
+			CartItem cartItem =(CartItem) itemList.get(i);
+			orderItem.setPrice(cartItem.getCoupPrice() ) ;
+			orderItem.setName( cartItem.getName());
+			orderItem.setNum(cartItem.getNum());
+
+			orderItem.setGoods_id(cartItem.getGoods_id());
+			orderItem.setShip_num(0);
+			orderItem.setSpec_id(StringUtil.isEmpty(cartItem.getSpec_id())?cartItem.getProduct_id():cartItem.getSpec_id());
+			orderItem.setProduct_id(cartItem.getProduct_id());
+			orderItem.setOrder_id(order_id);
+			orderItem.setPrice(cartItem.getPrice());
+			orderItem.setGainedpoint(cartItem.getPoint());
+			orderItem.setAddon( cartItem.getAddon() );
+			
+			//orderItem.setLan_id(order.getLan_id());
+			orderItem.setLv_id(cartItem.getMember_lv_id());
+			orderItem.setItem_type(cartItem.getItemtype());
+			if(cartItem.getCoupPrice()!=null){
+				orderItem.setCoupon_price(cartItem.getCoupPrice());
+			}else{
+				orderItem.setCoupon_price(0d);
+			}
+			//订单入网信息,外系统订单
+			if(orderOuter !=null)
+			{
+				if("true".equals(order.getCreaterOrder())){
+					this.baseDaoSupport.insert("order_items", orderItem);
+				}
+			}else{
+				if("true".equals(order.getCreaterOrder())){
+					this.baseDaoSupport.insert("order_items", orderItem);
+				}
+			}
+			
+		}
+		order.setOrderItemList(orderItemList);
+	}
+	@Override
+	public String getOrderSysCode(String order_id){
+		String sql = SF.orderSql("QUERYORDERSYSCODE");
+		List<Map> list = this.baseDaoSupport.queryForList(sql, order_id,ManagerUtils.getSourceFrom(),order_id,ManagerUtils.getSourceFrom());
+		if(list!=null && list.size()>0){
+			Map map = list.get(0);
+			String sys_code = String.valueOf(map.get("sys_code"));
+			return sys_code;
+		}
+		return null;
+	}
+	/**
+	 * 查询购物车的所有商家ID
+	 * @author mochunrun
+	 */
+	@Override
+	public List<Map<String,String>> qryStaffNoBySessionID(String sessionID) {
+		String sql = SF.orderSql("SERVICE_STAFFNO_BY_SESSION_ID");
+		return this.baseDaoSupport.queryForList(sql, sessionID);
+	}
+	/**
+	 * 查询购物车的所有商家ID
+	 * @author mochunrun
+	 */
+	@Override
+	public List<Map<String,String>> qryGoodsByStaffNo(String staff_no) {
+		String sql = SF.orderSql("SERVICE_GOODS_SELECT_BY_STAFFNO");
+		return this.baseDaoSupport.queryForList(sql, staff_no,GlobalThreadLocalHolder.getInstance().getUUID());
+		
+	}
+	@Override
+	public boolean isCreateOrder(String service_code, String goods_ids) {
+		//add by wui广东联通订单系统强制需要创建订单，广东联通商品数据太多，很消耗性能
+		if("ECS".equals(ManagerUtils.getSourceFrom()) || "ECSORD".equals(ManagerUtils.getSourceFrom()))
+			return true;
+		String sql = SF.orderSql("IS_CREATE_ORDER").replace(":instr", goods_ids);
+		return this.baseDaoSupport.queryForInt(sql, service_code)>0;
+	}
+	public MemberCenterInf memberCenterServ;
+	private StdOrderServ stdOrderServ;
+	public StdOrderServ getStdOrderServ(){
+		return stdOrderServ;
+	}
+	public void setStdOrderServ(StdOrderServ stdOrderServ){
+		this.stdOrderServ = stdOrderServ;
+	}
+	public MemberCenterInf getMemberCenterServ(){
+		return memberCenterServ;
+	}
+	public void setMemberCenterServ(MemberCenterInf memberCenterServ){
+		this.memberCenterServ = memberCenterServ;
+	}
+	@Override
+	public OrderSyResp perform(OrderSyReq syReq) throws ApiBusiException {
+
+		OrderSyResp syResp = new OrderSyResp();
+		// 插入会员
+		RegisterReq req = assembleMember(syReq);
+		RegisterResp resp = memberCenterServ.register(req);
+		OrderAddResp createOrderResp = new OrderAddResp();
+		
+		//循环外系统订单加入购物车,生成多个明细
+		
+		//插入购物车之前先删除购物车数据，避免购物车数据重复
+		cartSManager.clean(syReq.getUserSessionId(), false);
+		
+		for (OrderOuterResp orderOuterResp :syReq.getOrderOuterResps()) {
+			OrderOuter orderOuter = orderOuterResp.getOrderOuter();
+			orderOuter.setMember_id(resp.getMember().getMember_id());
+			Cart cart = assembleCart(orderOuterResp.getOrderOuter(), resp.getMember());
+			//设置现场变量信息
+			syResp.getOrderOuters().add(orderOuter);
+			cartSManager.add(cart);
+		}
+		
+		//外系统订单同步到订单表
+		OrderOuter outer = syReq.getOrderOuterResps().get(0).getOrderOuter();
+		outer.setParamsl(syReq.getParamsl());
+		createOrderResp = stdOrderServ.createOrder(outer);
+
+		for (Order order :createOrderResp.getOrderList()) {
+			// 保存订单关系,关系信息
+//			if(!EcsOrderConsts.SHIPPING_TYPE_XJ.equals((String)outer.getParamsl().get(0).get("sending_type"))){
+				OrderRel orderRel = assembleOrderRel(syReq.getOrderOuterResps().get(0).getOrderOuter(), order);
+//				orderNFlowManager.saveOrderRel(orderRel);
+				 this.baseDaoSupport.insert("order_rel", orderRel);
+//			}
+			
+		}
+		syResp.setOrders(createOrderResp.getOrderList());
+		return syResp;
+
+	}
+	@Resource
+    protected ProductInf proudctServ;
+	public Cart assembleCart(OrderOuter orderOuter,Member member){
+		
+		// 加入购物车
+		//Goods goods = goodsServ.getGoods(orderOuter.getGoods_id());
+		Product product = proudctServ.get(orderOuter.getProduct_id());
+		Cart cart = new Cart();
+		cart.setItemtype(orderOuter.getItem_type());
+		cart.setNum(Integer.valueOf(orderOuter.getGoods_num()));
+		String name = null;
+		if(product!=null)
+			name = product.getName();
+		if(!StringUtils.isEmpty(orderOuter.getGoods_name()))
+			name = orderOuter.getGoods_name();
+		cart.setName(name);
+		cart.setSession_id(CommonTools.getUserSessionId());
+		//cart.setSpec_id(orderOuter.getSpec_id());
+		cart.setProduct_id(product.getProduct_id());
+		//cart.setItemtype(OrderStatus.ITEM_TYPE_0); //
+		cart.setWeight(product.getWeight());
+		cart.setMember_lv_id(member.getLv_id());
+		//如果传进来的价格为空侧以product的价格为准  mochunrun ========2015-01-03========================
+		if(StringUtil.isEmpty(orderOuter.getOrder_amount())){
+			cart.setPrice(product.getPrice());
+		}else{
+			cart.setPrice(Double.valueOf(orderOuter.getOrder_amount())/new Integer(orderOuter.getGoods_num()).intValue());
+		}
+		cart.setAddon(orderOuter.getAddon());
+		cart.setSpec_id(orderOuter.getSpec_id()); //设置活动id
+		//cart.setPrice(product.getPrice());
+		//cart.setName(product.getName());
+		if(!StringUtils.isEmpty(orderOuter.getMember_lv_id()))
+			cart.setMember_lv_id(orderOuter.getMember_lv_id());
+		return cart;
+	}
+	
+	public RegisterReq assembleMember(OrderSyReq syReq) {
+		OrderOuter orderOuter = syReq.getOrderOuterResps().get(0).getOrderOuter();
+		Map map = null;
+		if(syReq.getParamsl()!=null && syReq.getParamsl().size()>0){
+			map = syReq.getParamsl().get(0);
+		}
+		AdminUser user = OrderThreadLocalHolder.getInstance().getOrderCommonData().getAdminUser();
+		if(orderOuter.getUname()==null && user!=null){
+			orderOuter.setUname(user.getUsername());
+		}
+		if(orderOuter.getName()==null && user!=null){
+			orderOuter.setName(user.getUsername());
+		}
+		//生成会员
+		String member_name =orderOuter.getUname();
+		if(StringUtil.isEmpty(member_name))
+			member_name = orderOuter.getName();
+		if(map!=null && StringUtil.isEmpty(member_name)){
+			member_name = (String) map.get("buyer_id");
+		}
+		if(StringUtil.isEmpty(member_name))
+			member_name ="defmember";
+		RegisterReq req = new RegisterReq();
+		Member member = new Member();
+		member.setMember_id(orderOuter.getMember_id());
+		if(StringUtil.isEmpty(orderOuter.getName()) && map!=null)orderOuter.setName((String)map.get("buyer_name"));
+		member.setName(orderOuter.getName());
+		member.setUname(member_name);
+		if(StringUtil.isEmpty(orderOuter.getShip_tel()) && map!=null)orderOuter.setShip_tel((String)map.get("reference_phone"));
+		member.setTel(orderOuter.getShip_tel());
+		if(StringUtil.isEmpty(orderOuter.getShip_mobile()) && map!=null)orderOuter.setShip_mobile((String)map.get("phone_num"));
+		member.setMobile(orderOuter.getShip_mobile());
+		member.setZip(orderOuter.getShip_zip());
+		if(StringUtil.isEmpty(orderOuter.getRegion()) && map!=null)orderOuter.setRegion((String)map.get("district"));
+		member.setRegion(orderOuter.getRegion());
+		if(StringUtil.isEmpty(orderOuter.getCity()) && map!=null)orderOuter.setCity((String)map.get("city"));
+		member.setCity(orderOuter.getCity());
+		if(StringUtil.isEmpty(orderOuter.getProvince()) && map!=null)orderOuter.setProvince((String)map.get("province"));
+		member.setProvince(orderOuter.getProvince());
+		member.setSex(orderOuter.getSex());
+		member.setAddress(orderOuter.getShip_addr());
+		member.setSource_from(orderOuter.getSource_from());
+		
+		if(map!=null){
+			String rid = (String) map.get("area_code");
+			if(!StringUtil.isEmpty(rid))member.setRegion_id(Integer.valueOf(rid));
+			String cid = (String) map.get("city_code");
+			if(!StringUtil.isEmpty(cid))member.setCity_id(Integer.valueOf(cid));
+			String pid = (String) map.get("provinc_code");
+			if(!StringUtil.isEmpty(pid))member.setProvince_id(Integer.valueOf(pid));
+			
+			member.setBuyer_uid((String)map.get("uid"));
+			member.setShip_area((String)map.get("ship_area"));
+			member.setCert_card_num((String)map.get("cert_card_num"));
+			member.setCert_address((String)map.get("cert_address"));
+			member.setCert_failure_time((String)map.get("cert_failure_time"));
+			member.setCert_type((String)map.get("certi_type"));
+			member.setCustomertype((String)map.get("CustomerType"));
+			member.setPlat_type((String)map.get("plat_type"));
+		}
+		
+		req.setMember(member);
+		return req;
+	}
+
+	public OrderRel assembleOrderRel(OrderOuter orderOuter,Order order){
+		//插入订单关系
+		OrderRel orderRel  = new OrderRel();
+		orderRel.setA_order_id(orderOuter.getOrder_id());
+		orderRel.setZ_order_id(order.getOrder_id());
+		orderRel.setCreate_date(DBTUtil.current());
+		orderRel.setZ_table_name("ES_ORDER_OUTER");
+		orderRel.setRel_type("1");
+		orderRel.setState(OrderStatus.ORDER_REL_STATE_0);
+		orderRel.setComments("订单同步");
+		return orderRel;
+	}
+	public ICartSManager getCartSManager(){
+		return cartSManager;
+	}
+	public void setCartSManager(ICartSManager cartSManager){
+		this.cartSManager = cartSManager;
+	}
+	public IDlyTypeManager getDlyTypeSManager() {
+		return dlyTypeSManager;
+	}
+
+	public void setDlyTypeSManager(IDlyTypeManager dlyTypeSManager) {
+		this.dlyTypeSManager = dlyTypeSManager;
+	}
+	public PaymentCfgInf getPaymentCfgServ() {
+		return paymentCfgServ;
+	}
+
+
+	public void setPaymentCfgServ(PaymentCfgInf paymentCfgServ) {
+		this.paymentCfgServ = paymentCfgServ;
+	}
+	public GoodsInf getGoodsServ() {
+		return goodsServ;
+	}
+
+
+	public void setGoodsServ(GoodsInf goodsServ) {
+		this.goodsServ = goodsServ;
+	}
+	public IWarehouseService getWarehouseService() {
+		return warehouseService;
+	}
+
+	public void setWarehouseService(IWarehouseService warehouseService) {
+		this.warehouseService = warehouseService;
+	}
+	public OrderPluginSBundle getOrderPluginSBundle() {
+		return orderPluginSBundle;
+	}
+
+	public void setOrderPluginSBundle(OrderPluginSBundle orderPluginSBundle) {
+		this.orderPluginSBundle = orderPluginSBundle;
+	}
+}

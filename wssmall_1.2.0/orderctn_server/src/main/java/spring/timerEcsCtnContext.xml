@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+	
+    <!-- ********************订单归集扫描开始******************** -->
+    <bean id="outerInfCtnTimerService" class="com.ztesoft.net.mall.core.timer.OuterInfCtnTimerService"/>
+    <bean id="outerInfCtnJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="outerInfCtnTimerService"/>
+        </property>
+       <!--  调用类中的方法 -->
+        <property name="targetMethod">
+            <value>exeOrderSync</value>
+        </property>
+    </bean>
+    
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点；  0 0/1 * * * ? 每分钟；  0 0/15 18,20 * * ? 每天下午6点到18:45期间和晚上8点到20:45期间的每15分钟触发 -->
+    <bean id="outerInfCtnTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="outerInfCtnJob"/>
+        </property>
+       <!--  cron表达式 -->
+        <property name="cronExpression">
+            <value>0 0/5 * * * ?</value>
+        </property>
+    </bean>
+    <!-- ********************取消订单扫描结束******************** -->
+    
+    <!-- ********************处理订单失败队列表数据开始******************** -->
+    <bean id="orderFailQueueCtnTimer" class="com.ztesoft.net.mall.core.timer.OrderFailQueueCtnTimer"/>
+    <bean id="orderFailQueueCtnTimerJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<!-- 先结束当前任务再会执行新的任务 -->
+        <property name="concurrent" value="false" />
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="orderFailQueueCtnTimer"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点 ; 0 0/1 * * * ? 每分钟-->
+    <bean id="orderFailQueueCtnTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="orderFailQueueCtnTimerJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+        	 <value>0 0/6 * * * ?</value> 
+           <!--  <value>0 0 02 ? * SUN</value> -->
+        </property>
+    </bean>
+    <!-- ********************处理订单失败队列表数据结束******************** -->
+    
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">
+        <property name="triggers">
+            <list>
+            	<!-- --> <ref bean="outerInfCtnTime"/> 
+				 <ref bean="orderFailQueueCtnTime"/> 
+            </list>
+        </property>
+    </bean>
+    
+   
+    
+</beans>

@@ -1,0 +1,25 @@
+﻿@charset "utf-8";
+/* CSS Document */
+
+input{ vertical-align:top;}
+body{ background:#e1e1e1 url(../images/login/login_bg.gif) repeat-x; font-size:12px;}
+.wrapper,.footer{ position:relative; }
+.footer{ height:40px;background:url(../images/login/login_bg_bottom.gif) repeat-x;}
+.wrapper{height:100%;}
+.main_div{ width:939px; margin:100px auto; height:405px;}
+.left_div{ width:603px; height:405px; background:url(../images/login/left_bg.png) left top no-repeat; position:relative;}
+.center_div{width:271px; height:405px; background:url(../images/login/center_bg.jpg) left top no-repeat;}
+.right_div{ width:65px; height:405px; background:url(../images/login/right_bg.png) left top no-repeat;_background:none;_filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src="images/login/right_bg.png");}
+.left_content{ position:absolute; top:110px; left:45px;}
+.left_content ul{ margin:0px; padding:0px;}
+.left_content ul li{ list-style:none; background:url(../images/login/list_icon.gif) left center no-repeat; padding-left:15px; color:#fefefe; font-family:"微软雅黑"; font-size:16px; line-height:24px;}
+.login_msg{ width:190px; margin:100px auto 0px;}
+.login_msg table{ line-height:32px;}
+.login_msg table th{ font-weight:bold;}
+.Input1{background:url(../images/login/input_bg1.jpg) left top no-repeat; border:none; width:180px; height:28px; line-height:28px; padding-left:10px;}
+.Input2{background:url(../images/login/input_bg2.jpg) left top no-repeat; border:none; width:66px; height:28px; line-height:28px; padding-left:10px;}
+.login_bnt{ margin:50px auto; width:241px;}
+.footer_div{ height:40px; line-height:40px; text-align:center; color:#666; font-family:Arial, Helvetica, sans-serif;}
+
+
+.bnt_login{background:url(../images/login/login_normal.png) left top no-repeat; width:241px; height:40px; cursor:pointer;}

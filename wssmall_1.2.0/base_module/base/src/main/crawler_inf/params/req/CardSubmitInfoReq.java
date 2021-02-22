@@ -1,0 +1,170 @@
+package params.req;
+
+import params.ZteRequest;
+import com.ztesoft.api.ApiRuleException;
+import com.ztesoft.net.annotation.ZteSoftCommentAnnotationParam;
+
+/**
+ * 
+ * @author Sun
+ *
+ */
+public class CardSubmitInfoReq extends ZteRequest{
+	@ZteSoftCommentAnnotationParam(name="内部订单号",type="String",isNecessary="Y",desc="内部订单号")
+	private String notNeedReqStrOrderId;
+	@ZteSoftCommentAnnotationParam(name="总商订单编号(短订单号对应云订单系统外部订单号)",type="String",isNecessary="Y",desc="总商订单编号(短订单号对应云订单系统外部订单号)")
+	private String orderNo;
+	
+	@ZteSoftCommentAnnotationParam(name="是否是老用户便捷换卡订单 1:是  0:不是",type="String",isNecessary="Y",desc="是否是老用户便捷换卡订单 1:是  0:不是")
+	private String isCardChange;
+	
+	@ZteSoftCommentAnnotationParam(name="总商长订单id",type="String",isNecessary="Y",desc="总商长订单id")
+	private String orderId;
+	
+	@ZteSoftCommentAnnotationParam(name="发票号",type="String",isNecessary="Y",desc="发票号")
+	private String invoiceNo;
+	
+	@ZteSoftCommentAnnotationParam(name="",type="String",isNecessary="Y",desc="")
+	private String goodInstId;
+
+	@ZteSoftCommentAnnotationParam(name="ICCID（SIM卡号）",type="String",isNecessary="Y",desc="ICCID（SIM卡号）")
+	private String simID;
+
+	@ZteSoftCommentAnnotationParam(name="号码",type="String",isNecessary="Y",desc="号码")
+	private String numId;
+
+	@ZteSoftCommentAnnotationParam(name="模板id",type="String",isNecessary="Y",desc="模板id")
+	private String tmplId;
+	
+	@ZteSoftCommentAnnotationParam(name="应收卡费",type="String",isNecessary="Y",desc="应收卡费")
+	private String usimFee;
+	
+	@ZteSoftCommentAnnotationParam(name=" 是否是主副卡新带新且副卡带有号码的订单  1：是 0：不是",type="String",isNecessary="Y",desc=" 是否是主副卡新带新且副卡带有号码的订单  1：是 0：不是")
+	private String isZFKNewOrder;
+	
+	@ZteSoftCommentAnnotationParam(name=" 号码",type="String",isNecessary="Y",desc="号码")
+	private String preNum;
+
+	@ZteSoftCommentAnnotationParam(name=" 是否成卡",type="String",isNecessary="Y",desc="是否成卡")
+	private String isOldCard;
+	
+	public String getOrderNo() {
+		return orderNo;
+	}
+
+	public void setOrderNo(String orderNo) {
+		this.orderNo = orderNo;
+	}
+
+	public String getIsCardChange() {
+		return isCardChange;
+	
+	}
+
+	public void setIsCardChange(String isCardChange) {
+		this.isCardChange = isCardChange;
+	}
+
+	public String getOrderId() {
+		return orderId;
+	}
+
+	public void setOrderId(String orderId) {
+		this.orderId = orderId;
+	}
+
+	public String getInvoiceNo() {
+		return invoiceNo;
+	}
+
+	public void setInvoiceNo(String invoiceNo) {
+		this.invoiceNo = invoiceNo;
+	}
+
+	public String getGoodInstId() {
+		return goodInstId;
+	}
+
+	public void setGoodInstId(String goodInstId) {
+		this.goodInstId = goodInstId;
+	}
+
+	public String getSimID() {
+		return simID;
+	}
+
+	public void setSimID(String simID) {
+		this.simID = simID;
+	}
+
+	public String getNumId() {
+		return numId;
+	}
+
+	public void setNumId(String numId) {
+		this.numId = numId;
+	}
+
+	public String getTmplId() {
+		return tmplId;
+	}
+
+	public void setTmplId(String tmplId) {
+		this.tmplId = tmplId;
+	}
+
+	public String getUsimFee() {
+		return usimFee;
+	}
+
+	public void setUsimFee(String usimFee) {
+		this.usimFee = usimFee;
+	}
+
+	public String getIsZFKNewOrder() {
+		return isZFKNewOrder;
+	
+	}
+
+	public void setIsZFKNewOrder(String isZFKNewOrder) {
+		this.isZFKNewOrder = isZFKNewOrder;
+	}
+
+	public String getPreNum() {
+		return preNum;
+	}
+
+	public void setPreNum(String preNum) {
+		this.preNum = preNum;
+	}
+
+	public String getIsOldCard() {
+		isOldCard = "0";
+		return isOldCard;
+	}
+
+	public void setIsOldCard(String isOldCard) {
+		this.isOldCard = isOldCard;
+	}
+
+	@Override
+	public void check() throws ApiRuleException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getApiMethodName() {
+		// TODO Auto-generated method stub
+		return "zte.net.iservice.impl.ZteCrawlerOpenService.callCardSubmit";
+	}
+
+	public String getNotNeedReqStrOrderId() {
+		return notNeedReqStrOrderId;
+	}
+
+	public void setNotNeedReqStrOrderId(String notNeedReqStrOrderId) {
+		this.notNeedReqStrOrderId = notNeedReqStrOrderId;
+	}
+	
+}

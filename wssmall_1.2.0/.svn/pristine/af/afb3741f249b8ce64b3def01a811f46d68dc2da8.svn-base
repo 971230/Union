@@ -1,0 +1,387 @@
+package com.ztesoft.inf.communication.client;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Map.Entry;
+
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
+
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.apache.log4j.Logger;
+import org.dom4j.Document;
+import org.dom4j.Attribute;
+import org.dom4j.DocumentException;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+
+import params.ZteResponse;
+
+import com.ztesoft.common.util.BeanUtils;
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.common.util.Xml2JsonUtil;
+import com.ztesoft.common.util.XmlUtils;
+import com.ztesoft.common.util.date.DateUtil;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.inf.communication.client.exception.HttpTimeOutException;
+import com.ztesoft.inf.communication.client.util.SFUtil;
+import com.ztesoft.inf.extend.freemarker.TemplateUtils;
+import com.ztesoft.inf.extend.xstream.XStream;
+import com.ztesoft.inf.framework.commons.CodedException;
+import com.ztesoft.net.framework.util.StringUtil;
+
+/**
+ * 
+ * @author zou.qh
+ * <p>
+ * 	EMS自助服务http接口
+ * </p>
+ * 
+ */
+public class HttpPostSFInvoker extends Invoker {
+	private final static String PARAM_verifyCode = "verifyCode";
+	private static XStream xstream = XStream.instance();
+
+	String cdataPath;
+	Map dataNamespaces;
+	Map cdataNamespaces;
+
+	private static XPath xpath = XPathFactory.newInstance().newXPath();
+	// private Service service = new Service();
+
+	private final static String TEXT = "_EXCEPTION";
+	protected Logger logger = Logger.getLogger(HttpPostSFInvoker.class);
+    static MultiThreadedHttpConnectionManager connectionManager =
+            new MultiThreadedHttpConnectionManager();
+    static {
+    	/** 
+    	 * add by shusx 2016-08-10
+    	 * 下面两个参数使用说明:
+    	 * 如果该多线程连接池不对多个host使用时，MaxTotalConnections = MaxConnectionsPerHost
+    	 * 如果该多线程连接池对多个host使用时，MaxTotalConnections = n(host) * MaxConnectionsPerHost
+    	 */
+        connectionManager.setMaxConnectionsPerHost(60);
+        connectionManager.setMaxTotalConnections(60);
+    }
+    private static HttpClient client = new HttpClient(connectionManager);
+	
+	@Override
+	public Object invoke(InvokeContext context) throws Exception {
+		ZteResponse resp = new ZteResponse();
+		
+		Map param = (Map) context.getParameters();
+		param.put("verifyCode", "verifyCode");
+		String reqString = generateRequestString(context);
+		String verifyCode = SFUtil.genVerifyCode(reqString.trim(),reqUser.getUser_pwd());
+		param.put("verifyCode", verifyCode);
+		reqString = generateRequestString(context);
+		String url = endpoint ;//getBillNumBySys
+//		String url = "http://10.123.98.57:7001/integrationweb/integration/ordersStatus.sync" + "?result=" + StringUtil.md5(md5Str);
+		PostMethod postMethod = new PostMethod(url);
+		try {
+			//链接超时
+			client.getHttpConnectionManager().getParams().setConnectionTimeout(http_post_time_out);  
+			//httpclient.getParams().setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, http_post_time_out); 
+			//读取超时
+			client.getHttpConnectionManager().getParams().setSoTimeout(http_read_time_out);
+			postMethod.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+			postMethod.getParams().setParameter(HttpMethodParams.HTTP_CONTENT_CHARSET,"utf-8"); 
+            postMethod.addParameter("xml", SFUtil.fetchXML(reqString));
+            
+            postMethod.addParameter("verifyCode", verifyCode);
+    		context.setRequestString(reqString);
+    		context.setEndpoint(url);
+    		context.setRequestTime(DateUtil.currentTime());
+        	/** 调用前先打印连接池使用情况  */
+        	
+            int statusCode = client.executeMethod(postMethod);
+        	//int statusCode = 200;
+            if(TIME_OUT_STATUS==statusCode)throw new HttpTimeOutException("超时异常");
+            String resContent =  getResponseContent(postMethod.getResponseBodyAsStream());
+	        if(OK_STATUS_200!=statusCode && OK_STATUS_201!=statusCode && OK_STATUS_202!=statusCode && OK_STATUS_203!=statusCode && OK_STATUS_204!=statusCode && OK_STATUS_205!=statusCode && OK_STATUS_206!=statusCode)
+				throw new HttpException("接口异常".concat(";HTTP响应状态:")
+						.concat(String.valueOf(statusCode))
+						.concat(";HTTP响应内容:").concat(resContent));
+            if(resContent.contains("<Head>OK</Head>")){
+    			logColMap.put("col2", "success");
+    		}else{
+    			logColMap.put("col2", "error");
+    		}
+            String resultStr = resContent;
+    		context.setResponeString(resultStr);
+    		String cdataContent = null;
+    		Map orderInfo = new HashMap();
+    		Map Response = new HashMap();
+    		if(resultStr.indexOf("<Body>")>=0){
+    			cdataContent = resultStr.substring(resultStr.indexOf("<Body>")+6,resultStr.indexOf("</Body>"));
+    			Document document = null;
+        		try {
+        			document= (Document) DocumentHelper.parseText(cdataContent);
+        		} catch (DocumentException e) {
+        		    e.printStackTrace();
+        		}
+        		
+        		Element root=document.getRootElement(); 
+        		List<Attribute> listAttr=root.attributes();//当前节点的所有属性的list  
+        		
+        	    for(Attribute attr:listAttr){//遍历当前节点的所有属性  
+        	        String name=attr.getName();//属性名称  
+        	        String value=attr.getValue();//属性的值  
+        	        orderInfo.put(name, value);
+        	    }  
+        	    
+        	    Response.put("orderInfo", orderInfo);
+        	    
+    			Response.put("errorCode", "OK");
+    			
+    		}else{
+    			Map map = XmlUtils.xmlToMap(cdataContent);
+    			Response.put("errorCode", "ERR");
+    			Response.put("errorMessage", Const.getStrValue(map, "ERROR"));
+    		}
+    		resultStr =mapToXml(Response);
+    	    context.setResultString(resultStr);
+			context.setResponeString(resultStr);
+			/*// 输出格式化的串到目标中,格式化后的串保存在out中。
+    		try {
+    			if (!StringUtils.isEmpty(cdataPath)) {
+    				CachedNamespaceContext nsCtx = new CachedNamespaceContext();
+    				nsCtx.putInCache(cdataNamespaces);
+    				xpath.setNamespaceContext(nsCtx);
+    				cdataContent = xpath.evaluate(cdataPath, resContent);
+//    				cdataContent = "<?xml version='1.0' encoding='UTF-8'?><Response service=\"OrderConfirmService\"><Head>OK</Head><Body><OrderConfirmResponse orderid=\"订单号\" mailno=\"运单号\" remark=\"备注\"/></Body></Response>";
+
+    				// 2011.10.13 如果cddata为空 ，则不进行解析了，否则报错
+    				if (StringUtils.isEmpty(cdataContent)) {
+    					return new HashMap();
+    				}
+
+    				logger.info("\n顺丰返回格式化报文：：："+cdataContent);
+    				
+    			}
+    		} catch (Exception e) {
+    			throw new CodedException("9002", "根据返回的SOAP报文取业务报文["
+    					+ context.getOperationCode() + "]时出错.", e);
+    		}*/
+
+    		Object result;
+    		StringWriter out =null;
+    		try {
+    			/*if (transformTemplate != null) {
+    				Map rootMap = new HashMap();
+    				rootMap.put("doc", resContent);
+    				TemplateUtils.addUtils(rootMap);
+    				transformTemplate.process(rootMap, out);
+    				resultStr = out.toString();
+    				context.setResultString(resultStr);
+    				context.setResponeString(resultStr);
+    			}*/
+//    			resultStr="<Response service=\"OrderConfirmService\"><Head>OK</Head><Body><OrderConfirmResponse orderid=\"订单号\" mailno=\"运单号\" remark=\"备注\"/></Body></Response>";
+//    			result = xstream.fromXML(resultStr, mapperContext);
+    			Class<?> clazz = Class.forName(rspPath);
+//    			String jsonString = JSONObject.toJSONString((Map)result);
+    			String jsonString = Xml2JsonUtil.xml2JSON(resultStr);
+    			resp = (ZteResponse) JsonUtil.fromJson(jsonString, clazz);
+    			return resp;
+    		} catch (Exception e) {
+    			throw new CodedException("9003", "根据反馈的业务报文转为目标格式["
+    					+ context.getOperationCode() + "]时出错.", e);
+    		}
+        }catch(HttpException ex){
+			ex.printStackTrace();
+			throw ex;
+		} finally {
+            if (postMethod != null) {
+                postMethod.releaseConnection();
+            }
+        }
+	}
+	
+	@Override
+	public Object invokeTest(InvokeContext context) throws Exception {
+		context.setRequestTime(DateUtil.currentTime());
+		String md5Str = StringUtil.md5(generateRequestString(context));
+		String url = endpoint + "?result=" + md5Str;
+		context.setRequestString(url);
+		context.setEndpoint(url);
+		context.setRequestTime(DateUtil.currentTime());
+		context.setRequestString(md5Str);
+		ZteResponse resp = null;
+		try {
+			//xml转map
+            Map xmlMap = XmlUtils.xmlToMap(transform);
+            Map newMap = new HashMap();
+            if(transform.contains("<Head>OK</Head>")){
+    			logColMap.put("col2", "success");
+    		}else{
+    			logColMap.put("col2", "error");
+    		}
+            String resultStr = transform;
+    		context.setResponeString(resultStr);
+    		String cdataContent = null;
+    		Map orderInfo = new HashMap();
+    		Map Response = new HashMap();
+    		if(resultStr.indexOf("<Body>")>=0){
+    			cdataContent = resultStr.substring(resultStr.indexOf("<Body>")+6,resultStr.indexOf("</Body>"));
+    			Document document = null;
+        		try {
+        			document= (Document) DocumentHelper.parseText(cdataContent);
+        		} catch (DocumentException e) {
+        		    e.printStackTrace();
+        		}
+        		
+        		Element root=document.getRootElement(); 
+        		List<Attribute> listAttr=root.attributes();//当前节点的所有属性的list  
+        		
+        	    for(Attribute attr:listAttr){//遍历当前节点的所有属性  
+        	        String name=attr.getName();//属性名称  
+        	        String value=attr.getValue();//属性的值  
+        	        orderInfo.put(name, value);
+        	    }  
+        	    //生成随机物流单号
+        	    String logiNo = "666"+getFixLenthString(10).replace(".", "");
+        	    orderInfo.put("mailno", logiNo);
+        	    Response.put("orderInfo", orderInfo);
+        	    
+    			Response.put("errorCode", "OK");
+    			
+    		}else{
+    			Map map = XmlUtils.xmlToMap(cdataContent);
+    			Response.put("errorCode", "ERR");
+    			Response.put("errorMessage", Const.getStrValue(map, "ERROR"));
+    		}
+    		resultStr =mapToXml(Response);
+    	    context.setResultString(resultStr);
+			context.setResponeString(resultStr);
+
+    		Object result;
+    		StringWriter out =null;
+    		try {
+    			Class<?> clazz = Class.forName(rspPath);
+    			String jsonString = Xml2JsonUtil.xml2JSON(resultStr);
+    			resp = (ZteResponse) JsonUtil.fromJson(jsonString, clazz);
+    			return resp;
+    		} catch (Exception e) {
+    			throw new CodedException("9003", "根据反馈的业务报文转为目标格式["
+    					+ context.getOperationCode() + "]时出错.", e);
+    		}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		context.setResultString(transform);
+		context.setResponeString(transform);
+		context.setResponseTime(DateUtil.currentTime());
+		return resp;
+	}
+	
+	private static String getFixLenthString(int strLength) {  
+	    Random rm = new Random();  
+	    // 获得随机数  
+	    double pross = (1 + rm.nextDouble()) * Math.pow(10, strLength);  
+	    // 将获得的获得随机数转化为字符串  
+	    String fixLenthString = String.valueOf(pross);  
+	    // 返回固定的长度的随机数  
+	    return fixLenthString.substring(1, strLength + 1);  
+	}
+	
+	protected String generateRequestString(InvokeContext context) {
+
+		Object params = context.getParameters();
+		StringWriter out = new StringWriter();
+
+		try {
+			Map root = new HashMap();
+			BeanUtils.copyProperties(root, params);
+
+			if (globalVars != null) {
+				root.put("_global", globalVars);
+			}
+
+			TemplateUtils.addUtils(root);
+			TemplateUtils.addInvokerInfo(root, this);
+
+			requestTemplate.process(root, out);
+
+			String reqString = out.toString();
+			context.setRequestString(reqString);
+
+		} catch (Exception e) {
+			throw new CodedException("9001", "根据模板["
+					+ context.getOperationCode() + "]组装请求报文出错.", e);
+		} finally {
+			try {
+				out.close();
+			} catch (IOException e) {
+			}
+		}
+		return out.toString();
+	}
+	
+	private String getResponseContent(final InputStream input) throws IOException {
+    	BufferedReader reader = new BufferedReader(new InputStreamReader(input, "utf-8"));
+		StringBuilder buffer = new StringBuilder();
+		String line = null;
+		while ((line = reader.readLine()) != null) {
+			buffer.append(line);
+		}
+        return buffer.toString();
+    }
+	
+	private Map subMap(Map map, String path){
+		if(null == map)
+			return map;
+		String[] paths = path.split("\\.");
+		for(int i = 0; i < paths.length; i++){
+			map = (Map)map.get(paths[i]);
+		}
+		return map;
+	}
+
+
+	public static Element getXmlFromMap(Element root, Map<String, Object> map) {
+		for (Entry<String, Object> entry : map.entrySet()) {
+			if (!(entry.getValue() instanceof HashMap || entry.getValue() instanceof ArrayList)) {
+				Element elementOne = root.addElement(entry.getKey());
+				Object val = entry.getValue();
+				if(val!=null){
+					elementOne.setText(String.valueOf(entry.getValue()));
+				}
+			} else if (entry.getValue() instanceof HashMap) {
+				Element elementTwo = root.addElement(entry.getKey());
+				getXmlFromMap(elementTwo, (Map<String, Object>) entry.getValue());
+			} else {
+				List<Map<String, Object>> list = (List<Map<String, Object>>) entry.getValue();
+				for (Map<String, Object> listMap : list) {
+					Element elementThr = root.addElement(entry.getKey());
+					getXmlFromMap(elementThr, (Map<String, Object>) listMap);
+				}
+			}
+		}
+		return root;
+	}
+	public static String mapToXml(Map map) {
+		Document document = DocumentHelper.createDocument();
+		Element root = null;
+		root = document.addElement("Response");
+		root = XmlUtils.getXmlFromMap(root, map);
+		String xmlStr = root.asXML();
+		/*try {
+			xmlStr = formatXML(xmlStr);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}*/
+		return xmlStr;
+	}
+}

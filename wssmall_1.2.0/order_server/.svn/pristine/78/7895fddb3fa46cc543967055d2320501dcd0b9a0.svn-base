@@ -1,0 +1,496 @@
+package services;
+
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.drools.core.util.StringUtils;
+
+import params.ZteError;
+import params.order.req.PaymentLogReq;
+import params.order.resp.PaymentLogResp;
+import params.pay.req.PaySucessReq;
+import params.pay.resp.PaySucessResp;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.order.AbstractHander;
+import com.ztesoft.net.mall.core.action.order.IOrderDirector;
+import com.ztesoft.net.mall.core.model.Order;
+import com.ztesoft.net.mall.core.model.OrderItem;
+import com.ztesoft.net.mall.core.model.PaymentList;
+import com.ztesoft.net.mall.core.model.PaymentLog;
+import com.ztesoft.net.mall.core.service.IOrderManager;
+import com.ztesoft.net.mall.core.service.IOrderNFlowManager;
+import com.ztesoft.net.mall.core.service.ITplInstManager;
+import com.ztesoft.net.model.AttrInst;
+import com.ztesoft.net.sqls.SF;
+import commons.CommonTools;
+
+import consts.ConstsCore;
+
+public class PaymentServ extends ServiceBase implements PaymentInf {
+	
+	private IOrderManager orderManager;
+	private IOrderNFlowManager orderNFlowManager;
+	private ITplInstManager tplInstManager;
+	private IOrderDirector orderDirector;
+	//private ICommonPayHander commonPayHander;
+	private AdminUserInf adminUserServ;
+	private AbstractHander commonPaymentHander;
+
+	@Override
+	public PaymentLogResp createPaymentLog(PaymentLogReq req) throws ApiBusiException{
+		PaymentLogResp resp = new PaymentLogResp();
+		Order order = req.getOrder();
+		if(order==null)
+			order = orderManager.get(req.getOrder_id());
+		req.setOrder_id(order.getOrder_id());
+		String pay_type = req.getPay_type();
+		//弹出银行支付界面，选择银行支付处理
+		PaymentLog payment = new PaymentLog();
+		payment.setPaytype(0);
+		payment.setCreate_time(DBTUtil.current());
+		//这个需要根据支付方式进行判断为-1(货到付款)还是0(在线支付)
+		if("online".equals(pay_type)){
+			payment.setStatus(OrderStatus.PAY_STATUS_0);
+		}else{
+			payment.setStatus(OrderStatus.PAY_STATUS_NOT_CONFIRM);
+		}
+		payment.setUserid(order.getPay_user_id());
+		payment.setMember_id(order.getMember_id());
+		payment.setOrder_id(order.getOrder_id());
+		if(OrderStatus.WP_CREATE_TYPE_6.equals(order.getCreate_type()+"")||OrderStatus.WP_CREATE_TYPE_7.equals(order.getCreate_type()+"")){
+			payment.setType(OrderStatus.PAY_TYPE_2);
+		}else{
+			payment.setType(OrderStatus.PAY_TYPE_1);
+		}
+		payment.setPay_type(pay_type);
+		payment.setPay_method(order.getPayment_id()+"");
+		payment.setMoney(order.getOrder_amount()-order.getPaymoney());
+		baseDaoSupport.insert("payment_logs", payment);
+		
+		String service_code=req.getOrder().getService_code();
+		List<OrderItem> list = orderNFlowManager.listOrderItemActionCode(order.getOrder_id(),service_code);
+	
+		//查询需要支付的orderItem
+		for(OrderItem oi:list){
+			if(OrderStatus.ACTION_CODE_PAY.equals(oi.getAction_code()) && OrderStatus.ACCEPT_STATUS_YES.equals(oi.getStatus())){
+				List<AttrInst> oattrInsts = orderManager.getOuterAttrInst(orderManager.getOrderOuterByGoodsId(oi.getProduct_id(), req.getOrderOuters()));
+				Map<String ,List<AttrInst>> acceptTableInstAttrs = new HashMap<String, List<AttrInst>>();
+				List<AttrInst> propAttrInsts = new ArrayList<AttrInst>();
+				Map<String, String> tableInstFkeys = new HashMap<String, String>();
+				//属性数据分组
+				tplInstManager.groupAttrInsts(oattrInsts, acceptTableInstAttrs, propAttrInsts,OrderStatus.ACTION_CODE_PAY);
+				//保存受理属性实例数据到指定的库表
+				tplInstManager.saveTableInst(req.getOrder(),oi,acceptTableInstAttrs,tableInstFkeys);
+				//保存受理属性实例数据到属性实例表
+				tplInstManager.saveAttrInst(oi,propAttrInsts,tableInstFkeys);
+			}
+		}
+		
+		resp.setUserSessionId(req.getUserSessionId());
+		resp.setPaymentLog(payment);
+		addReturn(req,resp);
+		return resp;
+	}
+	
+	/*@Override
+	public GoToPayResp goToPay(GoToPayReq req) {
+		Order order = orderManager.get(req.getOrder_id());
+		List<PaymentLog> payments = this.baseDaoSupport.queryForList("select * from payment_logs l where l.order_id=?", PaymentLog.class, req.getOrder_id());
+		PaymentLog payment = null;
+		for(PaymentLog p:payments){
+			if(p.getStatus()==OrderStatus.PAY_STATUS_NOT_CONFIRM){
+				payment = p;
+				break;
+			}
+		}
+		if(payment==null)CommonTools.addError(new ErrorEntity(ConstsCore.ERROR_FAIL,"没有找到待支付的订单"));
+		payment.setBank_id(req.getBank_id());
+		Member member = memberManager.get(payment.getMember_id());
+		ManagerUtils.createMemberSession(member);
+		orderDirector.getOrderBuilder().buildPaymentFlow();
+		OrderRequst orderRequst = new OrderRequst();
+		*//**
+		 * 改为type_code传进来
+		 *//*
+		order.setType_code(req.getType_code());
+		OrderHandleParam op = new OrderHandleParam();
+		op.setType_code(order.getType_code());
+		
+		
+		orderRequst.setService_name(OrderBuilder.COMMONAGE);
+		orderRequst.setFlow_name(OrderBuilder.PAYMENT_C);
+		orderRequst.setAccept_action(OrderStatus.BUTTON_CUST_ACCEPT_C);
+		orderRequst.setPayment(payment);
+		orderRequst.setOrderId(req.getOrder_id());
+		orderRequst.setOrderParam(op);
+		OrderResult orderResult = orderDirector.perform(orderRequst);
+		
+		//网银支付的展示网银支付的按钮
+		PayReponse payReponse = orderResult.getPayReponse();
+		GoToPayResp resp = new GoToPayResp();
+		if(payReponse !=null){
+			resp.setError_code("1");
+			resp.setError_msg("支付");
+			resp.setBankURL(String.valueOf(payReponse.getResult().get("bankURL")));
+			resp.setMERCHANTID(String.valueOf(payReponse.getResult().get("MERCHANTID")));
+			resp.setSUBMERCHANTID(String.valueOf(payReponse.getResult().get("SUBMERCHANTID")));
+			resp.setORDERSEQ(String.valueOf(payReponse.getResult().get("ORDERSEQ")));
+			resp.setORDERREQTRANSEQ(String.valueOf(payReponse.getResult().get("ORDERREQTRANSEQ")));
+			resp.setORDERDATE(String.valueOf(payReponse.getResult().get("ORDERDATE")));
+			resp.setORDERAMOUNT(String.valueOf(payReponse.getResult().get("ORDERAMOUNT")));
+			resp.setPRODUCTAMOUNT(String.valueOf(payReponse.getResult().get("PRODUCTAMOUNT")));
+			resp.setATTACHAMOUNT(String.valueOf(payReponse.getResult().get("ATTACHAMOUNT")));
+			resp.setCURTYPE(String.valueOf(payReponse.getResult().get("CURTYPE")));
+			resp.setENCODETYPE(String.valueOf(payReponse.getResult().get("ENCODETYPE")));
+			//resp.setMERCHANTURL(String.valueOf(payReponse.getResult().get("MERCHANTURL")));
+			//resp.setBACKMERCHANTURL(String.valueOf(payReponse.getResult().get("BACKMERCHANTURL")));
+			resp.setBANKID(String.valueOf(payReponse.getResult().get("BANKID")));
+			resp.setATTACH(String.valueOf(payReponse.getResult().get("ATTACH")));
+			resp.setBUSICODE(String.valueOf(payReponse.getResult().get("BUSICODE")));
+			resp.setTMNUM(String.valueOf(payReponse.getResult().get("TMNUM")));
+			resp.setCUSTOMERID(String.valueOf(payReponse.getResult().get("CUSTOMERID")));
+			resp.setPRODUCTID(String.valueOf(payReponse.getResult().get("PRODUCTID")));
+			resp.setPRODUCTDESC(String.valueOf(payReponse.getResult().get("PRODUCTDESC")));
+			resp.setMAC(String.valueOf(payReponse.getResult().get("MAC")));
+			resp.setCLIENTIP(String.valueOf(payReponse.getResult().get("CLIENTIP")));
+		}else{
+			resp.setError_code("1");
+			resp.setError_msg("支付成功");
+		}
+		resp.setLogined_id(req.getLogined_id());
+		resp.setSession_id(req.getSession_id());
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public BankCallbackResp bankCallback(BankCallbackReq req) {
+		logger.info("=======================>>>>计费充值:" + req.getORDERSEQ());
+		EopContext context = new EopContext();
+		EopSite site = new EopSite();
+		site.setUserid(1 + "");
+		site.setId(1 + "");
+		site.setThemeid(1 + "");
+		context.setCurrentSite(site);
+		EopContext.setContext(context);
+		BankCallbackResp resp = new BankCallbackResp();
+		try {
+			BeanUtils.copyProperties(resp, req);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		String dealFlag = "0";
+		resp.setDealFlag(dealFlag);
+		PaymentList payment = this.commonPayHander.getPaymentById(req.getORDERSEQ());	
+		if(OrderBuilder.COMMONAGE.equals(payment.getType_code())){
+			//前端用户支付
+			Member member = memberManager.get(payment.getUserid());
+			ManagerUtils.createMemberSession(member);
+		}else{
+			AdminUserReq adminUserReq = new AdminUserReq();
+			adminUserReq.setUser_id(payment.getUserid());
+			
+			AdminUser user = adminUserServ.getAdminUserById(adminUserReq);
+			
+			ManagerUtils.createSession(user);
+		}
+		
+		
+		try {
+			String strMac = "UPTRANSEQ="+req.getUPTRANSEQ()+"&MERCHANTID=" + this.commonPayHander.getCfInfo("MERCHANTID") +
+					"&ORDERID=" + req.getORDERSEQ() + "&PAYMENT=" + req.getORDERAMOUNT() + "&RETNCODE=" + req.getRETNCODE() +
+					"&RETNINFO=" + req.getRETNINFO() + "&PAYDATE=" + req.getRETNCODE() + "&KEY=" + this.commonPayHander.getCfInfo("KEY");
+			
+			logger.info("============>>翼支付返回结果串:" + strMac);
+			
+			//判断是否加密
+			if("1".equals(req.getENCODETYPE())){
+				strMac = PayManager.md5Digest(strMac);
+			}
+			
+			*//**
+			 * 这里验证MD5 测试时不验证加上 && false
+			 *//*
+			if(!strMac.equals(req.getSIGN()) && false){
+				CommonTools.addError(new ErrorEntity(ConstsCore.ERROR_FAIL,"用户签名验证失败"));
+			}
+			
+			if(null != payment){
+				dealFlag = payment.getDeal_flag();
+			}
+			
+			String className = payment.getService_type();
+			if(className.equals("despostHander")){
+				despostHander.afterPay(req.getORDERSEQ(), Integer.valueOf(req.getORDERAMOUNT()), req.getRETNCODE(), req.getTRANDATE());
+			}else if(className.equalsIgnoreCase("commonPaymentHander")){
+				commonPaymentHander.afterPay(req.getORDERSEQ(),Integer.valueOf(req.getORDERAMOUNT()), req.getRETNCODE(), req.getTRANDATE());
+			}else{
+				CommonTools.addError(new ErrorEntity(ConstsCore.ERROR_FAIL,"处理器：" + className + "未定义"));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			CommonTools.addError(new ErrorEntity(ConstsCore.ERROR_FAIL,e.getMessage()));
+		}
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setLogined_id(req.getLogined_id());
+		resp.setSession_id(req.getSession_id());
+		addReturn(req,resp);
+		logger.info("SIGN========>:" + req.getSIGN());		
+		return resp;
+	}
+
+	@Override
+	public BankRedirectResp bankRedirect(BankRedirectReq req) {
+		BankRedirectResp resp = new BankRedirectResp();
+		try {
+			BeanUtils.copyProperties(resp, req);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+		String dealFlag = "0";
+		resp.setDealFlag(dealFlag);
+		String ordeSeq = req.getORDERSEQ();
+		String uptranSeq = req.getUPTRANSEQ();
+		String retnCode = req.getRETNCODE();
+		String retnInfo = req.getRETNINFO();
+		String orderAmount = req.getORDERAMOUNT();
+		String encodeType = req.getENCODETYPE();
+		String tranDate = req.getTRANDATE();
+		String sign = req.getSIGN();
+		PaymentList payment = this.commonPayHander.getPaymentById(ordeSeq);		
+		if(OrderBuilder.COMMONAGE.equals(payment.getType_code())){
+			//前端用户支付
+			Member member = memberManager.get(payment.getUserid());
+			ManagerUtils.createMemberSession(member);
+		}else{
+			AdminUserReq adminUserReq = new AdminUserReq();
+			adminUserReq.setUser_id(payment.getUserid());
+			
+			AdminUser user = adminUserServ.getAdminUserById(adminUserReq);
+			ManagerUtils.createSession(user);
+		}
+		
+		try {
+			
+			String strMac = "UPTRANSEQ="+uptranSeq+"&MERCHANTID=" + this.commonPayHander.getCfInfo("MERCHANTID") +
+			"&ORDERID=" + ordeSeq + "&PAYMENT=" + orderAmount + "&RETNCODE=" + retnCode +
+			"&RETNINFO=" + retnInfo + "&PAYDATE=" + tranDate + "&KEY=" + this.commonPayHander.getCfInfo("KEY");
+			
+			//判断是否加密
+			if(encodeType.equals("1")){
+				strMac = PayManager.md5Digest(strMac);
+			}
+			
+			if(!strMac.equals(sign) && false){
+				CommonTools.addError(new ErrorEntity(ConstsCore.ERROR_FAIL,"用户签名验证失败"));
+			}
+			
+			if(null != payment){
+				dealFlag = payment.getDeal_flag();
+			}
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			CommonTools.addError(new ErrorEntity(ConstsCore.ERROR_FAIL,"失败"));
+		}
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setLogined_id(req.getLogined_id());
+		resp.setSession_id(req.getSession_id());
+		addReturn(req,resp);
+		logger.info("SIGN========>:" + req.getSIGN());	
+		return resp;
+	}*/
+	
+	
+	@Override
+	public PaySucessResp paySuccess(PaySucessReq req) {
+//		EopContext context = new EopContext();
+//		EopSite site = new EopSite();
+//		site.setUserid(1 + "");
+//		site.setId(1 + "");
+//		site.setThemeid(1 + "");
+//		context.setCurrentSite(site);
+//		EopContext.setContext(context);
+		Order order = orderManager.get(req.getOrder_id());
+		PaySucessResp resp = new PaySucessResp();
+		
+		PaymentLog payment = req.getPaymentLog();
+		if(payment==null){//解决部分付款的问题,传入部分付款的对象
+			List<PaymentLog> payments = orderManager.listOrderPayMentLog(req.getOrder_id());
+			if(!ListUtil.isEmpty(payments) && payments.size() == 1){ //不包含部分付款的问题
+				payment= payments.get(0);
+			}else{
+				for(PaymentLog log:payments){
+					if(log.getStatus()!=OrderStatus.PAY_STATUS_1&& OrderStatus.PAY_TYPE_1==log.getType()){ //非成功的收款单
+						payment = log;
+						break ;
+					}
+				}
+			}
+		}
+		if(payment==null)CommonTools.addError(new ZteError(ConstsCore.ERROR_FAIL,"没有需要确认的支付单"));
+//		WebSessionContext sessonContext = ThreadContextHolder.getSessionContext();
+//		AdminUserReq adminUserReq = new AdminUserReq();
+//		adminUserReq.setUser_id(req.getUserid());
+//		
+//		AdminUserResp adminUserResp = adminUserServ.getAdminUserById(adminUserReq);
+//	    AdminUser user = new AdminUser();
+//		if(adminUserResp != null){
+//			user = adminUserResp.getAdminUser();
+//		}
+//		sessonContext.setAttribute("admin_user_key", user);
+		int sequ =0;
+		if(!StringUtil.isEmpty(order.getTransaction_id())){
+			sequ = this.baseDaoSupport.queryForInt(SF.orderSql("PaymentListCount"), order.getTransaction_id());
+			sequ = sequ+1;
+		}
+		PaymentList paymentlist = new PaymentList();
+		paymentlist.setCreate_date(DBTUtil.current());
+		paymentlist.setDeal_date(DBTUtil.current());
+		paymentlist.setDeal_flag(StringUtil.isEmpty(req.getDeal_flag())? OrderStatus.DEAL_FLAG_2:req.getDeal_flag());
+		
+		paymentlist.setSequ(sequ); //缺省都为0
+		paymentlist.setState("1");
+		paymentlist.setPay_amount((int)(payment.getMoney()*100));//payment.getMoney()
+		//paymentlist.setPay_type(req.getPay_type());
+		String ip =req.getIp();
+		if(StringUtils.isEmpty(ip))
+			ip =StringUtil.getIpAddr();
+		paymentlist.setPay_ip(ip);
+		String userid =req.getUserid();
+		if(StringUtil.isEmpty(userid))
+			userid = order.getPay_user_id();
+		paymentlist.setUserid(userid);
+		paymentlist.setPay_source(req.getPay_source());
+		paymentlist.setPay_date(DBTUtil.current());
+		DateFormat df = new SimpleDateFormat("yyyyMMdd");
+		paymentlist.setTransdate(df.format(new Date()));
+		paymentlist.setOper_time(DBTUtil.current());
+		paymentlist.setSession_id(req.getUserSessionId());
+		paymentlist.setOrder_id(req.getOrder_id());
+		paymentlist.setPaytype(0);
+		paymentlist.setType_code(req.getType_code());
+		String transactionid = order.getTransaction_id();
+		if(StringUtil.isEmpty(transactionid))
+			transactionid = this.baseDaoSupport.getSeqByTableName("es_payment_list");
+		paymentlist.setTransaction_id(transactionid);
+		payment.setTransaction_id(transactionid);
+		this.baseDaoSupport.insert("es_payment_list", paymentlist);
+		if(OrderStatus.DEAL_FLAG_2.equals(req.getDeal_flag())){ //支付成功后才需要设置
+			//更新订单状态
+			orderNFlowManager.paySucc(payment);
+			this.baseDaoSupport.execute(SF.orderSql("SERVICE_TRANSACTION_ID_UPDATE"), transactionid,payment.getPayment_id());
+		}
+		//this.baseDaoSupport.execute(SF.orderSql("SERVICE_PAYMONEY_UPDATE"), transactionid,payment.getMoney(),req.getOrder_id());
+		
+		
+		//paymentlist.setAcct_flag(acct_flag);
+		//paymentlist.setAcct_nbr_name(acct_nbr_name);
+		//paymentlist.setAcct_type(acct_type);
+		//paymentlist.setAmount_presented(amount_presented);
+//		paymentlist.setArea_code(area_code);
+//		paymentlist.setBalance(balance);
+//		paymentlist.setBalancetypeid(balancetypeid);
+//		paymentlist.setBank_id(bank_id);
+//		paymentlist.setBureauname(bureauname);
+//		paymentlist.setBureauno(bureauno);
+//		paymentlist.setBusinessid(businessid);
+//		paymentlist.setCity_no(city_no);
+//		paymentlist.setCustbrand(custbrand);
+//		paymentlist.setCustgroup(custgroup);
+//		paymentlist.setDeal_count(deal_count);
+//		paymentlist.setFeetype(feetype);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setUserSessionId(req.getUserSessionId());
+		addReturn(req,resp);
+		return resp;
+	}
+	
+	public void insertPaymentList(PaymentList paymentList){
+		this.baseDaoSupport.insert("es_payment_list", paymentList);
+	}
+
+	/*public PaymentResp updatePayment(PaymentReq paymentReq){
+		PaymentResp paymentResp = new PaymentResp();
+		commonPayHander.updatePayment(paymentReq.getPaymentList());
+		addReturn(paymentReq, paymentResp);
+		return paymentResp;
+	}*/
+	
+	
+	public IOrderManager getOrderManager() {
+		return orderManager;
+	}
+
+	public void setOrderManager(IOrderManager orderManager) {
+		this.orderManager = orderManager;
+	}
+
+	public IOrderNFlowManager getOrderNFlowManager() {
+		return orderNFlowManager;
+	}
+
+	public void setOrderNFlowManager(IOrderNFlowManager orderNFlowManager) {
+		this.orderNFlowManager = orderNFlowManager;
+	}
+
+	public ITplInstManager getTplInstManager() {
+		return tplInstManager;
+	}
+
+	public void setTplInstManager(ITplInstManager tplInstManager) {
+		this.tplInstManager = tplInstManager;
+	}
+
+
+	public IOrderDirector getOrderDirector() {
+		return orderDirector;
+	}
+
+	public void setOrderDirector(IOrderDirector orderDirector) {
+		this.orderDirector = orderDirector;
+	}
+
+	/*public ICommonPayHander getCommonPayHander() {
+		return commonPayHander;
+	}
+
+	public void setCommonPayHander(ICommonPayHander commonPayHander) {
+		this.commonPayHander = commonPayHander;
+	}*/
+
+
+	public AdminUserInf getAdminUserServ() {
+		return adminUserServ;
+	}
+
+	public void setAdminUserServ(AdminUserInf adminUserServ) {
+		this.adminUserServ = adminUserServ;
+	}
+
+	public AbstractHander getCommonPaymentHander() {
+		return commonPaymentHander;
+	}
+
+	public void setCommonPaymentHander(AbstractHander commonPaymentHander) {
+		this.commonPaymentHander = commonPaymentHander;
+	}
+
+	
+	
+
+}

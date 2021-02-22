@@ -1,0 +1,383 @@
+/**
+ *
+ */
+package com.powerise.ibss.framework.servlet;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.log4j.Logger;
+import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.hssf.util.Region;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+public class ImportExcelUtil {
+    private Logger logger = Logger.getLogger(ImportExcelUtil.class);
+    private HSSFWorkbook wb = null;
+    private HSSFSheet sheet = null;
+
+    //	private IDoExcelRow idoRow = null;
+    private StringBuffer message = new StringBuffer();
+
+    public ImportExcelUtil() {
+    }
+
+    public ImportExcelUtil(InputStream input) {
+        try {
+            POIFSFileSystem fs = new POIFSFileSystem(input);
+            wb = new HSSFWorkbook(fs);
+            sheet = wb.getSheetAt(0);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            message.append("");
+            logger.info(ioe);
+        }
+    }
+
+    /**
+     * 动态读取excel中的一行数据，并返回一个Object。
+     * 如果objName包含子类，则用户设置idoRow属性，在该接口中定义如何处理这些属性即可；
+     * 如果没有子类则直接使用该类就行。
+     * @param objName:返回Object的类名字符串
+     * @param rowNO:行号，读取excel文件中的第几行数据
+     * @param columns:包含要返回类中的属性名的数组，应该和excel的列名对应，
+     * 如果有$开头的列，表示该列是objName类的子类中的列
+     * @param map:如果在objName中还有属性在excel文件中没有被赋值，可以在map中设置，
+     * 系统会用map中的值队列把objName中的相应属性赋值
+     * @return 要返回的生成对象
+     */
+    public Object readRow(String objName, int rowNO, String[] columns, Map map) {
+        if ((rowNO < 0) || (objName == null) || (columns == null) ||
+                (columns.length <= 0)) {
+            return null;
+        }
+
+        Object cellValue = null;
+        Object obj = null;
+        BeanUtils beanUtil = new BeanUtils();
+        HSSFRow row = sheet.getRow(rowNO);
+        HSSFCell cell = null;
+        DecimalFormat df = new DecimalFormat("#.000000");
+        int cellType = Cell.CELL_TYPE_STRING;
+        List items = new ArrayList();
+
+        try {
+            obj = Class.forName(objName).newInstance();
+
+            for (int i = 0; i < columns.length; i++) {
+                cell = row.getCell((short) i);
+
+                if (cell != null) {
+                    cellType = cell.getCellType();
+
+                    if (cellType == Cell.CELL_TYPE_NUMERIC) {
+                        cellValue = df.format(cell.getNumericCellValue());
+                    } else {
+                        cellValue = cell.getStringCellValue();
+                    }
+
+                    //logger.info("cellValue:"+cellValue);
+                    if (cellValue == null) {
+                        continue;
+                    }
+
+                    //if(columns[i].startsWith("$")){
+                    //	if(idoRow!=null)
+                    //	   idoRow.doChildColumn(items,columns[i].substring(1),cellValue);
+                    //}else{
+                    BeanUtils.copyProperty(obj, columns[i], cellValue);
+
+                    //}
+                } else {
+                    continue;
+                }
+            }
+
+            //			if(idoRow!=null)
+            //				idoRow.setChildProperty(obj,items);
+            if (map != null) {
+                BeanUtils.populate(obj, map);
+            }
+
+            //			if(idoRow!=null)
+            //				idoRow.transRow(obj);
+        } catch (IllegalAccessException e) {
+            logger.info("ImportExcelUtil的readRow时出错误!", e);
+        } catch (InvocationTargetException e) {
+            logger.info("ImportExcelUtil的readRow时出错误!", e);
+        } catch (Exception e) {
+            logger.info("ImportExcelUtil的readRow时出错误!", e);
+        }
+
+        return obj;
+    }
+
+    /**
+     * @param objName:要初始化的对象名
+     * @param initRowNO:从第几行数据开始读取
+     * @param columns:和excel文件中的列对应，如果有$开头的列，表示该列是objName类的子类中的列
+     * @param map:如果在objName中还有属性在excel文件中没有被赋值，可以在map中设置，
+     * 系统会用map中的值队列把objName中的相应属性赋值
+     * @return
+     */
+    public List readExcel(String objName, int initRowNO, String[] columns,
+        Map map) {
+        if ((initRowNO < 0) || (objName == null) || (columns == null) ||
+                (columns.length <= 0)) {
+            return null;
+        }
+
+        if (!isRightFormat(columns.length)) {
+            message.append("Columns in Excel file is incorrect,please check!");
+
+            return null;
+        }
+
+        ArrayList list = new ArrayList();
+
+        for (int i = initRowNO; i <= sheet.getLastRowNum(); i++) {
+            Object obj = readRow(objName, i, columns, map);
+            list.add(obj);
+        }
+
+        return list;
+    }
+
+    /**
+     * 判断excel文件中的列数是否正确
+     * @param length：规定的excel文件中应该有的列数，在常量数组中定义
+     * @return
+     */
+    public boolean isRightFormat(int length) {
+        HSSFRow row = sheet.getRow(0);
+        int lengthRow = row.getLastCellNum();
+
+        if (length == lengthRow) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @return Returns the sheet.
+     */
+    public HSSFSheet getSheet() {
+        return sheet;
+    }
+
+    /**
+     * @param sheet The sheet to set.
+     */
+    public void setSheet(HSSFSheet sheet) {
+        this.sheet = sheet;
+    }
+
+    /**
+     * @return Returns the wb.
+     */
+    public HSSFWorkbook getWb() {
+        return wb;
+    }
+
+    /**
+     * @param wb The wb to set.
+     */
+    public void setWb(HSSFWorkbook wb) {
+        this.wb = wb;
+    }
+
+    /**  得到导入过程中产生的信息 **/
+    public String getMessage() {
+        if (message.length() > 0) {
+            return message.toString();
+        } else {
+            return null;
+        }
+    }
+
+    /////////// 以下为写excel ///////////////////////
+    public void exportExcel(String sheetName, String title, String[] headers,
+        String[] columns, List datalist, OutputStream out) {
+        int startNo = 0;
+
+        if ((title != null) && (title.trim().length() > 0)) {
+            startNo = 1;
+        }
+
+        // 声明一个工作薄
+        HSSFWorkbook workbook = new HSSFWorkbook();
+
+        // 生成一个表格
+        HSSFSheet sheet = workbook.createSheet(sheetName);
+        HSSFRow row = null;
+        HSSFCell cell = null;
+        // 设置表格默认列宽度为15个字节
+        sheet.setDefaultColumnWidth((short) 20);
+
+        // 生成一个样式
+        HSSFCellStyle style = workbook.createCellStyle();
+        // 设置这些样式
+        style.setFillForegroundColor(HSSFColor.SKY_BLUE.index);
+        style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        style.setAlignment(CellStyle.ALIGN_CENTER);
+
+        // 生成一个字体
+        HSSFFont font = workbook.createFont();
+        font.setColor(HSSFColor.VIOLET.index);
+        font.setFontHeightInPoints((short) 12);
+        font.setBoldweight(Font.BOLDWEIGHT_BOLD);
+        // 把字体应用到当前的样式
+        style.setFont(font);
+
+        // 生成并设置另一个样式
+        HSSFCellStyle style2 = workbook.createCellStyle();
+        style2.setFillForegroundColor(HSSFColor.WHITE.index);
+        style2.setFillPattern(CellStyle.SOLID_FOREGROUND);
+        style2.setBorderBottom(CellStyle.BORDER_THIN);
+        style2.setBorderLeft(CellStyle.BORDER_THIN);
+        style2.setBorderRight(CellStyle.BORDER_THIN);
+        style2.setBorderTop(CellStyle.BORDER_THIN);
+        style2.setAlignment(CellStyle.ALIGN_CENTER);
+        style2.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+
+        // 生成另一个字体
+        HSSFFont font2 = workbook.createFont();
+        font2.setBoldweight(Font.BOLDWEIGHT_NORMAL);
+        // 把字体应用到当前的样式
+        style2.setFont(font2);
+
+        // 产生表格的标题行
+        if ((title != null) && (title.trim().length() > 0)) {
+            row = sheet.createRow(0);
+            sheet.addMergedRegion(new Region(0, (short) 0, 0,
+                    (short) (headers.length - 1)));
+            cell = row.createCell((short) 0);
+//            cell.setEncoding(HSSFCell.ENCODING_UTF_16);
+            cell.setCellStyle(style);
+            cell.setCellValue(title);
+        }
+
+        //产生表格标题行
+        row = sheet.createRow(startNo);
+
+        for (short i = 0; i < headers.length; i++) {
+            cell = row.createCell(i);
+//            cell.setEncoding(HSSFCell.ENCODING_UTF_16);
+            cell.setCellStyle(style);
+            cell.setCellValue(headers[i]);
+        }
+
+        //遍历集合数据，产生数据行
+        Object obj = null;
+        String colValue = "";
+        BeanUtils beanUtil = new BeanUtils();
+        Pattern p = Pattern.compile("^\\d+(\\.\\d+)?$");
+        Matcher matcher = null;
+
+        for (int index = 0; index < datalist.size(); index++) {
+            row = sheet.createRow(index + startNo + 1);
+            obj = datalist.get(index);
+
+            //利用反射，根据javabean属性的先后顺序，动态调用getXxx()方法得到属性值
+            for (short i = 0; i < columns.length; i++) {
+                cell = row.createCell(i);
+//                cell.setEncoding(HSSFCell.ENCODING_UTF_16);
+                cell.setCellStyle(style2);
+
+                try {
+                    colValue = BeanUtils.getProperty(obj, columns[i]);
+
+                    //如果不是图片数据，就利用正则表达式判断textValue是否全部由数字组成
+                    if (colValue != null) {
+                        cell.setCellValue(colValue);
+                    }
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                } finally {
+                }
+            }
+        }
+
+        try {
+            workbook.write(out);
+            out.flush();
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        //    	FileInputStream file;
+        //		try {
+        //			file = new FileInputStream("e:\\input.xls");
+        //			ImportExcelUtil helper = new ImportExcelUtil(file);
+        //			String[] columns = new String[]{"custCode","memClass"};
+        //			List list = helper.readExcel("com.ztesoft.crm.cs.mb.vo.MbAssessInfoVO",1,columns,null);
+        //			MbAssessInfoVO voTemp = null;
+        //			if(list!=null&&list.size()>0)
+        //			for(int i=0;i<list.size();i++){
+        //				voTemp = (MbAssessInfoVO)list.get(i);
+        //				logger.info("voTemp.custCode:"+voTemp.getCustCode()
+        //						+"||voTemp.memClass:"+voTemp.getMemClass());
+        //		    }
+        //		} catch (FileNotFoundException e) {
+        //			e.printStackTrace();
+        //		}
+//        String fileName = "D:\\testtestExcel.xls";
+//
+//        try {
+//            FileOutputStream fos = new FileOutputStream(fileName);
+//            ImportExcelUtil helper = new ImportExcelUtil();
+
+            //			com.ztesoft.crm.cs.mb.vo.MbAssessInfoVO vo1 = new com.ztesoft.crm.cs.mb.vo.MbAssessInfoVO();
+            //			List list1 = new ArrayList();
+            //			vo1.setAppDate("1990-09-09");
+            //			vo1.setCertNo("123456789012345678");
+            //			vo1.setCustName("测试中");
+            //			list1.add(vo1);
+            //			String[] headers = new String[]{"姓名","证件号码","申请日期"};
+            //			String[] columns = new String[]{"custName","certNo","appDate"};
+            //			helper.exportExcel("excel","测试报表 2009-07-10", headers, columns, list1, fos);
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+    }
+
+    /**
+     * @return 返回 idoRow。
+     */
+
+    //	public IDoExcelRow getIdoRow() {
+    //		return idoRow;
+    //	}
+    //	/**
+    //	 * @param idoRow 要设置的 idoRow。
+    //	 */
+    //	public void setIdoRow(IDoExcelRow idoRow) {
+    //		this.idoRow = idoRow;
+    //	}
+}

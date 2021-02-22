@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+<beans>
+
+    
+    <!-- ********************自动登录总商开始******************** -->
+    <bean id="autoLoginZBTask" class="com.ztesoft.net.mall.core.timer.AutoLoginZBTask"/>
+    <bean id="autoLoginZBTaskJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<!-- 先结束当前任务再会执行新的任务  -->
+    	<property name="concurrent" value="false" />
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="autoLoginZBTask"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>runTask</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点 ; 0 0/1 * * * ? 每分钟-->
+    <bean id="autoLoginZBTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="autoLoginZBTaskJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+        	 <value>0 0/2 * * * ?</value> <!-- 扫描时间   0 0/5 * * * ? 5分钟一次-->
+        </property>
+    </bean>
+    <!-- ********************自动登录总商结束******************** -->
+    
+    
+    <!-- ********************订单标准化开始******************** -->
+    <bean id="auditOrderZBTask" class="com.ztesoft.net.mall.core.timer.AuditOrderZBTask">
+    	<property name="queryType">
+    		<value>myOrder</value>
+    	</property>
+    </bean>
+    <bean id="auditOrderZBTaskJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<!-- 先结束当前任务再会执行新的任务  -->
+    	<property name="concurrent" value="false" />
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="auditOrderZBTask"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>runAuditTask</value>
+        </property>
+    </bean>
+
+    <!-- 扫描时间   0 0 3 * * ? 每天3点 ; 0 0/1 * * * ? 每分钟-->
+    <bean id="auditOrderZBTime" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail">
+            <ref bean="auditOrderZBTaskJob"/>
+        </property>
+        <!-- cron表达式 -->
+        <property name="cronExpression">
+        	 <value>0 0/1 * * * ?</value> <!-- 扫描时间   0 0/10 * * * ? 10分钟一次-->
+        </property>
+    </bean>
+    <!-- ********************订单标准化结束******************** -->
+    
+    <bean lazy-init="false" autowire="no"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+				 <ref bean="autoLoginZBTime"/>
+				 <ref bean="auditOrderZBTime"/>
+            </list>
+        </property>
+    </bean>
+    
+</beans>

@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<package name="ecc" namespace="/core/admin/ecc" extends="eop_default">
+		<action name="bizCheckCfgAdmin" class="bizCheckCfgAction">
+			<result name="list">/ecc/bizCheckCfgAdmin.jsp</result>
+			<result name="input">/ecc/bizCheckCfgAdd.jsp</result>
+			<result name="editBiz">/ecc/bizCheckCfgEdit.jsp</result>
+		</action>
+		
+		
+		<!-- 校验方式配置 -->
+		<action name="verifyModeCfg" class="verifyModeCfgAction">
+		    <result name="list">/ecc/verifyModeCfgList.jsp</result>
+		    <result name="input">/ecc/verifyModeCfgEdit.jsp</result>
+		</action>
+		
+		<!-- 过滤校验配置 -->
+		<action name="checkFilter" class="bizCheckFilterAction">
+			<result name="auto_filter_list">/ecc/auto_filter_list.jsp</result>
+			<result name="auto_filter_edit">/ecc/auto_filter_edit.jsp</result>
+			<result name="auto_filter_add">/ecc/auto_filter_add.jsp</result>
+		</action>
+		
+	</package>
+	
+</struts>

@@ -1,0 +1,202 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.GoodsLvPrice;
+import com.ztesoft.net.mall.core.service.IMemberPriceManager;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.sqls.SF;
+
+
+/**
+ * 会员价格管理
+ * @author kingapex
+ *
+ */
+public class MemberPriceManager extends BaseSupport<GoodsLvPrice> implements IMemberPriceManager {
+
+	private ICacheUtil cacheUtil;
+	
+	
+	/**
+	 * 读取某个商品的所有规格的会员价格。
+	 * @param goodsid
+	 * @return
+	 */
+	@Override
+	public List<GoodsLvPrice> listPriceByGid(String goodsid) {
+		String sql  = SF.memberSql("MEMBER_LIST_PRICE_BY_GID");
+		return this.baseDaoSupport.queryForList(sql, GoodsLvPrice.class, goodsid);
+	}
+
+	/**
+	 * 读取某个商品的所有规格的会员价格。
+	 * @param goodsid
+	 * @return
+	 */
+	@Override
+	public List loadMemberLvList() {
+		
+		String source_from = this.cacheUtil.getConfigInfo(Consts.KEY_SOURCE_FROM);
+		
+		String sql  = SF.memberSql("MEMBER_LOAD_MEMBER_LV_LIST");
+		return this.baseDaoSupport.queryForList(sql, source_from);
+	}
+	
+	/**
+	 * 读取某个商品的所有规格的会员价格。
+	 * @param goodsid
+	 * @return
+	 */
+	@Override
+	public List loadPricePrivList(String goodsid) {
+		
+		String source_from = ManagerUtils.getSourceFrom();
+		
+		String sql = null ;
+		if(StringUtils.isNotEmpty(goodsid)){
+			sql  = SF.memberSql("MEMBER_LOAD_PRICEPRIV_LIST_BY_GOODS_ID");
+			return this.baseDaoSupport.queryForList(sql, new String[]{source_from, goodsid});
+		}else{
+			sql = SF.memberSql("MEMBER_LOAD_PRICEPRIV_LIST");
+			return this.baseDaoSupport.queryForList(sql, source_from);
+		}
+		
+	}
+	
+	
+//	/**
+//	 * 读取某个商品的所有规格的会员价格。
+//	 * @param goodsid
+//	 * @return
+//	 */
+//	public List loadMemberLvPriceList(String gid) {
+//		
+//		String source_from = this.cacheUtil.getConfigInfo(Consts.KEY_SOURCE_FROM);
+//		
+//		String sql  ="select lvid lv_id,(select l.name from es_member_lv l where l.lv_id=g.lvid and l.source_from = '"+source_from+"') name, price lv_price from es_goods_lv_price g where g.goodsid=?  ";
+//		return this.baseDaoSupport.queryForList(sql, gid);
+//	}
+	
+	
+	/**
+	 * 读取某个商品的所有规格的会员价格。
+	 * @param goodsid
+	 * @return
+	 */
+	@Override
+	public List loadMemberLvPriceList(String gid) {
+		
+		String source_from = this.cacheUtil.getConfigInfo(Consts.KEY_SOURCE_FROM);
+		String sql  = SF.memberSql("MEMBER_LOAD_MEMBERLV_PRICE_LIST");
+		return this.baseDaoSupport.queryForList(sql, gid);
+	}
+	
+	
+	
+	/**
+	 * 读取某会员级别的商品价格
+	 * @param lvid
+	 * @return
+	 */
+	@Override
+	public List<GoodsLvPrice> listPriceByLvid(String lvid) {
+		String sql  = SF.memberSql("MEMBER_LIST_PRICE_BY_LVID");
+		return this.baseDaoSupport.queryForList(sql, GoodsLvPrice.class, lvid);
+	}
+
+	
+	/**
+	 * 获取规格产品会员价列表数据
+	 * @param gid
+	 * @param pid
+	 * @return
+	 */
+	@Override
+	public List<Map> getSpecPrices(String gid , String pid ){
+		
+		String source_from = this.cacheUtil.getConfigInfo(Consts.KEY_SOURCE_FROM);
+		
+		String sql = SF.memberSql("MEMBER_GET_SPECPRICES");
+		return this.baseDaoSupport.queryForList(sql, new String[]{source_from, gid , pid});
+	}
+	
+	/**
+	 * 添加会价格
+	 */
+	@Override
+	public void save(List<GoodsLvPrice> goodsPriceList) {
+		
+		if(goodsPriceList!=null && goodsPriceList.size()>0){
+			String sql = SF.memberSql("MEMBER_DEL_GOODS_BY_ID");
+			this.baseDaoSupport.execute(sql, goodsPriceList.get(0).getGoodsid());
+		 
+		 for(GoodsLvPrice goodsPrice:goodsPriceList){
+			 this.baseDaoSupport.insert("es_goods_lv_price", goodsPrice);
+		 }
+		}
+		
+	}
+
+	@Override
+	public GoodsLvPrice qryPriceByPid(String productID,String lvid) {
+		String sql  = SF.memberSql("MEMBER_QRY_PRICE_BY_PID");
+		List<GoodsLvPrice> list = this.baseDaoSupport.queryForList(sql, GoodsLvPrice.class, productID,lvid);
+		if(list!=null&& list.size()>0){
+			return list.get(0);
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public Page goodsLvList(int pageNo, int pageSize, String sn){
+		String source_from = this.cacheUtil.getConfigInfo(Consts.KEY_SOURCE_FROM);
+		String sql = SF.memberSql("MEMBER_GOODSLV_LIST");
+		Page webpage = this.baseDaoSupport.queryForPage(sql, pageNo, pageSize, sn);
+		List<Map> list = (webpage.getResult());
+		int i = 0;
+		for(Map price : list){
+			price.put("index", (i++));
+			String productid = (String)price.get("productid");
+			String lvid = (String)price.get("lvid");
+			String id = (String)price.get("id");
+			String prodname = this.baseDaoSupport.queryForString("select d.name from es_product d where d.product_id ='"+productid+"'");
+			price.put("prodname",prodname);
+			String membername = this.baseDaoSupport.queryForString("select l.name from es_member_lv l where l.lv_id = '"+lvid+"' and l.source_from = '"+source_from+"'");
+			price.put("membername",membername);
+			String modprice =  this.baseDaoSupport.queryForString("select new_change from es_mod_info_inst a where a.table_name='ES_GOODS_LV_PRICE' and ref_obj_id='"+id+"'");
+			price.put("modprice",(StringUtils.isEmpty(modprice))?price.get("price"):modprice);
+		}
+		return webpage;
+		
+/*		List<GoodsLvPrice> list = (List<GoodsLvPrice>)webpage.getResult();
+		for( GoodsLvPrice lv : list){
+			String productid = lv.getProductid();
+			String lvid = lv.getLvid();
+			String prodname = this.baseDaoSupport.queryForString("select d.name from es_product d where d.product_id ='"+productid+"'");
+			lv.setProdname(prodname);
+			String membername = this.baseDaoSupport.queryForString("select l.name from es_member_lv l where l.lv_id = '"+lvid+"'");
+			lv.setMembername(membername);
+		}
+		return webpage;*/
+		
+	}
+
+	public ICacheUtil getCacheUtil() {
+		return cacheUtil;
+	}
+
+	public void setCacheUtil(ICacheUtil cacheUtil) {
+		this.cacheUtil = cacheUtil;
+	}
+	
+
+}

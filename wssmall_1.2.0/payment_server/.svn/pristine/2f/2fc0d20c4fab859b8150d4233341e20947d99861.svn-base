@@ -1,0 +1,502 @@
+package com.ztesoft.net.mall.core.action.pay;
+
+import com.alibaba.fastjson.JSON;
+import com.ztesoft.ibss.common.util.Const;
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.mall.core.consts.Consts;
+import com.ztesoft.net.mall.core.model.Account;
+import com.ztesoft.net.mall.core.model.BankVO;
+import com.ztesoft.net.mall.core.model.CreditVO;
+import com.ztesoft.net.mall.core.model.PayVO;
+import com.ztesoft.net.mall.core.service.ICreditManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.PaymentCfgAttr;
+
+import java.util.List;
+
+import org.drools.core.util.StringUtils;
+
+public class CreditAction extends WWAction {
+	private ICreditManager creditManager;
+	private String bank_name;
+	private String img_url;
+	private String show_flag;
+	private String bank_code;
+	private String bank_type;
+	private String source_from;
+	private String name;
+	private float pay_fee;
+	private String owner_userid;
+	private String type;
+	private String config;
+	private String biref;
+	private String id;
+	private List bank;
+	private BankVO ba;
+	private List banks;
+	private List account;
+	private CreditVO credit;
+	private String cfg_id;
+	private String bank_id;
+	private PayVO pay;
+	private String[] ename;
+	private String[] cname;
+	private String[] value;
+	private List payment;
+	private Account acc;
+
+	private String accounted_code;
+	private List<PaymentCfgAttr> attrPay;
+	
+	private String bank_ids;
+
+	public String creditList() {
+		this.webpage = this.creditManager.creditList(this.getPage(),
+				this.getPageSize());
+		return "creditList";
+	}
+
+	public String showBankList() {
+		this.bank = this.creditManager.showBankList(cfg_id);
+		return "showBankList";
+	}
+
+	public String showAccount() {
+		this.account = this.creditManager.accountList(cfg_id);
+		return "showAccount";
+	}
+
+	public String bankList() {
+		this.banks = this.creditManager.showBankList(id);
+//		 this.webpage = this.creditManager.banksList(this.getPage(),
+//		 6);
+		return "bankList";
+	}
+
+	public List getAccount() {
+		return account;
+	}
+
+	public void setAccount(List account) {
+		this.account = account;
+	}
+
+	// 删除
+	public String delete() {
+		try {
+			this.creditManager.delete(id);
+			this.json = "{result:1}";
+		} catch (RuntimeException e) {
+			this.logger.info(e.getMessage(), e);
+			this.json = "{result:0,message:'" + e.getMessage() + "'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+
+	public String delAcc() {
+		try {
+			this.creditManager.delAcc(accounted_code,cfg_id);
+			this.json = "{result:1}";
+		} catch (RuntimeException e) {
+			this.logger.info(e.getMessage(), e);
+			this.json = "{result:0,message:'" + e.getMessage() + "'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+
+	public String delBanks() {
+		try {
+			this.creditManager.delBank(bank_id,cfg_id);
+			this.json = "{result:1}";
+		} catch (RuntimeException e) {
+			this.logger.info(e.getMessage(), e);
+			this.json = "{result:0,message:'" + e.getMessage() + "'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+
+	public void delBank() {
+		this.creditManager.del(cfg_id, bank_id);
+		// return "bankList";
+	}
+
+	public String editPay() {
+		this.credit = this.creditManager.findPay(id);
+		attrPay = this.parseCfgAttr(credit.getCfg_prop());
+		return "editPay";
+	}
+
+	public String editSave() {
+		try {
+			String jsons = "[";
+			if(cname!=null && cname.length>0){
+				for (int i = 0; i < cname.length; i++) {
+					jsons += "{cname:\"" + cname[i] + "\",ename:\"" + ename[i]
+							+ "\",value:\"" + value[i] + "\"},";
+				}
+				jsons = jsons.substring(0, jsons.length() - 1);
+			}
+			jsons += "]";
+			credit.setCfg_prop(jsons);
+			this.creditManager.updatePay(credit);
+			this.json = "{'result':1,'message':'修改成功！'}";
+		} catch (RuntimeException e) {
+			this.logger.info(e.getMessage(), e);
+			this.json = "{result:0,message:'" + e.getMessage() + "'}";
+		}
+		return this.JSON_MESSAGE;
+	}
+
+	public String add() {
+		try {
+			json = "[";
+			if(cname!=null && cname.length>0){
+				for (int i = 0; i < cname.length; i++) {
+					json += "{cname:\"" + cname[i] + "\",ename:\"" + ename[i]
+							+ "\",value:\"" + value[i] + "\"},";
+				}
+				json = json.substring(0, json.length() - 1);
+			}
+			json += "]";
+			pay.setCfg_prop(json);
+			this.creditManager.addPayment(pay);		
+			 json = "{'result':1,'message':'新增成功！'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			 json = "{'result':0,'message':'新增失败！'}";
+			 return this.JSON_MESSAGE;
+		}
+		 return this.JSON_MESSAGE;
+	}
+
+	public String addPay() {
+		return "addPay";
+	}
+
+	public String addAccount() {
+		
+		return "addAccount";
+	}
+
+	public String addAcc() {
+		try {
+			AdminUser au = ManagerUtils.getAdminUser();
+			String userid = au.getUserid();
+			
+			/**
+			 * 供货商管理员ID
+			 */
+			
+			if(Const.ADMIN_RELTYPE_SUPPER_STAFF.equalsIgnoreCase(au.getReltype())){
+				userid = au.getParuserid();
+			}
+			else if(Consts.CURR_FOUNDER_0.equalsIgnoreCase(au.getReltype()) || ManagerUtils.isAdminUser()){
+				userid="-1";
+			}
+			this.acc.setOwner_userid(userid);
+			int count=this.creditManager.countID(owner_userid);
+			if(count>0){
+				String message="不能新增同一个用户角色！";
+				this.json="{result:0,message:'"+message+"'}";
+			}else{
+			
+			this.creditManager.addAcc(acc);
+			json = "{'result':1,'message':'新增成功！'}";
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			json = "{'result':0,'message':'新增失败！'}";
+			return this.JSON_MESSAGE;
+		}
+		return this.JSON_MESSAGE;
+	}
+
+	public String addBanks() {
+		try {
+			//CreditVO
+			if(StringUtils.isEmpty(bank_ids)){
+				json = "{'result':0,'message':'请选择银行！'}";
+				return this.JSON_MESSAGE;
+			}
+			String ss[] = bank_ids.split(",");
+			for(String s:ss){
+				CreditVO cv = new CreditVO();
+				cv.setCfg_id(cfg_id);
+				cv.setBank_id(s);
+				this.creditManager.addBankRel(cv);
+			}
+			json = "{'result':1,'message':'新增成功！'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			json = "{'result':0,'message':'新增失败！'}";
+			return this.JSON_MESSAGE;
+		}
+		return this.JSON_MESSAGE;
+	}
+
+	public String addBan() {
+		this.webpage = this.creditManager.addBanked(this.getPage(),
+				5, cfg_id);
+		return "addBan";
+	}
+
+	public String addProperty() {
+		return "addProperty";
+	}
+
+	public String addPayment() {
+		try {
+
+			this.creditManager.addPayment(pay);
+			json = "{'result':1,'message':'新增成功！'}";
+		} catch (Exception e) {
+			e.printStackTrace();
+			json = "{'result':0,'message':'新增失败！'}";
+			return this.JSON_MESSAGE;
+		}
+		return this.JSON_MESSAGE;
+	}
+
+	public List<PaymentCfgAttr> parseCfgAttr(String json) {
+		if (json != null) {
+			List<PaymentCfgAttr> list = JSON.parseArray(json,
+					PaymentCfgAttr.class);
+			return list;
+		} else {
+			return null;
+		}
+	}
+	public String[] getEname() {
+		return ename;
+	}
+
+	public BankVO getBa() {
+		return ba;
+	}
+
+	public void setBa(BankVO ba) {
+		this.ba = ba;
+	}
+
+	public Account getAcc() {
+		return acc;
+	}
+
+	public List getBanks() {
+		return banks;
+	}
+
+	public void setBanks(List banks) {
+		this.banks = banks;
+	}
+
+	public void setAcc(Account acc) {
+		this.acc = acc;
+	}
+
+	public void setEname(String[] ename) {
+		this.ename = ename;
+	}
+
+	public List getPayment() {
+		return payment;
+	}
+
+	public void setPayment(List payment) {
+		this.payment = payment;
+	}
+
+	public String[] getCname() {
+		return cname;
+	}
+
+	public void setCname(String[] cname) {
+		this.cname = cname;
+	}
+
+	public String[] getValue() {
+		return value;
+	}
+
+	public void setValue(String[] value) {
+		this.value = value;
+	}
+
+	public CreditVO getCredit() {
+		return credit;
+	}
+
+	public String getAccounted_code() {
+		return accounted_code;
+	}
+
+	public void setAccounted_code(String accounted_code) {
+		this.accounted_code = accounted_code;
+	}
+
+	public void setCredit(CreditVO credit) {
+		this.credit = credit;
+	}
+
+	public String getCfg_id() {
+		return cfg_id;
+	}
+
+	public void setCfg_id(String cfg_id) {
+		this.cfg_id = cfg_id;
+	}
+
+	public String getBank_id() {
+		return bank_id;
+	}
+
+	public void setBank_id(String bank_id) {
+		this.bank_id = bank_id;
+	}
+
+	public List getBank() {
+		return bank;
+	}
+
+	public void setBank(List bank) {
+		this.bank = bank;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public PayVO getPay() {
+		return pay;
+	}
+
+	public String getOwner_userid() {
+		return owner_userid;
+	}
+
+	public void setOwner_userid(String owner_userid) {
+		this.owner_userid = owner_userid;
+	}
+
+	public void setPay(PayVO pay) {
+		this.pay = pay;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public ICreditManager getCreditManager() {
+		return creditManager;
+	}
+
+	public void setCreditManager(ICreditManager creditManager) {
+		this.creditManager = creditManager;
+	}
+
+	public String getBank_name() {
+		return bank_name;
+	}
+
+	public void setBank_name(String bank_name) {
+		this.bank_name = bank_name;
+	}
+
+	public String getImg_url() {
+		return img_url;
+	}
+
+	public void setImg_url(String img_url) {
+		this.img_url = img_url;
+	}
+
+	public String getShow_flag() {
+		return show_flag;
+	}
+
+	public void setShow_flag(String show_flag) {
+		this.show_flag = show_flag;
+	}
+
+	public String getBank_code() {
+		return bank_code;
+	}
+
+	public void setBank_code(String bank_code) {
+		this.bank_code = bank_code;
+	}
+
+	public String getBank_type() {
+		return bank_type;
+	}
+
+	public void setBank_type(String bank_type) {
+		this.bank_type = bank_type;
+	}
+
+	public String getSource_from() {
+		return source_from;
+	}
+
+	public void setSource_from(String source_from) {
+		this.source_from = source_from;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public float getPay_fee() {
+		return pay_fee;
+	}
+
+	public void setPay_fee(float pay_fee) {
+		this.pay_fee = pay_fee;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getConfig() {
+		return config;
+	}
+
+	public void setConfig(String config) {
+		this.config = config;
+	}
+
+	public String getBiref() {
+		return biref;
+	}
+
+	public void setBiref(String biref) {
+		this.biref = biref;
+	}
+
+	public List<PaymentCfgAttr> getAttrPay() {
+		return attrPay;
+	}
+
+	public void setAttrPay(List<PaymentCfgAttr> attrPay) {
+		this.attrPay = attrPay;
+	}
+
+	public String getBank_ids() {
+		return bank_ids;
+	}
+
+	public void setBank_ids(String bank_ids) {
+		this.bank_ids = bank_ids;
+	}
+
+}

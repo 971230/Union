@@ -1,0 +1,23 @@
+package com.ztesoft.net.mall.core.service;
+
+import java.util.List;
+
+import params.order.resp.OrderWorkItemQueryResp;
+
+import zte.net.ord.params.busi.req.OrderWorkItemBusiRequest;
+
+
+/**
+ * 订单工作项处理类
+ *
+ * @author zhangJun
+ */
+
+public interface IOrderWorkItemManager  {
+	
+	/**
+	 * 根据order_id 查出当前未处理的工作项
+	 */
+	public OrderWorkItemQueryResp QueryOrderWorkItemByOrderId(String order_id);
+	
+}

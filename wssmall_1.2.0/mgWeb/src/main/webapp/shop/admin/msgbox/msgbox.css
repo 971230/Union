@@ -1,0 +1,72 @@
+.gb_tip_layer,.gb_tip_layer .gtl_ico_succ,.gb_tip_layer .gtl_ico_fail,.gb_tip_layer .gtl_ico_hits,.gb_tip_layer .gtl_end,.gb_tip_layer2,.gb_tip_layer2 .gtl_ico_succ,.gb_tip_layer2 .gtl_ico_fail,.gb_tip_layer2 .gtl_ico_hits,.gb_tip_layer2 .gtl_end
+	{
+	background-image: url( "gb_tip_layer.png" );
+	background-repeat: no-repeat;
+	color: #03517a;
+	float: left;
+	font-size: 14px;
+	font-weight: bold;
+	height: 54px;
+	line-height: 54px;
+	z-index: 10002;
+}
+
+.gb_tip_layer {
+	background-position: 0 -161px;
+	background-repeat: repeat-x;
+	left: 40%;
+	padding: 0 18px 0 9px;
+	position: absolute;
+	top: 30%;
+	font-family: Arial, Simsun, "Arial Unicode MS", Mingliu, Helvetica;
+	font-size: 14px;
+	z-index: 10002;
+}
+
+.gb_tip_layer2 {
+	background-position: 0 -161px;
+	background-repeat: repeat-x;
+	left: 48%;
+	padding: 0 18px 0 9px;
+	position: fixed;
+	top: 30%;
+	font-family: Arial, Simsun, "Arial Unicode MS", Mingliu, Helvetica;
+	font-size: 14px;
+	z-index: 10002;
+}
+
+.gb_tip_layer2 .gtl_ico_succ,.gb_tip_layer .gtl_ico_succ {
+	background-position: -6px 0;
+	left: -45px;
+	position: absolute;
+	top: 0;
+	width: 45px;
+	z-index: 10002;
+}
+
+.gb_tip_layer2  .gtl_end,.gb_tip_layer .gtl_end {
+	background-position: 0 0;
+	position: absolute;
+	right: -6px;
+	top: 0;
+	width: 6px;
+	z-index: 10002;
+}
+
+.gb_tip_layer2 .gtl_ico_fail,.gb_tip_layer .gtl_ico_fail {
+	background-position: -6px -108px;
+	left: -45px;
+	position: absolute;
+	top: 0;
+	width: 45px;
+	z-index: 10002;
+}
+
+.gb_tip_layer2 .gtl_ico_hits,.gb_tip_layer .gtl_ico_hits {
+	background-position: -6px -54px;
+	left: -45px;
+	position: absolute;
+	top: 0;
+	width: 45px;
+	z-index: 10002;
+}

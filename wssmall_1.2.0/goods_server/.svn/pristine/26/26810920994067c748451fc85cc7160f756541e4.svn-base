@@ -1,0 +1,92 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import com.ztesoft.net.mall.core.model.EsTerminal;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+public class EsTerminalImportExcelUtil {
+	public static List<EsTerminal> readExcel(File file,String fileName){
+		List<EsTerminal> esTerminals = new LinkedList<EsTerminal>();
+		try{
+			FileInputStream is = new FileInputStream(file);
+			boolean islegal = true;
+			Workbook wb = null;
+	        if (!fileName.endsWith(".xlsx")){  
+	            wb = new HSSFWorkbook(is);  
+	        }else{  
+	            wb = new XSSFWorkbook(is);  
+	        }
+	        
+	        //遍历sheet
+	        int sheetNum = wb.getNumberOfSheets();
+	        if(sheetNum>1){
+	        	sheetNum--;
+	        }
+			for(int k=0;k<sheetNum;k++){
+				
+				Sheet sheet = wb.getSheetAt(k);
+				
+				//遍历行
+				for (int i=1;i<=sheet.getLastRowNum();i++) {
+					EsTerminal esTerminal = new EsTerminal();
+					Row row = sheet.getRow(i);
+					if(row!=null){
+						//遍历列
+						for (int j=0;j<row.getLastCellNum();j++ ) {
+							
+							Cell cell = row.getCell(j);
+							if(cell == null){
+								continue;
+							}
+							// 读取当前单元格的值
+							String title = "";
+							if(sheet.getRow(0) != null && sheet.getRow(0).getCell(j) != null){
+								 title = sheet.getRow(0).getCell(j).getStringCellValue();
+							}
+							cell.setCellType(Cell.CELL_TYPE_STRING);
+							String cellValue = cell.getStringCellValue();
+							if(StringUtils.isNotBlank(title)){
+								title = title.trim();
+							}
+							if(StringUtils.isNotBlank(cellValue)){
+								cellValue = cellValue.trim();
+							}
+							
+							if("机型编码".equals(title)){
+								if(StringUtils.isEmpty(cellValue))
+									islegal = false;
+								esTerminal.setSn(cellValue);
+							}
+							else if("串号".equals(title)){
+								if(StringUtils.isEmpty(cellValue))
+									islegal = false;
+								esTerminal.setTerminal_no(cellValue);
+							}
+							
+						}
+						if(islegal){
+							esTerminals.add(esTerminal);
+						}
+					}
+				}
+			}
+			
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return esTerminals;
+	}
+
+}

@@ -1,0 +1,207 @@
+package com.powerise.ibss.taglibs;
+
+import com.powerise.ibss.framework.ActionDispatch;
+import com.powerise.ibss.framework.DynamicDict;
+
+import javax.servlet.jsp.JspException;
+import javax.servlet.jsp.tagext.TagSupport;
+
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.StringTokenizer;
+
+/*
+ * 描述：记录集标签
+ * 版本：1.0
+ * 作者：文小军
+ */
+
+public class IterateResultSet
+    extends TagSupport {
+	private static Logger logger = Logger.getLogger(IterateResultSet.class);
+  private String methodName;
+  private String retResultName;
+  private String hiddenColumns;
+  private String flag;
+  private boolean hasCheckBox = false;
+  private boolean commExcute;
+  private ArrayList al = new ArrayList();
+  private HashMap hm = new HashMap();
+  ;
+  private HashMap param = new HashMap();
+
+  private StringBuffer results = new StringBuffer();
+  private int i = 0;
+
+  public int doStartTag() throws JspException {
+
+    commExcute = false;
+
+    return (EVAL_BODY_INCLUDE);
+  }
+
+  public void start() {
+    try {
+
+      DynamicDict dy = new DynamicDict(1);
+      dy.m_ActionId = methodName;
+      if (flag != null && flag.equals("1"))
+        dy.flag = 1;
+
+      if (flag == null) {
+        Object arr[] = param.keySet().toArray();
+        for (int i = 0; i < arr.length; i++) {
+          dy.setValueByName( (String) arr[i], param.get(arr[i]));
+        }
+      }
+
+      PageTag parent = (PageTag) findAncestorWithClass(this, PageTag.class); //获取父标签对应的对象
+      if (parent != null) {
+        HashMap pageParam = new HashMap();
+        pageParam.put("currentPage",String.valueOf(parent.getCurrentpage()));
+        pageParam.put("pageSize",String.valueOf(parent.getPagesize()));
+        dy.setValueByName("pageParam", pageParam);
+      }
+
+      dy.setValueByName("parameter", param);
+      dy = ActionDispatch.dispatch(dy);
+      if (dy.flag < 0) {
+        //异常信息
+        logger.info("错误信息：" + dy.msg + "异常信息：" + dy.exception);
+        try {
+          pageContext.getOut().print("错误信息：" + dy.msg + "异常信息：" + dy.exception);
+        }
+        catch (IOException ioe) {
+          logger.info("Error in IterateResultSetTag : " + ioe);
+        }
+      }
+
+      if (parent != null) {
+        String recordCount = ( ( (String) dy.getValueByName("recordCount", false)).
+                              equals("")) ? "0" :
+            (String) dy.getValueByName("recordCount", false);
+        parent.setSum(Integer.parseInt(recordCount));
+      }
+
+      Object obj;
+      if (retResultName != null)
+        obj = dy.getValueByName(retResultName, false);
+      else
+        obj = dy.getValueByName(methodName, false);
+
+      if (obj.getClass().getName().equalsIgnoreCase("java.util.ArrayList")) {
+        al = (ArrayList) obj;
+        hm = (HashMap) al.get(0);
+        results.append("<tr ");
+        if (null != hiddenColumns) {
+          StringTokenizer st = new StringTokenizer(hiddenColumns, ",");
+          while (st.hasMoreTokens()) {
+            String column = (String) st.nextToken();
+            String str = (String) hm.get(column) == null ? "" :
+                (String) hm.get(column);
+            results.append(column + "=" + str + " ");
+          }
+        }
+        results.append(">");
+        if (hasCheckBox) results.append("<td><input type=\"checkbox\" name=\"tag_checkbox\"></td>");
+      }
+      dy.destroy();
+    }
+    catch (Exception e) {
+      logger.info("没有符合条件的记录");
+    }
+  }
+
+  public int doAfterBody() {
+
+    if (i < al.size() - 1) {
+      i++;
+      hm = (HashMap) al.get(i);
+      results.append("</tr>\n<tr ");
+      if (null != hiddenColumns) {
+        StringTokenizer st = new StringTokenizer(hiddenColumns, ",");
+        while (st.hasMoreTokens()) {
+          String column = (String) st.nextToken();
+          String str = (String) hm.get(column) == null ? "" :
+              (String) hm.get(column);
+          results.append(column + "=" + str + " ");
+        }
+      }
+      results.append(">");
+      if (hasCheckBox) results.append("<td><input type=\"checkbox\" name=\"tag_checkbox\"></td>");
+      return (EVAL_BODY_AGAIN); //实现循环
+    }
+    else {
+      i = 0;
+      results.append("</tr>\n");
+      return (SKIP_BODY); //不再循环体
+    }
+  }
+
+  public int doEndTag() throws JspException {
+    try {
+      pageContext.getOut().print(results.toString());
+      results.setLength(0);
+    }
+    catch (IOException ioe) {
+      logger.info("Error in IterateResultSetTag : " + ioe);
+    }
+    //计算剩余的页面
+    return (EVAL_PAGE);
+
+  }
+
+  public void addParam(String name, String value) {
+    param.put(name, value);
+  }
+
+  public void getField(String name, String replace) {
+    String str = (String) hm.get(name) == null ? "" : (String) hm.get(name);
+    if (null != replace) {
+      StringTokenizer st = new StringTokenizer(replace, ",");
+      while (st.hasMoreTokens()) {
+
+        String sName = (String) st.nextToken();
+        String sValue = (String) st.nextToken();
+        if (sName != null && str.equals(sName)) {
+          str = sValue;
+          break;
+        }
+      }
+    }
+    results.append("<td>" + str + "</td>");
+  }
+
+  public boolean getstart() {
+    return this.commExcute;
+  }
+
+  public void setstart(boolean commExcute) {
+    this.commExcute = commExcute;
+  }
+
+  //以下为属性设置
+  public void setMethodName(String methodName) {
+    this.methodName = methodName;
+  }
+
+  public void setFlag(String flag) {
+    this.flag = flag;
+  }
+
+  public void setRetResultName(String retResultName) {
+    this.retResultName = retResultName;
+  }
+
+  public void setHasCheckBox(boolean hasCheckBox) {
+    this.hasCheckBox = hasCheckBox;
+  }
+
+  public void setHiddenColumns(String hiddenColumns) {
+    this.hiddenColumns = hiddenColumns;
+  }
+
+}

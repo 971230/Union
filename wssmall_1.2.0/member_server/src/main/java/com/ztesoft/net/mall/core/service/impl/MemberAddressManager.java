@@ -1,0 +1,90 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.List;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.app.base.core.model.MemberAddress;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.eop.sdk.user.IUserService;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.service.IMemberAddressManager;
+import com.ztesoft.net.sqls.SF;
+import commons.CommonTools;
+
+/**
+ * 个人中心-收货地址
+ * 
+ * @author lzf<br/>
+ *         2010-3-17 下午03:03:56<br/>
+ *         version 1.0<br/>
+ */
+public class MemberAddressManager extends BaseSupport<MemberAddress> implements
+		IMemberAddressManager {
+
+	
+	@Override
+	public void addAddress(MemberAddress address) {
+//		IUserService userService = UserServiceFactory.getUserService();
+//		Member member = userService.getCurrentMember();
+//		if(member!=null)
+		if(StringUtil.isEmpty(address.getMember_id()))
+			CommonTools.addFailError("member_id不能为空!");
+		if(StringUtil.isEmpty(address.getAddr()))
+			return;
+		this.baseDaoSupport.insert("member_address", address);
+	}
+	
+	@Override
+	public void deleteAddress(String addr_id) {
+		String sql = SF.memberSql("SERVICE_DEL_MEMBER_ADDR_BY_ID");
+		this.baseDaoSupport.execute(sql, addr_id);
+	}
+
+	
+	@Override
+	public MemberAddress getAddress(String addr_id) {
+		String sql = SF.memberSql("SERVICE_GET_MEMBER_ADDR_BY_ID");
+		MemberAddress address = this.baseDaoSupport.queryForObject(sql, MemberAddress.class, addr_id);
+		return address;
+	}
+
+	
+	@Override
+	public List listAddress() {
+		IUserService userService = UserServiceFactory.getUserService();
+		Member member = userService.getCurrentMember();
+		String sql = SF.memberSql("SERVICE_GET_MEMBER_ADDR_BY_MEM_ID");
+		List list = this.baseDaoSupport.queryForList(sql, member.getMember_id());
+		return list;
+	}
+	
+	@Override
+	public List<MemberAddress> listMemberAddress(String menber_id){
+		String sql = SF.memberSql("SERVICE_GET_MEMBER_ADDR_BY_MEM_ID");
+		return this.baseDaoSupport.queryForList(sql, MemberAddress.class, menber_id);
+	}
+	
+	@Override
+	public void updateAddress(MemberAddress address) {
+		this.baseDaoSupport.update("member_address", address, "addr_id="
+				+ address.getAddr_id());
+	}
+
+
+	@Override
+	public MemberAddress getLastAddress() {
+		IUserService userService = UserServiceFactory.getUserService();
+		Member member = userService.getCurrentMember();
+		String sql = SF.memberSql("SERVICE_GET_MEMBER_ADDR_BY_MEM_ID");
+		List<MemberAddress> list = this.baseDaoSupport.queryForList(
+				"select * from (" + sql + ") na where 1=1 " + DBTUtil.andEqRownum("1"), MemberAddress.class,member.getMember_id());
+		if(list!=null && list.size()>0){
+			return list.get(0);
+		}else{
+			return null;
+		}
+	}
+
+}

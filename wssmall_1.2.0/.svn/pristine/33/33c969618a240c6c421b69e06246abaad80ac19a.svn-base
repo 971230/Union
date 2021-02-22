@@ -1,0 +1,87 @@
+package com.ztesoft.net.aspect;
+
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.Pointcut;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import zte.net.iservice.IJobTaskService;
+import zte.params.req.JobTaskCheckedReq;
+import zte.params.resp.JobTaskCheckedResp;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+
+/**
+ * 
+ * @author wui 
+ * 任务拦截器
+ * 
+ * 
+ */
+@Component
+@Aspect
+public class TaskAspect extends BaseSupport{
+
+    private Logger logger= LoggerFactory.getLogger(getClass());
+
+	// 配置切入点,该方法无方法体,主要为方便同类中其他方法使用此处配置的切入点
+	//@Pointcut("execution(* com.ztesoft.net.mall.core.timer.run(..))")
+	//@Pointcut("execution(* com.ztesoft.net.mall.core.timer.*.*(..))") //add by wui注释掉切面
+	public void aspect() {}
+
+	/*
+	 * * 配置前置通知,使用在方法aspect()上注册的切入点 同时接受JoinPoint切入点对象,可以没有该参数
+	 */
+	//@Before("aspect()") add by wui去除切面，每个定时任务自动引入
+	public void before(JoinPoint joinPoint) {
+		//logger.info(joinPoint.getSignature());
+		String method = joinPoint.getSignature().getName();
+		String className = joinPoint.getSignature().getDeclaringTypeName();
+        if(logger.isDebugEnabled()){
+          logger.debug(className+"\t"+method);
+        }
+
+		//修改=== mochunrun 2014-4-21
+		IJobTaskService jobTaskService = SpringContextHolder.getBean("jobTaskService");
+		JobTaskCheckedReq req = new JobTaskCheckedReq();
+		req.setClassName(className);
+		req.setMethod(method);
+		JobTaskCheckedResp resp = jobTaskService.checkedJobTask(req);
+		if(!resp.isCanRun()){
+            if(logger.isDebugEnabled()){
+                logger.debug(className+"==============================================================不可执行");
+            }
+			throw new RuntimeException("非指定ip任务,执行失败");
+		}else{
+			if(logger.isDebugEnabled()){
+                logger.debug(className+"==============================================================可执行");
+            }
+		}
+	}
+	
+	public boolean checkIp(String method,String className){
+		
+        if(logger.isDebugEnabled()){
+          logger.debug(className+"\t"+method);
+        }
+
+		IJobTaskService jobTaskService = SpringContextHolder.getBean("jobTaskService");
+		JobTaskCheckedReq req = new JobTaskCheckedReq();
+		req.setClassName(className);
+		req.setMethod(method);
+		JobTaskCheckedResp resp = jobTaskService.checkedJobTask(req);
+		if(!resp.isCanRun()){
+            if(logger.isDebugEnabled()){
+                logger.debug(className+"==============================================================不可执行");
+            }
+            return false;
+		}
+		return true;
+	}
+	
+	
+}

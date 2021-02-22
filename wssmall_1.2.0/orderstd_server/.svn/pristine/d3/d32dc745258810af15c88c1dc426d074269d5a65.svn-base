@@ -1,0 +1,200 @@
+package com.ztesoft.util;
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.form.util.StringUtil;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.utils.CacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.server.jsonserver.wcfpojo.MallUtils;
+import com.ztesoft.orderstd.resp.DevelopOrderResp;
+
+import zte.net.ecsord.params.ecaop.req.ChannelConvertQrySubReq;
+import zte.net.ecsord.params.ecaop.resp.ChannelConvertQrySubResp;
+
+
+public class DevelopChannelUtil {
+	
+	public DevelopOrderResp getDevelop(String goodsId , String sourceFrom, String development_point_code, String develop_code) throws Exception{
+		CacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		DevelopOrderResp developOrderResp =null;
+		IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+		String sql2 ="select distinct cat_id from es_goods t where t.goods_id='"+goodsId+"' and t.source_from= '"+ManagerUtils.getSourceFrom()+"'";
+		String cat_id= baseDaoSupport.queryForString(sql2);
+		String cbssGoodsCat = cacheUtil.getConfigInfo("CBSS_GOODS_CAT_ALL_"+sourceFrom);
+		if(!StringUtil.isEmpty(cat_id)&&!StringUtil.isEmpty(cbssGoodsCat) && cbssGoodsCat.contains(","+cat_id+",")){
+			 developOrderResp = checkDevelopNameAndCodeCbss(development_point_code , develop_code);
+		}
+		String bssGoodsCat = cacheUtil.getConfigInfo("BSS_GOODS_CAT_ALL_"+sourceFrom);
+		if(!StringUtil.isEmpty(cat_id)&&!StringUtil.isEmpty(bssGoodsCat) && bssGoodsCat.contains(","+cat_id+",")){
+			 developOrderResp= checkDevelopNameAndCodeBSS(development_point_code , develop_code);
+		}
+		return developOrderResp;
+	}
+	
+	
+	
+	private static DevelopOrderResp checkDevelopNameAndCodeCbss(String development_point_code, String develop_code) {//针对于CB业务需求  是否可以按照字段进行判断
+		
+		DevelopOrderResp developOrderResp = new DevelopOrderResp();
+        if(!MallUtils.isEmpty(development_point_code)){//cb 发展点  第一种可能
+            if(MallUtils.isEmpty(develop_code)){//cb发展人  有发展点无发展人拒绝收单
+            	developOrderResp.setMsg("CBSS发展点和发展人信息不符合业务要求");
+                return developOrderResp;
+            }else{//转换值  有发展点 有发展人
+                ChannelConvertQrySubResp resp =  getConvertQry(develop_code);//若有则进行传发展人
+                Boolean flag = false;
+                if("00000".equals(resp.getCode())){
+                    flag = true;
+                }else if("00502".equals(resp.getCode())){
+                	developOrderResp.setMsg("无发展人编码信息");
+                    return developOrderResp;
+                }else{
+                	developOrderResp.setMsg(resp.getMsg());
+                    return developOrderResp;
+                }
+                 if(flag && MallUtils.isEmpty(resp.getRespJson().getZb_developer())){
+                	 developOrderResp.setMsg("CBSS发展人传值错误");
+                     return developOrderResp;
+                }if(flag && !MallUtils.isEmpty(resp.getRespJson().getZb_developer())){//如果接口返回发展人编码和收单不一致  
+                    if(!development_point_code.equals(resp.getRespJson().getSf_channel_id()) && !development_point_code.equals(resp.getRespJson().getZb_channel_id())){
+                        developOrderResp.setMsg("CBSS发展人和CBSS发展点关系不一致");
+                        return developOrderResp;
+                    }else{
+                    	developOrderResp.setDevelopment_point_code(resp.getRespJson().getZb_channel_id());
+                    	developOrderResp.setDevelopment_point_name(resp.getRespJson().getSf_channel_name());
+                    	developOrderResp.setDevelop_code(resp.getRespJson().getZb_developer());
+                    	developOrderResp.setDevelop_name(resp.getRespJson().getSf_developer_name());
+                        return developOrderResp;
+                    }
+                }
+            }
+        }else{
+            if(!MallUtils.isEmpty(develop_code)){//转换按照规则3 无发展点  有发展人信息
+                //DOTO 请求转换进行判断
+                ChannelConvertQrySubResp resp =  getConvertQry(develop_code);//若有则进行传发展人
+                Boolean flag = false;
+                if("00000".equals(resp.getCode())){
+                    flag = true;
+                }else if("00502".equals(resp.getCode())){
+                	developOrderResp.setMsg("无发展人编码信息");
+                    return developOrderResp;
+                }else{
+                	developOrderResp.setMsg(resp.getMsg());
+                    return developOrderResp;
+                }
+                if(flag){
+                    if(MallUtils.isEmpty(resp.getRespJson().getZb_developer())){
+                    	 developOrderResp.setMsg("CBSS发展人传值错误");
+                         return developOrderResp;
+                    }else{
+                    	developOrderResp.setDevelopment_point_code(resp.getRespJson().getZb_channel_id());
+                    	developOrderResp.setDevelopment_point_name(resp.getRespJson().getSf_channel_name());
+                    	developOrderResp.setDevelop_code(resp.getRespJson().getZb_developer());
+                    	developOrderResp.setDevelop_name(resp.getRespJson().getSf_developer_name());
+                        return developOrderResp;
+                     }
+                }
+            } else {
+            	return null;
+            }
+        }
+        return developOrderResp;
+    }
+	
+	private static DevelopOrderResp checkDevelopNameAndCodeBSS(String development_point_code, String develop_code) {//针对于BSS业务需求  是否可以按照字段进行判断
+		
+		DevelopOrderResp developOrderResp = new DevelopOrderResp();
+        //develop_code  发展点  develop_name   发展人     development_point_name 落发展点名称
+        if(MallUtils.isEmpty(develop_code) && MallUtils.isEmpty(development_point_code)){ //第四种  不进行处理
+        	developOrderResp.setMsg("");
+            return null;
+        }
+        if(!MallUtils.isEmpty(development_point_code)){//b 发展点  第一种可能
+            if(MallUtils.isEmpty(develop_code)){//b  只有发展点 没有发展人
+                ChannelConvertQrySubResp resp =  getConvertQry(development_point_code);//若有则进行传发展人
+                if("00000".equals(resp.getCode())){
+                	if (!MallUtils.isEmpty(resp.getRespJson().getSf_channel_id())) {
+                		developOrderResp.setDevelopment_point_code(resp.getRespJson().getSf_channel_id());
+                    	developOrderResp.setDevelopment_point_name(resp.getRespJson().getSf_channel_name());
+                        return developOrderResp;
+					} else {
+						developOrderResp.setMsg("根据收单发展点查不到省分发展点");
+	                    return developOrderResp;
+					}
+                	
+                }else if("00502".equals(resp.getCode())){
+                	developOrderResp.setMsg("无发展点编码信息");
+                    return developOrderResp;
+                }else{
+                	developOrderResp.setMsg(resp.getMsg());
+                    return developOrderResp;
+                }
+            }else{//转换值  有发展点 有发展人 规则2
+                ChannelConvertQrySubResp resp =  getConvertQry(develop_code);//若有则进行传发展人
+                if("00000".equals(resp.getCode())){
+                    if(MallUtils.isEmpty(resp.getRespJson().getSf_developer())){//如果发展人为空拒绝收单
+                    	developOrderResp.setMsg("bss发展人传值错误");
+                        return developOrderResp;
+                    }else{
+                        if(!development_point_code.equals(resp.getRespJson().getSf_channel_id()) && !development_point_code.equals(resp.getRespJson().getZb_channel_id())){
+                        	developOrderResp.setMsg("bss发展点和bss发展人关系不一致");
+                            return developOrderResp;
+                        }else{
+                        	developOrderResp.setDevelopment_point_code(resp.getRespJson().getSf_channel_id());
+                        	developOrderResp.setDevelopment_point_name(resp.getRespJson().getSf_channel_name());
+                        	developOrderResp.setDevelop_code(resp.getRespJson().getSf_developer());
+                        	developOrderResp.setDevelop_name(resp.getRespJson().getSf_developer_name());
+                            return developOrderResp;
+                        }
+                    }
+                }else if("00502".equals(resp.getCode())){
+                	developOrderResp.setMsg("无发展人编码信息");
+                    return developOrderResp;
+                }else{
+                	developOrderResp.setMsg(resp.getMsg());
+                    return developOrderResp;
+                }
+            }
+        }else{
+            if(!MallUtils.isEmpty(develop_code)){
+                ChannelConvertQrySubResp resp =  getConvertQry(develop_code);//若有则进行传发展人
+                if("00000".equals(resp.getCode())){
+                    if(!MallUtils.isEmpty(resp.getRespJson().getSf_developer())){
+                    	developOrderResp.setDevelopment_point_code(resp.getRespJson().getSf_channel_id());
+                    	developOrderResp.setDevelopment_point_name(resp.getRespJson().getSf_channel_name());
+                    	developOrderResp.setDevelop_code(resp.getRespJson().getSf_developer());
+                    	developOrderResp.setDevelop_name(resp.getRespJson().getSf_developer_name());
+                        return developOrderResp;
+                    }else{
+                    	developOrderResp.setMsg("bss发展人传值错误");
+                        return developOrderResp;
+                    }
+                }else if("00502".equals(resp.getCode())){
+                	developOrderResp.setMsg("无发展人编码信息");
+                    return developOrderResp;
+                }else{
+                	developOrderResp.setMsg(resp.getMsg());
+                    return developOrderResp;
+                }
+            }
+        }
+        return developOrderResp;
+    }
+	
+	private static ChannelConvertQrySubResp getConvertQry (String channelInfo){
+        try{
+            ChannelConvertQrySubResp resp = new ChannelConvertQrySubResp();
+            ChannelConvertQrySubReq matchReq = new ChannelConvertQrySubReq();
+            matchReq.setOp_type("21");
+            matchReq.setOp_value(channelInfo);
+            ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+            resp = client.execute(matchReq, ChannelConvertQrySubResp.class);
+            return resp;
+        }catch(Exception e){
+            ChannelConvertQrySubResp resp = new ChannelConvertQrySubResp();
+            return resp;
+        }
+    }
+}

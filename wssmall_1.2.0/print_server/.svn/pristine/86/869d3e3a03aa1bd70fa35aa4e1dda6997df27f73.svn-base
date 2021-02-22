@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	
+	
+	<package name="struts-print" extends="shop_default" namespace="/shop/admin" >
+		
+		<action name="printTmpl" class="printTmplAction">
+			<result name="edit">printTmpl/edit.jsp</result>
+			<result name="add">printTmpl/add.jsp</result>
+			<result name="list">printTmpl/list.jsp</result>
+			<result name="trash">printTmpl/trash.jsp</result>
+			<result name="name_items">printTmpl/name_items.jsp</result>
+			<interceptor-ref name="defaultStack">
+				<param name="fileUpload.maximumSize">1048576</param>
+			</interceptor-ref>
+		</action>
+	     
+	  
+	</package>
+	
+	
+</struts>

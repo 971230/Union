@@ -1,0 +1,115 @@
+.jqmWindow {
+	display: none;
+	position: fixed;
+	top: 17%;
+	left: 50%;
+	margin-left: -300px;
+	width: 600px;
+	background-color: #EEE;
+	color: #333;
+	border: 1px solid black;
+	padding: 12px;
+}
+
+.jqmOverlay {
+	background-color: #333;
+	filter: alpha(opacity = 50)
+}
+
+/* Background iframe styling for IE6. Prevents ActiveX bleed-through (<select> form elements, etc.) */
+* iframe.jqm {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: -1;
+	width: expression(this . parentNode . offsetWidth + 'px');
+	height: expression(this . parentNode . offsetHeight + 'px');
+}
+
+/* Fixed posistioning emulation for IE6
+     Star selector used to hide definition from browsers other than IE6
+     For valid CSS, use a conditional include instead */
+* html .jqmWindow {
+	position: absolute;
+	top: expression(( document . documentElement . scrollTop ||   document . body
+		. scrollTop) +   Math .
+		round(17 *   ( document . documentElement . offsetHeight ||   document .
+		body . clientHeight)/ 100 ) +   'px' );
+}
+
+.dialog {
+	background: #FFFFFF;
+	border-color: #3D596F #34495A #2F4251;
+	border-style: solid;
+	border-width: 1px;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	text-align: left;
+	position: absolute;
+	top: 17%;
+	left: 40%;
+}
+
+.dialogIf {
+	background:#FFFFFF;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	text-align: left;
+	position: absolute;
+	top: 3%;
+	left: 5%;
+}
+
+.dialog,.dialogIf .dialog_box {
+	background: #f6f6f6;
+	border: 1px solid #e5e5e5;
+	padding: 0 9px 0px;
+}
+
+.dialog,.dialogIf .head {
+	margin-bottom: 4px;
+	padding: 3px 0;
+	position: relative;
+}
+
+.dialog,.dialogIf .head .title {
+	cursor: move;
+	font-weight: bold;
+	height: 20px;
+	line-height: 20px;
+	margin-right: 40px;
+	overflow: hidden;
+	padding-left: 10px;
+}
+
+.dialog,.dialogIf .head .closeBtn {
+	cursor: pointer;
+	height: 17px;
+	position: absolute;
+	right: 5px;
+	top: 5px;
+	width: 17px;
+	background-image: url("../images/gridicon.gif");
+	background-position: -1px -122px;
+	background-repeat: no-repeat;
+}
+
+.dialog,.dialogIf .body,.dialog .headContent,.dialog .footContent {
+	padding: 3px;
+}
+
+.dialog,.dialogIf .headContent,.dialog .footContent {
+	background: #F1F4F6;
+	cursor: default;
+}
+
+.dialog,.dialogIf .body {
+	background: #FFFFFF;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.dialog,.dialogIf .dialogContent {
+	background: #FFFFFF;
+	border:1px solid #d8d8d8;
+}

@@ -1,0 +1,350 @@
+/**
+   错误号段：100009001
+   MSM_245：取得待办事务
+   MSM_246：取得告警信息
+   MSM_247：取得告警信息类型
+   MSM_248：//增加、修改告警信息
+   MSM_249：/删除告警信息
+   MSM_250：//增加、修改已订阅的告警信息
+   MSM_251：//删除已订阅的告警信息
+ */
+package com.powerise.ibss.system ;
+
+import com.powerise.ibss.framework.DynamicDict;
+import com.powerise.ibss.framework.FrameException;
+import com.powerise.ibss.framework.IAction;
+import org.apache.log4j.Logger;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Vector;
+
+
+
+public class SystemManager2 implements IAction{
+   private static Logger m_Logger = null;
+   Connection conn =null;
+
+   private void getLogger(){
+		if(m_Logger==null)
+			m_Logger = Logger.getLogger(getClass().getName()); 
+	}
+
+   public int perform(DynamicDict aDict) throws FrameException{
+	  getLogger();
+      try{
+         conn =aDict.GetConnection();
+         String service =aDict.getServiceName();
+         m_Logger.debug("service is :"+service);
+         if(service.equalsIgnoreCase("MSM_245"))
+		  {
+			 MSM_245(aDict);
+		  }else
+		 if(service.equalsIgnoreCase("MSM_247"))
+		  {
+			 MSM_247(aDict);
+		  }else
+		 if(service.equalsIgnoreCase("MSM_246"))
+		  {
+			 MSM_246(aDict);
+		  }else
+		 if(service.equalsIgnoreCase("MSM_248"))
+		  {
+			 MSM_248(aDict);
+		  }else
+		 if(service.equalsIgnoreCase("MSM_249"))
+		  {
+			 MSM_249(aDict);
+		  }else
+		 if(service.equalsIgnoreCase("MSM_250"))
+		  {
+			 MSM_250(aDict);
+		  }
+		  else
+		 if(service.equalsIgnoreCase("MSM_251"))
+		  {
+			 MSM_251(aDict);
+		  }
+         
+         conn =null;
+      }catch(SQLException sqle){
+         throw new FrameException(-100009001, "执行SQL出错(SystemManager2)", sqle.getMessage());
+      }
+      return 1;
+   }
+   private void MSM_245(DynamicDict aDict) throws FrameException,SQLException{
+	  getLogger();
+      HashMap role =(HashMap)aDict.getValueByName("role");
+      int auth_level =Integer.parseInt((String)aDict.getValueByName("level"));
+      String bureau_no =(String)aDict.getValueByName("bureau_no");
+      String site_no =(String)aDict.getValueByName("site_no");
+      String staff_no =(String)aDict.getValueByName("staff_no");
+      ResultSet rs =null, rs1=null,rs2=null,rs3=null;
+
+      String sql ="SELECT a.action_id, b.fun_name, b.menu_url FROM tsm_todo a,"
+				 +"(SELECT DISTINCT b.fun_id, c.fun_name, c.menu_url "
+				 +"FROM (SELECT staff_no, role_id FROM tsm_staff_role "
+                 +"UNION SELECT b.staff_no, role_id FROM tsm_site_role a, tsm_staff b "
+                 +"WHERE a.site_no = b.site_no) a,tsm_role_fun b,tsm_fun c "
+				 +"WHERE a.role_id = b.role_id AND b.fun_id = c.fun_id AND c.state = '1' AND a.staff_no ='"
+				 +staff_no
+				 +"' AND NOT EXISTS (SELECT 1 FROM tsm_staff_fun x WHERE x.staff_no = a.staff_no "
+                 +"AND priv_type = '0')) b WHERE a.fun_id = b.fun_id AND a.state = '1' ORDER BY a.disp_order ";
+      rs =Dao.select(sql, conn);
+      ArrayList things =new ArrayList();
+      while(rs.next()){
+            HashMap thing =new HashMap();
+            String get_action_id=rs.getString(1);
+			String pre_name =rs.getString(2);
+            String page_url =rs.getString(3);
+            		
+			String action_sql;
+			String action_sql_arg;
+			
+            int wait_num =0;
+			int expire_num=0;
+            if (get_action_id!=null&&!get_action_id.equals("")){                        
+				action_sql="select action_clause from tfm_action_list where action_id='"+get_action_id+"'";
+				rs2 =Dao.select(action_sql, conn);
+				if(rs2.next()){
+					action_sql=rs2.getString(1);
+				}
+				//action_sql=SysSet.getActionSQL(get_action_id);
+				Vector args=new Vector();
+				action_sql_arg="select arg_name from tfm_action_args where action_id='"+get_action_id+"'";
+				rs3 =Dao.select(action_sql_arg, conn);
+				while(rs3.next()){
+					action_sql_arg=rs3.getString(1);
+					args.add(action_sql_arg);
+				}
+
+				//args=SysSet.getActionArgs(get_action_id);
+				
+				if (action_sql!=null&&!action_sql.equals("")&&args.size()>0){
+					for(int i=0;i<args.size();i++){
+						if ((args.get(i).equals("SITE_NO"))||(args.get(i).equals("site_no")))
+						{
+							action_sql=replace(action_sql,"?","'"+site_no+"'");
+						}
+						if ((args.get(i).equals("STAFF_NO"))||(args.get(i).equals("staff_no")))
+						{
+							action_sql=replace(action_sql,"?","'"+staff_no+"'");
+						}
+						
+					}
+					
+					m_Logger.debug("systemmanager2.java.msm_245.action_sql="+action_sql);
+					rs1=Dao.select(action_sql,conn);
+					if (rs1.next())
+					{
+						wait_num=rs1.getInt(1);
+						expire_num=rs1.getInt(2);
+					}
+				
+					if(wait_num >0||expire_num >0){
+					   thing.put("PRE_NAME", pre_name);
+					   thing.put("PAGE_URL", page_url);
+					   thing.put("WAIT_NUM", String.valueOf(wait_num));
+					   thing.put("EXPIRE_NUM", String.valueOf(expire_num));
+
+					   things.add(thing);
+					}
+				}
+			}
+      }
+      if(rs !=null){rs.getStatement().close(); rs.close(); rs=null;}
+      if(rs1 !=null){rs1.getStatement().close(); rs1.close(); rs1=null;}
+      if(things !=null && things.size() >0)
+         aDict.setValueByName("things", things);
+   }
+
+  //取告警信息类型
+  private void MSM_247(DynamicDict aDict) throws FrameException,SQLException{
+	  getLogger();
+	  String staff_no =(String)aDict.getValueByName("staff_no");
+	  ResultSet rs =null;
+
+      String sql ="select distinct a.et_id msg_type,a.et_name sendmessage,b.es_order es_order from tsm_event a,tsm_event_staff b "
+				 +"where b.staff_no='"
+				 +staff_no
+				 +"' and a.et_id=b.et_id and b.state='1' order by 3";
+      rs =Dao.select(sql, conn);
+      ArrayList things =new ArrayList();
+	  while(rs.next()){
+            HashMap thing =new HashMap();
+			String sm_used_view=Integer.toString(rs.getInt("MSG_TYPE"));
+			String sm_disp_view=rs.getString("SENDMESSAGE");
+			
+			thing.put("SM_USED_VIEW",sm_used_view);
+			thing.put("SM_DISP_VIEW",sm_disp_view);
+			
+			things.add(thing);
+			
+	  }
+	  if(rs !=null){rs.getStatement().close(); rs.close(); rs=null;}
+	  if(things !=null && things.size() >0)
+         aDict.setValueByName("things", things);
+  }
+
+  //获取告警信息
+  private void MSM_246(DynamicDict aDict) throws FrameException,SQLException{
+	  getLogger();
+	  String staff_no =(String)aDict.getValueByName("staff_no");
+	  int msg_type =Integer.parseInt((String)aDict.getValueByName("msg_type"));
+	  ResultSet rs =null;
+
+      String sql ="select messageid,sendmessage from tsm_message where msg_type="
+				 +msg_type
+				 +" and staff_no='"
+				 +staff_no
+				 +"' "
+				 +" and state='1'";
+      rs =Dao.select(sql, conn);
+      ArrayList things =new ArrayList();
+	  while(rs.next()){
+            HashMap thing =new HashMap();
+			String message_id=rs.getString("MESSAGEID");
+			String message_info=rs.getString("SENDMESSAGE");
+			
+			thing.put("MESSAGEID",message_id);
+			thing.put("SENDMESSAGE",message_info);
+			
+			things.add(thing);
+			
+	  }
+	  if(rs !=null){rs.getStatement().close(); rs.close(); rs=null;}
+	  if(things !=null && things.size() >0)
+         aDict.setValueByName("things", things);
+  }
+
+  // 替换字符串函数
+  // String strSource - 源字符串
+  // String strFrom   - 要替换的子串
+  // String strTo     - 替换为的字符串
+  public static String replace(String strSource, String strFrom, String strTo)
+  {
+      // 如果要替换的子串为空，则直接返回源串
+      if(strFrom == null || strFrom.equals(""))
+          return strSource;
+      String strDest = "";
+      // 要替换的子串长度
+      int intFromLen = strFrom.length();
+      int intPos;
+      // 循环替换字符串
+      //while((intPos = strSource.indexOf(strFrom)) != -1)
+	  intPos = strSource.indexOf(strFrom);
+      //{
+          // 获取匹配字符串的左边子串
+          strDest = strDest + strSource.substring(0,intPos);
+          // 加上替换后的子串
+          strDest = strDest + strTo;
+          // 修改源串为匹配子串后的子串
+          strSource = strSource.substring(intPos + intFromLen);
+      //}
+      // 加上没有匹配的子串
+      strDest = strDest + strSource;
+      // 返回
+      return strDest;
+  }
+
+  //增加、修改告警信息
+	public void MSM_248(DynamicDict aDict) throws FrameException, SQLException{
+		String act_flag =(String)aDict.getValueByName("ACT_FLAG");
+		String et_name =(String)aDict.getValueByName("ET_NAME");
+		String et_method  =(String)aDict.getValueByName("ET_METHOD");
+		String state =(String)aDict.getValueByName("STATE");
+		Vector vSQL =new Vector();
+		String sql="";
+		getLogger(); 
+		if (act_flag.equals("0"))//增加
+		{
+			sql="insert into tsm_event (ET_ID,ET_NAME,ET_METHOD,STATE,OPER_DATE) "
+			   +"select NVL(MAX(ET_ID),0)+1,'"
+			   +et_name
+			   +"','"
+			   +et_method
+			   +"','"
+			   +state
+			   +"',SYSDATE from tsm_event";
+		}else if (act_flag.equals("1"))//修改
+		{
+			int et_id =Integer.parseInt((String)aDict.getValueByName("ET_ID"));
+			sql="update tsm_event set ET_NAME='"
+				  +et_name
+				  +"',ET_METHOD='"
+				  +et_method
+				  +"',STATE='"
+				  +state
+				  +"' where ET_ID="
+				  +et_id;
+		}
+		
+		
+		
+		vSQL.add(sql);
+        m_Logger.debug("SystemMessage2.MSM_248.sql="+sql);
+		Dao.change(vSQL, aDict.GetConnection());
+	}
+
+	//删除告警信息
+	public void MSM_249(DynamicDict aDict) throws FrameException, SQLException{
+		int et_id =Integer.parseInt((String)aDict.getValueByName("ET_ID"));
+		
+		Vector vSQL =new Vector();
+		
+		getLogger(); 
+		
+		String sql="delete from tsm_event where ET_ID="
+				  +et_id;		
+		
+		vSQL.add(sql);
+        m_Logger.debug("SystemMessage2.MSM_249.sql="+sql);
+		Dao.change(vSQL, aDict.GetConnection());
+	}
+
+	//增加、修改已订阅的告警信息
+	public void MSM_250(DynamicDict aDict) throws FrameException, SQLException{
+		String staff_no =(String)aDict.getValueByName("STAFF_NO");		
+		String et_id =(String)aDict.getValueByName("ET_ID");
+		String ahead_days =(String)aDict.getValueByName("AHEAD_DAYS");
+		String state =(String)aDict.getValueByName("STATE");
+		String es_order =(String)aDict.getValueByName("ES_ORDER");
+		Vector vSQL =new Vector();
+		String sql="";
+		getLogger(); 
+			sql="insert into tsm_event_staff (ES_ID,STAFF_NO,ET_ID,AHEAD_DAYS,STATE,ES_DATE,ES_ORDER) "
+			   +"select NVL(MAX(ES_ID),0)+1,'"
+			   +staff_no
+			   +"',"
+			   +et_id
+			   +","
+			   +ahead_days
+			   +",'"
+			   +state
+			   +"',SYSDATE,"
+			   +es_order
+			   +" from tsm_event_staff";
+		vSQL.add(sql);
+        m_Logger.debug("SystemMessage2.MSM_250.sql="+sql);
+		Dao.change(vSQL, aDict.GetConnection());
+	}
+	//删除已订阅的告警信息
+	public void MSM_251(DynamicDict aDict) throws FrameException, SQLException{
+		String staff_no =(String)aDict.getValueByName("STAFF_NO");		
+		Vector vSQL =new Vector();
+		String sql="";
+		getLogger(); 
+		sql ="delete from tsm_event_staff where staff_no='"
+			+staff_no
+			+"'";
+		vSQL.add(sql);
+        m_Logger.debug("SystemMessage2.MSM_250.sql="+sql);
+		Dao.change(vSQL, aDict.GetConnection());
+	
+	}
+
+	
+}

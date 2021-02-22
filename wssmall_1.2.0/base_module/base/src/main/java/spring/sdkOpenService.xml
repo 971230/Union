@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+            http://www.springframework.org/schema/aop
+         http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+         http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+
+	<bean id="zteGoodsOpenService" class="zte.net.iservice.impl.ZteGoodsOpenService" />
+	<bean id="zteDcPublicInfoCacheOpenService" class="zte.net.iservice.impl.ZteDcPublicInfoCacheOpenService" />
+	<bean id="zteMemberOpenService" class="zte.net.iservice.impl.ZteMemberOpenService" />
+	<bean id="zteOrderOpenService" class="zte.net.iservice.impl.ZteOrderOpenService" />
+	<bean id="zteSupplierOpenService" class="zte.net.iservice.impl.ZteSupplierOpenService" />
+	<bean id="zteSysOpenService" class="zte.net.iservice.impl.ZteSysOpenService" />
+	<bean id="zteSysBaseOpenService" class="zte.net.iservice.impl.ZteSysBaseOpenService" />
+	<bean id="zteSmsOpenService" class="zte.net.iservice.impl.ZteSmsOpenService" />
+	<bean id="zteWarehouseOpenService" class="zte.net.iservice.impl.ZteWarehouseOpenService" />
+	<bean id="zteActivityOpenService" class="zte.net.iservice.impl.ZteActivityOpenService" />
+	<bean id="zteAdvOpenService" class="zte.net.iservice.impl.ZteAdvOpenService" />
+	<bean id="zteChargeOpenService" class="zte.net.iservice.impl.ZteChargeOpenService" />
+	
+	<bean id="zteFeeQueryOpenService" class="zte.net.iservice.impl.ZteFeeQueryOpenService" />
+	<bean id="zteTaskOpenService" class="zte.net.iservice.impl.ZteTaskOpenService" />
+	<!--  add by wui此方法标准化有问题，给与注释掉，有影响的话其他省份单独改标准化代码-->
+	
+	<bean id="ztePartnerOpenService" class="zte.net.iservice.impl.ZtePartnerOpenService" />
+ 	
+	<bean id="zteNumberOpenService" class="zte.net.iservice.impl.ZteNumberOpenService" />
+	<bean id="zteInfOpenService" class="zte.net.iservice.impl.ZteInfOpenService" />
+	<bean id="zteUosOpenService" class="zte.net.iservice.impl.ZteUosOpenService" />
+	<bean id="zteRuleOpenService" class="zte.net.iservice.impl.ZteRuleOpenService" />
+	<bean id="zteOrderstdOpenService" class="zte.net.iservice.impl.ZteOrderstdOpensService" />
+	<bean id="zteEccOpenService" class="zte.net.iservice.impl.ZteEccOpenService" />
+
+    <bean id="zteOrderExpOpenService" class="zte.net.iservice.impl.ZteOrderExpOpenService" />
+	<!-- <bean id="zteEcsOrdOpenService" class="com.ztesoft.zteopen.service.ecsord.ZteEcsOrdOpenService" /> -->
+	<bean id="zteOrderPlanOpenService" class="zte.net.iservice.impl.ZteOrderPlanOpenService"></bean>
+	<bean id="zteEsearchOpenService" class="zte.net.iservice.impl.ZteEsearchOpenService"></bean>
+	<bean id="zteOrderCtnOpenService" class="zte.net.iservice.impl.ZteOrderCtnOpenService"></bean>
+	<bean id="zteCrawlerOpenService" class="zte.net.iservice.impl.ZteCrawlerOpenService"></bean>
+	
+	<bean id="zteCardOpenService" class="zte.net.iservice.impl.ZteCardOpenService"></bean>
+	
+	<context:component-scan base-package="com.ztesoft.zteopen.service.llkj,com.ztesoft.zteopen.service.info,com.ztesoft.zteopen.service.shp,com.ztesoft.zteopen.service.shpord,com.ztesoft.zteopen.service.ecs,com.ztesoft.zteopen.service.ecsord,com.ztesoft.zteopen.service.fj,com.ztesoft.zteopen.service.ecs,com.ztesoft.zteopen.service.logs,zte.net.ecsord.params.busi.req,zte.net.ord.params.busi.req,params.req" />
+</beans>

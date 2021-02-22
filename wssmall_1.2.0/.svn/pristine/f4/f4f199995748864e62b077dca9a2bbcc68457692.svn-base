@@ -1,0 +1,267 @@
+package com.zte.cbss.autoprocess;
+
+import java.io.Serializable;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
+
+import zte.net.ecsord.params.bss.req.CBssLoginCertReq;
+
+import com.zte.cbss.autoprocess.model.ParameterData;
+
+public class HttpLoginClient  implements Serializable{
+	
+	private static final Logger log = Logger.getLogger(HttpLoginClient.class);
+
+	private HttpClient client;
+	private CookieStore cookieStore;
+	private ParameterData param;	//参数
+	private CBssLoginCertReq loginCertReq; // 登录校验参数
+	
+	public CBssLoginCertReq getLoginCertReq() {
+		return loginCertReq;
+	}
+
+	public void setLoginCertReq(CBssLoginCertReq loginCertReq) {
+		this.loginCertReq = loginCertReq;
+	}
+
+	/**
+	 */
+	private Map<String,String> busiMap = new HashMap<String,String>();
+	/*
+	 * Referer的请求参数，以service参数为主键,只有GET请求会被记录
+	 * 如：https://gd.cbss.10010.com/custserv?service=page/pub.chkcust.MainChkCust&listener=&staffId=DSZDGL01&departId=51b12z3&subSysCode=custserv&eparchyCode=0757
+	 * 其主键为：page/pub.chkcust.MainChkCust 值为：&listener=&staffId=DSZDGL01&departId=51b12z3&subSysCode=custserv&eparchyCode=0757
+	 */
+	private Map<String,String> refererParameters;
+	
+	private HCBrowser browser;
+	
+	//private String acceptEncoding = "gzip, deflate";
+	private String acceptLanguage = "zh-cn";
+	private String userAgent = "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; InfoPath.2; .NET CLR 2.0.50727)";
+	
+	private String accept = "image/gif, image/jpeg, image/pjpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, */*";
+	
+	//POST提交
+	private String contentType = "application/x-www-form-urlencoded; charset=UTF-8";
+	
+	//XMLHttpRequest
+	private String cacheControl = "no-cache";
+	private String acceptByXMLHttpRequest = "text/javascript, text/html, application/xml, text/xml, */*";
+	private String xRequestedWith = "XMLHttpRequest";
+	
+	public HttpLoginClient() throws NoSuchAlgorithmException, KeyManagementException{
+		SSLContext ctx = SSLContext.getInstance("TLS");
+		X509TrustManager tm = new X509TrustManager() {
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+           
+			public void checkClientTrusted(
+					java.security.cert.X509Certificate[] chain,
+					String authType)
+					throws java.security.cert.CertificateException {
+			}
+			public void checkServerTrusted(
+					java.security.cert.X509Certificate[] chain,
+					String authType)
+					throws java.security.cert.CertificateException {
+			}
+        };
+        ctx.init(null, new TrustManager[] { tm }, null);
+        SSLSocketFactory ssf = new SSLSocketFactory(ctx, SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+        SchemeRegistry registry = new SchemeRegistry();
+        registry.register(new Scheme("https", 443, ssf));
+        ThreadSafeClientConnManager mgr = new ThreadSafeClientConnManager(registry);
+        this.browser = new HCBrowser();
+        this.client = new DefaultHttpClient(mgr);
+        this.param = new ParameterData();
+		this.cookieStore = new BasicCookieStore(); 
+		this.refererParameters = new HashMap<String,String>();
+	}
+	
+	public PageHttpResponse send(String url,String referer,boolean isPost,boolean isXMLHttpRequest,List<NameValuePair> body){
+		try{
+			HttpUriRequest request = null;
+			HttpEntity entity = null;
+			if(isPost){
+				HttpPost httpPost = new HttpPost(url);
+				httpPost.addHeader("content-Type", contentType);
+				if(body != null){
+					httpPost.setEntity(new UrlEncodedFormEntity(body,"UTF-8"));
+					entity = httpPost.getEntity();
+				}
+				request = httpPost;
+			}else{
+				if(body != null){
+					String temp = "";
+					for(NameValuePair param : body){
+						temp = temp + "&" + param.getName() + "=" + param.getValue();
+					}
+					if(temp.length()>1){
+						Pattern pat = Pattern.compile("service=([^&]*)");
+						Matcher mat = pat.matcher(url);
+						if(mat.find()){
+							refererParameters.put(mat.group(1), temp);
+						}
+						url = url + temp;
+					}
+				}
+				request = new HttpGet(url);
+			}
+			if(isXMLHttpRequest){
+				request.addHeader("Accept", acceptByXMLHttpRequest);
+				request.addHeader("Cache-Control", cacheControl);
+				request.addHeader("x-requested-with", xRequestedWith);
+			}else{
+				request.addHeader("Accept", accept);
+			}
+			request.addHeader("User-Agent", userAgent);
+			request.addHeader("Accept-Language", acceptLanguage);
+			if(StringUtils.isNotBlank(referer)){
+				request.addHeader("Referer",referer);
+			}
+//			logger.info("\r\n");
+//			logger.info("访问路径：" + url);
+//			logger.info("====================Header================");
+//			for(int i=0;i<request.getAllHeaders().length;i++){
+//				logger.info(format(request.getAllHeaders()[i].getName()) + " = " +request.getAllHeaders()[i].getValue());
+//			}
+			HttpContext context = new BasicHttpContext();
+			context.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
+//			logger.info("====================Cookies================");
+//			for(Cookie cookie : cookieStore.getCookies()){
+//				logger.info(format(cookie.getName()) + " = " +cookie.getValue());
+//			}
+//			logger.info("====================Body================");
+//			if(entity != null){
+//				logger.info(EntityUtils.toString(entity));
+//			}
+//			logger.info("===========================================");
+			//write the log for http request and response
+			StringBuffer logBuf = new StringBuffer();
+			logBuf.append("\r\n");
+			logBuf.append("Thread: "+Thread.currentThread().getName());
+			logBuf.append("url: "+url);
+			logBuf.append("\r\n");
+			logBuf.append("====================Header================");
+			logBuf.append("\r\n");
+			for(int i=0;i<request.getAllHeaders().length;i++){
+				logBuf.append(format(request.getAllHeaders()[i].getName()) + " = " +request.getAllHeaders()[i].getValue()+"&");
+			}
+			logBuf.append("\r\n");
+			logBuf.append("====================Cookies================");
+			logBuf.append("\r\n");
+			for(Cookie cookie : cookieStore.getCookies()){
+				logBuf.append(format(cookie.getName()) + " = " +cookie.getValue()+"&");
+			}
+			logBuf.append("\r\n");
+			logBuf.append("====================Body================");
+			logBuf.append("\r\n");
+			if(entity != null){
+				logBuf.append(EntityUtils.toString(entity));
+			}
+			logBuf.append("\r\n");
+			logBuf.append("==================resopnse=========================");
+			logBuf.append("\r\n");
+			
+			HttpResponse response = this.client.execute(request,context);
+			
+			logBuf.append(response.getFirstHeader("Set-Cookie"));
+			logBuf.append("\r\n");
+			//读取流的数据不能多次读取，只能读取一次，这里读取，后面的全部使用读取的结果，否则后面继续读取会出错
+			String responseStr = EntityUtils.toString(response.getEntity(), "gb2312");
+			logBuf.append(responseStr);
+			log.info(logBuf.toString());
+			
+			if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK){
+				PageHttpResponse pageResponse = new PageHttpResponse(url,responseStr);
+				return pageResponse;
+	        }else{
+//	        	logger.info("响应状态：" + response.getStatusLine().getStatusCode());
+	        	log.warn("响应状态：" + response.getStatusLine().getStatusCode());
+	        }
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public String getCookie(String name){
+		for(Cookie cookie : cookieStore.getCookies()){
+			if(cookie.getName().equals(name)){
+				return cookie.getValue();
+			}
+		}
+		return null;
+	}
+	
+	public String getRelererParam(String name){
+		String param = this.refererParameters.get(name);
+		if(param != null){
+			return param;
+		}
+		return "";
+	}
+
+	public ParameterData getParam() {
+		return param;
+	}
+	
+
+	public Map<String, String> getBusiMap() {
+		return busiMap;
+	}
+
+	public void setBusiMap(Map<String, String> busiMap) {
+		this.busiMap = busiMap;
+	}
+
+	public String format(String name){
+		String temp = "";
+		int i = 25 - name.length();
+		for(;i>0;i--){
+			temp = temp + " ";
+		}
+		return name + temp;
+	}
+
+	public HCBrowser getBrowser() {
+		browser.setCurCookieStore(cookieStore);
+		return browser;
+	}
+}

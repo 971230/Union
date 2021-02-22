@@ -1,0 +1,20 @@
+package com.ztesoft.net.mall.core.timer;
+
+import com.ztesoft.net.service.impl.ByJtKdBo;
+
+public class KdyydGetTimer {
+
+	public void run(){
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "run")) {
+  			return;
+		}
+		//System.out.println("KdyydGetTimer-----begin----------");
+		ByJtKdBo a = new ByJtKdBo();
+		try {
+			a.searchHb();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}

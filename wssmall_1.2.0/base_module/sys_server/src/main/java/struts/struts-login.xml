@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+
+	<package name="struts-local-login" extends="struts-default" namespace="/">
+		<action name="wss_login" class ="sysLoginAction">
+			<result name="loginpage">/mgWebthemes/default/local_login.jsp</result>
+	    </action>
+	</package>
+	
+	
+	<package name="struts-login" extends="shop_default" namespace="/shop/admin">
+	      <!-- 订单分组 -->
+		<action name="orderGroupAction" class="orderGroupAction">
+		  <result name="list">orderGroup/orderGroupDefList.jsp</result>
+		  <result name="addOrderGrouDef">orderGroup/orderGroupDefAdd.jsp</result>
+		  <result name="roleList">orderGroup/roleSel.jsp</result>
+		  <result name="userSel">orderGroup/userSel.jsp</result>
+		  <result name="userList">orderGroup/userList.jsp</result>
+		</action>
+		
+		<action name="appAction" class="appAction">
+			<result name="list">/mgWebthemes/default/app/app_center.jsp</result>
+		</action>
+	</package>
+	 
+</struts>

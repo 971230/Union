@@ -1,0 +1,228 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import com.powerise.ibss.util.DBTUtil;
+import com.ztesoft.ibss.common.util.CrmConstants;
+import com.ztesoft.ibss.common.util.DateFormatUtils;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.app.base.core.service.ISettingService;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.eop.sdk.user.IUserService;
+import com.ztesoft.net.eop.sdk.user.UserServiceFactory;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.DateUtil;
+import com.ztesoft.net.mall.core.model.Coupons;
+import com.ztesoft.net.mall.core.model.MemberCoupon;
+import com.ztesoft.net.mall.core.model.PointHistory;
+import com.ztesoft.net.mall.core.service.IMemberCouponsManager;
+import com.ztesoft.net.sqls.SF;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import params.member.req.MemberEditReq;
+import params.member.req.PointHistoryReq;
+import params.member.resp.MemberEditResp;
+import params.member.resp.PointHistoryResp;
+import services.MemberInf;
+import services.PointHistoryInf;
+
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+public class MemberCouponsManager extends BaseSupport implements
+		IMemberCouponsManager {
+
+	private ISettingService settingService;
+	private MemberInf memberServ;
+	private PointHistoryInf pointHistoryServ;
+	
+	@Override
+	public Page pageMemberCoupons(int pageNo, int pageSize) {
+		IUserService userService = UserServiceFactory.getUserService();
+		Member member = userService.getCurrentMember();
+		String str_mc_use_times = settingService.getSetting("coupons","coupon.mc.use_times");
+		int mc_use_times = str_mc_use_times == null ? 1 : Integer.valueOf(str_mc_use_times);
+		String sql = SF.goodsSql("PAGE_MEMBER_COUPONS");
+		Page page = this.daoSupport.queryForPage(sql, pageNo, pageSize, member.getMember_id());
+		List<Map> list = (page.getResult());
+		for (Map map : list) {
+			if (((String) map.get("cpns_status")).equals("1")) {
+				if (this.isLevelAllowuse( map.get("pmt_id").toString(), member.getLv_id())) {
+					Long curTime = new Long(DateFormatUtils.formatDate(new Date(), CrmConstants.DATE_FORMAT_8));
+					String  pmt_time_begin = ((Timestamp)map.get("pmt_time_begin")).toString().substring(0, 10);
+					String  pmt_time_end = ((Timestamp)map.get("pmt_time_end")).toString().substring(0, 10);
+					if (new Long(pmt_time_begin.replaceAll("-", "")).longValue() <= curTime
+							&& curTime < new Long(pmt_time_end.replaceAll("-", "")).longValue()){
+						if (new Integer((String)map.get("memc_used_times")).intValue() < mc_use_times) {
+							if (((String) map.get("memc_enabled"))
+									.equals("true")) {
+								map.put("status", "可使用");
+							} else {
+								map.put("status", "本优惠券已作废");
+							}
+						} else {
+							map.put("status", "本优惠券次数已用完");
+						}
+					} else if(curTime > new Long(pmt_time_end.replaceAll("-", "")).longValue()){
+						map.put("status", "已过期");
+					}else {
+						map.put("status", "还未开始");
+					}
+				} else {
+					map.put("status", "本级别不准使用");
+				}
+			} else {
+				map.put("status", "此种优惠券已取消");
+			}
+		}
+		return page;
+	}
+
+	
+	@Override
+	public Page pageExchangeCoupons(int pageNo, int pageSize) {
+		Long curTime = (new Date()).getTime();
+		IUserService userService = UserServiceFactory.getUserService();
+		Member member = userService.getCurrentMember();
+		String sql = SF.goodsSql("PAGE_EXCHANGE_COUPONS");
+		Page page = this.daoSupport.queryForPage(sql, pageNo, pageSize);
+		List<Map> list = (page.getResult());
+		for (Map map : list) {
+			if (this.isLevelAllowuse(map.get("pmt_id").toString(),
+					member.getLv_id())) {
+				map.put("use_status", 1);
+			} else {
+				map.put("use_status", 0);
+			}
+		}
+		return page;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * com.enation.mall.core.service.IMemberCouponsManager#exchange(int)
+	 */
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void exchange(String cpns_id) {
+		IUserService userService = UserServiceFactory.getUserService();
+		Member member = userService.getCurrentMember();
+		String pointSql = SF.goodsSql("MEMBER_POINT_SQL");
+		int mpoint = this.baseDaoSupport.queryForInt(pointSql, member.getMember_id());
+		String sql = SF.goodsSql("CPNS_POINT_GET_BY_ID");
+		int point = this.baseDaoSupport.queryForInt(sql, cpns_id);
+		if (mpoint >= point) {
+			member.setPoint(mpoint - point);// 改变session中的值
+			
+			
+			MemberEditReq req = new MemberEditReq();
+			req.setMember(member);
+			MemberEditResp resp = memberServ.editMemberInfo(req);
+			
+			
+			this.generateCoupon(cpns_id, member.getMember_id());
+			//加入积分变化日志
+			PointHistory pointHistory = new PointHistory();
+			pointHistory.setMember_id(member.getMember_id());
+			pointHistory.setPoint(0-point);
+			pointHistory.setReason("exchange_coupon");
+			pointHistory.setTime(DBTUtil.current());
+			pointHistory.setType(3);
+			
+			PointHistoryReq phReq = new PointHistoryReq();
+			PointHistoryResp phResp = new PointHistoryResp();
+			phReq.setPointHistory(pointHistory);
+			phResp = pointHistoryServ.addPointHistory(phReq);
+		} else {
+			throw new RuntimeException("积分扣除超过会员已有积分");
+		}
+
+	}
+
+	/**
+	 * 判断该用户所处的会员级别是否在可兑换的范围内
+	 * 
+	 * @param pmt_id
+	 * @param lv_id
+	 * @return
+	 */
+	private boolean isLevelAllowuse(String pmt_id, String lv_id) {
+		int count = this.baseDaoSupport
+				.queryForInt(SF.goodsSql("PMT_MEMBER_LV_GET_BY_LV_ID") ,pmt_id, lv_id);
+		return (count > 0);
+	}
+
+	/**
+	 * 生成优惠卡号
+	 * 
+	 * @param num
+	 * @param prefix
+	 * @param member_id
+	 * @return
+	 */
+	private String makeCouponCode(int num, String prefix, String member_id) {
+		return prefix + DateUtil.toString(new Date(), "yyyyMMddHHmmss")
+				+ member_id + num;
+	}
+
+	/**
+	 * 生成优惠卡
+	 * 
+	 * @param cpns_id
+	 * @param member_id
+	 */
+	private void generateCoupon(String cpns_id, String member_id) {
+		
+		String sql = SF.goodsSql("GENERATE_COUPON");
+		List<Map> list = this.daoSupport.queryForList(sql, cpns_id, DBTUtil.current(),DBTUtil.current());
+		if (list != null && list.size() > 0) {
+			Map map = list.get(0);
+			String couponCode = this.makeCouponCode(((Integer) map
+					.get("cpns_gen_quantity")).intValue() + 1, (String) map
+					.get("cpns_prefix"), member_id);
+			MemberCoupon memberCoupon = new MemberCoupon();
+			memberCoupon.setMemc_code(couponCode);
+			memberCoupon.setCpns_id(cpns_id);
+			memberCoupon.setMember_id(member_id);
+			memberCoupon.setMemc_gen_time(DBTUtil.current());
+			this.baseDaoSupport.insert("member_coupon", memberCoupon);
+			Coupons coupons = (Coupons) this.baseDaoSupport.queryForObject(
+					SF.goodsSql("COUPONS_SELECT_BY_ID"), Coupons.class,
+					cpns_id);
+			coupons.setCpns_gen_quantity(coupons.getCpns_gen_quantity() + 1);
+			this.baseDaoSupport.update("coupons", coupons, "cpns_id = "
+					+ cpns_id);
+		}
+	}
+
+	public ISettingService getSettingService() {
+		return settingService;
+	}
+
+	public void setSettingService(ISettingService settingService) {
+		this.settingService = settingService;
+	}
+
+
+	public MemberInf getMemberServ() {
+		return memberServ;
+	}
+
+
+	public void setMemberServ(MemberInf memberServ) {
+		this.memberServ = memberServ;
+	}
+
+
+	public PointHistoryInf getPointHistoryServ() {
+		return pointHistoryServ;
+	}
+
+	public void setPointHistoryServ(PointHistoryInf pointHistoryServ) {
+		this.pointHistoryServ = pointHistoryServ;
+	}
+	
+}

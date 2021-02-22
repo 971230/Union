@@ -1,0 +1,43 @@
+/*    */ package com.ztesoft.crm.report.generator.xml;
+/*    */ 
+/*    */ import com.ztesoft.crm.report.actions.ParameterMap;
+/*    */ import com.ztesoft.crm.report.config.elements.Element;
+/*    */ import com.ztesoft.crm.report.config.elements.Model;
+/*    */ import com.ztesoft.crm.report.config.elements.Panel;
+/*    */ import com.ztesoft.crm.report.config.elements.Report;
+/*    */ import com.ztesoft.crm.report.db.data_new.DataSet;
+/*    */ import com.ztesoft.crm.report.db.model.Actuator;
+/*    */ import com.ztesoft.crm.report.db.model.ActuatorFactory;
+/*    */ import com.ztesoft.crm.report.document.Node;
+/*    */ import com.ztesoft.crm.report.generator.Generator;
+/*    */ import com.ztesoft.crm.report.generator.xml.elements.XMLChart;
+/*    */ 
+/*    */ public class ChartXMLGenerator extends Generator
+/*    */ {
+/*    */   protected Node generateNode(Report report, Element el, ParameterMap map)
+/*    */     throws Exception
+/*    */   {
+/* 42 */     Panel p = (Panel)el;
+/* 43 */     Model model = p.getCurrentModel();
+/* 44 */     if (model != null)
+/*    */     {
+/* 46 */       Actuator ac = ActuatorFactory.createActuator(model.getType());
+/*    */ 
+/* 48 */       DataSet ds = ac.execute(report, p, map);
+/*    */ 
+/* 50 */       XMLChart chart = new XMLChart();
+/* 51 */       chart.setType(p.getDefaultChartType());
+/*    */ 
+/* 53 */       chart.set(ds, p, p.getSeries(map), p.getAxis(), p.getMetric(), 
+/* 54 */         p.getPrepareSeries(), map);
+/*    */ 
+/* 56 */       return chart;
+/*    */     }
+/* 58 */     return null;
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.generator.xml.ChartXMLGenerator
+ * JD-Core Version:    0.5.3
+ */

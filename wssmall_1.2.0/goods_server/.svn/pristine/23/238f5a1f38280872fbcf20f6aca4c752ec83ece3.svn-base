@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	  <bean id="goodsServ" class="services.GoodsServ" />
+	<bean id="goodCatsServ" class="services.GoodCatsServ" />
+	<bean id="tagsServ" class="services.TagsServ" />
+	<bean id="goodServices" class="com.ztesoft.net.service.GoodsService"/>
+	<bean id="goodsBrandService" class="com.ztesoft.net.service.GoodsBrandService"/>
+	<bean id="goodsTypeService" class="com.ztesoft.net.service.GoodsTypeService"/>
+	<bean id="goodsTagsService" class="com.ztesoft.net.service.GoodsTagsService"/>
+	<bean id="goodsCatsService" class="com.ztesoft.net.service.GoodsCatsService"/>
+	<bean id="goodsPromotionService" class="com.ztesoft.net.service.GoodsPromotionService"/>
+	<bean id="commentsService" class="com.ztesoft.net.service.CommentsService"/>
+	<bean id="adjunctService" class="com.ztesoft.net.service.GoodsAdjunctService"/>
+	<bean id="couponService" class="com.ztesoft.net.service.CouponService"/>
+	<bean id="freeOfferService" class="com.ztesoft.net.service.FreeOfferService"/>
+	<bean id="goodSearchService" class="com.ztesoft.net.service.GoodSearchService"/>
+	<bean id="goodsDetailServ" class="services.GoodsDetailServ" />
+	
+	<bean id="goodsTypeServ" class="services.GoodsTypeServ" />
+    <bean id="brandServ" class="services.BrandServ" />
+    <bean id="goodsComplexServ" class="services.GoodsComplexServ" />
+    
+    <bean id="proudctServ" class="services.ProudctServ" />
+    <bean id="freeOfferServ" class="services.FreeOfferServ" />
+    <bean id="cardServ" class="services.CardServ" />
+    
+    <bean id="warhouseGoodsStoreServ" class="services.WarhouseGoodsStoreServ" />
+    <bean id="warehouseServ" class="services.WarehouseServ"/>
+    <bean id="couponServ" class="services.CouponServ"/>
+    
+    <bean id="commentsServ" class="services.CommentsServ"/>
+    <bean id="goodsInventoryServ" class="services.GoodsInventoryServ"/>
+    <bean id="goodsDataProviderServ" class="services.GoodsDataProviderServ"/>
+    <bean id="goodsAdjunctServ" class="services.GoodsAdjunctServ"/>
+    
+    <bean id="favoriteServ" class="services.FavoriteServ"/>
+    <bean id="remoteGoodsFieldService" class="com.ztesoft.remote.service.impl.RemoteGoodsFieldServiceImpl"/>
+    <bean id="activityService" class="com.ztesoft.remote.service.impl.ActivityService"/>
+    <bean id="warehouseService" class="com.ztesoft.remote.service.impl.WarehouseService"/>
+   
+	
+	<bean id="feeQueryBasicService" class="com.ztesoft.remote.service.impl.FeeQueryBasicService"/>
+	<bean id="chargeBasicService" class="com.ztesoft.remote.service.impl.ChargeBasicService"/>
+	
+	<bean id="goodsCacheUtil" class="com.ztesoft.net.mall.core.service.impl.cache.GoodsCacheUtil" parent="baseSupport" />
+</beans>

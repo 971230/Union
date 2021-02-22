@@ -1,0 +1,78 @@
+package com.ztesoft.net.attr.hander;
+
+import java.util.Map;
+
+import org.apache.commons.beanutils.MethodUtils;
+
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.model.AttrDef;
+
+
+/**
+ * 
+ * @Package com.ztesoft.net.attr.hander
+ * @Description: 时间转换 
+ * @author zhouqiangang 
+ * @date 2015年12月9日 下午4:43:47
+ */
+public class OrderTimeHandler extends BaseSupport implements IAttrHandler {
+
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo) throws ApiBusiException {
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+		AttrInstLoadResp resp = new AttrInstLoadResp();
+
+		AttrDef def = params.getAttrDef(); // 取属性定义
+		String fieldName = def.getField_name();
+		Object obj = params.getBusiRequest(); // 取业务对象
+		Map<String, Object> objMap = params.getObjMap();
+
+		try {
+			Object oldValue = MethodUtils.invokeMethod(obj,
+					"get" + StringUtils.convertToUpperCase(fieldName), null); // 原始值
+			Object newValue = getNewValue(oldValue);
+			MethodUtils.invokeMethod(obj, "set" + StringUtils.convertToUpperCase(fieldName), newValue);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return resp;
+	}
+
+	public Object getNewValue(Object old_value) {
+		String newValue = "";
+		if (old_value != null) {
+			String old_time = (String) old_value;
+			if (old_time.length() == 14) {
+				newValue = com.ztesoft.net.framework.util.DateUtil.toString(
+						com.ztesoft.net.framework.util.DateUtil.toDate(old_time, "yyyyMMddHHmmss"),
+						"yyyy-MM-dd HH:mm:ss");
+			}
+		}
+		return newValue;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

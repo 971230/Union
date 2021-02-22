@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://code.alibabatech.com/schema/dubbo
+        http://code.alibabatech.com/schema/dubbo/dubbo.xsd"
+       default-autowire="byName" default-lazy-init="true">
+
+	<!-- 订单开放服务 -->
+    <dubbo:reference interface="services.OrderInf" id="orderServ"/>
+    <dubbo:reference interface="services.AcceptInf" id="acceptServ"/>
+    <dubbo:reference interface="services.DeliveryInf" id="deliveryServ"/>
+    <dubbo:reference interface="services.ICartService" id="cartServ"/>
+    <dubbo:reference interface="services.OrderActionRuleInf" id="orderActionRuleServ"/>
+    <dubbo:reference interface="services.OrderOuterInf" id="orderOuterServ"/>
+    <dubbo:reference interface="services.OrderSyInf" id="orderSyServ"/>
+    <dubbo:reference interface="services.PaymentInf" id="paymentServ"/>
+    <dubbo:reference interface="services.PromotionInf" id="promotionServ"/>
+    <dubbo:reference interface="services.OrderRuleInf" id="orderRuleServ"/>
+    <dubbo:reference interface="zte.net.iservice.IOrderServices" id="orderServices"/>
+    <dubbo:reference interface="zte.net.iservice.IPaymentServices" id="paymentServices"/>
+    <dubbo:reference interface="zte.net.iservice.ICartServices" id="cartServices"/>
+    <dubbo:reference interface="zte.net.iservice.IDlyTypeAddressService" id="dlyTypeAddressService" />
+    <dubbo:reference interface="zte.net.iservice.IOrderApplyService" id="orderApplyService"/>
+	<dubbo:reference interface="zte.net.iservice.ICoQueueService" id="coQueueService"/>
+	
+    <dubbo:reference interface="com.ztesoft.remote.basic.inf.IFeeQueryBasicService" id="feeQueryBasicService" /> 
+ 	<dubbo:reference interface="com.ztesoft.remote.basic.inf.IChargeBasicService" id="chargeBasicService" /> 
+ 	<dubbo:reference interface="com.ztesoft.remote.inf.IWarehouseService" id="warehouseService" />
+
+	<dubbo:reference interface="com.ztesoft.net.mall.core.service.IOrderManager" id="orderManager"/>
+</beans>

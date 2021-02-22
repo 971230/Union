@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+	<bean id="payCfgAction" class="com.ztesoft.net.mall.core.action.backend.PayCfgAction" scope="prototype"/>
+	<!-- <bean id="partnerAction" class="com.ztesoft.net.mall.core.action.backend.PartnerAction" scope="prototype"/> -->
+	<!-- <bean id="partnerAddrAction" class="com.ztesoft.net.mall.core.action.backend.PartnerAddrAction" scope="prototype"/> -->
+	<!-- <bean id="partnerShopMappingAction" class="com.ztesoft.net.mall.core.action.backend.PartnerShopMappingAction" scope="prototype"/> -->
+	<bean id="payAction" class="com.ztesoft.net.mall.core.action.pay.PayAction" scope="prototype" />
+	<bean id="paymentcAction" class="com.ztesoft.net.mall.core.pay.PaymentcAction" scope="prototype"/>
+	<bean id="checkAcctAction" class="com.ztesoft.net.mall.core.action.backend.CheckAcctAction" scope="prototype"/>
+	<bean id="commonPaymentAction" class="com.ztesoft.net.mall.core.action.backend.CommonPaymentAction" scope="prototype"/>
+	<bean id="creditAction" class="com.ztesoft.net.mall.core.action.pay.CreditAction" scope="prototype"/>
+	<bean id ="cbAction" class = "com.ztesoft.net.mall.cmp.CBAction" scope ="prototype"></bean>
+	<bean id="bankAction" class="com.ztesoft.net.mall.core.action.backend.BankAction" scope="prototype"></bean>
+</beans>

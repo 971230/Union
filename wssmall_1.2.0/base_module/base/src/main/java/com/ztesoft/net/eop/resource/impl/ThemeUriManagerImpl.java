@@ -1,0 +1,102 @@
+package com.ztesoft.net.eop.resource.impl;
+
+import java.util.List;
+
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ztesoft.net.eop.resource.IThemeUriManager;
+import com.ztesoft.net.eop.resource.model.EopSite;
+import com.ztesoft.net.eop.resource.model.ThemeUri;
+import com.ztesoft.net.eop.sdk.context.EopContext;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.util.StringUtil;
+
+public class ThemeUriManagerImpl extends BaseSupport<ThemeUri> implements
+		IThemeUriManager {
+
+	@Override
+	public void clean() {
+		this.baseDaoSupport.execute("truncate table themeuri");
+	}
+	@Override
+	public ThemeUri get(Integer id) {
+		
+		return this.baseDaoSupport.queryForObject("select * from themeuri where id=?", ThemeUri.class, id);
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void edit(List<ThemeUri> uriList) {
+		for(ThemeUri uri: uriList){
+			this.baseDaoSupport.update("themeuri", uri, "id="+uri.getId());
+		}
+	}
+	 
+	@Override
+	public List<ThemeUri> list( ) {
+		String sql ="select * from themeuri where 1 = 1";
+		
+		//add by wui 根据站点设置跳转菜单,区分手机版与桌面版本
+		EopSite site = EopContext.getContext().getCurrentSite();
+		List<ThemeUri> themes =  this.baseDaoSupport.queryForList(sql, ThemeUri.class);
+		for(ThemeUri themeUri:themes){
+			if(StringUtil.isMobile())
+			{
+				if((themeUri.getPath().equals("/wssdetails.html") && themeUri.getUri().equals("/wssdetails-(\\d+).html"))
+						||(themeUri.getUri().equals("/wssquery-(.*).html") && themeUri.getPath().equals("/default.html"))
+						||(themeUri.getUri().equals("/member_(.*).html") && themeUri.getPath().equals("/member.html"))
+						){
+					
+					themeUri.setPath(themeUri.getPath().substring(0, themeUri.getPath().indexOf("."))+"_"+site.getThemepath()+themeUri.getPath().substring(themeUri.getPath().indexOf(".")));
+				}
+			}
+		}
+		return themes;
+	}
+
+	
+	@Override
+	public ThemeUri getPath( String uri) {
+		List<ThemeUri> list = list();
+		 
+		for(ThemeUri themeUri:list){
+			if(themeUri.getUri().equals(uri)){
+				
+//				if((themeUri.getPath().equals("/goods.html") && themeUri.getUri().equals("/goods-(\\d+).html"))
+//						||(themeUri.getUri().equals("/wssquery-(.*).html") && themeUri.getPath().equals("/default.html"))
+//						||(themeUri.getUri().equals("/member_(.*).html") && themeUri.getPath().equals("/member.html"))
+//						){
+//					if(!StringUtil.getThemePath().equals("mobile")){
+//						themeUri.setPath(themeUri.getPath().replaceAll("_mobile",""));
+//					}else{
+//						if(!(themeUri.getPath().indexOf("mobile")>-1))
+//							themeUri.setPath(themeUri.getPath().substring(0, themeUri.getPath().indexOf("."))+"_"+StringUtil.getThemePath()+themeUri.getPath().substring(themeUri.getPath().indexOf(".")));
+//					}
+//				}
+//			
+				return themeUri;
+			}
+		}
+		return null;
+	}
+
+	
+	@Override
+	public void add(ThemeUri uri) {
+		this.baseDaoSupport.insert("themeuri", uri);
+	}
+
+	
+	@Override
+	public void delete(int id){
+		this.baseDaoSupport.execute("delete from themeuri where id=? ", id);
+	}
+
+	@Override
+	public void edit(ThemeUri themeUri) {
+		this.baseDaoSupport.update("themeuri", themeUri, "id="+themeUri.getId());
+	}
+
+
+}

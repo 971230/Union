@@ -1,0 +1,46 @@
+/*    */ package com.ztesoft.crm.report.rule.statement;
+/*    */ 
+/*    */ import com.ztesoft.crm.report.rule.Statement;
+/*    */ import com.ztesoft.crm.report.rule.Token;
+/*    */ import java.util.HashMap;
+/*    */ 
+/*    */ public class Switch extends Statement
+/*    */ {
+/*    */   private Token condition;
+/* 50 */   private HashMap cases = new HashMap();
+/*    */ 
+/*    */   public Object execute()
+/*    */   {
+/* 26 */     if (this.condition == null)
+/* 27 */       return null;
+/* 28 */     Object cv = this.condition.execute();
+/* 29 */     Token t = (Token)this.cases.get(cv.toString());
+/* 30 */     if (t == null) {
+/* 31 */       t = (Token)this.cases.get("default");
+/*    */     }
+/*    */ 
+/* 34 */     if (t == null)
+/* 35 */       return null;
+/* 36 */     return t.execute();
+/*    */   }
+/*    */ 
+/*    */   public Token getCondition()
+/*    */   {
+/* 42 */     return this.condition;
+/*    */   }
+/*    */ 
+/*    */   public void setCondition(Token condition) {
+/* 46 */     this.condition = condition;
+/* 47 */     if (this.condition == null) return; this.condition.setParent(this);
+/*    */   }
+/*    */ 
+/*    */   public void addCase(String condition, Token token)
+/*    */   {
+/* 53 */     this.cases.put(condition, token);
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.rule.statement.Switch
+ * JD-Core Version:    0.5.3
+ */

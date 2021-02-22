@@ -1,0 +1,29 @@
+package com.ztesoft.rule.examples
+import java.util.* ; 
+import org.drools.examples.HelloWorldExample.Message;
+
+global java.util.List list
+ 
+ 
+rule "Good Bye"
+    //dialect "java"
+    dialect "mvel"
+	when
+		Map( this["status"] == Message.GOODBYE, message : this["message"] )
+	then
+		System.out.println( message ); 	
+end
+ 
+ 
+rule "Hello World"
+    //dialect "mvel"
+    dialect "java"
+	when
+		m : Map( this["status"] == Message.HELLO, message : this["message"]  )
+	then
+	System.out.println( message );
+	 	//modify ( m ) { this["message"]="Goodbyte cruel world"};
+	//modify ( m ) { message = "Goodbyte cruel world",
+	  //             status = Message.GOODBYE };	               
+end
+

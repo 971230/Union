@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="true">
+	<bean id="numeroAction" class="com.ztesoft.mall.core.action.backend.NumeroAction" scope="prototype"/>
+	<bean id="numeroGrupoAction" class="com.ztesoft.mall.core.action.backend.NumeroGrupoAction" scope="prototype"/>
+	<bean id="ciudadAction" class="com.ztesoft.mall.core.action.backend.CiudadAction" scope="prototype"/>
+	<bean id="numeroReglaAction" class="com.ztesoft.mall.core.action.backend.NumeroReglaAction" scope="prototype"/>
+
+</beans>

@@ -1,0 +1,30 @@
+@charset "utf-8";
+/* CSS Document */
+/*通用样式*/
+html, body, div, span, applet, object, iframe, table, caption,
+tbody, tfoot, thead, tr, th, td, del, dfn, em, font, img, ins,
+kbd, q, s, samp, small, strike, strong, sub, sup, tt, var,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr,
+acronym, address, big, cite, code, dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    list-style:none;
+}
+a:link {
+    text-decoration: none;
+}
+a:visited {
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: none;
+}
+a:active {
+    text-decoration: none;
+}
+a img{ border:none; vertical-align:middle;}
+body{ font-family:'Microsoft Yahei',\5FAE\8F6F\96C5\9ED1,sans-serif; color:#333; margin:0; padding:0;}
+
+.clr{ clear:both;}

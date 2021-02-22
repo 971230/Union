@@ -1,0 +1,47 @@
+
+	<table cellspacing="0" cellpadding="0" border="0" width="100%">
+		<tbody>
+			<tr>
+				<th id="area_title">
+					<a class="questionico" href="#"></a>发布区域：
+				</th>
+				<td>
+					<input type="checkbox" id="area_all" value="all_lan" >
+					<label for="checkbox"  >
+						全省
+					</label>
+				</td>
+			</tr>
+			<tr id='areaTable'>
+				<th>
+					&nbsp;
+				</th>
+				<td>
+					<#list areaList as area>
+					<label>
+						<input type="checkbox" style="outline-style: none;" name="lan_ids"
+							value="${area.lan_id }" id="area_${area.lan_id }" />
+						${area.lan_name}
+					</label>
+					</#list>
+					
+
+				</td>
+			</tr>
+			<#if areaRelList?exists >
+				<#list areaRelList as tr>
+					<script>$("#area_${tr}").attr("checked",true);</script>
+				</#list>
+			</#if>
+			
+		</tbody>
+	</table>
+</div>
+<script type="text/javascript">
+	$( function() {
+		var checkLength=$("input[name='lan_ids']:checked").length;
+		if(checkLength>0&&checkLength<14){
+			$('#area_all').removeAttr("checked");
+		}
+	});
+</script>

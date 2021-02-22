@@ -1,0 +1,35 @@
+package com.ztesoft.net.mall.core.timer;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.database.IDaoSupport;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+
+public class OrderIntentCloseOverTime {
+	private static Logger logger = Logger.getLogger(OrderIntentCloseOverTime.class);
+	
+	public void run(){
+		if (!CheckTimerServer.isMatchServer(this.getClass().getName(), "run")) {
+  			return;
+		}
+		IDaoSupport baseDaoSupport = SpringContextHolder.getBean("baseDaoSupport");
+		ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+        String sql=cacheUtil.getConfigInfo("UpdateOrderIntentCloseOver");
+        String select_sql=cacheUtil.getConfigInfo("SelectOrderIntentCloseOver");
+        List orders_list = baseDaoSupport.queryForListNoSourceFrom(select_sql);
+		baseDaoSupport.execute(sql, null);
+		for (int i = 0; i < orders_list.size(); i++) {
+			Map order_ids= (Map) orders_list.get(i);
+			String order_id=(String) order_ids.get("order_id");
+			logger.info("政企预订单超过48小时的订单号----"+order_id);
+		}
+	}
+//   public static void main(String[] args) {
+//       OrderIntentCloseOverTime a = new OrderIntentCloseOverTime();
+//       a.run();
+//   }      
+}

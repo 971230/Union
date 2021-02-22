@@ -1,0 +1,723 @@
+package com.ztesoft.test.dubbo;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import junit.framework.Assert;
+
+import org.testng.annotations.Test;
+
+import params.ZteResponse;
+import params.member.req.CommentAddReq;
+import params.member.req.MemberAddReq;
+import params.member.req.MemberEditReq;
+import params.member.req.MemberLVCanBuyReq;
+import params.member.req.MemberLVCanBuyReq.BUY_TYPE;
+import params.member.req.MemberLvListReq;
+import params.member.req.MemberLvPriceReq;
+import params.member.req.MemberOrderIsBuyReq;
+import params.member.req.MemberPriceByPIdReq;
+import params.member.req.MemberPriceListByGoodsIdReq;
+import params.member.req.MemberQryPageReq;
+import params.member.req.MemberQryPageReq.QRY_CON_TYPE;
+import params.member.req.MemberQryReq;
+import params.member.req.PointConsumeReq;
+import params.member.req.PointHistoryReq;
+import params.member.resp.MemberAddResp;
+import params.member.resp.MemberEditResp;
+import params.member.resp.MemberLVCanBuyResp;
+import params.member.resp.MemberLvListResp;
+import params.member.resp.MemberLvPriceResp;
+import params.member.resp.MemberOrderIsBuyResp;
+import params.member.resp.MemberPriceByPIdResp;
+import params.member.resp.MemberPriceListByGoodsIdResp;
+import params.member.resp.MemberQryResp;
+import params.member.resp.PointConsumeResp;
+import params.member.resp.PointHistoryResp;
+import params.order.req.MemberOrderGiftReq;
+import params.order.req.MemberOrderLogReq;
+import params.order.resp.MemberOrderGiftResp;
+import params.order.resp.MemberOrderLogResp;
+import zte.params.addr.req.MemberAddressAddReq;
+import zte.params.addr.req.MemberAddressDeleteReq;
+import zte.params.addr.req.MemberAddressEditReq;
+import zte.params.addr.req.MemberAddressGetReq;
+import zte.params.addr.req.MemberAddressListReq;
+import zte.params.addr.resp.MemberAddressAddResp;
+import zte.params.addr.resp.MemberAddressDeleteResp;
+import zte.params.addr.resp.MemberAddressEditResp;
+import zte.params.addr.resp.MemberAddressGetResp;
+import zte.params.addr.resp.MemberAddressListResp;
+import zte.params.goods.req.EcsGoodsPageListReq;
+import zte.params.goods.resp.GoodsSpecificationInfoResp;
+import zte.params.member.req.AgentPageListReq;
+import zte.params.member.req.AskAddReq;
+import zte.params.member.req.AskGetReq;
+import zte.params.member.req.AskPageListReq;
+import zte.params.member.req.CommentPageListReq;
+import zte.params.member.req.FavAddReq;
+import zte.params.member.req.FavCancelReq;
+import zte.params.member.req.FavPageListReq;
+import zte.params.member.req.GuestBookAddReq;
+import zte.params.member.req.GuestBookPageListReq;
+import zte.params.member.req.MemberIsExistsReq;
+import zte.params.member.req.MemberLoginReq;
+import zte.params.member.req.MemberLvGetReq;
+import zte.params.member.req.MemberPwdModifyReq;
+import zte.params.member.req.MemberRegisterReq;
+import zte.params.member.resp.AgentPageListResp;
+import zte.params.member.resp.AskAddResp;
+import zte.params.member.resp.AskGetResp;
+import zte.params.member.resp.AskPageListResp;
+import zte.params.member.resp.CommentAddResp;
+import zte.params.member.resp.CommentPageListResp;
+import zte.params.member.resp.FavAddResp;
+import zte.params.member.resp.FavCancelResp;
+import zte.params.member.resp.FavPageListResp;
+import zte.params.member.resp.GuestBookAddResp;
+import zte.params.member.resp.GuestBookPageListResp;
+import zte.params.member.resp.MemberIsExistsResp;
+import zte.params.member.resp.MemberLoginResp;
+import zte.params.member.resp.MemberLvGetResp;
+import zte.params.member.resp.MemberPwdModifyResp;
+import zte.params.member.resp.MemberRegisterResp;
+import zte.params.region.req.RegionsGetReq;
+import zte.params.region.req.RegionsListReq;
+import zte.params.region.resp.RegionsGetResp;
+import zte.params.region.resp.RegionsListResp;
+
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.app.base.core.model.Ask;
+import com.ztesoft.net.app.base.core.model.GuestBook;
+import com.ztesoft.net.app.base.core.model.Member;
+import com.ztesoft.net.app.base.core.model.MemberAddress;
+import com.ztesoft.net.mall.core.model.Comments;
+import com.ztesoft.net.mall.core.model.PointHistory;
+import com.ztesoft.test.dubbo.base.DubboClientTest;
+import commons.CommonTools;
+
+public class MemberDubboClientTest extends DubboClientTest {
+	/*
+	 * 查询用户常用地址 -----------成功--------------
+	 */
+
+	@Test(enabled = false)
+	public void listMemberAddress() {
+		MemberAddressListReq memberAddressListReq = new MemberAddressListReq();
+		memberAddressListReq.setMember_id("201310148160000339");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberAddressListReq,
+				MemberAddressListResp.class);
+		logger.info("----" + response.getError_msg());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -----------成功------------
+	@Test(enabled = false)
+	public void searchGoodsEcs() {
+		EcsGoodsPageListReq req = new EcsGoodsPageListReq();
+		req.setType("goods");
+		req.setName("添加测试");
+		req.setPageNo(1);
+		req.setPageSize(10);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(req,
+				GoodsSpecificationInfoResp.class);
+		logger.info("结果--" + response.isResult());
+		Assert.assertEquals(response.getError_code(), "0");
+
+	}
+
+	// ----------------------成功------
+	@Test(enabled = false)
+	public void qryMemberList() {
+		MemberQryPageReq memberQryPageReq = new MemberQryPageReq();
+		memberQryPageReq.getQry_con_type();
+		memberQryPageReq
+				.setQry_con_type(QRY_CON_TYPE.UNAME);
+		memberQryPageReq.setPageNo(1);
+		memberQryPageReq.setPageSize(10);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberQryPageReq,
+				MemberQryResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	@Test(enabled = false)
+	// ------------成功-------------
+	public void getMemberAddress() {
+		MemberAddressGetReq memberAddressGetReq = new MemberAddressGetReq();
+		memberAddressGetReq.setAddress_id("201310148160000339");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberAddressGetReq,
+				MemberAddressGetResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功-----------------
+	@Test(enabled = false)
+	public void addMemeberAddress() {
+		MemberAddressAddReq memberAddressAddReq = new MemberAddressAddReq();
+		MemberAddress memberAddress = new MemberAddress();
+		memberAddress.setAddr_id("fsd");
+		memberAddress.setAddr("asd2");
+		memberAddress.setName("sf");
+		memberAddress.setMember_id("sdf");
+
+		memberAddressAddReq.setMemberAddress(memberAddress);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberAddressAddReq,
+				MemberAddressAddResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	@Test(enabled = false)
+	// -------------成功--------
+	public void editMemberAddress() {
+		MemberAddressEditReq memberAddressEditReq = new MemberAddressEditReq();
+		MemberAddress memberAddress = new MemberAddress();
+		memberAddress.setAddr_id("201310146713000346");
+		memberAddress.setAddr("asd2");
+		memberAddress.setName("sf");
+		memberAddress.setMember_id("sdf");
+		memberAddress.setCity_id(1);
+		memberAddress.setProvince_id(0);
+		memberAddress.setRegion_id(3);
+		memberAddressEditReq.setAddress(memberAddress);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberAddressEditReq,
+				MemberAddressEditResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	/*
+	 * ---------------成功---------------
+	 */
+	@Test(enabled = false)
+	public void deleteMemberAddress() {
+		MemberAddressDeleteReq memberAddressDeleteReq = new MemberAddressDeleteReq();
+		memberAddressDeleteReq.setAddress_id("201310147357000343");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberAddressDeleteReq,
+				MemberAddressDeleteResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功-------------
+	@Test(enabled = false)
+	public void listRegions() {
+		RegionsListReq regionsListReq = new RegionsListReq();
+		regionsListReq.setRegion_type("650201");
+		regionsListReq.setRegion_parent_id("650200");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(regionsListReq,
+				RegionsListResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ----失败--不对外开放------------
+	@Test(enabled = false)
+	public void queryAgentForPage() {
+		
+		AgentPageListReq agentPageListReq = new AgentPageListReq();
+		Map map=new HashMap();
+		map.put("userCode","1");
+		map.put("userName", "1");
+		map.put("lanId","1");
+		map.put("userType","1");
+		agentPageListReq.setInfoMap(map);
+		agentPageListReq.setPage_index(1);
+		agentPageListReq.setPage_size(10);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(agentPageListReq,
+				AgentPageListResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -----------------获取站点失败------成功---------------
+	@Test(enabled = true)
+	public void addAsk() {
+		AskAddReq askAddReq = new AskAddReq();
+		Ask ask = new Ask();
+		ask.setAskid(1);
+		ask.setSiteid("1");
+		ask.setUserid("1");
+		ask.setTitle("我叫什么?");
+		ask.setIsreply(0);
+		ask.setUsername("张三");
+		askAddReq.setAsk(ask);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(askAddReq, AskAddResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -----------成功------------
+	@Test(enabled =false )
+	public void queryAskForPage() {
+		AskPageListReq askPageListReq = new AskPageListReq();
+		askPageListReq.setKeyword("000");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(askPageListReq,
+				AskPageListResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ------------成功--------------
+	@Test(enabled = false)
+	public void getAsk() {
+		AskGetReq askGetReq = new AskGetReq();
+		askGetReq.setAsk_id("1");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(askGetReq, AskGetResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	@Test(enabled = false)
+	public void MemberLogin() {
+		MemberLoginReq memberLoginReq = new MemberLoginReq();
+		memberLoginReq.setPwd("123");
+		memberLoginReq.setUserName("mk");
+		memberLoginReq.setUserSessionId(CommonTools.getUserSessionId());
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberLoginReq,
+				MemberLoginResp.class);
+		logger.info("msgss---" + response.isResult());
+		logger.info("sessoion" + response.getUserSessionId());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ------------成功和会员一起执行--------------
+	@Test(enabled = false)
+	public void addFav() {
+		FavAddReq favAddReq = new FavAddReq();
+		favAddReq.setFav_obj_id("201309177599000077");
+		favAddReq.setMember_id("201308221559000118");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(favAddReq, FavAddResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// --------------成功和会员一起执行----
+	@Test(enabled = false)
+	public void queryFavForPage() {
+		FavPageListReq favPageListReq = new FavPageListReq();
+		favPageListReq.setMember_id("201308067087000085");
+		favPageListReq.setFav_type("goods");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(favPageListReq,
+				FavPageListResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -----------成功----------
+	@Test(enabled = false)
+	public void cancelFav() {
+		FavCancelReq favCancelReq = new FavCancelReq();
+		favCancelReq.setFavorite_id("201309121885000066");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client
+				.execute(favCancelReq, FavCancelResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------获取不到站点--失败---------
+	@Test(enabled = true)
+	public void addGuestBook() {
+		GuestBookAddReq guestBookAddReq = new GuestBookAddReq();
+		GuestBook guestBook = new GuestBook();
+		guestBook.setParentid(1);
+		guestBook.setTitle("yyy");
+		guestBook.setDateline("2014-01-09");
+		guestBook.setUsername("ii");
+		guestBook.setEmail("qq.com");
+		guestBook.setQq("88777999");
+		guestBook.setTel("1212121213456");
+		guestBook.setSex(1);
+		guestBookAddReq.setGuestbook(guestBook);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(guestBookAddReq,
+				GuestBookAddResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// --------------成功-------
+	@Test(enabled = false)
+	public void queryGuestBookForPage() {
+		GuestBookPageListReq guestBookPageListReq = new GuestBookPageListReq();
+		guestBookPageListReq.setKeyword("1");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(guestBookPageListReq,
+				GuestBookPageListResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ------------------成功-------------
+	@Test(enabled = false)
+	public void modifyMemberPwd() {
+		MemberPwdModifyReq memberPwdModifyReq = new MemberPwdModifyReq();
+		memberPwdModifyReq.setMember_id("201308067087000085");
+		memberPwdModifyReq.setOldPwd("1234");
+		memberPwdModifyReq.setNewPwd("123");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberPwdModifyReq,
+				MemberPwdModifyResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ---------------成功-----------------
+	@Test(enabled = false)
+	public void queryCommoentForPage() {
+		CommentPageListReq commentPageListReq = new CommentPageListReq();
+		commentPageListReq.setMember_id("201309261559000091");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(commentPageListReq,
+				CommentPageListResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ---------------成功-----------------
+	@Test(enabled = false)
+	public void addComment() {
+		CommentAddReq commentAddReq = new CommentAddReq();
+		Comments comments = new Comments();
+		comments.setAuthor_id("11");
+		comments.setObject_id("201308198625000814");
+		comments.setObject_type("1");
+		comments.setAuthor("纳容性德");
+		commentAddReq.setMember_id("1");
+		comments.setContact("123131313131");
+		comments.setTitle("人生如若初见");
+		commentAddReq.setAction("1");
+		commentAddReq.setComment(comments);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(commentAddReq,
+				CommentAddResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	/*
+	 * 会员注册----------------成功-------------
+	 */
+	@Test(enabled = false)
+	public void memberRegister() {
+		MemberRegisterReq memberRegisterReq = new MemberRegisterReq();
+		Member member = new Member();
+		member.setLv_id("1");
+		member.setUname("好好");
+		member.setEmail("22qq.com");
+		member.setPassword("1");
+		member.setParentid("1");
+		member.setProvince("1");
+		member.setProvince_id(1);
+		member.setPw_answer("11");
+		member.setPw_question("11");
+		member.setRegtime("11");
+		member.setMsn("11");
+		member.setQq("12212121212");
+		member.setSex(1);
+		member.setName("chenggong");
+		member.setMobile("211211221");
+		member.setCity("2112");
+		member.setMember_type("1");
+		member.setRegion("21");
+		member.setRegion_id(1);
+		member.setTel("1221212112");
+		memberRegisterReq.setMember(member);
+		memberRegisterReq.setUserSessionId("c9c01d146c8a441da8d8cf2701894d33");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberRegisterReq,
+				MemberRegisterResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功------------
+	@Test(enabled = false)
+	public void getMemberLv() {
+		MemberLvGetReq memberLvGetReq = new MemberLvGetReq();
+		memberLvGetReq.setMember_lv_id("0");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberLvGetReq,
+				MemberLvGetResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功------------
+	@Test(enabled = false)
+	public void listMemberLv() {
+		MemberLvListReq memberLvListReq = new MemberLvListReq();
+		memberLvListReq.setMember_lv_ids("1");
+		memberLvListReq.setGoods_id("1706");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberLvListReq,
+				MemberLvListResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功------------
+	@Test(enabled = false)
+	public void memberLogin() {
+		MemberLoginReq memberLoginReq = new MemberLoginReq();
+		memberLoginReq.setMobile("3");
+		memberLoginReq.setUserName("mk");
+		memberLoginReq.setPwd("123");
+		memberLoginReq.setUserSessionId("18d2481aeb634471aece64dd01c8958b");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberLoginReq,
+				MemberLoginResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功------------
+	@Test(enabled = false)
+	public void getMemberLvPrice() {
+		MemberLvPriceReq memberLvPriceReq = new MemberLvPriceReq();
+		memberLvPriceReq.setProduct_id("201209021706");
+		memberLvPriceReq.setLvid("1");
+		memberLvPriceReq.setGoods_id("1706");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberLvPriceReq,
+				MemberLvPriceResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功------------
+	@Test(enabled = false)
+	public void getRegion() {
+		RegionsGetReq regionsGetReq = new RegionsGetReq();
+		regionsGetReq.setRegion_id("650201");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(regionsGetReq,
+				RegionsGetResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功------------
+	@Test(enabled = false)
+	public void isMemberLvCanBy() {
+		MemberLVCanBuyReq memberLVCanBuyReq = new MemberLVCanBuyReq();
+		memberLVCanBuyReq.setMember_lv_id("1");
+		memberLVCanBuyReq.setBuy_type(BUY_TYPE.MEMBER_BUY_PRODUCT);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberLVCanBuyReq,
+				MemberLVCanBuyResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功------------
+	@Test(enabled = false)
+	public void qryPriceByPid() {
+		MemberPriceByPIdReq memberPriceByPIdReq = new MemberPriceByPIdReq();
+		memberPriceByPIdReq.setProduct_id("201209021719");
+		memberPriceByPIdReq.setMember_lv_id("1");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberPriceByPIdReq,
+				MemberPriceByPIdResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ---------------成功------------
+	@Test(enabled = false)
+	public void qryPriceList() {
+		MemberPriceListByGoodsIdReq memberPriceListByGoodsIdReq = new MemberPriceListByGoodsIdReq();
+		memberPriceListByGoodsIdReq.setGoods_id("1719");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberPriceListByGoodsIdReq,
+				MemberPriceListByGoodsIdResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ---------------成功------------
+	@Test(enabled = false)
+	public void qryMemberPage() {
+		MemberQryReq memberQryReq = new MemberQryReq();
+		memberQryReq.getQry_con_type();
+		memberQryReq.setQry_con_type(params.member.req.MemberQryReq.QRY_CON_TYPE.UNAME);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client
+				.execute(memberQryReq, MemberQryResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功---------
+	@Test(enabled = false)
+	public void addMember() {
+		MemberAddReq memberAddReq = new MemberAddReq();
+		Member member = new Member();
+		member.setLv_id("1");
+		member.setUname("1");
+		member.setEmail("1");
+		member.setPassword("1");
+		member.setParentid("1");
+		member.setProvince("1");
+		member.setProvince_id(1);
+		member.setPw_answer("11");
+		member.setPw_question("11");
+		member.setRegtime("11");
+		member.setMsn("11");
+		member.setQq("12212121212");
+		member.setSex(1);
+		member.setName("12");
+		member.setMobile("211211221");
+		member.setCity("2112");
+		member.setMember_type("1");
+		member.setRegion("21");
+		member.setRegion_id(1);
+		member.setTel("1221212112");
+		memberAddReq.setMember(member);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client
+				.execute(memberAddReq, MemberAddResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ------------成功-----------
+	@Test(enabled = false)
+	public void editMember() {
+		MemberEditReq memberEditReq = new MemberEditReq();
+		Member member = new Member();
+		member.setMember_id("201404039913000951");
+		member.setLv_id("1");
+		member.setUname("1");
+		member.setEmail("1");
+		member.setPassword("1");
+		member.setParentid("1");
+		member.setProvince("1");
+		member.setProvince_id(1);
+		member.setPw_answer("11");
+		member.setPw_question("11");
+		member.setRegtime("11");
+		member.setMsn("11");
+		member.setQq("33333333333333");
+		member.setSex(1);
+		member.setName("12");
+		member.setMobile("444444444444");
+		member.setCity("1");
+		member.setMember_type("1");
+		member.setRegion("1");
+		member.setRegion_id(1);
+		member.setTel("666666666");
+		memberEditReq.setMember(member);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberEditReq,
+				MemberEditResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// --------------成功------------
+	@Test(enabled = false)
+	public void qryOrderLog() {
+		MemberOrderLogReq memberOrderLogReq = new MemberOrderLogReq();
+		memberOrderLogReq.setOrder_id("201309174131001194");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberOrderLogReq,
+				MemberOrderLogResp.class);
+		logger.info("----" + response.getError_msg());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// ------------成功----------
+	@Test(enabled = false)
+	public void qryOrderGiftByOrderId() {
+		MemberOrderGiftReq memberOrderGiftReq = new MemberOrderGiftReq();
+		memberOrderGiftReq.setOrder_id("1");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberOrderGiftReq,
+				MemberOrderGiftResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功---------
+	@Test(enabled = false)
+	public void pagePointHistory() {
+		PointHistoryReq pointHistoryReq = new PointHistoryReq();
+		PointHistory pointHistory=new PointHistory();
+		pointHistory.setType(1);
+		pointHistory.setMember_id("201308221559000118");
+		pointHistoryReq.setPageIndex("1");
+		pointHistoryReq.setPageSize("12");
+		pointHistoryReq.setPointHistory(pointHistory);
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(pointHistoryReq,PointHistoryResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+	@Test(enabled = false)
+	public void MemberLogins() {
+		MemberLoginReq memberLoginReq = new MemberLoginReq();
+		memberLoginReq.setPwd("123");
+		memberLoginReq.setUserName("mk");
+		memberLoginReq.setUserSessionId(CommonTools.getUserSessionId());
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberLoginReq,
+				MemberLoginResp.class);
+		logger.info("msgss---" + response.isResult());
+		logger.info("sessoion" + response.getUserSessionId());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+	// --------成功---------
+	@Test(enabled = false)
+	public void qryConsumePoint() {
+		PointConsumeReq pointConsumeReq = new PointConsumeReq();
+		pointConsumeReq.setPointType("0");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(pointConsumeReq,PointConsumeResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功------------
+	@Test(enabled = false)
+	public void memberIsBuy() {
+		MemberOrderIsBuyReq memberOrderIsBuyReq = new MemberOrderIsBuyReq();
+		memberOrderIsBuyReq.setGoods_id("201402248439001606");
+		memberOrderIsBuyReq.setMember_id("201309261559000086");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberOrderIsBuyReq,
+				MemberOrderIsBuyResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+
+	// -------------成功---------
+	@Test(enabled = false)
+	public void memberIsExists() {
+		MemberIsExistsReq memberIsExistsReq = new MemberIsExistsReq();
+		memberIsExistsReq.setUname("吴辉压力测试商品-误删连连科技代理商");
+		ZteClient client = getDubboZteClient();
+		ZteResponse response = client.execute(memberIsExistsReq,
+				MemberIsExistsResp.class);
+		logger.info("----" + response.getError_code());
+		Assert.assertEquals(response.getError_code(), "0");
+	}
+}

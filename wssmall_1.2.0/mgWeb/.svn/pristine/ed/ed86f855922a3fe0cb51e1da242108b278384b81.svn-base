@@ -1,0 +1,95 @@
+{
+  "@type": "com.ztesoft.net.cmsline.paramsj.template.req.EditStoreTemplateReq",
+  "page_id": "100000",
+  "template": {
+    "adPhone": "400客服电话！",
+    "adPhoto": "",
+    "adPhotoId": 0,
+    "adPhotoTitle": "",
+    "adPhotoUrl": "http://www.baidu.com/",
+    "adText": "",
+    "adType": 1,
+    "adUrl": "http://www.baidu.com/",
+    "borderStyle": 0,
+    "description": "综合商城-通用行业",
+    "device": 0,
+    "extensionData": null,
+    "footer": "<p align=\"center\" style=\"orphans:2;white-space:normal;widows:2;background-color:#FFFFFF;margin-top:0px;margin-bottom:0px;color:#666666;font-family:'Microsoft YaHei', SimSun, Arial;padding:0px;\">\n  <span style=\"outline:none;text-decoration:none;color:#666666;margin:0px;padding:0px;font-family:'Microsoft YaHei';line-height:2;\"> </span> \n</p>\n<p align=\"center\" style=\"margin-top:0px;margin-bottom:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;-webkit-text-size-adjust:none;color:#666666;line-height:normal;white-space:normal;background-color:#FFFFFF;\">\n  <span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei';outline:none;line-height:2;font-size:12px;\">关于我们 | 联系我们 | 媒体报道 | 品牌授权 | 商务合作</span> \n</p>\n<p align=\"center\" style=\"margin-top:0px;margin-bottom:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;-webkit-text-size-adjust:none;color:#666666;line-height:normal;white-space:normal;background-color:#FFFFFF;\">\n  <span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei';outline:none;line-height:2;font-size:12px;\">ICP备案号： Copyright &copy; 2013&nbsp;</span><span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei';line-height:2;\"><span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;font-size:12px;\">mpoo.cn &nbsp; All Rights Reserved&nbsp;</span><a href=\"http://www.zhuyun.cn/\" target=\"_blank\" style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;outline:none;text-decoration:none;\"><span style=\"margin:0px;padding:0px;color:#666666;font-size:12px;\">筑云</span></a><span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;font-size:12px;\">&nbsp;</span></span><span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei';line-height:2;font-size:12px;\">版权所有,违者必究</span> \n</p>\n<p align=\"center\" style=\"margin-top:0px;margin-bottom:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;-webkit-text-size-adjust:none;color:#666666;line-height:normal;white-space:normal;background-color:#FFFFFF;\">\n  <img src=\"http://img.zhuyun.cn/M00/01/29/wKgJNFIjQWqAJKM9AAAIu06yUwg699.png\" style=\"margin:0px;padding:0px;border-style:none;vertical-align:middle;\" /><span style=\"margin:0px;padding:0px;font-size:12px;\">&nbsp;</span><img title=\"网站备案\" src=\"http://img.zhuyun.cn/M00/01/24/wKgJNFIhXSiAHPFHAAAGom5QmAk433.png\" height=\"50\" width=\"110\" style=\"margin:0px;padding:0px;border-style:none;vertical-align:middle;\" /><span style=\"margin:0px;padding:0px;font-size:12px;\">&nbsp;&nbsp;</span><img src=\"http://img.zhuyun.cn/M00/01/7F/wKgJNFIy2qyAEa3yAAAMqg2PFik097.jpg\" style=\"margin:0px;padding:0px;border-style:none;vertical-align:middle;\" /><span style=\"margin:0px;padding:0px;font-size:12px;\">&nbsp;</span><img title=\"网银\" src=\"http://img.zhuyun.cn/M00/01/24/wKgJNFIhXS-AVNvhAAAJ3K_rPvM818.png\" height=\"50\" width=\"140\" style=\"margin:0px;padding:0px;border-style:none;vertical-align:middle;\" /><span style=\"margin:0px;padding:0px;font-size:12px;\">&nbsp;&nbsp;</span><img title=\"财付通\" src=\"http://img.zhuyun.cn/M00/01/24/wKgJNFIhXQGAEFdmAAAJY5UuIgc748.png\" height=\"50\" width=\"100\" style=\"margin:0px;padding:0px;border-style:none;vertical-align:middle;\" /><span style=\"margin:0px;padding:0px;font-size:12px;\">&nbsp;</span><img title=\"360绿色网站认证\" src=\"http://img.zhuyun.cn/M00/01/24/wKgJNFIhXPyATQdDAAANboo37WU985.png\" height=\"50\" width=\"100\" style=\"margin:0px;padding:0px;border-style:none;vertical-align:middle;\" /> \n</p>\n<p align=\"center\" style=\"margin-top:0px;margin-bottom:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;-webkit-text-size-adjust:none;color:#666666;line-height:normal;white-space:normal;background-color:#FFFFFF;\">\n  <span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei';line-height:2;font-size:12px;\">技术支持：&nbsp;</span><span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei';outline:none;line-height:2;\"><span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;outline:none;text-decoration:none;color:#666666;\"><a href=\"http://www.zhuyun.cn/\" target=\"_blank\" style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei', SimSun, Arial;outline:none;text-decoration:none;color:#2A586F;\"><span style=\"color:#666666;font-size:12px;\">筑云独立网店系统提供商</span></a></span></span> \n</p>\n<p align=\"center\" style=\"orphans:2;white-space:normal;widows:2;background-color:#FFFFFF;margin-top:0px;margin-bottom:0px;color:#666666;font-family:'Microsoft YaHei', SimSun, Arial;padding:0px;\">\n  <span style=\"margin:0px;padding:0px;font-family:'Microsoft YaHei';line-height:2;\"></span><span style=\"outline:none;margin:0px;padding:0px;font-family:'Microsoft YaHei';line-height:2;\"><a href=\"http://www.zhuyun.cn/\" target=\"_blank\" style=\"outline:none;text-decoration:none;color:#2A586F;margin:0px;padding:0px;\"></a></span> \n</p>",
+    "header": "",
+    "headerStyle": 0,
+    "helpTitle": [
+      {
+        "extensionData": null,
+        "name": "注册登录"
+      },
+      {
+        "extensionData": null,
+        "name": "找回密码"
+      },
+      {
+        "extensionData": null,
+        "name": "如何下单"
+      },
+      {
+        "extensionData": null,
+        "name": "单据状态"
+      },
+      {
+        "extensionData": null,
+        "name": "快递选择"
+      },
+      {
+        "extensionData": null,
+        "name": "配送时间"
+      },
+      {
+        "extensionData": null,
+        "name": "线下付款"
+      },
+      {
+        "extensionData": null,
+        "name": "网银支付"
+      },
+      {
+        "extensionData": null,
+        "name": "退货换货"
+      },
+      {
+        "extensionData": null,
+        "name": "取消订单"
+      },
+      {
+        "extensionData": null,
+        "name": "购物卡"
+      },
+      {
+        "extensionData": null,
+        "name": "折扣卡"
+      }
+    ],
+    "helpTitleJson": "[{Name: \"注册登录\"}, {Name: \"找回密码\"}, {Name: \"如何下单\"}, {Name: \"单据状态\"}, {Name: \"快递选择\"}, {Name: \"配送时间\"}, {Name: \"线下付款\"}, {Name: \"网银支付\"}, {Name: \"退货换货\"}, {Name: \"取消订单\"}, {Name: \"购物卡\"}, {Name: \"折扣卡\"}]",
+    "id": 89903,
+    "keyword": "综合商城-通用行业",
+    "logo": "http://img.zhuyun.cn/M00/D7/C0/wKgJNFOTGheAdCv6AAAbWRiuEVc866.jpg",
+    "logoPhotoId": 2786629,
+    "logoType": 0,
+    "mainStyle": 0,
+    "majorColor": 3,
+    "minorColor": 0,
+    "name": "综合商城",
+    "saveLevel": 2,
+    "searchKey": "婚纱",
+    "searchKeyDisplay": [
+      "婚纱"
+    ],
+    "showHeader": true,
+    "showHeaderAd": true,
+    "showHelp": true,
+    "showNav": true,
+    "showZhuyun": false,
+    "storeId": 15496,
+    "storeNavClass1": [],
+    "templateId": 3,
+    "title": "综合商城-通用行业"
+  }
+}

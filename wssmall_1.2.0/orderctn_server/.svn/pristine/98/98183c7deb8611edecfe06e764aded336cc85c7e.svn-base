@@ -1,0 +1,308 @@
+package com.ztesoft.net.mall.server.servlet;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.ztesoft.common.util.MD5Util;
+import com.ztesoft.net.cache.common.CacheFactory;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.consts.OrderCtnConsts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.utils.JavaCsharpDES;
+import com.ztesoft.net.mall.utils.MallUtils;
+
+import consts.ConstsCore;
+import zte.net.iservice.IOrderCtnService;
+import zte.net.iservice.IOrderQueueBaseManager;
+import zte.params.orderctn.req.OrderCtnReq;
+import zte.params.orderctn.resp.OrderCtnResp;
+
+/**
+ * @Description: 新商城报文接收类
+ * @author wanpeng
+ * @date 2015年11月24日 下午2:19:40
+ */
+public class NewMallServlet extends HttpServlet {
+	
+	private static final long serialVersionUID = -5035856538237912682L;
+	private static final String LOCAL_CHARSET = "utf-8";
+	private static Logger logger = Logger.getLogger(NewMallServlet.class);
+	/** 作废单标识 */
+	private static final String IF_CANCEL = "1";
+	
+	private IOrderCtnService orderCtnService;
+	private IOrderQueueBaseManager orderQueueBaseManager;
+	private ICacheUtil cacheUtil;
+
+	private void initBean() {
+		if(null == orderCtnService) {
+			orderCtnService = SpringContextHolder.getBean("orderCtnService");
+		}
+		if (null == orderQueueBaseManager) {
+			orderQueueBaseManager = SpringContextHolder.getBean("orderQueueBaseManager");
+		}
+		if(null == cacheUtil) {
+			cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		}
+	}
+	
+	@Override
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		doPost(request, response);
+	}
+	
+	@Override
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+			execute(request,response);
+	}
+	
+	/**
+	 * 订单处理方法
+	 * @param request
+	 * @param response
+	 * @throws IOException
+	 */
+	private void execute(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		try{
+			 startup();
+	         ServiceRunnable runnable = new ServiceRunnable(request,response);
+	         Future<?> future = this.threadPoolExecutor.submit(runnable);
+	         while (!future.isDone()) {
+	             future.get(exp_time_sec, TimeUnit.SECONDS);
+	         }
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			//统一关闭链接
+			try {
+				response.getOutputStream().flush();
+				response.getOutputStream().close();
+            } catch (IOException e) {
+           	 e.printStackTrace();
+                logger.info("关闭响应出错", e);
+            }
+		}
+	}
+	
+	private static ThreadPoolExecutor threadPoolExecutor;
+	private final static int exp_time_sec = 30000;
+	
+	private void startup(){
+		 if (this.threadPoolExecutor == null) {
+			 synchronized(NewMallServlet.class){
+				 ICacheUtil cacheUtil =SpringContextHolder.getBean("cacheUtil");
+				 String NEWSERVLET_FIEXE_COUNT = cacheUtil.getConfigInfo("NEWSERVLET_FIEXE_COUNT");
+				 if(StringUtils.isEmpty(NEWSERVLET_FIEXE_COUNT))
+					 NEWSERVLET_FIEXE_COUNT ="40";
+				 	this.threadPoolExecutor = new ThreadPoolExecutor(new Integer(NEWSERVLET_FIEXE_COUNT).intValue(),Integer.MAX_VALUE, 5 * 60, TimeUnit.SECONDS,new LinkedBlockingDeque<Runnable>(),new ThreadFactoryImpl("ThreadRopExector"));
+			 }
+	   }
+	}
+	
+	private class ServiceRunnable implements Runnable {
+        private HttpServletRequest servletRequest;
+        private HttpServletResponse servletResponse;
+        private ServiceRunnable(HttpServletRequest servletRequest,
+                                HttpServletResponse servletResponse) {
+            this.servletRequest = servletRequest;
+            this.servletResponse = servletResponse;
+        }
+
+        @Override
+        public void run() {
+        	try{
+        		long begin = System.currentTimeMillis();
+        		innerexec(servletRequest,servletResponse);
+        		long end = System.currentTimeMillis();
+        		logger.info("[NewMallServlet] 执行标准化总时间为:["+ (end-begin)+ "]");
+            }catch (Throwable e) {
+            	e.printStackTrace();
+	            String returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \"系统处理超时,"+e.getMessage()+".\"}}";
+				try {
+					servletResponse.getOutputStream().write(returnValue.getBytes("UTF-8"));
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+            }
+        }
+    }
+	
+	/**
+	 * 订单处理方法
+	 * @param request
+	 * @param response
+	 * @throws IOException
+	 */
+	private void innerexec(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		String returnValue = "";
+		// 是否集客商城订单
+		boolean isJiKe = false;
+		String inJson = "";
+		// 外部订单ID
+		final String order_id ;
+//		String source_system = "";
+		String source_from = "";
+		String shipping_type = "";
+		String if_cancel = "";
+		boolean canStd = true;
+		// 获取json参数
+		try {
+			request.setCharacterEncoding(LOCAL_CHARSET);
+			response.setContentType("text/html; charset=" + LOCAL_CHARSET);
+
+			// ecs_server使用如下取json的方法，但用JMeter测试取值为空
+		    inJson = IOUtils.toString(request.getInputStream(),"utf-8");
+		    if (StringUtil.isEmpty(inJson)) {
+		    	returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \"系统处理异常,json转换异常.\"}}";
+		    	canStd = false;
+		    }
+		    //inJson = getRequestJson(request,response);
+		    
+		    //解密JSON串
+		    if (MallUtils.isNotEmpty(inJson) && inJson.indexOf("order_req") == -1) {
+		    	isJiKe = true;
+				inJson = JavaCsharpDES.decrypt(inJson);
+			}
+		    logger.info("[NewMallServlet] 请求报文: "+inJson);
+			//获取订单报文主要参数-订单唯一性校验
+		    order_id = MallUtils.searchValue(inJson, "order_id");
+//		    source_system = MallUtils.searchValue(inJson, "source_system");
+		    source_from = MallUtils.searchValue(inJson, "source_from");
+		    shipping_type = MallUtils.searchValue(inJson, "shipping_type");
+		    if_cancel = MallUtils.searchValue(inJson, "if_cancel");
+		    
+		    if(canStd && (StringUtil.isEmpty(order_id) || StringUtil.isEmpty(source_from) || StringUtil.isEmpty(shipping_type))){
+		    	returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \"订单["+ order_id +"]同步失败,缺少订单关键参数。 \"}}";
+		    	canStd = false;
+		    }
+		    if (canStd) {
+		    	// 订单唯一性校验-校验订单是否存在
+			    INetCache cache = CacheFactory.getCacheByType("");
+			    String key = new StringBuffer().append(source_from).append(order_id).toString();
+			    key = MD5Util.MD5(key);
+			    String def = String.valueOf(cache.get(OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE, key));
+			    if (null != def && def.equals(key) && !NewMallServlet.IF_CANCEL.equals(if_cancel)) {
+			    	returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \"订单["+ order_id +"]同步失败,订单已接收。 \"}}";
+			    } else {
+			    	// 写缓存
+			    	cache.set(OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE,key, key,OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE_CACHE_TIMEOUT);
+			    	// 订单归集
+				    initBean();
+					OrderCtnReq req  = new OrderCtnReq();
+					// 判断 source_from 确定是调用dubbo还是MQ
+			    	if (OrderCtnConsts.NEW_MALL_SHIPPING_TYPE_2.equals(shipping_type)) {
+			    		req.setRpcType(OrderCtnConsts.RPC_TYPE_DUBBO);
+			    	}
+					req.setOutServiceCode(OrderCtnConsts.OUT_SERVICE_CODE_NEWMALLORDERSTANDARD);
+					req.setVersion(OrderCtnConsts.VERSION);
+					req.setReqMsgStr(inJson);
+					req.setFormat(OrderCtnConsts.ORDER_QUEUE_MSG_TYPE_JSON);
+					req.setOutOrderId(order_id);
+					final OrderCtnResp resp = orderCtnService.orderCtn(req);
+					if (null != resp) {
+						String rpc_type = resp.getRpc_type();
+						if (OrderCtnConsts.RPC_TYPE_DUBBO.equals(rpc_type)) {// dubbo 调用返回
+//							returnValue = resp.getError_msg();
+							if(!ConstsCore.ERROR_SUCC.equals(resp.getError_code())){
+								returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \""+resp.getError_msg()+"\"}}";
+							}else{
+								returnValue = "{\"order_resp\": {\"resp_code\": \"0\",\"resp_msg\": \"订单["+ order_id +"]同步成功\"}}";
+							}
+						} else if (OrderCtnConsts.RPC_TYPE_MQ.equals(rpc_type)) {// mq 返回
+							String error_code = resp.getError_code();
+							if (ConstsCore.ERROR_SUCC.equals(error_code)) {// 同步成功
+								returnValue = "{\"order_resp\": {\"resp_code\": \"0\",\"resp_msg\": \"订单["+ order_id +"]同步成功\"}}";
+							} else {
+								returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \"订单["+ order_id +"]同步失败 \"}}";
+							}
+						} else {
+							returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \"订单["+ order_id +"]同步失败 \"}}";
+						}
+						String esearch_flag = "0";//默认关闭
+						esearch_flag = cacheUtil.getConfigInfo(EcsOrderConsts.ESEARCH_FLAG);//是否取消前置校验 0：关闭 1：开启
+						if("1".equals(esearch_flag)) {
+							final String inJsonStr = inJson;
+							final String returnValueString = returnValue;
+							if (StringUtils.isNotEmpty(resp.getBase_co_id())) {
+								Thread thread = new Thread(new Runnable() {
+									@Override
+									public void run() {
+										orderQueueBaseManager.writeEsearch(resp.getBase_co_id(), inJsonStr, returnValueString,order_id);
+									}
+								});
+								thread.setName("NewMallWriteEsearchThread");
+								thread.start();
+							}
+						}
+						
+					} else {
+						returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \"订单["+ order_id +"]同步失败 \"}}";
+					}
+					
+			    }
+		    } 
+		    
+		} catch (Exception e) {
+			logger.info(e.getMessage(), e);
+			returnValue = "{\"order_resp\": {\"resp_code\": \"1\",\"resp_msg\": \"系统处理异常,"+e.getMessage()+".\"}}";
+		}
+		logger.info("[NewMallServlet] 返回前端商城消息:" + returnValue);
+		   //集客需要加密码返回
+        if (isJiKe) {
+        	returnValue = JavaCsharpDES.encrypt(returnValue);
+		}
+        response.getOutputStream().write(returnValue.getBytes("UTF-8"));
+	}
+	
+	/**
+	 * 获取总部商城请求的json数据
+	 * @param request
+	 * @param response
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	private String getRequestJson(HttpServletRequest request, HttpServletResponse response)
+			throws UnsupportedEncodingException {
+		request.setCharacterEncoding("UTF-8");
+		response.setContentType("text/html; charset=UTF-8");
+		StringBuffer jsonBuffer = new StringBuffer();
+		Map map = request.getParameterMap();
+		Set keys = map.keySet();
+		Iterator<String> iterator = keys.iterator();
+		String strKey = null;
+		String[] strVal = null;
+		while (iterator.hasNext()) {
+			strKey = iterator.next();
+			strVal = (String[]) map.get(strKey);
+			if (!"".equals(strVal[0])) {
+				jsonBuffer.append(strKey).append("=").append(strVal[0]);
+			} else {
+				jsonBuffer.append(strKey);
+			}
+		}
+		return jsonBuffer.toString();
+	}
+
+}

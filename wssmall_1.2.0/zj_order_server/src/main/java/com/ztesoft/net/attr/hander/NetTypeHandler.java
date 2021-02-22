@@ -1,0 +1,46 @@
+package com.ztesoft.net.attr.hander;
+
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.common.SpecConsts;
+import zte.net.ecsord.params.attr.req.AttrInstLoadReq;
+import zte.net.ecsord.params.attr.req.AttrSyLoadReq;
+import zte.net.ecsord.params.attr.resp.AttrInstLoadResp;
+import zte.net.ecsord.params.attr.resp.AttrSyLoadResp;
+
+import com.ztesoft.api.ApiBusiException;
+/**
+ * 网别
+ * @author Administrator
+ * 2G/3G/4G
+ */
+public class NetTypeHandler implements IAttrHandler {
+
+	@Override
+	public AttrSyLoadResp attrSyingVali(AttrSyLoadReq oo)
+			throws ApiBusiException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp handler(AttrSwitchParams params) {
+		String order_id = params.getOrder_id();// 订单ID
+		String net_type = CommonDataFactory.getInstance().getProductSpec(order_id, SpecConsts.TYPE_ID_10002, null, SpecConsts.NET_TYPE);
+		AttrInstLoadResp resp = new AttrInstLoadResp();
+		resp.setField_value(net_type);
+		return resp;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageLoadSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public AttrInstLoadResp attrInitForPageUpdateSetting(AttrInstLoadReq req) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

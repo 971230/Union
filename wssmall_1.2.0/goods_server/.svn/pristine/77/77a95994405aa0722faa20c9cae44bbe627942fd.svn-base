@@ -1,0 +1,435 @@
+package com.ztesoft.net.service;
+
+import java.util.List;
+import java.util.Map;
+
+import services.ServiceBase;
+import zte.net.iservice.IGoodsCatsService;
+import zte.params.goodscats.req.CatAddReq;
+import zte.params.goodscats.req.CatDeleteReq;
+import zte.params.goodscats.req.CatEditReq;
+import zte.params.goodscats.req.CatGetByIdReq;
+import zte.params.goodscats.req.CatGetReq;
+import zte.params.goodscats.req.CatHotListReq;
+import zte.params.goodscats.req.CatListByCondReq;
+import zte.params.goodscats.req.CatListByGoodsIdReq;
+import zte.params.goodscats.req.CatListByTypeReq;
+import zte.params.goodscats.req.CatListByUseridReq;
+import zte.params.goodscats.req.CatPathGetReq;
+import zte.params.goodscats.req.CatsGoodsListReq;
+import zte.params.goodscats.req.CatsListByIdReq;
+import zte.params.goodscats.req.CatsListReq;
+import zte.params.goodscats.req.ChildCatsListReq;
+import zte.params.goodscats.req.ChildrenCatsListReq;
+import zte.params.goodscats.req.ComplexGoodsGetReq;
+import zte.params.goodscats.resp.CatAddResp;
+import zte.params.goodscats.resp.CatDeleteResp;
+import zte.params.goodscats.resp.CatEditResp;
+import zte.params.goodscats.resp.CatGetResp;
+import zte.params.goodscats.resp.CatHotListResp;
+import zte.params.goodscats.resp.CatListByCondResp;
+import zte.params.goodscats.resp.CatListByGoodsIdResp;
+import zte.params.goodscats.resp.CatListByTypeResp;
+import zte.params.goodscats.resp.CatListByUseridResp;
+import zte.params.goodscats.resp.CatPathGetResp;
+import zte.params.goodscats.resp.CatsGoodsListResp;
+import zte.params.goodscats.resp.CatsListByIdResp;
+import zte.params.goodscats.resp.CatsListResp;
+import zte.params.goodscats.resp.ChildCatsListResp;
+import zte.params.goodscats.resp.ChildrenCatsListResp;
+import zte.params.goodscats.resp.ComplexGoodsGetResp;
+import zte.params.tags.req.TagGetReq;
+import zte.params.tags.resp.TagGetResp;
+
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.net.cache.common.GoodsNetCacheRead;
+import com.ztesoft.net.cache.common.GoodsNetCacheWrite;
+import com.ztesoft.net.cache.common.SerializeList;
+import com.ztesoft.net.mall.core.model.Cat;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.Tag;
+import com.ztesoft.net.mall.core.model.support.GoodsView;
+import com.ztesoft.net.mall.core.service.IGoodsCatManager;
+import com.ztesoft.net.mall.core.service.IGoodsManager;
+import com.ztesoft.net.mall.widget.goods.list.GoodsDataProvider;
+import com.ztesoft.net.mall.widget.goods.list.Term;
+
+public class GoodsCatsService extends ServiceBase implements IGoodsCatsService {
+	private GoodsDataProvider goodsDataProvider;
+	public GoodsDataProvider getGoodsDataProvider() {
+		return goodsDataProvider;
+	}
+
+	public void setGoodsDataProvider(GoodsDataProvider goodsDataProvider) {
+		this.goodsDataProvider = goodsDataProvider;
+	}
+
+	private IGoodsCatManager goodsCatManager;
+	private IGoodsManager goodsManager;
+	public IGoodsCatManager getGoodsCatManager() {
+		return goodsCatManager;
+	}
+
+	public void setGoodsCatManager(IGoodsCatManager goodsCatManager) {
+		this.goodsCatManager = goodsCatManager;
+	}
+
+	public IGoodsManager getGoodsManager() {
+		return goodsManager;
+	}
+
+	public void setGoodsManager(IGoodsManager goodsManager) {
+		this.goodsManager = goodsManager;
+	}
+	
+	private GoodsNetCacheRead reader = new GoodsNetCacheRead();
+	private GoodsNetCacheWrite write = new GoodsNetCacheWrite();
+
+	/**
+	 * @title 查询分类信息，按会员类型查询不同的分类
+	 * @param listReq
+	 */
+	@Override
+	public CatsListResp listGoodsCatsByLvId(CatsListReq listReq) {
+		String lv_id = listReq.getLv_id();
+		GoodsNetCacheRead reader = new GoodsNetCacheRead();
+		List goodsCats = reader.getCachesGoodsCat(lv_id);
+		
+		CatsListResp resp = new CatsListResp();
+		resp.setGoodsCats(goodsCats);
+		if(goodsCats!=null && goodsCats.size()>0){
+			resp.setResult(true);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+		}
+		else{
+			resp.setResult(false);
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+		}
+		addReturn(listReq,resp);
+		return resp;
+	}
+
+	/**
+	 * @title 查询分类推荐商品
+	 * @param listReq
+	 */
+	@Override
+	public CatsGoodsListResp listComplexGoodsByCatId(CatsGoodsListReq listReq) {
+		String cat_id = listReq.getCat_id();
+		List<Goods> goodsList = reader.getCachesCatComplex(cat_id);
+		if(goodsList==null || goodsList.size()==0){
+			goodsList = this.goodsManager.listComplexGoodsByCatId(cat_id);
+			if(!goodsList.isEmpty()){
+				write.write("CACHE_CATS_REMDGOODS_", cat_id, goodsList);
+			}
+		}
+		CatsGoodsListResp resp = new CatsGoodsListResp();
+		resp.setGoodsList(goodsList);
+		if(goodsList!=null && goodsList.size()>0){
+			resp.setResult(true);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+		}
+		else{
+			resp.setResult(false);
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+		}
+		addReturn(listReq,resp);
+		return resp;
+	}
+
+	/**
+	 * @title 查询子分类列表（根据分类查询子分类）
+	 * @param listReq
+	 */
+	@Override
+	public ChildCatsListResp listGoodsCatsByParentId(ChildCatsListReq listReq) {
+		String parent_id = listReq.getParent_id();
+		List<Cat> goodsCats = goodsCatManager.findCatNodesByParentid(parent_id);
+		for(Cat cat : goodsCats){
+			// 获取二级节点
+			Term term = new Term();
+			term.setCatid(cat.getCat_id());
+			term.setKeyword(listReq.getSearch_key());
+			List goodsList = goodsDataProvider.list(term, 1000);
+			cat.setCatGoodsList(goodsList);
+		}
+		ChildCatsListResp resp = new ChildCatsListResp();
+		resp.setGoodsCats(goodsCats);
+		if(goodsCats!=null && goodsCats.size()>0){
+			resp.setResult(true);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+		}
+		else{
+			resp.setResult(false);
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+		}
+		addReturn(listReq,resp);
+		return resp;
+	}
+
+	/**
+	 * @title 查询热卖分类标签
+	 * @param req
+	 */
+	@Override
+	public TagGetResp getHotTag(TagGetReq req) {
+		String tag_id = "1";
+		GoodsNetCacheRead reader = new GoodsNetCacheRead();
+		Tag tag = reader.getCachesGoodsTag(tag_id);
+		
+		TagGetResp resp = new TagGetResp();
+		resp.setTag(tag);
+		if(tag.getTag_id()!=null){
+			resp.setResult(true);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+		}
+		else{
+			resp.setResult(false);
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+		}
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatGetResp getCat(CatGetReq req) {
+		String goods_id = req.getGoods_id();
+		Cat cat = goodsCatManager.getCatByGoodId(goods_id);
+		
+		CatGetResp resp = new CatGetResp();
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setCat(cat);
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public ChildrenCatsListResp listAllChildren(ChildrenCatsListReq req) {
+		String cat_id = req.getCat_id();
+		List<Cat> cat_tree = goodsCatManager.listAllChildren(cat_id);
+		ChildrenCatsListResp resp = new ChildrenCatsListResp();
+		resp.setCat_tree(cat_tree);
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatPathGetResp getCatPath(CatPathGetReq req) {
+		String cat_id = req.getCat_id();
+		String path = goodsCatManager.getCatPathById(cat_id);
+		CatPathGetResp resp = new CatPathGetResp();
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setPath(path);
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public ComplexGoodsGetResp getComplexGoods(ComplexGoodsGetReq req) {
+		String cat_id = req.getCat_id();
+		List<GoodsView> goods = goodsCatManager.getComplexGoodsByCatId(cat_id);
+		ComplexGoodsGetResp resp = new ComplexGoodsGetResp();
+		resp.setGoods(goods);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setResult(true);
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatListByGoodsIdResp listCatsByGoodsId(CatListByGoodsIdReq req) {
+		String good_id = req.getGood_id();
+		List cats = goodsCatManager.getCatsByGoodsId(good_id);
+		CatListByGoodsIdResp resp = new CatListByGoodsIdResp();
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setCats(cats);
+		addReturn(req,resp);
+		return resp;
+
+	}
+
+	@Override
+	public CatListByCondResp listCatsByCond(CatListByCondReq req) {
+		String catPath = req.getCatPath();
+		List<Map<String, String>> cats = goodsCatManager.getCatsByCond(catPath);
+		CatListByCondResp resp = new CatListByCondResp();
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setCats(cats);
+		addReturn(req,resp);
+		return resp;
+	}
+	
+	@Override
+	public CatListByUseridResp listCatsByUserid(CatListByUseridReq req){
+		String user_id = req.getUser_id();
+		List<Cat> cats = goodsCatManager.listCatsByUserid(user_id);
+		CatListByUseridResp resp = new CatListByUseridResp();
+		if(cats!=null && cats.size()>0){
+			resp.setCats(cats);
+			resp.setResult(true);
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+		}
+		else{
+			resp.setResult(false);
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+		}
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatGetResp getCatById(CatGetByIdReq req) {
+		String cat_id = req.getCat_id();
+		Cat cat = goodsCatManager.getById(cat_id);
+		CatGetResp resp = new CatGetResp();
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setCat(cat);
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatHotListResp getHotList(CatHotListReq req) {
+		List<Cat> hotCatList=goodsCatManager.getHotList();
+		CatHotListResp resp = new CatHotListResp();
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setHotCatList(hotCatList);
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatsListByIdResp listCats(CatsListByIdReq req) {
+		String cat_id = req.getCat_id();
+		List<Cat> cats = goodsCatManager.listCats(cat_id);
+		
+		CatsListByIdResp resp = new CatsListByIdResp();
+		if(cats.isEmpty()){
+			resp.setError_code("-1");
+			resp.setError_msg("失败：返回为空");
+			resp.setResult(false);
+		}
+		else{
+			resp.setError_code("0");
+			resp.setError_msg("成功");
+			resp.setResult(true);
+			resp.setCats(cats);
+		}
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatListByTypeResp listCatByTypeId(CatListByTypeReq req) {
+		String type_id = req.getType_id();
+		List<Cat> cats = goodsCatManager.listCacheCatByTypeId(type_id);
+		CatListByTypeResp resp = new CatListByTypeResp();
+		resp.setCatList(cats);
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatAddResp addCat(CatAddReq req){
+		Cat cat = req.getCat();
+		if(StringUtils.isEmpty(cat.getType()))
+			cat.setType("goods");
+		if(StringUtils.isEmpty(cat.getHot_type()))
+			cat.setHot_type("0");
+		if(StringUtils.isEmpty(cat.getList_show()))
+			cat.setList_show("0");
+		if(StringUtils.isEmpty(cat.getFloor_list_show()))
+			cat.setFloor_list_show("0");
+		if(StringUtils.isEmpty(cat.getParent_id()))
+			cat.setParent_id("0");
+		if(StringUtils.isEmpty(cat.getType_id()))
+			cat.setType_id("30001");//河北O2O，没有分类，默认设置一个分类
+		cat.setGoods_count(0);
+		goodsCatManager.saveAdd(cat);
+		
+		CatAddResp resp = new CatAddResp();
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("添加成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatEditResp editCat(CatEditReq req) {
+		Cat cat = req.getCat();
+		if(StringUtils.isEmpty(cat.getHot_type()))
+			cat.setHot_type("0");
+		if(StringUtils.isEmpty(cat.getList_show()))
+			cat.setList_show("0");
+		if(StringUtils.isEmpty(cat.getFloor_list_show()))
+			cat.setFloor_list_show("0");
+		if(StringUtils.isEmpty(cat.getParent_id()))
+			cat.setParent_id("0");
+		if(StringUtils.isEmpty(cat.getType_id()))
+			cat.setType_id("30001");//河北O2O，没有分类，默认设置一个分类
+		if(StringUtils.isEmpty(cat.getImage()))
+			cat.setImage("");
+		goodsCatManager.update(cat);
+		
+		CatEditResp resp = new CatEditResp();
+		resp.setResult(true);
+		resp.setError_code("0");
+		resp.setError_msg("编辑成功");
+		addReturn(req,resp);
+		return resp;
+	}
+
+	@Override
+	public CatDeleteResp deleteCat(CatDeleteReq req) {
+		String cat_id =  req.getCat_id();
+		int result = goodsCatManager.delete(cat_id);
+		CatDeleteResp resp = new CatDeleteResp();
+		if(result==0){
+			resp.setResult(true);
+			resp.setError_code("0");
+			resp.setError_msg("删除成功");
+		}
+		else if(result==1){
+			resp.setResult(false);
+			resp.setError_code("-1");
+			resp.setError_msg("该分类下有子分类，不能删除！");
+		}
+		else if(result==2){
+			resp.setResult(false);
+			resp.setError_code("-1");
+			resp.setError_msg("该分类下有商品，不能删除！");
+		}
+		addReturn(req,resp);
+		return resp;
+	}
+
+}

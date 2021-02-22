@@ -1,0 +1,43 @@
+/*    */ package com.ztesoft.crm.report.generator.excel.elements;
+/*    */ 
+/*    */ import com.ztesoft.crm.report.document.Document;
+/*    */ import java.io.OutputStream;
+/*    */ import java.util.Iterator;
+/*    */ import org.apache.poi.hssf.usermodel.HSSFSheet;
+/*    */ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+/*    */ 
+/*    */ public class ExcelDocument extends Document
+/*    */ {
+/*    */   private HSSFWorkbook createWorkBook()
+/*    */   {
+/* 28 */     HSSFWorkbook book = new HSSFWorkbook();
+/* 29 */     HSSFSheet sheet = book.createSheet();
+/*    */ 
+/* 31 */     int start = 0;
+/* 32 */     for (Iterator objs = children(); objs.hasNext(); ) {
+/* 33 */       ExcelNode node = (ExcelNode)objs.next();
+/*    */ 
+/* 35 */       start = node.export(book, sheet, start);
+/* 36 */       node.release();
+/*    */     }
+/*    */ 
+/* 39 */     return book;
+/*    */   }
+/*    */ 
+/*    */   @Override
+public void output(OutputStream output, String encoding) throws Exception
+/*    */   {
+/* 44 */     HSSFWorkbook book = createWorkBook();
+/*    */     try {
+/* 46 */       book.write(output);
+/*    */     } catch (Exception localException) {
+/*    */     }
+/* 49 */     book.removeSheetAt(0);
+/* 50 */     book = null;
+/*    */   }
+/*    */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.generator.excel.elements.ExcelDocument
+ * JD-Core Version:    0.5.3
+ */

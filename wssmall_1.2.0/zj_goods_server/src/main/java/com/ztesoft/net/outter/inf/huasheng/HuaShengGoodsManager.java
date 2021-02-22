@@ -1,0 +1,224 @@
+package com.ztesoft.net.outter.inf.huasheng;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.ztesoft.common.util.JsonUtil;
+import com.ztesoft.inf.infclient.paramsL;
+import com.ztesoft.inf.infclient.paramsenum;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.rule.CoHuoPinRuleECS;
+import com.ztesoft.net.util.SendWMSUtil;
+
+public class HuaShengGoodsManager extends BaseSupport {
+
+	private static final String GOODS_TYPE_PHONE = "20003";//裸机
+	private static final String PRODUCT_TYPE_TERMINAL = "10000";//手机
+	private static final String SERVICE_CODE_CO_HUOPIN = "CO_HUOPIN";	//货品同步service_code
+	private static final String ACTION_CODE = "M";	//动作
+	
+	/**
+	 * 华盛商品映射及更新货品的串码管理\华盛物料号属性\华盛商品类型(MCHK\MATNR\MTART)
+	 * @return
+	 */
+	public boolean hsGoodsMapping(Map<String,String> paramMaps){
+		String matnr = paramMaps.get("matnr");
+		//String mchk = paramMaps.get("mchk");
+		//String mtart = paramMaps.get("mtart");
+		//判断商品是否已映射
+		boolean flag = false;
+		String sql = "select count(1) from es_goods_package c where c.hs_matnr = ? and c.source_from = ?";
+		try{
+			int nums = this.baseDaoSupport.queryForInt(sql, matnr, ManagerUtils.getSourceFrom());
+			if(nums == 0){
+				//根据sn重新映射
+				String sn = matnr.substring(8);
+				String goods_id = getGoodsIdBySn(sn);
+				//有映射到本地商品
+				if(StringUtils.isNotBlank(goods_id)){
+					//插入es_goods_package表
+					sql = "insert into es_goods_package (GOODS_ID,SOURCE_FROM,HS_MATNR) values (?,?,?)";
+					this.baseDaoSupport.execute(sql, goods_id,ManagerUtils.getSourceFrom(),matnr);
+				}
+			}
+			
+			//根据物料号获取货品信息
+			List<Map> productList = getProductByMatnr(matnr);
+			if(null != productList && productList.size() > 0){
+				//更新货品的属性
+				Map prodData = productList.get(0);
+				String productGoodsId = (String) prodData.get("goods_id");
+				String params = (String) prodData.get("params");
+		 		if ("<CLOB>".equalsIgnoreCase(params)) {
+		 			params = "";
+				}
+		 		if(StringUtils.isNotBlank(params)){
+		 			Map<String,String> values = new HashMap<String, String>();
+		 			values.put("MATNR", matnr);
+		 			//values.put("MCHK", mchk);
+		 			//values.put("MTART", mtart);
+		 			boolean isUpdate = updateParams(params, productGoodsId, values);
+		 			
+		 			if(isUpdate){			 			
+			 			//更新货品参数后重新同步货品给WMS  action第一次以M方式传，WMS也会新增，已测试验证
+			 			String productId = (String) prodData.get("product_id");
+			 			String sqlWMSStr = "SELECT e.addr FROM ES_INF_ADDR_WMS e where e.service_code= '"+ SERVICE_CODE_CO_HUOPIN + "'";
+			 			String urlWMS = baseDaoSupport.queryForString(sqlWMSStr);
+			 			if(StringUtils.isNotBlank(urlWMS)){
+			 				SendWMSUtil sWMS = new SendWMSUtil();
+			 				CoHuoPinRuleECS huoPinRule = SpringContextHolder.getBean("coHuoPinRule");;
+			 				String msg = huoPinRule.searchProductWMS(productId,ACTION_CODE,"");
+			 				String result = SendWMSUtil.getWSDLCall(urlWMS, msg);
+			 				logger.info("华盛商品更新货品同步WMS["+productId+"]报文:" + msg + "\nWMS返回报文：" + result);
+			 			}
+		 			}
+		 		}
+			}
+			flag = true;
+		}catch(Exception e){
+			flag = false;
+			e.printStackTrace();
+		}
+		return flag;
+	}
+	
+	/**
+	 * 根据物料号查询商品下的手机货品
+	 * @param matnr
+	 * @return
+	 */
+	private List<Map> getProductByMatnr(String matnr){
+		String sql = "select pg.goods_id,pg.type_id,pg.params,p.product_id from es_goods g, es_goods_rel r, "
+				+ " es_goods pg, es_goods_package c,es_product p where c.hs_matnr = ?"
+				+ " and g.goods_id = c.goods_id and r.a_goods_id = g.goods_id and pg.goods_id = r.z_goods_id"
+				+ " and pg.type = 'product' and p.goods_id = pg.goods_id and pg.type_id = ? and c.source_from = ?";
+		List<Map> productList = this.baseDaoSupport.queryForList(sql,matnr,PRODUCT_TYPE_TERMINAL,ManagerUtils.getSourceFrom());
+		return productList;
+	}
+	
+	/**
+	 * 根据货品sn获取对应商品的goods_id
+	 * @param sn
+	 * @return
+	 */
+	private String getGoodsIdBySn(String sn){
+		String sql = "select g.goods_id from es_goods_rel r,es_goods c,es_goods g"
+				+ " where c.sn = ? and c.type = 'product' and c.type_id = ?"
+				+ " and r.z_goods_id = c.goods_id and r.a_goods_id = g.goods_id"
+				+ " and g.type_id = ? and g.type = 'goods' and c.source_from = ?";
+		return this.baseDaoSupport.queryForString(sql, sn,PRODUCT_TYPE_TERMINAL,GOODS_TYPE_PHONE,ManagerUtils.getSourceFrom());
+	}
+	
+	/**
+	 * 修改货品华盛物料号、串码管理参数
+	 * @param params
+	 * @param productGoodsId
+	 * @param values
+	 * @return 返回是否更新货品true、false
+	 */
+	private boolean updateParams(String params , String productGoodsId , Map<String,String> values){
+		JSONArray jsonArr = JSONArray.fromObject(params);
+		StringBuffer jsonStr = new StringBuffer("[");
+		boolean isUpdate = false;	//是否修改
+		for(int i = 0; i < jsonArr.size(); i++){
+			String json = jsonArr.getString(i);
+			paramsL pl = JsonUtil.fromJson(jsonArr.getString(i), paramsL.class);
+			//串码管理是手机参数下的属性
+			if("手机参数".equals(pl.getName()) || "配件参数".equals(pl.getName())){
+				List<paramsenum> paramList = pl.getParamList();
+				paramsenum pMatnr = null;
+				paramsenum pMchk = null;
+				paramsenum pMtart = null;
+				if(json.contains("华盛物料号")){
+					for(paramsenum ps : paramList){
+						if("MATNR".equals(ps.getEname())){
+							pMatnr = ps;
+							//物料号不相同时更新
+							if(!pMatnr.getValue().equals(values.get("MATNR"))){
+								isUpdate = true;
+								pMatnr.setValue(values.get("MATNR"));
+							}
+						}
+//						else if("MCHK".equals(ps.getEname())){
+//							pMchk = ps;
+//							//串码管理值不相同时更新
+//							if(!pMchk.getValue().equals(values.get("MCHK"))){
+//								isUpdate = true;
+//								pMchk.setValue(values.get("MCHK"));
+//							}
+//						}else if("MTART".equals(ps.getEname())){
+//							pMtart = ps;
+//							//串码管理值不相同时更新
+//							if(!pMtart.getValue().equals(values.get("MTART"))){
+//								isUpdate = true;
+//								pMtart.setValue(values.get("MTART"));
+//							}
+//						}
+					}
+				}
+				if(null == pMatnr && values.containsKey("MATNR")){
+					pMatnr = new paramsenum();
+					pMatnr.setAttrcode("");
+					pMatnr.setAttrtype("goodsparam");
+					pMatnr.setAttrvaltype("0");
+					pMatnr.setEname("MATNR");
+					pMatnr.setName("华盛物料号");
+					pMatnr.setValue(values.get("MATNR"));
+					pMatnr.setRequired("");
+					pl.getParamList().add(pMatnr);
+					pl.setParamNum(pl.getParamNum() + 1);
+					isUpdate = true;
+				}
+//				if(null == pMchk && values.containsKey("MCHK")){
+//					pMchk = new paramsenum();
+//					pMchk.setAttrcode("");
+//					pMchk.setAttrtype("goodsparam");
+//					pMchk.setAttrvaltype("0");
+//					pMchk.setEname("MCHK");
+//					pMchk.setName("串码管理");
+//					pMchk.setValue(values.get("MCHK"));
+//					pMchk.setRequired("");
+//					pl.getParamList().add(pMchk);
+//					pl.setParamNum(pl.getParamNum() + 1);
+//					isUpdate = true;
+//				}
+//				if(null == pMtart && values.containsKey("MTART")){
+//					pMtart = new paramsenum();
+//					pMtart.setAttrcode("");
+//					pMtart.setAttrtype("goodsparam");
+//					pMtart.setAttrvaltype("0");
+//					pMtart.setEname("MTART");
+//					pMtart.setName("华盛商品类型");
+//					pMtart.setValue(values.get("MTART"));
+//					pMtart.setRequired("");
+//					pl.getParamList().add(pMtart);
+//					pl.setParamNum(pl.getParamNum() + 1);
+//					isUpdate = true;
+//				}
+				String jsonTmp = JsonUtil.toJson(pl);
+				jsonStr.append(jsonTmp);
+			}else{
+				jsonStr.append(jsonArr.getString(i));
+			}
+			if(i < jsonArr.size() - 1){
+				jsonStr.append(",");
+			}
+		}
+		jsonStr.append("]");
+		//修改货品参数
+		if(isUpdate){
+			Map goodsMap = new HashMap();
+			goodsMap.put("params", jsonStr.toString());
+			goodsMap.put("goods_id", productGoodsId);
+			baseDaoSupport.update("goods", goodsMap, "goods_id='"+ productGoodsId+"'");
+		}
+		return isUpdate;
+	}
+}

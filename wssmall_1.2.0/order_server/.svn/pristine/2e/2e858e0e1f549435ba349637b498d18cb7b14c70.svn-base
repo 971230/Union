@@ -1,0 +1,35 @@
+package com.ztesoft.net.mall.core.action.order.service.recharge;
+
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.mall.core.action.order.audit.CommonAuditHander;
+import com.ztesoft.net.mall.core.model.GoodsAudit;
+
+public class RechargeCardAuditHander extends CommonAuditHander {
+
+	public void audit() {
+
+	}
+
+	@Override
+	public void display() {
+
+	}
+
+	@Override
+	public void execute() {
+		if(isTaobaoAgent()){
+			orderNFlowManager.audit_through( getOrderRequst().getOrderId(),"淘宝流量卡支付订单审核通过");
+		}else{
+			GoodsAudit goodsAudit = getOrderRequst().getGoodsAudit();
+			String orderId = getOrderRequst().getOrderId();
+			if(goodsAudit.getAudit_state().equals(OrderStatus.AUDIT_STATE_NO)){
+				setCanNext(false);//结束流程
+				orderNFlowManager.audit_not_through(orderId,goodsAudit.getAudit_desc());
+			}else{ 
+				orderNFlowManager.audit_through(orderId,goodsAudit.getAudit_desc());
+				super.execute();
+			}
+		}
+	}
+
+}

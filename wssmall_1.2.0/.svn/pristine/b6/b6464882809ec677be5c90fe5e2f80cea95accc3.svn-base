@@ -1,0 +1,12 @@
+package com.ztesoft.mmt.guide.asyn;
+
+import com.lmax.disruptor.EventFactory;
+
+
+
+public class AsynServiceEventFactory implements EventFactory<AsynServiceEvent>{
+
+	public AsynServiceEvent newInstance() {
+		 return new AsynServiceEvent();
+	}
+}

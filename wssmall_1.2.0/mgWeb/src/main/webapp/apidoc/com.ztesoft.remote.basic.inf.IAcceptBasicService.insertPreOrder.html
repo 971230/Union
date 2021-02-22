@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>电商平台 - API详情</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="shortcut icon" href="" type="image/x-icon">
+<link rel="stylesheet" href="css/base-min.css">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/error.css">
+<link rel="stylesheet" href="css/open-base.css">
+<link rel="stylesheet" href="css/sh.css">
+<link rel="stylesheet" href="css/editor-pkg-min-datauri.css" >
+<link rel="stylesheet" href="css/right-tools.css">
+<script src="js/jquery-1.4.2.min.js"></script>
+</head>
+<body>
+	<div class="top-header-menu">
+		<div class="top-menu-cont">
+			<h1 class="top-logo" style="display:none;">
+				<a class="top-logo-link" href="http://open.taobao.com/" alt="淘宝开放平台"></a>
+			</h1>
+			<!-- 搜索start -->
+			<div class="search-wrap">
+				<div class="search">
+					<div id="search">
+						<div class="default"><span class="initText">请输入您要搜索的内容</span></div>
+						<div class="actived">
+							<input autocomplete="off" class="searchText" id="searchText" t="api" onkeypress="EnterPress()" onkeydown="EnterPress(event)" type="text"> 
+							<a class="sBtn" onclick="searchapi()"></a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- 搜索end -->
+			<ul class="top-nav-menu clearfix">
+				<li><a href="#">文档</a></li>
+				<li class="selected"><a href="index.html">API<iclass="reddot"></i></a></li>
+			</ul>
+		</div>
+	</div>
+	<!-- header end -->
+
+	<!--header end-->
+	<!--面包屑 begin-->
+	<div class="crumbs">
+		<a href="index.html">用户API</a>
+		<a class="last" href="#">com.ztesoft.remote.basic.inf.IAcceptBasicService</a>
+		<!--class with "last"-->
+	</div>
+	<!--面包屑 end-->
+
+	<div class="container grid-s165m0 layout">
+		<!--正文区 begin-->
+		<div class="col-main bg_line">
+			<div class="main-wrap">
+				<div class="title-wrap">
+					<h1 class="open-bg title">
+						com.ztesoft.remote.basic.inf.IAcceptBasicService 业务受理API 
+					</h1>
+
+					<ul class="api-sub-title layout clearfix">
+						<li class="sub-title"><a class="link" href="#param-in-h2">函数输入参数</a></li>
+						<li class="sub-title last"><a class="link" href="#param-out-h2">函数输出参数</a></li>
+					</ul>
+				</div>
+
+				<div class="api-detail-bd" id="bd">
+					<div>
+						<p class="title-intro">业务受理API</p>
+						<!-- 函数入参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-in-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-in')"> 函数输入参数<font color="blue"><b>class com.ztesoft.remote.basic.params.req.InsertPreOrderRequest</b></font>
+							</h2>
+							<div id="param-in" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">主订单编号</td>
+											<td class="middle"><font color='red'>order_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">主订单编号</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">序列</td>
+											<td class="middle"><font color='red'>sequ</font></td>
+											<td class="middle">int</td>
+											<td class="middle">Y</td>
+											<td class="left">序列，0的为在用数据</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">子订单编号</td>
+											<td class="middle"><font color='red'>item_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">子订单编号</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">产品id</td>
+											<td class="middle"><font color='red'>product_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">产品id(套餐的销售品id)</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">状态</td>
+											<td class="middle"><font color='red'>state</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">1成功(竣工成功)、2失败(竣工失败)、3待审核、4竣工中(已审核、正式单送EOP)、5 撤单中、6撤单成功</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">创建时间</td>
+											<td class="middle"><font color='red'>create_time</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">创建时间</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">实例id</td>
+											<td class="middle"><font color='red'>inst_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">实例id（主键）</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">产品名称</td>
+											<td class="middle"><font color='red'>product_name</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">产品名称</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">服务编码</td>
+											<td class="middle"><font color='red'>service_code</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">服务编码</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">登陆工号</td>
+											<td class="middle"><font color='red'>user_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">登陆工号</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">客户编码</td>
+											<td class="middle"><font color='red'>cust_number</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">客户编码</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">客户名称</td>
+											<td class="middle"><font color='red'>cust_name</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">客户名称</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">客户证件类型</td>
+											<td class="middle"><font color='red'>cert_type</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">客户证件类型</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">客户证件号码</td>
+											<td class="middle"><font color='red'>cert_number</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">客户证件号码</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">证件地址</td>
+											<td class="middle"><font color='red'>cert_address</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">证件地址</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">客户类型</td>
+											<td class="middle"><font color='red'>cust_type</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">客户类型</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">客户通信地址</td>
+											<td class="middle"><font color='red'>cust_mail_address</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">客户通信地址</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">通信地址邮政编码</td>
+											<td class="middle"><font color='red'>cust_post_code</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">通信地址邮政编码</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">联系人</td>
+											<td class="middle"><font color='red'>contact_name</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">联系人</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">联系电话</td>
+											<td class="middle"><font color='red'>contact_phone_num</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">联系电话</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">账户编码</td>
+											<td class="middle"><font color='red'>acct_number</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">账户编码</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">账户名称</td>
+											<td class="middle"><font color='red'>acct_name</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">账户名称</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">付款方式</td>
+											<td class="middle"><font color='red'>pay_method</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">付款方式</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">银行开户名</td>
+											<td class="middle"><font color='red'>pay_name</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银行开户名</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">银行ID</td>
+											<td class="middle"><font color='red'>bank_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银行ID</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">银行账号</td>
+											<td class="middle"><font color='red'>bank_number</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银行账号</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">账单邮寄地址</td>
+											<td class="middle"><font color='red'>acct_mail_address</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">账单邮寄地址</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">账单邮政编码</td>
+											<td class="middle"><font color='red'>acct_post_code</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">账单邮政编码</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">可选包销售id</td>
+											<td class="middle"><font color='red'>pack_ids</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">可选包销售id（中间英文逗号隔开）</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">功能产品id</td>
+											<td class="middle"><font color='red'>func_ids</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">功能产品id（中间英文逗号隔开）</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">产品在销售品中的角色CD</td>
+											<td class="middle"><font color='red'>role_cd</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">产品在销售品中的角色CD（暂不使用）</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">号码</td>
+											<td class="middle"><font color='red'>phone_num</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">号码</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">营销资源串码</td>
+											<td class="middle"><font color='red'>mkt_resource_code</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">营销资源串码 配合MKT_RES_TYPE_CD使用  存放UIM卡号</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">营销资源类型</td>
+											<td class="middle"><font color='red'>mkt_res_type_cd</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">营销资源类型</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">所在区域ID</td>
+											<td class="middle"><font color='red'>common_region_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">所在区域ID</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">系统标识</td>
+											<td class="middle"><font color='red'>source_from</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">系统标识</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">用户实际支付金额</td>
+											<td class="middle"><font color='red'>pay_money</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">用户实际支付金额</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">业务类型</td>
+											<td class="middle"><font color='red'>order_type</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">业务类型 1:开户,2:钱包充值,3:话费充值,4:套餐变更,5:增值业务变更,6:流量包变更,7:补换卡，8:过户</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">缴费状态</td>
+											<td class="middle"><font color='red'>pay_state</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">0未缴费 1已缴费</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">订单修改时间</td>
+											<td class="middle"><font color='red'>update_time</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">订单修改时间</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">订单修改备注</td>
+											<td class="middle"><font color='red'>ord_desc</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">订单修改备注</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">LBS缴费流水号</td>
+											<td class="middle"><font color='red'>lbs_ord_no</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">LBS缴费流水号</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">银通缴费流水1</td>
+											<td class="middle"><font color='red'>yt_ord_no_1</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银通缴费流水1</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">银通缴费流水2</td>
+											<td class="middle"><font color='red'>yt_ord_no_2</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银通缴费流水2</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">EOP缴费流水'' EOP客户订单</td>
+											<td class="middle"><font color='red'>eop_ord_no</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">EOP缴费流水''EOP客户订单</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">外系统标识</td>
+											<td class="middle"><font color='red'>sys_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">外系统标识（谁发起请求就写谁）1：银通2：LBS 3：LL转售系统</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">C2C转账接口存放代理商电话号码</td>
+											<td class="middle"><font color='red'>col1</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">C2C转账接口存放代理商电话号码</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">银通缴费流水(关联我们核心表es_payment_list)</td>
+											<td class="middle"><font color='red'>col2</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银通缴费流水(关联我们核心表es_payment_list)</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">扩展字段</td>
+											<td class="middle"><font color='red'>col3</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">扩展字段</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">扩展字段</td>
+											<td class="middle"><font color='red'>col4</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">扩展字段</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">扩展字段</td>
+											<td class="middle"><font color='red'>col5</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">扩展字段</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">扩展字段</td>
+											<td class="middle"><font color='red'>col6</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">扩展字段</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">扩展字段</td>
+											<td class="middle"><font color='red'>col7</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">扩展字段</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">扩展字段</td>
+											<td class="middle"><font color='red'>col8</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">扩展字段</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">扩展字段</td>
+											<td class="middle"><font color='red'>col9</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">扩展字段</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">扩展字段</td>
+											<td class="middle"><font color='red'>col10</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">扩展字段</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">银行清算日期</td>
+											<td class="middle"><font color='red'>bank_settle_date</font></td>
+											<td class="middle">java.util.Date</td>
+											<td class="middle">Y</td>
+											<td class="left">银行清算日期，格式YYYYMMDD</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">银行交易金额</td>
+											<td class="middle"><font color='red'>bank_pay_money</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银行交易金额(银行返回)</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">银行支付结果</td>
+											<td class="middle"><font color='red'>bank_pay_flag</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银行支付结果，成功SUCCESS</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">对应用户表(es_ll_access_prod_inst,es_ll_prod_offer_inst,es_ll_func_offer_inst)inst_id</td>
+											<td class="middle"><font color='red'>local_inst_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">对应用户表(es_ll_access_prod_inst,es_ll_prod_offer_inst,es_ll_func_offer_inst)inst_id</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">卡类型</td>
+											<td class="middle"><font color='red'>card_type</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">卡类型，1：实体卡；2：白卡；3：预开户卡</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">图片地址</td>
+											<td class="middle"><font color='red'>img_addr</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">图片地址，以逗号相隔（分享计划6张图片上传、代理商开户与网厅预开户身份证照片上传）</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">银通缴费流水</td>
+											<td class="middle"><font color='red'>es_payment_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">银通缴费流水(关联我们核心表es_payment_list的流水id)</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">请求银通的订单时间（后续校验用）</td>
+											<td class="middle"><font color='red'>ll_pay_time</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">请求银通的订单时间（后续校验用）</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数入参>>end -->
+						<!-- 函数出参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-out-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-out')"> 函数输出参<font color="blue"><b>class com.ztesoft.remote.basic.params.resp.InsertPreOrderResponse</b></font>
+							</h2>
+							<div id="param-out" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>										
+										</tr>
+									</thead>
+									<tbody>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数出参>>end -->						
+					</div>
+					
+				</div>
+			</div>
+		</div>
+		<!--正文区 end-->
+		<!--左侧导航栏 begin-->
+		<div class="col-sub">
+			<div class="APIgory">
+				<ul id="leftnavigation">
+					<li>
+						<div class="APIgory-title">
+							<a href="index.html">返回&nbsp;<span class="APIgory-sub-title">com.ztesoft.remote.basic.inf.IAcceptBasicService</span></a>
+						</div>
+					</li>
+						<li url="com.ztesoft.remote.basic.inf.IAcceptBasicService.bussinessAccept.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IAcceptBasicService.bussinessAccept.html" title="bussinessAccept">com.ztesoft.remote.basic.inf.IAcceptBasicService.bussinessAccept</a>
+									<p class="APIgory-intro info-overflow">业务受理</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="com.ztesoft.remote.basic.inf.IAcceptBasicService.insertPreOrder.html">
+							<div class="APIgory-list focus ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="com.ztesoft.remote.basic.inf.IAcceptBasicService.insertPreOrder.html" title="insertPreOrder">com.ztesoft.remote.basic.inf.IAcceptBasicService.insertPreOrder</a>
+									<p class="APIgory-intro info-overflow">写预受理表</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+				</ul>
+			</div>
+		</div>
+		<!--左侧导航栏 end-->
+	</div>
+
+	<script type="text/javascript">
+		function changeHide(imgDom, contentDivId) {
+			var contentDiv = document.getElementById(contentDivId);
+			if (contentDiv.style.display == "none") {
+				contentDiv.style.display = "";
+				imgDom.src = "image/tri_down.png";
+			} else {
+				contentDiv.style.display = "none";
+				imgDom.src = "image/tri_right.png";
+			}
+		}
+		
+		$(function(){
+				$($("#leftnavigation").find("li")).each(function(){
+					$(this).bind("click",function(){
+						 window.location.href=$(this).attr("url");
+					});	
+					
+				});
+		
+		})
+	</script>
+	<!--footer begin-->
+	<div id="footer">
+		<div class="footer">
+			<div class="contact">
+				<a class="weibo" href="#" target="_blank">电商平台</a> 
+			</div>
+
+			<div class="about">
+				<span class="copyright">Copyright ? 2003-2012 ZteSoft 版权所有</span>
+				<span class="links">
+				 <a href="#" target="_blank">关于我们</a>
+				</span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

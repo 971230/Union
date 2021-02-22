@@ -1,0 +1,36 @@
+<#list children as cat> 
+<tr>
+    <td style="padding-left:${(level+1)*20}px;font-weight: bold;">${cat.name}</td>
+
+    <td>
+		 <input type="hidden" name="cat_ids" value="${cat.cat_id }"/>
+	     <input type="text" name="cat_sorts" style="width:30px" value="${cat.cat_order }"/>
+    </td> 
+  <!--  <td><a href="cat!add.do?cat_id=${cat.cat_id}"><img src="images/transparent.gif" class="add"></a></td>-->
+    
+    
+    <#if is_founder==1>
+   	<!--  <td><a href="cat!edit.do?cat_id=${cat.cat_id}"><img src="images/transparent.gif" class="modify"></a></td> -->
+   <!--   <td>
+    
+    <a href="javascript:;" ><img src="images/transparent.gif" class="delete" catid="${cat.cat_id}"></a>
+    </td>-->
+    </#if>
+    <td>
+    <#if cat.source_from=="LLKJ_WT">网厅</#if>
+    <#if cat.source_from=="LLKJ_AGENT">代理商</#if>
+    <#if cat.source_from=="WSSMALL">统一平台</#if>
+    <#if cat.source_from=="LLKJ_ZT">掌厅</#if>
+    </td>
+    <td>
+    	<a href="data!list.do?catid=${cat.cat_id}&source_from=${cat.source_from}" >文章列表</a>&nbsp;&nbsp;
+    	<a href="data!add.do?catid=${cat.cat_id}&source_from=${cat.source_from}" >添加文章</a>
+    </td>
+</tr>
+	<#if cat.hasChildren>
+		<#assign level=level+1 />
+	  	<#assign children=cat.children />
+		<#include 'list_children.html' />
+  		<#assign level=level-1/>
+	</#if>
+</#list>

@@ -1,0 +1,42 @@
+@charset "utf-8";
+/* CSS Document */
+body{ background:#261700;}
+.mtt{ margin-top:10px;}
+.mtr{ margin-right:10px;}
+.fl{ float:left;}
+.fr{ float:right;}
+.wapper{ width:1140px; margin:0 auto;}
+.leftSide{ width:320px; float:left;}
+.mainSide{ width:480px; float:left; margin-left:10px;}
+.rightSide{ width:320px; float:right;}
+.ggWarp{ background:#303a59; height:272px;}
+.ggWarp .titBar{ height:40px; background:#3a466f;}
+.ggWarp .titBar h2{ background:url(../images/icon_announ.png) 10px center no-repeat; padding-left:40px; color:#fff; font-size:16px; height:40px; line-height:40px;}
+.ggWarp .ggContent{ height:190px;}
+.ggWarp .ggContent ul{ padding:10px;}
+.ggWarp .ggContent li{ line-height:24px; font-size:14px; color:#fff;}
+.ggWarp .ggFoot{ height:40px; background:url(../images/gg_foot.png) repeat-x; text-align:center;}
+.arrowOpen{ background:url(../images/arrow_open.png) center center no-repeat; width:40px; height:40px; display:block; overflow:hidden; text-indent:-999px; margin:0 auto;}
+.arrowClose{ background:url(../images/arrow_close.png) center center no-repeat; width:40px; height:40px; display:block; overflow:hidden; text-indent:-999px; margin:0 auto;}
+.squareWarp{ position:relative;}
+.purpleSquare{ background:#7551b1; height:110px;}
+.orangeSquare{ background:#df8c17; height:110px;}
+.greenSquare{ background:#5f9c26; width:233px; height:188px;}
+.blueSquare{ background:#059e8e; width:233px; height:188px;}
+.blueSquare1{ background:#4475d3; height:170px;}
+.orangeSquare1{ background:#da8610; width:155px; height:135px;}
+.redSquare{ background:#e35239; width:155px; height:135px;}
+.purpleSquare1{ background:#7551b1; height:188px;}
+.vedioIco{ position:absolute; left:50%; top:50%; margin-left:-40px; margin-top:-40px; width:80px; height:80px;}
+.vedioNote{ position:absolute; left:10px; bottom:10px; font-size:16px; color:#fff;}
+.icon01{ background:url(../images/icon01.png) no-repeat;}
+.icon02{ background:url(../images/icon02.png) no-repeat;}
+.icon03{ background:url(../images/icon03.png) no-repeat;}
+.icon04{ background:url(../images/icon04.png) no-repeat;}
+.icon05{ background:url(../images/icon05.png) no-repeat;}
+.icon06{ background:url(../images/icon06.png) no-repeat;}
+.icon07{ background:url(../images/icon07.png) no-repeat;}
+.icon08{ background:url(../images/icon08.png) no-repeat;}
+.bannerWarp{ height:314px;}
+
+.wapper .nameTit{ height:80px; line-height:80px; color:#fff0c5; font-size:20px;font-weight: bold;}

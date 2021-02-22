@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd"
+       default-autowire="byName" default-lazy-init="false">
+
+
+    <!--短信操作类-->
+	<!-- <bean id="crawlerManager" class="com.ztesoft.net.service.impl.CrawlerManager"  parent="baseSupport"/> -->
+	<bean id="orderOpenAccountSectionService" class="zte.net.service.impl.OrderOpenAccountSectionService"/>
+	<bean id="orderDeliverySectionService" class="zte.net.service.impl.OrderDeliverySectionService"/>
+	<bean id="orderArtificialSectionService" class="zte.net.service.impl.OrderArtificialSectionService"/>
+    <bean id="orderVerifySectionService" class="zte.net.service.impl.OrderVerifySectionService"/>
+    
+    <bean id="customerOrderInquiryService" class="zte.net.service.impl.CustomerOrderInquiryService"/>
+    <bean id="orderToExamineService" class="zte.net.service.impl.OrderToExamineService"/>
+    <bean id="standardizationService" class="zte.net.service.impl.StandardizationService"/>
+   
+</beans>

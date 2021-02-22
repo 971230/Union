@@ -1,0 +1,271 @@
+package com.ztesoft.net.scheme.service.impl;
+import java.util.List;
+
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.MidDataObjConfig;
+import com.ztesoft.net.mall.core.model.ObjJava;
+import com.ztesoft.net.mall.core.model.ObjSql;
+import com.ztesoft.net.mall.core.model.PlanEntityRel;
+import com.ztesoft.net.mall.core.model.PlanRuleAttr;
+import com.ztesoft.net.mall.core.model.ProcessObjMid;
+import com.ztesoft.net.mall.core.model.RuleObjPlan;
+import com.ztesoft.net.mall.core.model.ServiceObjOffer;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.scheme.service.ISchemeManager;
+
+public class SchemeManager extends BaseSupport implements ISchemeManager{
+	@Override
+	public Page schemeList(String status_cd,String plan_code,
+			String plan_name, int page, int pageSize) {
+		String sql="select e.* from (select o.service_offer_name,p.*,rj.java_bean as js_ctrl_val from es_rule_biz_plan p left join es_rule_java rj on(rj.java_code=p.ctrl_val "+ManagerUtils.apSFromCond("rj")+"),es_commission_service_offer o  where" +
+				" p.service_type=o.service_id and upper(p.ctrl_type)='JAVA'";
+		 if(status_cd!=null && !"".equals(status_cd)){
+		    	sql+=" and status_cd like'%"+status_cd+"%'";
+		 }
+		 if(plan_code!=null && !"".equals(plan_code)){
+		    	sql+=" and plan_code like'%"+plan_code+"%'";
+		 }
+		 if(plan_name!=null && !"".equals(plan_name)){
+		    	sql+=" and plan_name like'%"+plan_name+"%'";
+		 }
+		 sql += " union ";
+		 sql += "select o.service_offer_name,p.*,rj.sql_script as js_ctrl_val from es_rule_biz_plan p left join es_rule_sql rj on(rj.sql_code=p.ctrl_val),es_commission_service_offer o  where" +
+					" p.service_type=o.service_id and upper(p.ctrl_type)='SQL'";
+		 if(status_cd!=null && !"".equals(status_cd)){
+		    	sql+=" and status_cd like'%"+status_cd+"%'";
+		 }
+		 if(plan_code!=null && !"".equals(plan_code)){
+		    	sql+=" and plan_code like'%"+plan_code+"%'";
+		 }
+		 if(plan_name!=null && !"".equals(plan_name)){
+		    	sql+=" and plan_name like'%"+plan_name+"%'";
+		 }
+		 sql += ") e where e.source_from = '" + ManagerUtils.getSourceFrom() + "' ";
+		return this.baseDaoSupport.queryForPage(sql, page, pageSize);
+	}
+
+	@Override
+	public void addScheme(RuleObjPlan rule) {
+		this.baseDaoSupport.insert("es_rule_biz_plan", rule);
+	}
+
+	@Override
+	public void addRule(PlanRuleAttr attr) {
+		this.baseDaoSupport.insert("ES_PLAN_RULE_ATTR", attr);
+	}
+
+	@Override
+	public void updateScheme(RuleObjPlan rule) {
+		this.baseDaoSupport.update("es_rule_biz_plan", rule,"plan_id='"+rule.getPlan_id()+"'");
+	}
+
+	@Override
+	public void updateRule(PlanRuleAttr rule) {
+		this.baseDaoSupport.update("es_plan_rule_attr", rule,"plan_id='"+rule.getPlan_id()+"'");
+	}
+
+	@Override
+	public RuleObjPlan qryScheme(String plan_id) {
+		RuleObjPlan plan=null;
+		String sql="select p.*,a.username as admin_name from es_rule_biz_plan p left join es_adminuser a on(a.userid=p.pay_user_id) where p.plan_id=? and p.source_from=?";
+		plan=(RuleObjPlan) this.baseDaoSupport.queryForObject(sql, RuleObjPlan.class, plan_id,ManagerUtils.getSourceFrom());
+		return plan;
+	}
+
+	@Override
+	public PlanRuleAttr qryAtrr(String plan_id) {
+		PlanRuleAttr attr=null;
+		String sql="select * from es_plan_rule_attr where plan_id=?";
+		attr=(PlanRuleAttr)this.baseDaoSupport.queryForObject(sql, PlanRuleAttr.class, plan_id);
+		return attr;
+	}
+
+	@Override
+	public List<PlanRuleAttr> query(String plan_id) {
+		List<PlanRuleAttr> attr=null;
+		String sql="select a.*,r.rule_name from es_plan_rule_attr a left join es_rule_config r on(r.rule_id=a.rule_id "+ManagerUtils.apSFromCond("r")+") where a.plan_id=? and a.source_from=?";
+		attr=this.baseDaoSupport.queryForList(sql, PlanRuleAttr.class, plan_id,ManagerUtils.getSourceFrom());
+		return  attr;
+	}
+
+	@Override
+	public List service() {
+		String sql="select * from es_commission_service_offer where source_from is not null";
+		return this.baseDaoSupport.queryForList(sql, ServiceObjOffer.class);
+	}
+
+	@Override
+	public List midDateList(String plan_id) {
+		String sql="select  distinct m.* from es_rule_biz_plan p,es_rule_mid_data_config m where m.plan_id=m.plan_id and m.plan_id=? and m.source_from ='"+ManagerUtils.getSourceFrom()+"'"+ManagerUtils.apSFromCond("p");
+		return this.baseDaoSupport.queryForList(sql, plan_id);
+	}
+
+	@Override
+	public void addMid(MidDataObjConfig mid) {
+		this.baseDaoSupport.insert("es_rule_mid_data_config",mid);
+		
+	}
+
+	@Override
+	public void addSql(ObjSql sql) {
+		this.baseDaoSupport.insert("es_rule_sql", sql);
+		
+	}
+
+	@Override
+	public void addJava(ObjJava java) {
+		this.baseDaoSupport.insert("es_rule_java", java);
+		
+	}
+
+	@Override
+	public void updateMid(MidDataObjConfig mid) {
+		this.baseDaoSupport.update("es_rule_mid_data_config", mid, "mid_data_code='"+mid.getMid_data_code()+"'");
+		
+	}
+
+	@Override
+	public MidDataObjConfig queryMid(String mid_data_code) {
+		MidDataObjConfig congfig=null;
+		String sql="select * from es_rule_mid_data_config where mid_data_code=?";
+		return congfig=(MidDataObjConfig)this.baseDaoSupport.queryForObject(sql, MidDataObjConfig.class, mid_data_code);
+	}
+
+	@Override
+	public ObjSql querySql(String sql_code) {
+		ObjSql sql1=null;
+		String sql="select * from es_rule_sql where sql_code=?";
+		return sql1=(ObjSql)this.baseDaoSupport.queryForObject(sql, ObjSql.class, sql_code);
+	}
+
+	@Override
+	public void updateSql(ObjSql sql) {
+		this.baseDaoSupport.update("es_rule_sql", sql,"sql_code='"+sql.getSql_code()+"'");
+		
+	}
+
+	@Override
+	public ObjJava queryJava(String java_code) {
+		ObjJava java1=null;
+		String sql="select * from es_rule_java where java_code=?";
+		return java1=(ObjJava)this.baseDaoSupport.queryForObject(sql, ObjJava.class, java_code);
+	}
+
+	@Override
+	public void updateJava(ObjJava java) {
+		this.baseDaoSupport.update("es_rule_java", java, "java_code='"+java.getJava_code()+"'");
+	}
+
+	@Override
+	public List midList(String plan_id) {
+		String sql="select d.mid_data_code,d.list_cal_type,d.list_cal_logic,d.detail_cal_type,d.detail_cal_logic,d.remark, c.cal_type,c.cal_logic,c.fact_java_class,c.need_process_data from es_rule_mid_data_config c,es_rule_process_data d where c.mid_data_id=d.mid_data_code and c.plan_id=? and c.source_from=?";
+		return this.baseDaoSupport.queryForList(sql,plan_id,ManagerUtils.getSourceFrom());
+	}
+
+	@Override
+	public void delMid(String mid_data_code) {
+		String sql="delete from es_rule_mid_data_config where mid_data_code=?";
+		this.baseDaoSupport.execute(sql, mid_data_code);
+	}
+
+	@Override
+	public void delProcess(String mid_data_code) {
+		String sql="delete from es_rule_process_data where mid_data_code=?";
+		this.baseDaoSupport.execute(sql, mid_data_code);
+	}
+
+	@Override
+	public void addProcess(ProcessObjMid process) {
+		this.baseDaoSupport.insert("es_rule_process_data", process);
+		
+	}
+
+	@Override
+	public ProcessObjMid queryProcess(String mid_data_code) {
+		ProcessObjMid midPro=null;
+		String sql="select * from es_rule_process_data where mid_data_code=?";
+		return midPro=(ProcessObjMid)this.baseDaoSupport.queryForObject(sql, ProcessObjMid.class, mid_data_code);
+	}
+
+	@Override
+	public void updateProcess(ProcessObjMid midPro) {
+		this.baseDaoSupport.update("es_rule_process_data", midPro, "mid_data_code='"+midPro.getMid_data_code()+"'");
+	}
+
+	@Override
+	public Page ruleList(String rule_id, int page, int pageSize) {
+		String sql="select * from es_rule_config where 1=1";
+		if(rule_id!=null && !"".equals(rule_id)){
+	    	sql+=" and rule_id like'%"+rule_id+"%'";
+	 }
+		return this.baseDaoSupport.queryForPage(sql, page, pageSize);
+	}
+
+	@Override
+	public void deletePlanRuleAttr(String plan_id) {
+		String sql = "delete from es_plan_rule_attr t where t.plan_id=? and t.source_from=?";
+		this.baseDaoSupport.execute(sql, plan_id,ManagerUtils.getSourceFrom());
+	}
+
+	@Override
+	public void deletePlanMidData(String plan_id) {
+		String sql = "delete from es_rule_mid_data_config t where t.plan_id=? and t.source_from=?";
+		this.baseDaoSupport.execute(sql, plan_id,ManagerUtils.getSourceFrom());
+	}
+
+	@Override
+	public void deletePlanDataProcess(String plan_id) {
+		String sql = "delete from es_rule_process_data t where t.mid_data_code=? and t.source_from=?";
+		this.baseDaoSupport.execute(sql, plan_id,ManagerUtils.getSourceFrom());
+	}
+
+	@Override
+	public ObjJava queryJavaByJavaBean(String bean) {
+		String sql = "select * from es_rule_java t where t.java_bean=? and t.source_from=?";
+		List<ObjJava> list = this.baseDaoSupport.queryForList(sql, ObjJava.class, bean,ManagerUtils.getSourceFrom());
+		return list.size()>0?list.get(0):null;
+	}
+
+	@Override
+	public ObjSql querySqlBySql(String sql_script) {
+		String sql = "select * from es_rule_sql t where t.sql_script=? and t.source_from=?";
+		List<ObjSql> list = this.baseDaoSupport.queryForList(sql, ObjSql.class, sql_script,ManagerUtils.getSourceFrom());
+		return list.size()>0?list.get(0):null;
+	}
+
+	@Override
+	public void insertPlanEntityRel(PlanEntityRel entity) {
+		this.baseDaoSupport.insert("es_rule_plan_entity_rel", entity);
+	}
+
+	@Override
+	public PlanEntityRel getPlanEntityRel(String rel_id){
+		String sql = "select * from es_rule_plan_entity_rel t where t.rel_id=?";
+		return (PlanEntityRel) this.baseDaoSupport.queryForObject(sql, PlanEntityRel.class, rel_id);
+	}
+	
+	@Override
+	public void editPlanEntityRel(PlanEntityRel entity) {
+		this.baseDaoSupport.update("es_rule_plan_entity_rel", entity, "rel_id='"+entity.getRel_id()+"'");
+	}
+
+	@Override
+	public void deletePlanEntityRel(String rel_id) {
+		String sql = "delete from es_rule_plan_entity_rel t where t.rel_id=?";
+		this.baseDaoSupport.execute(sql, rel_id);
+	}
+
+	@Override
+	public Page queryPlanEntityRelForPage(String plan_id,int pageNo,int pageSize) {
+		String sql = "select t.* from es_rule_plan_entity_rel t where t.plan_id=?";
+		String countSql = sql.replace("t.*", "count(*)");
+		return this.baseDaoSupport.queryForCPage(sql, pageNo, pageSize, PlanEntityRel.class, countSql, plan_id);
+	}
+	
+	@Override
+	public boolean planCodeIsExists(String plan_code){
+		String sql = "select count(*) from es_rule_biz_plan t where t.plan_code=?";
+		return this.baseDaoSupport.queryForInt(sql, plan_code)>0;
+	}
+}

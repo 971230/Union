@@ -1,0 +1,108 @@
+package com.ztesoft.net.sqls;
+
+import com.ztesoft.net.consts.OrderStatus;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+public class Sqls_Order_Local  extends Sqls {
+	public Sqls_Order_Local(){
+		
+	} 
+	public String getSql(String getName, Sqls cInst) {
+		String sql = this.getPropSql(getName, this, cInst);
+		return sql;
+	}
+	public String getORDER_TREE_ATTR_LIST(){
+		//return "select t.* from es_attr_def t";
+		return "select t.*,h.handler_class from es_attr_def t left join es_attr_handler h on(h.handler_id=t.handler_id and h.source_from=t.source_from) "+
+			" where t.source_from=?  ";
+	}
+	public String getQUERY_PUBLIC_CONST_BY_SYS(){return "select t.* from ES_PUBLIC_CONSTS t where t.sys_from=? and t.outer_code=? and t.object_type=? and t.source_from=?";}
+	public String getSERVICE_CART_DELETE(){return "delete from es_cart where session_id=?";}
+	public String getQUERY_GOODS_ACTION_RULE_GOODS_ID(){return "select * from es_goods_action_rule t where t.goods_id=? and t.source_from=? and t.service_code=? and t.disabled=0";}
+	public String getQUERY_ATTE_DEF_COM(){
+		return "select t.*,h.handler_class from es_attr_def t left join es_attr_handler h on(h.handler_id=t.handler_id and h.source_from=t.source_from) "+
+				" where t.attr_spec_type=? and t.attr_spec_id=? and t.source_from=?";
+	}
+	public String getQUERY_ATTR_TABLE(){
+		return "select t.* from es_attr_table t,es_attr_def d where t.attr_def_id=d.field_attr_id and t.source_from=d.source_from and d.attr_spec_type=? and d.attr_spec_id=? and t.source_from=?";
+	}
+	public String getSERVICE_ORDER_STATUS_UPDATE(){return "update es_order set status=? where order_id=?";}
+	public String getQUERYGOODSTYPECODE(){
+		return "select gt.* from es_goods_type gt,es_goods g where gt.source_from=g.source_from and gt.type_id=g.type_id and g.goods_id=? and g.source_from=?";
+	}
+	public String getSERVICE_ORDER_SELECT_BY_ID(){return "select * from es_order where order_id=?";}
+	public String getSERVICE_ITEM_ACTION_CODE_SELECT(){return "select i.*,gr.action_code,gr.status from es_order_items i " +
+			"left join es_goods_action_rule gr on (i.goods_id=gr.goods_id and gr.disabled=0 and gr.service_code=? and i.source_from = gr.source_from) " +
+			"where i.order_id=? and i.source_from ='"+ManagerUtils.getSourceFrom()+"'";}
+	public String getUpdateOrderItemShipNum(){
+		return "update es_order_items t set t.ship_num=? where t.item_id=?";
+	}
+	public String getSERVICE_ORDER_PMT_INSERT(){return "insert into es_order_pmt(pmt_id,order_id,pmt_describe)values(?,?,?)";}
+	public String getQUERYORDERSYSCODE(){
+		return "select t.sys_code from es_outer_accept oa,es_order_ext e,es_order_extvtl t where oa.out_tid=e.out_tid and e.order_id=t.order_id and oa.order_id=? and oa.source_from=e.source_from and e.source_from=t.source_from and t.source_from=? "+
+				" union all "+
+				" select t.sys_code from es_outer_accept oa,es_order_ext_his e,es_order_extvtl_his t where oa.out_tid=e.out_tid and e.order_id=t.order_id and oa.order_id=? and oa.source_from=e.source_from and e.source_from=t.source_from and t.source_from=?";
+	}
+	public String getSERVICE_STAFFNO_BY_SESSION_ID(){return "select distinct g.staff_no from " + //and g.source_from = p.source_from and c.source_from = p.source_from and
+			"es_goods g,es_product p,es_cart c where g.goods_id=p.goods_id and p.product_id=c.product_id " +
+			"and (c.is_checked=1 or c.is_checked is null) and c.session_id=? and g.source_from = p.source_from  and g.source_from = '" + ManagerUtils.getSourceFrom() + "'  "+ManagerUtils.apSFromCond("p")+"";}
+
+	public String getSERVICE_GOODS_SELECT_BY_STAFFNO(){return "select distinct g.goods_id from " +
+			" es_goods g,es_product p,es_cart c where g.goods_id=p.goods_id and p.product_id=c.product_id and g.source_from = p.source_from  and " +
+			"(c.is_checked=1 or c.is_checked is null) and g.staff_no=? and c.session_id = ? and g.source_from = '" + ManagerUtils.getSourceFrom() + "'";} //
+	public String getIS_CREATE_ORDER(){return "select count(*) from es_goods_action_rule t where t.action_code in('pay','delivery','createorder') and t.status='yes' and t.disabled='0' and t.service_code=? and t.goods_id in(:instr)";}
+	public String getSERVICE_DLY_TYPE_AREA_DELETE(){return "delete from es_dly_type_area where 1=1 ";}
+	public String getSERVICE_DLY_TYPE_DELETE(){return "delete from es_dly_type where 1=1 ";}
+	public String getSERVICE_DLY_TYPE_SELECT(){return "select * from es_dly_type where 1=1 ";}
+	
+	public String getSERVICE_DLY_TYPE_SELECT_ORDER(){return "select * from es_dly_type where 1=1 order by ordernum";}
+	public String getSERVICE_DLY_TYPE_AREA_SELECT(){return "select * from es_dly_type_area where 1=1 ";}
+	
+	public String getSERVICE_DLY_AREA_PRICE_SELECT(){return "select a.* ,ta.price price from es_dly_area a " +
+			"left join (select  * from es_dly_type_area where type_id=?)  ta  on ( a.area_id  = ta.area_id and ta.source_from = a.source_from) where a.source_from = '" + ManagerUtils.getSourceFrom() + "'";}
+	public String getSERVICE_DLY_TYPE_SELECT_5(){return "select * from es_dly_type where type_id=5 order by ordernum";}
+	
+	public String getSERVICE_DLY_TYPE_DELETE_BY_ID(){return "delete from es_dly_type_area where type_id=?";}
+	
+	public String getSERVICE_DLY_TYPE_AREA_DEL_BY_ID(){return "delete from es_dly_type_area where type_id=?";}
+	public String getSERVICE_GOODS_LIST_SELECT(){return "select g.cat_id as catid,g.goods_id,g.image_default, c.name ,  " +
+			"p.specs  ,g.mktprice,g.point,g.staff_no,g.sn,g.ctn,c.spec_id,c.member_lv_id," +
+			"'' agent_name," +
+			"p.product_id,c.price,c.cart_id as cart_id,g.image_file," +
+			"c.num as num,c.itemtype,c.addon,case is_checked when 0 then 0 else 1 end is_checked from es_cart c, es_product p, es_goods g "+
+			"where c.itemtype=0 and (c.is_checked=1 or c.is_checked is null) and c.product_id=p.product_id and p.goods_id= g.goods_id and g.source_from = p.source_from and c.session_id=? and g.staff_no=? and g.source_from='"+ManagerUtils.getSourceFrom()+"'";}
+	public String getSERVICE_PGK_LIST_SELECT(){return "select g.sn,g.goods_id,g.image_default,c.name,g.mktprice,g.point,p.product_id,c.price,c.cart_id as cart_id,c.num as num,c.itemtype,g.staff_no,g.sn,g.image_file  from  es_cart c, es_product p,es_goods g "+
+			"where c.itemtype=1 and c.product_id=p.product_id and p.goods_id= g.goods_id and c.session_id=? and g.staff_no=?  and g.source_from='"+ManagerUtils.getSourceFrom()+"'";}
+	public String getSERVICE_GIFT_LIST_SELECT(){return "select f.fo_id as goods_id,f.list_thumb image_default,c.spec_id,f.fo_name as name, f.price as mktprice, f.score as point,c.product_id,f.score as price,f.limit_purchases as limitnum,c.cart_id as cart_id,c.num as num,c.itemtype,g.staff_no,g.sn,g.image_file  from "+ 
+			" es_cart c, es_freeoffer f, es_product p, es_goods g "+
+			" where c.itemtype=2 and c.spec_id=f.fo_id and c.product_id=p.product_id and g.source_from = p.source_from and p.goods_id=g.goods_id and c.session_id=? and g.staff_no=? and g.source_from='"+ManagerUtils.getSourceFrom()+"'";}
+	public String getSERVICE_GROUP_BUY_LIST_SELECT(){return "select g.goods_id,g.image_default, c.name ,c.member_lv_id,c.spec_id, g.mktprice,g.point,c.product_id,c.price,c.cart_id as cart_id,c.num as num,c.itemtype,c.addon,g.staff_no,g.sn,g.image_file  from "+ 
+			" es_cart c, es_goods g, es_group_buy gb "+
+			"where c.itemtype=3 and c.spec_id = gb.groupid and gb.goodsid= g.goods_id and c.session_id=? " +
+			"and g.staff_no=? and g.source_from = '" + ManagerUtils.getSourceFrom() + "'";}
+	public String getSERVICE_LIMIT_LIST_SELECT(){return "select g.goods_id,g.image_default, c.name ,c.member_lv_id,c.spec_id, g.mktprice,g.point,c.product_id,c.price,c.cart_id as cart_id,c.num as num,c.itemtype,c.addon,g.staff_no,g.sn,g.image_file  from "+ 
+			" es_cart c, es_goods g, es_limitbuy_goods gb "+
+			"where c.itemtype="+OrderStatus.ITEM_TYPE_4+" and c.spec_id = gb.limitbuyid and gb.goodsid= g.goods_id and c.session_id=? " +
+			"and g.staff_no=? and g.source_from = '" + ManagerUtils.getSourceFrom() + "'";}
+	public String getSERVICE_MORE_STAFF_NO_SELECT(){return "select count(distinct g.staff_no) as countNo from " +
+			"es_cart c,es_product p,es_goods g where c.product_id=p.product_id and p.goods_id=g.goods_id and " +
+			"(c.is_checked=1 or c.is_checked is null) and c.session_id=? and g.source_from = '" + ManagerUtils.getSourceFrom() + "'";}
+	public String getListOrderPromotion(){
+		return "select pa.name as activity_name,p.pmt_describe,p.pmts_id,p.pmt_id,op.order_id,pa.id as activity_id from es_order_pmt op,es_promotion p,es_promotion_activity pa where op.pmt_id=p.pmt_id "+
+				" and p.pmta_id=pa.id and op.order_id=? and op.source_from=p.source_from and op.source_from=p.source_from and pa.source_from=p.source_from and op.source_from=?";
+	}
+	
+	public String getListPromotionGoods(){
+		return "select g.* from es_goods g,es_pmt_goods pg where g.goods_id=pg.goods_id and g.source_from=pg.source_from and pg.pmt_id=? and g.source_from=?";
+	}
+	
+	public String getPromotionMenberLv(){
+		return "select ml.* from es_pmt_member_lv pml,es_member_lv ml where pml.lv_id=ml.lv_id and pml.source_from=ml.source_from and pml.pmt_id=? and pml.source_from=?";
+	}
+	public String getSERVICE_CHECKED_UPDATE(){return "update es_cart set is_checked=? where session_id =?";}
+	
+	public String getQUERY_ATTR_INST_TABLES(){
+		return "select * from es_attr_table where attr_def_id=? ";
+	}
+	
+}

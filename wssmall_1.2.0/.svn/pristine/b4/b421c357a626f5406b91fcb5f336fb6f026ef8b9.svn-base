@@ -1,0 +1,228 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                            http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <!-- 定义父模块 -->
+    <parent>
+        <groupId>com.ztesoft.crm.pass</groupId>
+        <artifactId>ebusiness</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+    
+    <!-- 定义坐标 -->
+    <artifactId>build_web</artifactId>
+    <packaging>war</packaging>
+    <name>电商平台-开发构建</name>
+    <description>电商平台-开发构建</description>
+    
+    <!-- 定义依赖 -->
+    <dependencies>
+        <!-- 从父 POM 继承不需要写版本号 start -->
+        <!-- j2ee start -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jsp-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax</groupId>
+            <artifactId>javaee</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax</groupId>
+            <artifactId>javaee-api</artifactId>
+        </dependency>
+        <!-- j2ee end -->
+        <!-- 从父 POM 继承不需要写版本号 end -->
+        
+        <!-- 定义自身个性化的依赖关系 start -->
+        <!-- 定义自身个性化的依赖关系 end -->
+        
+        <!-- 引入要合并的War包的依赖关系 start -->
+        <!-- <type>warpath</type> 使用 maven-warpath-plugin 插件把该War中的依赖关系传递过来 -->
+
+        
+        <!-- sys_server jar  -->
+        <dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>sys_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>sms_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<!-- <dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>logs_server</artifactId>
+			<version>${project.version}</version>
+		</dependency> -->
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>order_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>zj_goods_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>goods_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>goods_plugins_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>member_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>supplier_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>partner_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>payment_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>num_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>rule_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>info_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>rop_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.ztesoft.crm.pass</groupId>
+			<artifactId>task_server</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
+        <!-- mgWeb -->
+        <dependency>
+            <groupId>com.ztesoft.crm.pass</groupId>
+            <artifactId>mgWeb</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>com.ztesoft.crm.pass</groupId>
+            <artifactId>mgWeb</artifactId>
+            <version>${project.version}</version>
+            <type>warpath</type>
+        </dependency>
+        
+        <!-- zj_order_server -->
+        <dependency>
+            <groupId>com.ztesoft.crm.pass</groupId>
+            <artifactId>zj_order_server</artifactId>
+            <version>${project.version}</version>
+            <type>war</type>
+        </dependency>
+        <dependency>
+            <groupId>com.ztesoft.crm.pass</groupId>
+            <artifactId>zj_order_server</artifactId>
+            <version>${project.version}</version>
+            <type>warpath</type>
+        </dependency>
+        <!-- 引入要合并的War包的依赖关系 end -->
+    </dependencies>
+    
+    <build>
+        <finalName>${build.war.name}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <!-- 排除要合并的War包中的全部Jar包因为已经用插件把War包中依赖的Jar包全部引入了当前工程中 -->
+                    <configuration>
+                        <dependentWarExcludes>WEB-INF/lib/*</dependentWarExcludes>
+                    </configuration>
+                    
+                    <!-- 配置要合并的War包 -->
+                    <overlays>
+                        <!-- maven-war-plugin 打包时按 overlay 配置顺序进行打包 -->
+                        <!-- 文件覆盖顺序按配置，第一个overlay中的文件将不被下面的overlay中的文件覆盖 -->
+                        <!-- 如要精细的覆盖控制需要使用 includes excludes 属性控制 -->
+                        <!-- overlay skip 属性默认为 false，如设置为true则跳过对该节点配置的War包进行合并-->
+                      	
+                        <!-- mgWeb war -->
+                        <overlay>
+                            <id>mgWeb</id>
+                            <groupId>com.ztesoft.crm.pass</groupId>
+                            <artifactId>mgWeb</artifactId>
+                        </overlay>
+                       
+                        <!-- 空节点表示当前War工程 -->
+                        <overlay></overlay>
+                        <!-- zj_order_server war -->
+                        <overlay>
+                            <id>zj_order_server</id>
+                            <groupId>com.ztesoft.crm.pass</groupId>
+                            <artifactId>zj_order_server</artifactId>
+                        </overlay>
+                    </overlays>
+                </configuration>
+            </plugin>
+            
+            <!-- War依赖关系传递插件 -->
+            <plugin>
+                <groupId>org.appfuse</groupId>
+                <artifactId>maven-warpath-plugin</artifactId>
+            </plugin>
+    	</plugins>
+    </build>
+    <distributionManagement>
+		<snapshotRepository>
+			<id>nexus-snapshots</id>
+			<name>ztesoft distribution snapshot repository</name>
+			<url>http://10.45.47.168:8081/nexus/content/repositories/snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
+</project>

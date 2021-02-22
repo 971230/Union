@@ -1,0 +1,84 @@
+/*     */ package com.ztesoft.crm.report.storage.impl;
+/*     */ 
+/*     */ import com.ztesoft.crm.report.storage.ReportFile;
+/*     */ import com.ztesoft.crm.report.storage.Storage;
+/*     */ import com.ztesoft.crm.report.storage.StorageStream;
+/*     */ import java.io.InputStream;
+/*     */ import java.io.OutputStream;
+/*     */ import java.util.List;
+/*     */ import javax.servlet.ServletContext;
+/*     */ 
+/*     */ public class FtpStorageStream
+/*     */   implements StorageStream
+/*     */ {
+/*     */   private Storage storage;
+/*     */ 
+/*     */   public List deploy(ServletContext context, String parent, InputStream zip)
+/*     */     throws Exception
+/*     */   {
+/*  26 */     return null;
+/*     */   }
+/*     */ 
+/*     */   public boolean zip(ServletContext context, String path, OutputStream out)
+/*     */     throws Exception
+/*     */   {
+/*  39 */     return false;
+/*     */   }
+/*     */ 
+/*     */   public boolean createDirectory(ServletContext context, String parent, String name)
+/*     */     throws Exception
+/*     */   {
+/*  52 */     return false;
+/*     */   }
+/*     */ 
+/*     */   public InputStream getReport(ServletContext context, String path)
+/*     */     throws Exception
+/*     */   {
+/*  58 */     return null;
+/*     */   }
+/*     */ 
+/*     */   public boolean delete(ServletContext context, String path)
+/*     */     throws Exception
+/*     */   {
+/*  69 */     return false;
+/*     */   }
+/*     */ 
+/*     */   public ReportFile[] getDirectory(ServletContext context, String parent)
+/*     */     throws Exception
+/*     */   {
+/*  82 */     return null;
+/*     */   }
+/*     */ 
+/*     */   public Storage getStorage()
+/*     */   {
+/*  92 */     return this.storage;
+/*     */   }
+/*     */ 
+/*     */   public boolean rename(ServletContext context, String oldPath, String newPath)
+/*     */     throws Exception
+/*     */   {
+/* 104 */     return false;
+/*     */   }
+/*     */ 
+/*     */   public void setStorage(Storage storage)
+/*     */   {
+/* 116 */     this.storage = storage;
+/*     */   }
+/*     */ 
+/*     */   public boolean save(ServletContext context, String dir, InputStream xmlContent)
+/*     */     throws Exception
+/*     */   {
+/* 123 */     return false;
+/*     */   }
+/*     */ 
+/*     */   public boolean save(ServletContext context, String dir, String xmlContent)
+/*     */     throws Exception
+/*     */   {
+/* 129 */     return false;
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.storage.impl.FtpStorageStream
+ * JD-Core Version:    0.5.3
+ */

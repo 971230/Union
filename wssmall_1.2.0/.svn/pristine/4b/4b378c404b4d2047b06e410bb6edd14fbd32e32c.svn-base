@@ -1,0 +1,58 @@
+package com.ztesoft.net.app.base.plugin.fileUpload;
+
+import java.io.*;
+
+public class DeferredFileOutputStream
+    extends ThresholdingOutputStream
+{
+
+    private ByteArrayOutputStream memoryOutputStream;
+    private FileOutputStream diskOutputStream;
+    private OutputStream currentOutputStream;
+    private File outputFile;
+
+
+    public DeferredFileOutputStream(int threshold, File outputFile)
+    {
+        super(threshold);
+        this.outputFile = outputFile;
+
+        memoryOutputStream = new ByteArrayOutputStream(threshold);
+        currentOutputStream = memoryOutputStream;
+    }
+
+
+    protected OutputStream getStream() throws IOException
+    {
+        return currentOutputStream;
+    }
+
+    protected void thresholdReached() throws IOException
+    {
+        byte[] data = memoryOutputStream.toByteArray();
+        FileOutputStream fos = new FileOutputStream(outputFile);
+        fos.write(data);
+        diskOutputStream = fos;
+        currentOutputStream = fos;
+        memoryOutputStream = null;
+    }
+
+    public boolean isInMemory()
+    {
+        return (!isThresholdExceeded());
+    }
+
+    public byte[] getData()
+    {
+        if (memoryOutputStream != null)
+        {
+            return memoryOutputStream.toByteArray();
+        }
+        return null;
+    }
+
+    public File getFile()
+    {
+        return outputFile;
+    }
+}

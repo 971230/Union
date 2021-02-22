@@ -1,0 +1,771 @@
+package com.powerise.ibss.taglibs;
+
+import com.powerise.ibss.framework.ActionDispatch;
+import com.powerise.ibss.framework.DynamicDict;
+import com.powerise.ibss.system.SessionOBJ;
+
+import javax.servlet.jsp.PageContext;
+
+import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Iterator;
+public class FuncTag  {
+	private static Logger logger = Logger.getLogger(FuncTag.class);
+	//依据以;或者,分隔参数名称，从request中取得值，并压入HashMap中
+	public static HashMap getValuesFromRequest(PageContext pg,String paramReq){
+		javax.servlet.http.HttpServletRequest request = (javax.servlet.http.HttpServletRequest)pg.getRequest();
+		HashMap hashValue = null;
+		int     iPos      = 0;
+		String  sParamName= null;
+		String  sParamValue= null;
+		if (request == null || paramReq==null || paramReq.trim().equals("")) return null;
+		paramReq = paramReq.trim();
+		while (paramReq!=null){
+			paramReq = paramReq.trim();
+			iPos     = paramReq.indexOf(";");
+			if(iPos<0)iPos  = paramReq.indexOf(",");
+			if (iPos<0) {
+				sParamName  = paramReq;
+				paramReq    = null;
+			}else{
+				sParamName = paramReq.substring(0,iPos);
+				paramReq   = paramReq.substring(iPos+1);
+			}
+			sParamName  = sParamName.trim();
+			if (sParamName.equals("")) continue;
+			sParamValue = request.getParameter(sParamName);
+			if (sParamValue ==null) continue;
+			if (hashValue==null ) hashValue = new HashMap();
+			hashValue.put(sParamName,sParamValue);
+		}
+		return hashValue;
+	}
+	
+  	//支撑函数
+  		//依据以;或者,分隔参数名称，从request中取得值，并压入HashMap中
+	public static  String getValueFromRequest(PageContext pg,String paramName,String scope){
+		if (scope    ==null || scope.trim().equals("" )   ) return null;
+		if (paramName==null || paramName.trim().equals("")) return null;
+		scope = ";"+scope.trim().toLowerCase()+";";
+		
+		javax.servlet.http.HttpServletRequest request = (javax.servlet.http.HttpServletRequest)pg.getRequest();	
+		javax.servlet.http.HttpSession        session = null;
+		if (request == null ) return null;
+		if (";request;r;".indexOf(scope)>-1){
+			return request.getParameter(paramName);
+		}
+		Object obj = null;
+		String className = null;
+		if (";session;s;".indexOf(scope)>-1){
+			session = request.getSession();
+			if (session == null ) return null;
+			obj = session.getAttribute(paramName);
+			if (obj ==null) return null;
+			className = obj.getClass().getName();
+			if (className!=null && className.indexOf("String")>-1){
+				return (String)obj;
+			}
+		}
+		return null;
+	}
+  	//从Session取得用户信息
+	public static SessionOBJ getSessionOBJ(PageContext pg,String varName){
+		if(pg ==null) return null;
+		if (varName ==null || varName.trim().equals("")) varName = "user";
+		SessionOBJ sessionOBJ = null;
+		javax.servlet.http.HttpServletRequest request = (javax.servlet.http.HttpServletRequest)pg.getRequest();
+		javax.servlet.http.HttpSession        session = null;
+		if (request!=null) 	session = request.getSession();
+		Object obj = null;
+		if (session!=null){
+			obj = session.getAttribute(varName);
+		}
+		if (obj!=null){
+			String className = obj.getClass().getName();
+			if (className!=null && className.indexOf("SessionOBJ")>-1){
+				sessionOBJ = (SessionOBJ)obj;
+			}
+		}
+		return sessionOBJ;
+	}
+	//bCombo 取得下拉列表的options
+	public static String getStaticValue(ArrayList aList,String value,boolean bCombo){
+		if (aList==null) return value;
+		String keyName = null;
+		String keyValue= null;
+		int    iLoop   = 0;
+		int    iLoopNum= 0;
+		HashMap hashValue = null;
+		iLoopNum = aList.size();
+		StringBuffer sbCombo = null;
+		if(bCombo) sbCombo = new StringBuffer("");
+		boolean bFindFlag = false;
+		for(iLoop=0;iLoop<iLoopNum;iLoop++){
+			bFindFlag = false;
+			Object obj = aList.get(iLoop);
+			if (obj==null) continue;
+			String className = obj.getClass().getName();
+			if (!className.equals("java.util.HashMap")) continue;
+			hashValue = (HashMap) obj;
+			keyName = (String)hashValue.get("name");
+			keyValue= (String)hashValue.get("value");
+			if ( (keyName!=null && keyName.equals(value)) || (keyValue!=null && keyValue.equals(value))) {
+				bFindFlag = true;
+			}
+			if (keyValue==null) keyValue = "";
+			if (sbCombo!=null){
+				sbCombo.append ("<option value=\"" + keyValue +"\" ");
+				if(bFindFlag) sbCombo.append (" selected ");
+				sbCombo.append ( ">" + keyName + "</option>\n") ;
+				continue;
+			}
+			if(bFindFlag) return keyName;
+		}
+		if (sbCombo!=null) return sbCombo.toString();
+		return value;
+	}
+	public static HashMap getCardControlInfo(PageContext pg,String SERV_NO,String CARD_TYPE){
+		HashMap hashRet = null;
+		DynamicDict dict1 = new DynamicDict(1);
+		HashMap para = new HashMap();
+		if (SERV_NO  ==null ||  SERV_NO.trim().equals("")) SERV_NO  = getValueFromRequest(pg,"SERV_NO","request");
+		if (CARD_TYPE==null ||CARD_TYPE.trim().equals("")) CARD_TYPE= getValueFromRequest(pg,"CARD_TYPE","request");
+		if (SERV_NO  ==null ||  SERV_NO.trim().equals("") || CARD_TYPE==null ||CARD_TYPE.trim().equals("")){
+			return null;
+		}
+		try{
+			para.put("SERV_NO"  ,SERV_NO);
+			para.put("CARD_TYPE",CARD_TYPE);
+			dict1.setValueByName("parameter", para);
+			//设置值对象的ActionID
+			dict1.m_ActionId = "QCardControl_2" ;
+			dict1.flag = 1;
+			dict1 = ActionDispatch.dispatch(dict1);
+			if (dict1==null) return hashRet;
+			//logger.info("dict1=" + dict1.m_Values);
+			if (dict1.flag < 0) {
+				//异常信息
+//				logger.info(dict1.flag +"查询卡片控制错误信息：" + dict1.msg + "异常信息：" +dict1.exception);
+				return null;
+			}
+			Object obj = dict1.getValueByName("QCardControl_2", false);
+			if (obj==null || !obj.getClass().getName().equals("java.util.ArrayList")) return null;
+			ArrayList aList = (ArrayList) obj;
+			int iLoop = 0;
+			int iLoopNum = aList.size();
+			HashMap hm   = null;
+			HashMap hm_1 = null;
+			HashMap hm_2 = null;
+			for(iLoop=0;iLoop< iLoopNum;iLoop++){
+				Object obj1 = (HashMap)aList.get(iLoop);
+				if (obj1==null || !obj1.getClass().getName().equals("java.util.HashMap")) continue;
+				hm = (HashMap)obj1;
+				String FIELD_NAME  = (String)hm.get("FIELD_NAME" );
+				String IS_VISIBLE  = (String)hm.get("IS_VISIBLE" );
+				String IS_READONLY = (String)hm.get("IS_READONLY");
+				if (FIELD_NAME==null || FIELD_NAME.trim().equals("")) continue;
+				if (IS_VISIBLE ==null || !IS_VISIBLE.trim().equals("1") ) IS_VISIBLE = "0";
+				if (IS_READONLY==null || !IS_READONLY.trim().equals("1")) IS_READONLY = "0";
+				if (hm_1==null) hm_1= new HashMap();
+				if (hm_2==null) hm_2= new HashMap();
+				hm_1.put(FIELD_NAME.trim(),IS_VISIBLE);
+				hm_2.put(FIELD_NAME.trim(),IS_READONLY.trim());
+			}
+			if (hm_2!=null){
+				if(hashRet==null) hashRet= new HashMap();
+				hashRet.put("VISIBLE"  , hm_1 );
+				hashRet.put("READONLY" , hm_2 );
+			}
+		}catch(Exception e){
+			//logger.info("查询卡片控制发生异常\n：" +e.getMessage());
+			logger.info("查询卡片控制发生异常\n：" +e.getMessage());
+		}
+		return hashRet;
+	}
+  	public static ArrayList getStaticData(PageContext pg,String vAction ,String vServType,boolean bNeedUser,String vValueField,String vNameField,String vRSName,String vPrefix, String formerPara){
+  		HashMap   hashRet = null;
+  		ArrayList retList = null;
+  		//如果vAction 为空 
+  		if (vAction    ==null || vAction.trim().equals("") ) return retList;
+  		if (vNameField ==null || vNameField.trim().equals("") ) return retList;
+  		if (vValueField==null || vValueField.trim().equals("")) return retList;
+  		if (vPrefix    ==null ) vPrefix = "";
+  		vPrefix = vPrefix.trim();
+  		if (vPrefix.equals("")) vPrefix = "s";
+  		try {
+			DynamicDict dict1 = new DynamicDict(1);
+			HashMap para = new HashMap();
+			SessionOBJ user = null ; //用户信息
+			int     iPos      = 0;
+			String  sParamName= null;
+			String  sParamValue= null;
+		
+			//设置值对象的ActionID
+			dict1.m_ActionId = vAction ;
+			// 1 动态SQL 2 服务 3 静态字典 当为3 时 action为表名 nameField为字段名
+			if (vServType==null || vServType.trim().equals("")) vServType = "1";
+			vServType = vServType.trim().toLowerCase();
+			vServType = ";" + vServType+";";
+			if (";1;dsql;sql;".indexOf(vServType)>-1) dict1.flag = 1;
+			if (bNeedUser) user = getSessionOBJ( pg,"");
+			//将所有有关参数信息压入值对象
+			if(user!=null) {
+				dict1.setValueByName("STAFF-NO", user.getStaffNo());
+			}
+			if (vAction.trim().toUpperCase().equals("MSM_151" )){
+				dict1.m_ActionId    = "MSM_151";
+				dict1.setValueByName ("table_name", vNameField ) ;
+				dict1.setValueByName ("field_name", vValueField) ;
+				vRSName = vNameField.toUpperCase () ;
+			}
+			if (formerPara!= null && !formerPara.trim().equals("")){
+				formerPara=formerPara.trim().toUpperCase();
+				while (!formerPara.equals("")){
+					//取得参数名称
+					iPos     = formerPara.indexOf(";");
+					if(iPos<0)iPos  = formerPara.indexOf(",");
+					if (iPos<0) {
+						sParamName = formerPara;
+						formerPara = "";
+					}else{
+						sParamName = formerPara.substring(0,iPos);
+						formerPara = formerPara.substring(iPos+1);
+					}
+					sParamName  = sParamName.trim();
+					if (sParamName==null )continue;
+					sParamName = vPrefix+"." + sParamName;
+					sParamValue = getValueFromAttr(pg,sParamName,"");
+					if (sParamValue==null) sParamValue = "";
+					iPos = sParamName.indexOf(".");
+					if (iPos>-1){
+						sParamName = sParamName.substring(iPos+1);
+					}
+					para.put(sParamName , sParamValue);
+				}
+				
+			}
+//			logger.info("para=" + para.toString());
+			dict1.setValueByName("parameter", para);
+			
+			dict1 = ActionDispatch.dispatch(dict1);
+			if (dict1==null) return retList;
+			//logger.info("dict1=" + dict1.m_Values);
+			if (dict1.flag < 0) {
+				//异常信息
+				//logger.info(dict1.flag +"vAction=" + vAction+ "    错误信息：" + dict1.msg + "异常信息：" +dict1.exception);
+				logger.info(dict1.flag +"vAction=" + vAction+ "    错误信息：" + dict1.msg + "异常信息：" +dict1.exception);
+				return retList;
+			}
+      		Object obj = null;
+      		if (vRSName != null){
+        		obj = dict1.getValueByName(vRSName, false);
+        	}else{
+        		vAction = vAction.trim().toUpperCase();
+        		obj = dict1.getValueByName(vAction, false);
+        	}
+        	
+        	if (obj==null) { 
+        		return retList;
+        	}
+        	
+        	HashMap hashDict = null;
+        	String classname = obj.getClass().getName();
+        	if (classname.equals("java.util.HashMap")) {
+        		hashRet = (HashMap)obj;
+        		Iterator it = hashRet.keySet().iterator();
+				while(it!=null && it.hasNext()){
+					String KeyName  = (String)it.next();
+					if (KeyName==null) continue;
+					String KeyValue = (String)hashRet.get(KeyName);
+					if (KeyValue==null) KeyValue = "";
+					
+					hashDict = new HashMap();
+        			hashDict.put("name"  , KeyName );
+        			hashDict.put("value" , KeyValue);
+        			if (retList==null) retList = new ArrayList(20);
+        			retList.add(hashDict);
+				}
+        	}
+        	int iLoop = 0;
+        	int iLoopNum = 0;
+        	if (classname.equals("java.util.ArrayList")) {
+        		ArrayList aList = (ArrayList)obj;
+        		iLoopNum = aList.size();
+        		HashMap hm = null;
+        		vValueField = vValueField.trim().toUpperCase();
+        		vNameField  = vNameField.trim().toUpperCase();
+        		if (vAction.trim().toUpperCase().equals("MSM_151" )) {
+        			vValueField = "value";
+        			vNameField  = "text";
+        		}
+        		for(iLoop=0;iLoop< iLoopNum;iLoop++){
+        			hm = (HashMap)aList.get(iLoop);
+        			if (hm==null) continue;
+        			if (hashRet==null) hashRet = new HashMap();
+        			if (hm.get(vNameField )==null) continue;
+        			
+        			hashDict = new HashMap();
+        			hashDict.put("name"  , hm.get( vNameField  ));
+        			hashDict.put("value" , hm.get( vValueField  ));
+        			if (retList==null) retList = new ArrayList(20);
+        			retList.add(hashDict);
+        		}
+        	}
+        }catch(Exception e){
+        	//logger.info("FuncTag getStaticData 取得" + vAction +"发生异常");
+        	logger.info("FuncTag getStaticData 取得" + vAction +"发生异常");
+        }
+        if (retList!=null) {
+        	//logger.info("FuncTag retList=\n"+retList.toString());
+        }
+        return retList;
+  	}
+  	public static void appendHashMap(HashMap hashDest,HashMap hashSource){
+		if (hashSource==null || hashDest==null) return ;
+		Iterator it = hashSource.keySet().iterator();
+		String   keyName = null;
+		Object   valueObj = null;
+		while(it!=null && it.hasNext()){
+			keyName  = (String)it.next();
+			valueObj = hashSource.get(keyName);
+			if(valueObj==null) continue;
+			hashDest.put(keyName,valueObj);
+		}
+	}
+	//依据以;或者,分隔参数名与值对中,取得值，并压入HashMap中
+	public static  HashMap getHashMapFromStr(String inValues){
+		HashMap hashValue = null;
+		int     iPos      = 0;
+		String  sParamName= null;
+		String  sParamValue= null;
+		if (inValues==null || inValues.trim().equals("")) return null;
+		
+		inValues = inValues.trim();
+		while (inValues!=null){
+			//取得参数名称
+			iPos     = inValues.indexOf(";");
+			if(iPos<0)iPos  = inValues.indexOf(",");
+			if (iPos<0) {
+				sParamName  = inValues;
+				inValues    = "";
+			}else{
+				sParamName = inValues.substring(0,iPos);
+				inValues   = inValues.substring(iPos+1);
+			}
+			sParamName  = sParamName.trim();
+			//取得参数值
+			iPos     = inValues.indexOf(";");
+			if(iPos<0)iPos  = inValues.indexOf(",");
+			if (iPos<0) {
+				sParamValue = inValues;
+				inValues    = null;
+			}else{
+				sParamValue = inValues.substring(0,iPos);
+				inValues    = inValues.substring(iPos+1);
+			}
+			if (sParamName.equals("")) continue;
+			if (hashValue==null ) hashValue = new HashMap();
+			hashValue.put(sParamName,sParamValue);
+		}
+		return hashValue;
+	}
+
+	//依据以;或者,分隔参数名与值对中,取得值，并压入HashMap中
+	public static  String getValuesFromStr(String inValues,String name){
+		if (name==null ||name.trim().equals("")) return null;
+		int     iPos      = 0;
+		String  sParamName= null;
+		String  sParamValue= null;
+		if (inValues==null || inValues.trim().equals("")) return null;
+		inValues = inValues.trim();
+		while (inValues!=null){
+			//取得参数名称
+			iPos     = inValues.indexOf(";");
+			if(iPos<0)iPos  = inValues.indexOf(",");
+			if (iPos<0) {
+				sParamName  = inValues;
+				inValues    = "";
+			}else{
+				sParamName = inValues.substring(0,iPos);
+				inValues   = inValues.substring(iPos+1);
+			}
+			sParamName  = sParamName.trim();
+			//取得参数值
+			iPos     = inValues.indexOf(";");
+			if(iPos<0)iPos  = inValues.indexOf(",");
+			if (iPos<0) {
+				sParamValue = inValues;
+				inValues    = null;
+			}else{
+				sParamValue = inValues.substring(0,iPos);
+				inValues   = inValues.substring(iPos+1);
+			}
+			if (sParamName.equals("")) continue;
+			if (name.equals(sParamName)) return sParamValue;
+		}
+		return null;
+	}
+	public static String getItemsFromAttr(PageContext pg,String vItems,String vScope){
+		if (vItems==null || vItems.trim().equals("")) return "";
+		
+		int     iPos      = 0;
+		String  sParamName= null;
+		String  sParamName1= null;
+		String  sParamValue= null;
+		String  strRet     = "";
+		String  vPrefix    = "s";
+		
+		iPos     = vItems.indexOf(".");
+		if (iPos>-1){
+			vPrefix = vItems.substring(0,iPos);
+			vItems  = vItems.substring(iPos+1);
+		}
+		vPrefix = vPrefix.trim();
+		if(vPrefix.equals("")) vPrefix="s";
+		vItems = vItems.trim();
+		if (vItems.equals("")) return "";
+		while (vItems!=null && !vItems.equals("")){
+			//取得参数名称
+			iPos     = vItems.indexOf(";");
+			if(iPos<0)iPos  = vItems.indexOf(",");
+			if (iPos<0) {
+				sParamName  = vItems;
+				vItems     = "";
+			}else{
+				sParamName = vItems.substring(0,iPos);
+				vItems     = vItems.substring(iPos+1);
+			}
+			sParamName  = sParamName.trim();
+			if (sParamName.equals("")) continue;
+			//取得参数值
+			sParamName1 = vPrefix+"."+sParamName;
+			if (vScope!=null && !vScope.trim().equals("")) sParamName1 = sParamName;
+			sParamValue = getValueFromAttr( pg , sParamName1,vScope);
+			strRet += sParamName.toUpperCase()+"=" + sParamValue;
+		}
+//		logger.info("getItemsFromAttr strRet=" + strRet);
+		return strRet;
+	}
+	public static String getValueFromAttr(PageContext pg,String vParaName,String vScope){
+		String      strNames = vParaName;
+		String      strValue = null ;
+		String      strTmp   = null ;
+		Object      objValue = null;
+		
+		Object      obj      = null;
+		int         iPos     = 0;
+		String      dictName = "s";
+		String      RsName   = "";
+		String      fieldName= "";
+		String      className = null;
+		
+		if (vParaName ==null || vParaName.trim().equals("")) return null;
+		try {
+			//从request取得值
+			if (vScope!=null && !vScope.trim().equals("")){
+				return getValueFromRequest (pg,vParaName,vScope);
+			}
+			//从指定的页面属性中取得值
+			iPos = strNames.indexOf(".");
+			
+			//必须包含一个小数点
+			if (iPos<0) return strValue;
+			dictName = strNames.substring(0,iPos);
+			strNames = strNames.substring(iPos+1);
+			
+			iPos = strNames.indexOf(".");
+			if (iPos<0) {
+				RsName = strNames;
+			}else{
+				RsName   = strNames.substring(0,iPos);
+				strNames = strNames.substring(iPos+1);
+			}
+			if (RsName == null || RsName.trim().equals("")) RsName = dictName;
+			
+			iPos = strNames.indexOf(".");
+			if (iPos<0) {
+				fieldName = strNames;
+			}else{
+				fieldName= strNames.substring(0,iPos);
+				strNames = strNames.substring(iPos+1);
+			}
+			if (fieldName == null || fieldName.trim().equals("")) fieldName = RsName;
+			
+			RsName    = RsName.trim().toUpperCase();
+			fieldName = fieldName.trim().toUpperCase();
+			
+			//取得值对象
+			obj = pg.getRequest().getAttribute(dictName);
+			Object rsObj = null;
+			if (obj!=null){
+				className = obj.getClass().getName();
+				if (className.equals("java.lang.String")) strValue = (String)obj;
+				if (className.indexOf("DynamicDict")>-1){
+					DynamicDict dict = (DynamicDict) obj;
+					rsObj = dict.getValueByName(RsName, false);
+				}else{
+					rsObj = obj;
+				}
+			}
+			Object rowObj = null;
+			if (rsObj!=null){
+				className = rsObj.getClass().getName();
+				if (className.equals("java.lang.String")) strValue = (String)rsObj;
+				if (className.indexOf("java.util.ArrayList")>-1){
+					ArrayList aList = (ArrayList) rsObj;
+					if (aList.size()>0){
+						rowObj = aList.get(0);
+					}
+				}else{
+					rowObj = rsObj;
+				}	
+			}
+			Object fieldObj = null;
+			if (rowObj!=null){
+				className = rowObj.getClass().getName();
+				if (className.equals("java.lang.String")) strValue = (String)rsObj;
+				if (className.indexOf("java.util.HashMap")>-1){
+					HashMap hashMap = (HashMap) rowObj;
+					fieldObj = hashMap.get(fieldName);
+				}
+				if (className.indexOf("java.util.Hashtable")>-1){
+					Hashtable hashMap = (Hashtable) rowObj;
+					fieldObj = hashMap.get(fieldName);
+				}	
+			}
+			if (fieldObj!=null){
+				className = fieldObj.getClass().getName();
+				if (className.equals("java.lang.String")) strValue = (String)fieldObj;
+			}
+//			logger.info("FuncTag getValueFromAttr " + vParaName +" = " + strValue );
+		}
+		catch (Exception e) {
+			//logger.info("FuncTag getValueFromAttr 在取值"+vParaName+"时，出现异常" +  e.getMessage());
+			logger.info("FuncTag getValueFromAttr 在取值"+vParaName+"时，出现异常" +  e.getMessage());
+		}
+		return strValue;
+	}
+	//从Attribute中取得值压入参数表中
+	public static void getHashValueFromAttr(PageContext pg,String strAttr,HashMap hashParam){
+		if(hashParam==null || strAttr==null || strAttr.trim().equals("")) return;
+
+		int iPos = 0;
+		String attrName  = null;
+		String attrValue = null;
+		Object objValue  = null;
+		
+		strAttr = strAttr.trim().toUpperCase();
+		while(!strAttr.equals("")){
+			iPos = strAttr.indexOf(";");
+			if(iPos<0) iPos = strAttr.indexOf(",");
+			if (iPos<0){
+				attrName = strAttr;
+				strAttr  = "";
+			}else{
+				attrName = strAttr.substring(0,iPos);
+				strAttr  = strAttr.substring(iPos + 1);
+			}
+			attrName = attrName.trim();
+			if (attrName.equals("")) continue;
+			objValue  = pg.getRequest().getAttribute(attrName);
+			if (objValue==null) continue;
+			String className = objValue.getClass().getName();
+			
+			if (className==null && !className.equals("java.lang.String")) continue;
+			attrValue = (String)objValue;
+			
+//			logger.info("ActionTag getHashValueFromAttr " + attrName + "=" + attrValue);
+			hashParam.put(attrName,attrValue);
+		}
+	}
+	//将取得值压入Attribute
+	public static void setValueToAttr(PageContext pg,String strAttr,Object obj){
+		if(obj==null|| strAttr==null || strAttr.trim().equals("")) return;
+		
+		String className = obj.getClass().getName();
+		HashMap hashParam = null;
+		
+		if (className.equals("java.util.HashMap")){
+			hashParam = (HashMap) obj;
+		}
+		if (className.equals("java.util.ArrayList")){
+			ArrayList aList = (ArrayList)obj;
+			if (aList.size()>0){
+				Object objTmp = aList.get(0);
+				className = objTmp.getClass().getName();
+				if (className.equals("java.util.HashMap")){
+					hashParam = (HashMap) objTmp;
+				}
+			}
+		}
+		
+		int    iPos = 0;
+		String attrName  = null;
+		String attrValue = null;
+		Object objValue  = null;
+		
+		strAttr = strAttr.trim().toUpperCase();
+		while(!strAttr.equals("")){
+			iPos = strAttr.indexOf(";");
+			if(iPos<0) iPos = strAttr.indexOf(",");
+			if (iPos<0){
+				attrName = strAttr;
+				strAttr  = "";
+			}else{
+				attrName = strAttr.substring(0,iPos);
+				strAttr  = strAttr.substring(iPos + 1);
+			}
+			attrName = attrName.trim();
+			if (attrName.equals("") || hashParam==null) continue;
+			objValue  = hashParam.get(attrName);
+
+			if (objValue==null){
+				continue;
+			}
+			pg.getRequest().setAttribute( attrName , objValue );
+		}
+	}
+	
+	public static int posInStr(String str,String sign){
+		int iLoop    = 0;
+		int iLoopNum = 0;
+		if (str!=null) iLoopNum = str.length();
+		for (iLoop = 0;iLoop<iLoopNum;iLoop++){
+			char ch = str.charAt(iLoop);
+			if (sign.indexOf(ch)>-1) return iLoop;
+		}
+		return -1;
+	}
+	//处理只读属性
+	public static String dealEnabledInStyle(String vOthers,String READONLY){
+		if (READONLY==null) return vOthers;
+		int iPos = 0;
+		int iLoop = 0;
+		int iLoopNum = 0;
+		String str  = vOthers.toLowerCase();
+		String str1 = null;
+		char  ch = 0;
+		//判断是否包含有 disabled
+		iPos = str.indexOf("disabled");
+		if (iPos<0){
+			return vOthers + " disabled=" + READONLY +" ";
+		}
+		StringBuffer sbRet = new StringBuffer("");
+		str1 = vOthers.substring(0,iPos);
+		sbRet.append(str1);
+		str = str.substring(iPos+8);
+		vOthers= vOthers.substring(iPos+8);
+		if (str.substring(0).equals("=")){
+			str = str.substring(1);
+			str = str.trim();
+			vOthers = vOthers.trim();
+			if (str.substring(0,4).equals("true")) vOthers = vOthers.substring(4);
+			if (str.substring(0,5).equals("false")) vOthers = vOthers.substring(5);
+		}
+		sbRet.append(" disabled=" + READONLY +" ");
+		return sbRet.toString();
+	}
+	
+	//处理控件的样式表
+	public static String dealStyleinControl(PageContext pg,String vOthers,String vName){
+		if (vName==null || vName.trim().equals("")) return vOthers;
+		Object obj = pg.getRequest().getAttribute("Card_Show");
+		if (obj==null || !obj.getClass().getName().equals("java.util.HashMap")) return vOthers;
+		vName = vName.trim();
+		HashMap hash = (HashMap)obj;
+		HashMap hm_1 = (HashMap)hash.get("VISIBLE");
+		HashMap hm_2 = (HashMap)hash.get("READONLY");
+		String VISIBLE  = null ;
+		String READONLY = null ;
+		
+		String VISIBLE_ALL  = null;
+		String READONLY_ALL = null;
+
+		if(hm_1!=null){
+			VISIBLE      = (String)hm_1.get(vName);
+			VISIBLE_ALL  = (String)hm_1.get("ALL");
+		}
+		if(hm_2!=null){
+			READONLY     = (String)hm_2.get(vName);
+			READONLY_ALL = (String)hm_2.get("ALL");
+		}
+		
+		if (READONLY==null && READONLY_ALL !=null) READONLY= READONLY_ALL;
+		if (VISIBLE ==null && VISIBLE_ALL  !=null) VISIBLE = VISIBLE_ALL;
+		
+		if (VISIBLE!=null){
+			if (VISIBLE.trim().equals("1")){
+				VISIBLE = "visible";
+			}else{
+				VISIBLE = "hidden";
+			}
+		}
+		if (READONLY!=null){
+			if (READONLY.trim().equals("1")){
+				READONLY = "true";
+			}else{
+				READONLY = "false";
+			}
+		}
+		vOthers = dealEnabledInStyle(vOthers,READONLY);
+		if (VISIBLE==null) return vOthers;
+		int iPos = 0;
+		int iLoop = 0;
+		int iLoopNum = 0;
+		String str  = null;
+		String str1 = null;
+		char  ch = 0;
+		StringBuffer sbRet = new StringBuffer("");
+		
+		str  = vOthers.toLowerCase();
+		iPos = str.indexOf("style");
+		
+		if (iPos<0){
+			sbRet.append("style=\"");
+			sbRet.append("visibility:");
+			sbRet.append(VISIBLE);
+			sbRet.append("\" ");
+			sbRet.append(vOthers);
+			return sbRet.toString();
+		}
+		//去掉style
+		str1 = vOthers.substring(0,iPos+5);
+		sbRet.append(str1);
+		str = str.substring(iPos+5);
+		vOthers= vOthers.substring(iPos+5);
+		
+		//去掉style其后的单引号或者双引号
+		iPos = posInStr(str,"\'\"");
+		if (iPos>-1){
+			str1 = str.substring(0,iPos+1);
+			sbRet.append(vOthers.substring(0,iPos+1));
+			str = str.substring(iPos+1);
+			vOthers= vOthers.substring(iPos+1);
+		}
+		
+		
+		iPos = str.indexOf("visibility");
+		if (iPos<0){
+			sbRet.append("visibility:");
+			sbRet.append(VISIBLE+";");
+		}else{
+			str1 = vOthers.substring(0,iPos+10);
+			sbRet.append(str1);
+			str = str.substring(iPos+10);
+			vOthers= vOthers.substring(iPos+10);
+			iPos = posInStr(str,";\'\"");
+			if (iPos>-1){
+				str1 = vOthers.substring(0,iPos+1);
+				sbRet.append(":"+VISIBLE);
+				sbRet.append(vOthers.substring(iPos,iPos+1));
+				str = str.substring(iPos+1);
+				vOthers= vOthers.substring(iPos+1);
+			}
+		}
+		sbRet.append(vOthers);
+		return sbRet.toString();
+	}
+}

@@ -1,0 +1,74 @@
+package com.ztesoft.mall.core.action.backend;
+
+import com.ztesoft.net.framework.action.WWAction;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.model.GoodsArea;
+import com.ztesoft.net.mall.core.service.IGoodsAreaManager;
+
+public class GoodsAreaAction extends WWAction {
+	protected GoodsArea goodsArea;
+	protected IGoodsAreaManager goodsAreaManager;
+	private String goodsid;
+
+	
+	// 处理商品审核
+	public String goodsAuditResult() {
+
+		try {
+			if(StringUtil.isEmpty(goodsArea.getState()))
+			{
+				this.json = "{result:1,message:'处理状态不能为空!'}";//商品审核
+				return WWAction.JSON_MESSAGE;
+			}
+			goodsAreaManager.edit(goodsArea);
+			this.json = "{result:1,message:'操作成功'}";//商品审核
+		} catch (Exception e) {
+			if (logger.isDebugEnabled()) {
+				logger.debug(e);
+			}
+			this.json = "{result:0,message:\"操作失败：" + e.getMessage() + "\"}";
+		}
+		return WWAction.JSON_MESSAGE;
+
+	}
+	//查询商品审核日志
+	public String showAuditLog(){
+		this.webpage=goodsAreaManager.serachGoodsAreaLog(goodsid,this.getPage(),this.getPageSize());
+		return "showAuditLog";
+	}
+	//商品发布成功的区域
+	public String goodsAreaSucc(){
+		this.webpage=goodsAreaManager.serachGoodsAreaSucc(goodsid,this.getPage(),this.getPageSize());
+		return "goodsAreaSucc";
+	}
+	//商品发布的区域
+	public String goodsAreaWaitAudit(){
+		this.webpage=goodsAreaManager.serachGoodsWaitAudit(goodsid,this.getPage(),this.getPageSize());
+		return "goodsAreaWaitAudit";
+	}
+
+	public GoodsArea getGoodsArea() {
+		return goodsArea;
+	}
+
+	public void setGoodsArea(GoodsArea goodsArea) {
+		this.goodsArea = goodsArea;
+	}
+
+	public IGoodsAreaManager getGoodsAreaManager() {
+		return goodsAreaManager;
+	}
+
+	public void setGoodsAreaManager(IGoodsAreaManager goodsAreaManager) {
+		this.goodsAreaManager = goodsAreaManager;
+	}
+
+	public String getGoodsid() {
+		return goodsid;
+	}
+
+	public void setGoodsid(String goodsid) {
+		this.goodsid = goodsid;
+	}
+	
+}

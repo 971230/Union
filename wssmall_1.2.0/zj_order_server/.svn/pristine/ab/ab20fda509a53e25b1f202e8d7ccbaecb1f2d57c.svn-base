@@ -1,0 +1,18 @@
+package com.ztesoft.net.ecsord.params.ecaop.vo;
+
+public class UNIBSSBODYQRYVO {
+
+	private QRY_SELECTION_NUM_REQ QRY_SELECTION_NUM_REQ;
+
+	public QRY_SELECTION_NUM_REQ getQRY_SELECTION_NUM_REQ() {
+		return QRY_SELECTION_NUM_REQ;
+	}
+
+	public void setQRY_SELECTION_NUM_REQ(QRY_SELECTION_NUM_REQ qRY_SELECTION_NUM_REQ) {
+		QRY_SELECTION_NUM_REQ = qRY_SELECTION_NUM_REQ;
+	}
+
+	
+
+	
+}

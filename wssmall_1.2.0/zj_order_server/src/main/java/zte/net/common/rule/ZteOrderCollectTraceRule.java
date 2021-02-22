@@ -1,0 +1,379 @@
+package zte.net.common.rule;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+
+import zte.net.common.annontion.context.action.ZteMethodAnnontion;
+import zte.net.common.annontion.context.action.ZteServiceAnnontion;
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.base.req.BusiCompRequest;
+import zte.net.ecsord.params.base.resp.BusiCompResponse;
+import zte.net.ecsord.params.busi.req.OrderItemProdBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderItemProdExtBusiRequest;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.taobao.req.TaobaoIdentityGetRequest;
+import zte.net.ecsord.params.taobao.resp.TaobaoIdentityGetResponse;
+import zte.net.ecsord.rule.mode.ModeFact;
+import zte.net.ecsord.rule.tache.TacheFact;
+import zte.net.ecsord.rule.workflow.WorkFlowFact;
+import zte.net.params.req.CataloguePlanExeReq;
+import zte.net.params.req.PlanRuleTreeExeReq;
+import zte.net.params.resp.PlanRuleTreeExeResp;
+
+import com.ztesoft.api.ApiBusiException;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.BusiDealResult;
+import com.ztesoft.net.service.IOrdCollectManagerManager;
+import com.ztesoft.net.service.IOrdVisitTacheManager;
+
+import commons.CommonTools;
+import consts.ConstsCore;
+
+/**
+ *
+ * 订单归集规则处理
+ * @author wu.i
+ */
+@ZteServiceAnnontion(trace_name="ZteOrderCollectTraceRule",trace_id="1",version="1.0",desc="订单归集环节业务通知组件")
+public  class ZteOrderCollectTraceRule extends ZteTraceBaseRule {
+	private static Logger logger = Logger.getLogger(ZteOrderCollectTraceRule.class);
+	@Resource
+	private IOrdCollectManagerManager ordCollectManager;
+	@Resource
+	private IOrdVisitTacheManager ordVisitTacheManager;
+	/**
+	 *订单归集环节入口
+	 */
+	@Override
+	@ZteMethodAnnontion(name="订单归集入口(订单归集)",group_name="订单归集",order="1",page_show=true,path="orderCollectTraceRule.exec")
+	public BusiCompResponse engineDo(BusiCompRequest busiCompRequest) {
+		BusiCompResponse resp = new BusiCompResponse();
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 匹配订单生产模式
+	 */
+	@ZteMethodAnnontion(name="匹配订单生产模式(订单归集)",group_name="订单归集",order="4",page_show=true,path="ZteOrderCollectTraceRule.matchingOrderModel")
+	public BusiCompResponse matchingOrderModel(BusiCompRequest busiCompRequest){
+		
+		BusiCompResponse resp = new BusiCompResponse();
+		CataloguePlanExeReq req = new CataloguePlanExeReq();
+		ModeFact fact = new ModeFact();
+		fact.setOrder_id(busiCompRequest.getOrder_id());
+		req.setCatalogue_id(EcsOrderConsts.ORDER_MODEL_MATCH_DIR);
+		req.setFact(fact);
+		CommonDataFactory.getInstance().exeCataloguePlan(req);
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 匹配工作流
+	 */
+	@ZteMethodAnnontion(name="匹配工作流(订单归集)",group_name="订单归集",order="5",page_show=true,path="ZteOrderCollectTraceRule.matchingWorkflow")
+	public BusiCompResponse matchingWorkflow(BusiCompRequest busiCompRequest){
+		long start = System.currentTimeMillis();
+		BusiCompResponse resp = new BusiCompResponse();
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		WorkFlowFact fact = new WorkFlowFact();
+		fact.setOrder_id(busiCompRequest.getOrder_id());
+		String order_from = CommonDataFactory.getInstance().getAttrFieldValue(busiCompRequest.getOrder_id(), AttrConsts.ORDER_FROM);
+		ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		if(!StringUtils.isEmpty(order_from)){
+			String plan_id = cacheUtil.getConfigInfo("WORK_FLOW_MATCH_PLAN_"+order_from);
+			if(!StringUtils.isEmpty(plan_id)){
+				req.setPlan_id(plan_id);
+			}else{
+				req.setPlan_id(EcsOrderConsts.WORK_FLOW_MATCH_PLAN);
+			}
+		}else{
+			req.setPlan_id(EcsOrderConsts.WORK_FLOW_MATCH_PLAN);
+		}
+		req.setFact(fact);
+		CommonDataFactory.getInstance().exePlanRuleTree(req);
+		long end = System.currentTimeMillis();
+		logger.info("订单匹配工作流用时==================>"+(end-start));
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+		
+	}
+	
+	/**
+	 * 同步订单信息到总部
+	 * @throws ApiBusiException 
+	 */
+	@ZteMethodAnnontion(name="同步订单信息到总部(订单归集)",group_name="订单归集",order="6",page_show=true,path="ZteOrderCollectTraceRule.orderWaitSynToZb")
+	public BusiCompResponse orderWaitSynToZb(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String order_id = busiCompRequest.getOrder_id();
+//		HashMap queryParams = (HashMap)busiCompRequest.getQueryParams();
+//		TacheFact tacheFact = (TacheFact)queryParams.get("fact");
+		BusiDealResult dealResult = ordCollectManager.synOrdInfoToZB(order_id);
+		//订单同步总部失败、流程终止  
+		if(!EcsOrderConsts.ZB_INF_RESP_CODE_0000.equals(dealResult.getError_code())){
+			CommonTools.addBusiError(dealResult.getError_code(),dealResult.getError_msg());
+		}
+		resp.setError_code("0");
+		resp.setResponse(dealResult.getResponse());
+		if(dealResult.getError_code().equals(EcsOrderConsts.ZB_INF_RESP_CODE_0000))
+			resp.setError_msg("执行成功");
+		else {
+			resp.setError_msg(dealResult.getError_msg());
+		}
+		return resp;
+	}
+	
+	@ZteMethodAnnontion(name = "获取淘宝证件信息·订单归集", group_name = "订单归集", order = "8", page_show = true, path = "ZteOrderCollectTraceRule.getIdentityFromTaobao")
+	public BusiCompResponse getIdentityFromTaobao(BusiCompRequest busiCompRequest){
+		BusiCompResponse resp = new BusiCompResponse();
+		ZteClient client = ClientFactory.getZteDubboClient(ManagerUtils.getSourceFrom());
+		TaobaoIdentityGetRequest req = new TaobaoIdentityGetRequest();
+		req.setNotNeedReqStrOrderId(busiCompRequest.getOrder_id());
+		TaobaoIdentityGetResponse tbResp=client.execute(req, TaobaoIdentityGetResponse.class);
+		if("0000".equals(tbResp.getError_code())){
+			OrderTreeBusiRequest orderTree = CommonDataFactory.getInstance().getOrderTree(busiCompRequest.getOrder_id());
+			List<OrderItemProdBusiRequest> prodBusiRequest = orderTree.getOrderItemBusiRequests().get(0).getOrderItemProdBusiRequests();
+			for(OrderItemProdBusiRequest prod:prodBusiRequest){
+				OrderItemProdExtBusiRequest prodExt = prod.getOrderItemProdExtBusiRequest();
+				if(!StringUtils.isEmpty(tbResp.getCardNum())){
+//					prodExt.setCert_card_name(tbResp.getName());//证件姓名对应字段为es_order_items_prod_ext.cert_card_num
+					prodExt.setCert_card_num(tbResp.getCardNum());
+					prodExt.setIs_dirty(ConstsCore.IS_DIRTY_YES);
+					prodExt.setDb_action(ConstsCore.DB_ACTION_UPDATE);
+					prodExt.store();
+				}
+			}
+			//淘宝传过来的证件人姓名
+			CommonDataFactory.getInstance().updateAttrFieldValue(busiCompRequest.getOrder_id(), new String[]{AttrConsts.CERT_CARD_NAME}, new String[]{tbResp.getName()});
+			if(!StringUtils.isEmpty(tbResp.getCardNum())){
+				CommonDataFactory.getInstance().updateAttrFieldValue(busiCompRequest.getOrder_id(), new String[]{AttrConsts.CERT_CARD_NUM}, new String[]{tbResp.getCardNum()});
+			}
+			resp.setResponse(tbResp);
+			resp.setError_code("0");
+			resp.setError_msg("获取证件信息成功");
+		}
+		else{
+			resp.setError_code("-1");
+			resp.setError_msg("获取证件信息失败");
+		}
+		return resp;
+	}
+	
+	@ZteMethodAnnontion(name="[AOP]号码资源预占",group_name="订单归集",order="9",page_show=true,path="zteOrderCollectTraceRule.numberPreOccupancyAop")
+	public BusiCompResponse numberPreOccupancyAop(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String phone_num = CommonDataFactory.getInstance().getAttrFieldValue(busiCompRequest.getOrder_id(), AttrConsts.PHONE_NUM);
+		String occupancySysNew = CommonDataFactory.getInstance().sectionNoOccupancySysPlan(busiCompRequest.getOrder_id(), phone_num);
+		if(StringUtils.equals(occupancySysNew, EcsOrderConsts.NUMBER_OCCUPANCY_TYPE_1) 
+				|| StringUtils.equals(occupancySysNew, EcsOrderConsts.NUMBER_OCCUPANCY_TYPE_2) ){
+			PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+			TacheFact fact = new TacheFact();
+			fact.setOrder_id(busiCompRequest.getOrder_id());
+			req.setPlan_id(EcsOrderConsts.NUMBER_PRE_OCCUPANCY_AOP);
+			req.setFact(fact);
+			PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+			BusiCompResponse busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);
+			if (!StringUtils.equals(busiResp.getError_code(), ConstsCore.ERROR_SUCC)) {
+				CommonTools.addBusiError("-99999", busiResp.getError_msg());
+			}
+		}
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	@ZteMethodAnnontion(name="[AOP]号码资源预定",group_name="订单归集",order="10",page_show=true,path="zteOrderCollectTraceRule.numberOccupancyAop")
+	public BusiCompResponse numberOccupancyAop(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String phone_num = CommonDataFactory.getInstance().getAttrFieldValue(busiCompRequest.getOrder_id(), AttrConsts.PHONE_NUM);
+		String occupancySysNew = CommonDataFactory.getInstance().sectionNoOccupancySysPlan(busiCompRequest.getOrder_id(), phone_num);
+		if(StringUtils.equals(occupancySysNew, EcsOrderConsts.NUMBER_OCCUPANCY_TYPE_1) 
+				|| StringUtils.equals(occupancySysNew, EcsOrderConsts.NUMBER_OCCUPANCY_TYPE_2) ){
+			PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+			TacheFact fact = new TacheFact();
+			fact.setOrder_id(busiCompRequest.getOrder_id());
+			req.setPlan_id(EcsOrderConsts.NUMBER_OCCUPANCY_AOP);
+			req.setFact(fact);
+			PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+			BusiCompResponse busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);
+			if (!StringUtils.equals(busiResp.getError_code(), ConstsCore.ERROR_SUCC)) {
+				CommonTools.addBusiError("-99999", busiResp.getError_msg());
+			}
+		}
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 匹配订单是否走AOP开户流程
+	 * @param busiCompRequest
+	 * @return
+	 */
+	@ZteMethodAnnontion(name = "匹配订单是否走AOP开户", group_name = "订单归集", order = "11", page_show = true, path = "zteOrderCollectTraceRule.matchingIsAop")
+	public BusiCompResponse matchingIsAop(BusiCompRequest busiCompRequest) throws ApiBusiException {
+		BusiCompResponse resp = new BusiCompResponse();
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		TacheFact fact = new TacheFact();
+		fact.setOrder_id(busiCompRequest.getOrder_id());
+		String order_from = CommonDataFactory.getInstance().getAttrFieldValue(busiCompRequest.getOrder_id(), AttrConsts.ORDER_FROM);
+		ICacheUtil cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		if(!StringUtils.isEmpty(order_from)){
+			String plan_id = cacheUtil.getConfigInfo("MATCHING_IS_AOP_"+order_from);
+			if(!StringUtils.isEmpty(plan_id)){
+				req.setPlan_id(plan_id);
+			}else{
+				req.setPlan_id(EcsOrderConsts.MATCHING_IS_AOP);
+			}
+		}else{
+			req.setPlan_id(EcsOrderConsts.MATCHING_IS_AOP);
+		}
+		//req.setPlan_id(EcsOrderConsts.MATCHING_IS_AOP);
+		req.setFact(fact);
+		PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+		BusiCompResponse busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);
+		if (!StringUtils.equals(busiResp.getError_code(), ConstsCore.ERROR_SUCC)) {
+			CommonTools.addBusiError("-99999", busiResp.getError_msg());
+		}
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	@ZteMethodAnnontion(name="[bss]号码资源预占[方案]",group_name="订单归集",order="12",page_show=true,path="zteOrderCollectTraceRule.numberPreOccupancyBss")
+	public BusiCompResponse numberPreOccupancyBss(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		BusiCompResponse resp = new BusiCompResponse();
+		String phone_num = CommonDataFactory.getInstance().getAttrFieldValue(busiCompRequest.getOrder_id(), AttrConsts.PHONE_NUM);
+		String occupancySysNew = CommonDataFactory.getInstance().sectionNoOccupancySysPlan(busiCompRequest.getOrder_id(), phone_num);
+		if(StringUtils.equals(occupancySysNew, EcsOrderConsts.NUMBER_OCCUPANCY_TYPE_0) 
+				|| StringUtils.equals(occupancySysNew, EcsOrderConsts.NUMBER_OCCUPANCY_TYPE_1) ){
+			PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+			TacheFact fact = new TacheFact();
+			fact.setOrder_id(busiCompRequest.getOrder_id());
+			req.setPlan_id(EcsOrderConsts.NUMBER_OCCUPANCY_BSS);
+			req.setFact(fact);
+			PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+			BusiCompResponse busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);
+			if (!StringUtils.equals(busiResp.getError_code(), ConstsCore.ERROR_SUCC)) {
+				CommonTools.addBusiError("-99999", busiResp.getError_msg());
+			}
+		}
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 匹配订单生产中心
+	 * @param busiCompRequest
+	 * @return
+	 */
+	@ZteMethodAnnontion(name = "匹配订单生产中心", group_name = "订单归集", order = "13", page_show = true, path = "zteOrderCollectTraceRule.matchingProduceCenter")
+	public BusiCompResponse matchingProduceCenter(BusiCompRequest busiCompRequest) throws ApiBusiException {
+		BusiCompResponse resp = new BusiCompResponse();
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		TacheFact fact = new TacheFact();
+		fact.setOrder_id(busiCompRequest.getOrder_id());
+		req.setPlan_id(EcsOrderConsts.MATCH_PRODUCE_CENTER);
+		req.setFact(fact);
+		PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+		BusiCompResponse busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);
+		if (!StringUtils.equals(busiResp.getError_code(), ConstsCore.ERROR_SUCC)) {
+			CommonTools.addBusiError("-99999", busiResp.getError_msg());
+		}
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 社会渠道购机券换手机BSS端支持(加锁)
+	 * @param busiCompRequest
+	 * @return
+	 */
+	@ZteMethodAnnontion(name = "社会渠道购机券换手机BSS端支持(加锁)collect", group_name = "订单归集", order = "14", page_show = true, path = "zteOrderCollectTraceRule.purchaseCouponsLock")
+	public BusiCompResponse purchaseCouponsLock(BusiCompRequest busiCompRequest) throws ApiBusiException {
+		BusiCompResponse resp = new BusiCompResponse();
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		TacheFact fact = new TacheFact();
+		fact.setOrder_id(busiCompRequest.getOrder_id());
+		req.setPlan_id(EcsOrderConsts.PURCHASE_COUPONS_LOCK);
+		req.setFact(fact);
+		PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+		BusiCompResponse busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);//失败时不卡流程
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+	
+	/**
+	 * 给es_order_hide表插入数据，控制订单暂时隐藏不处理
+	 * @param busiCompRequest
+	 * @return
+	 */
+	@ZteMethodAnnontion(name = "控制订单暂时隐藏不处理", group_name = "订单归集", order = "15", page_show = true, path = "zteOrderCollectTraceRule.setOrderHide")
+	public BusiCompResponse setOrderHide(BusiCompRequest busiCompRequest) throws ApiBusiException {
+		BusiCompResponse resp = new BusiCompResponse();
+		try {
+			ordCollectManager.setOrderHide(busiCompRequest.getOrder_id());
+			resp.setError_code("0");
+			resp.setError_msg("执行成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			CommonTools.addBusiError("-99999", e.getMessage());
+		}
+		return resp;
+	}
+	
+	/**
+	 * 号段预占系统获取规则
+	 * @param busiCompRequest
+	 * @return
+	 * @throws ApiBusiException
+	 */
+	@ZteMethodAnnontion(name="号段预占系统获取规则",group_name="订单归集",order="9",page_show=true,path="zteOrderCollectTraceRule.sectionNoOccupancySys")
+	public BusiCompResponse sectionNoOccupancySys(BusiCompRequest busiCompRequest) throws ApiBusiException{
+		//ESS方案
+		BusiCompResponse resp = new BusiCompResponse();
+		PlanRuleTreeExeReq req = new PlanRuleTreeExeReq();
+		TacheFact fact = new TacheFact();
+		fact.setOrder_id(busiCompRequest.getOrder_id());
+		req.setDeleteLogs(true);
+		req.setPlan_id(EcsOrderConsts.MATCH_PHONE_NUM_PARA_ESS);
+		req.setFact(fact);
+		PlanRuleTreeExeResp planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+		BusiCompResponse busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);
+		if (!StringUtils.equals(busiResp.getError_code(), ConstsCore.ERROR_SUCC)) {
+			CommonTools.addBusiError("-99999", busiResp.getError_msg());
+		}
+		
+		//BSS方案
+		fact.setOrder_id(busiCompRequest.getOrder_id());
+		req.setDeleteLogs(true);
+		req.setPlan_id(EcsOrderConsts.MATCH_PHONE_NUM_PARA_BSS);
+		req.setFact(fact);
+		planResp = CommonDataFactory.getInstance().exePlanRuleTree(req);
+		busiResp = CommonDataFactory.getInstance().getRuleTreeresult(planResp);
+		if (!StringUtils.equals(busiResp.getError_code(), ConstsCore.ERROR_SUCC)) {
+			CommonTools.addBusiError("-99999", busiResp.getError_msg());
+		}
+		resp.setError_code("0");
+		resp.setError_msg("执行成功");
+		return resp;
+	}
+}

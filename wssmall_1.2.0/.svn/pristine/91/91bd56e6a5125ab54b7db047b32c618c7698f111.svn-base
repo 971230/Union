@@ -1,0 +1,42 @@
+package com.ztesoft.net.app.base.core.model;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import org.springframework.jdbc.core.RowMapper;
+
+import com.ztesoft.net.eop.sdk.utils.UploadUtilc;
+/**
+ * 广告mapper<br>
+ * 将附件url本地格式转为静态资源服务器地址<br>
+ * 读取非adv表以外的字段cname,在sql语句中必须给出
+ * @author kingapex
+ * 2010-7-17上午11:02:24
+ */
+public class AdvMapper implements RowMapper {
+
+	public Object mapRow(ResultSet rs, int arg1) throws SQLException {
+		Adv adv = new Adv();
+		adv.setAcid(rs.getString("acid"));
+		adv.setAid(rs.getString("aid"));
+		adv.setAname(rs.getString("aname"));
+		String atturl = rs.getString("atturl");
+		if(atturl!=null)  atturl  = UploadUtilc.replacePath(atturl);
+		adv.setAtturl(atturl);
+		adv.setAtype(rs.getString("atype"));
+		adv.setBegintime(rs.getString("begintime"));
+		adv.setClickcount(rs.getInt("clickcount"));
+		adv.setCompany(rs.getString("company"));
+		adv.setContact(rs.getString("contact"));
+		adv.setDisabled(rs.getString("disabled"));
+		adv.setEndtime(rs.getString("endtime"));
+		adv.setIsclose(rs.getInt("isclose"));
+		adv.setLinkman(rs.getString("linkman"));
+		adv.setUrl(rs.getString("url"));
+		adv.setUser_id(rs.getString("user_id"));
+		adv.setCname(rs.getString("cname"));
+		
+		return adv;
+	}
+
+}

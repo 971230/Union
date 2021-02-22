@@ -1,0 +1,53 @@
+package com.ztesoft.net.mall.core.service.impl.promotion;
+
+import com.ztesoft.net.eop.processor.core.freemarker.FreeMarkerPaser;
+import com.ztesoft.net.framework.context.webcontext.ThreadContextHolder;
+import com.ztesoft.net.framework.util.CurrencyUtil;
+import com.ztesoft.net.mall.core.model.Promotion;
+import com.ztesoft.net.mall.core.service.promotion.IPromotionMethod;
+import com.ztesoft.net.mall.core.service.promotion.IReducePriceBehavior;
+
+import javax.servlet.http.HttpServletRequest;
+
+/**
+ * 减价优惠方式
+ * @author kingapex
+ *2010-4-19下午04:03:42
+ */
+public class ReducePriceMethod implements IPromotionMethod,
+		IReducePriceBehavior {
+
+	
+	@Override
+	public String getInputHtml(String pmtid, String solution) {
+		FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getInstance();
+		freeMarkerPaser.setClz(this.getClass());
+		freeMarkerPaser.putData("discount", solution);//lessMoney原来是个该参数，但是request.getParameter方法取不到值。
+		return freeMarkerPaser.proessPageContent();
+	}
+
+	
+	@Override
+	public String getName() {
+		return "reducePrice";//
+	}
+
+	
+	@Override
+	public String onPromotionSave(String pmtid) {
+		HttpServletRequest request  = ThreadContextHolder.getHttpRequest();
+		String reducePrice = request.getParameter("discount");//lessMoney
+		return reducePrice==null?"":reducePrice;
+	}
+
+	
+	@Override
+	public Double reducedPrice(Promotion pmt,Double price) {
+		String solution = pmt.getPmt_solution();
+		Double  lessMoney =  Double.valueOf(solution);
+		return CurrencyUtil.sub(price, lessMoney);
+	}
+
+
+	
+}

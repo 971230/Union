@@ -1,0 +1,18 @@
+package com.ztesoft.net.ecsord.params.ecaop.vo;
+
+public class UNIBSSBODYRELVO {
+
+	private REL_SELECTION_NUM_REQ REL_SELECTION_NUM_REQ;
+
+	public REL_SELECTION_NUM_REQ getREL_SELECTION_NUM_REQ() {
+		return REL_SELECTION_NUM_REQ;
+	}
+
+	public void setREL_SELECTION_NUM_REQ(REL_SELECTION_NUM_REQ rEL_SELECTION_NUM_REQ) {
+		REL_SELECTION_NUM_REQ = rEL_SELECTION_NUM_REQ;
+	}
+
+	
+
+	
+}

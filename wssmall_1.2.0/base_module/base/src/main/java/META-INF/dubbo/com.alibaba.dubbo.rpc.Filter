@@ -1,0 +1,2 @@
+dubboAppFilter=com.ztesoft.paas.filter.DubboAppFilter
+dubboAppCustomerFilter=com.ztesoft.paas.filter.DubboAppCustomerFilter

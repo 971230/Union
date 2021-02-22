@@ -1,0 +1,62 @@
+package com.zte.cbss.autoprocess.sometestcode;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.htmlparser.NodeFilter;
+import org.htmlparser.Parser;
+import org.htmlparser.filters.AndFilter;
+import org.htmlparser.filters.HasAttributeFilter;
+import org.htmlparser.filters.TagNameFilter;
+import org.htmlparser.tags.LinkTag;
+import org.htmlparser.util.NodeList;
+import org.htmlparser.util.ParserException;
+
+
+/**
+ * 已开户订单总部自动流转任务
+ * @author tangml
+ * 2013-11-19
+ */
+public class AccountOrderAutoFlowTask {
+	
+	private static Log log = LogFactory.getLog(AccountOrderAutoFlowTask.class);
+	
+	/**
+	 * 从手动开户菜单中 根据orderNo or  mobile  查询订单Id
+	 * @param client
+	 * @param orderNo
+	 * @return
+	 * @throws Exception
+	 */
+	private static String getOrderIdByOrderNoOrMobile()throws Exception{
+		String html="";
+        Parser parser;
+        NodeList list=null;
+//        html = CommonDict.openFile("F:\\dev\\eshop\\unimorder\\src\\com\\sunrise\\autoprocess\\servlet\\mall\\order.html");
+		//判断查询结果是否符合要求（必须是只有一条记录）
+		NodeFilter divFilter = new TagNameFilter("DIV");
+        NodeFilter hasAttrFilter = new HasAttributeFilter("class", "tableBody"); 
+        NodeFilter andFilter = new AndFilter(divFilter, hasAttrFilter); 
+		try {
+			parser = new Parser(html);
+			list= parser.parse(andFilter);
+		} catch (ParserException e) {
+			throw new Exception("订单查询列表页面的结构有变，不能正常解析!");
+		}
+        if(list==null || list.size()!=1){
+        	throw new Exception("根据手机号查询到的订单数为"+list.size()+",程序无法自动识别,请手动处理!");
+        }
+        
+		NodeFilter linkFilter = new TagNameFilter("A");
+        NodeFilter hasAttrFilter1=new HasAttributeFilter("class","allotBtn shortBlueBtn");
+        NodeFilter andFilter1=new AndFilter(linkFilter,hasAttrFilter1);
+        NodeList nodeList = list.extractAllNodesThatMatch(andFilter1,true);
+        LinkTag linkNode = (LinkTag) nodeList.elementAt(0);
+        //判断是否拣货
+        if(null != linkNode.getAttribute("pickingCanNotAccount") && "1".equals(linkNode.getAttribute("pickingCanNotAccount"))){
+        	throw new Exception("订单尚未拣货，无法操作!");
+        }
+        String orderId = linkNode == null ? "" : linkNode.getAttribute("orderId");
+		return orderId;
+	}
+}

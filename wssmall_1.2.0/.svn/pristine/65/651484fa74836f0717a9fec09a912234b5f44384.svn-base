@@ -1,0 +1,39 @@
+package com.ztesoft.net.eop.processor.backend.support;
+
+import com.ztesoft.net.eop.processor.AbstractFacadePagetParser;
+import com.ztesoft.net.eop.processor.FacadePage;
+import com.ztesoft.net.eop.processor.core.Request;
+import com.ztesoft.net.eop.processor.core.Response;
+import com.ztesoft.net.eop.sdk.utils.JspUtil;
+/**
+ * 后台页面包装器<br>
+ * 用/admin/main_frame.jsp包装业务页面 <br>
+ * @author kingapex
+ * 2010-9-13下午12:17:04
+ */
+public class BackTemplateWrapper extends AbstractFacadePagetParser {
+	
+	public BackTemplateWrapper(FacadePage page, Request request) {
+		super(page, request);
+	}
+
+	
+	protected Response parse(Response response) {
+		httpRequest.setAttribute("content", response.getContent());
+		String content  = JspUtil.getJspOutput("/mgWeb/main_frame.jsp", httpRequest, httpResponse);
+		
+		response.setContent(content);
+		return response;
+	}
+	
+	//设置标题信息
+	protected String getTitleHtml(Response response) {
+		StringBuffer htmls = new StringBuffer();
+		htmls.append("<div class='titlenew'>");
+		htmls.append("<h3 id='show_titles'>欢迎您登录江西采购平台</h3>");
+		htmls.append("<div class='user_position'><span>登录名：采购</span>    <span>工号：ZX</span></div>");
+		htmls.append("</div>");
+		return htmls.toString();
+	}
+	
+}

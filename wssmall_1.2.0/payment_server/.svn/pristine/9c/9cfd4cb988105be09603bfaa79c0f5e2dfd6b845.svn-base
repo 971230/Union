@@ -1,0 +1,72 @@
+package services;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import params.bank.req.BankListReq;
+import params.bank.req.BankReq;
+import params.bank.resp.BankListResp;
+import params.bank.resp.BankResp;
+import services.BankInf;
+import services.ServiceBase;
+
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.mall.core.action.desposit.pay.ICommonPayHander;
+import com.ztesoft.net.mall.core.model.Bank;
+import com.ztesoft.net.mall.core.model.PayReponse;
+import com.ztesoft.net.mall.core.model.PayRequest;
+import com.ztesoft.net.mall.core.service.IBankManager;
+
+public class BankServ  extends ServiceBase implements BankInf{
+
+	
+	private IBankManager bankManager;
+	@Resource
+	private ICommonPayHander commonPayHander;
+	public BankResp getBankByCode(BankReq bankReq){
+		BankResp bankResp = new BankResp();
+		try {
+			Bank bank =  null;
+			if(!StringUtil.isEmpty(bankReq.getBank_code())){
+				bank = this.bankManager.getBankByCode(bankReq.getBank_code());
+			}else if(!StringUtil.isEmpty(bankReq.getBank_id())){
+				bank = this.bankManager.getBankByBankId(bankReq.getBank_id());
+			}
+			bankResp.setBank(bank);
+			addReturn(bankReq, bankResp);
+			return bankResp;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	
+	public PayReponse bankPay(PayRequest payRequest)
+	{
+		PayReponse payReponse = new PayReponse();
+		payReponse= commonPayHander.bankPay(payRequest);
+		addReturn(payRequest,payReponse);
+		return payReponse;
+	}
+	
+	public IBankManager getBankManager() {
+		return bankManager;
+	}
+
+	public void setBankManager(IBankManager bankManager) {
+		this.bankManager = bankManager;
+	}
+
+	@Override
+	public BankListResp qryBankList(BankListReq req) {
+		BankListResp resp = new BankListResp();
+		List list = bankManager.getBankList();
+		resp.setError_code("0");
+		resp.setError_msg("成功");
+		resp.setBankList(list);
+		addReturn(req, resp);
+		return resp;
+	}
+}

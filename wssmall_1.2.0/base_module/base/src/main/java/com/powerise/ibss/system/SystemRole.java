@@ -1,0 +1,154 @@
+/**
+MSM_007 删除角色
+MSM_912 按角色分配可操作数据
+MSM_913 按类型取得可操作数据列表
+MSM_914 增加修改角色可操作数据类型
+MSM_915 删除角色可操作数据类型
+*/
+package com.powerise.ibss.system;
+
+import com.powerise.ibss.framework.DynamicDict;
+import com.powerise.ibss.framework.FrameException;
+import com.powerise.ibss.framework.IAction;
+import com.powerise.ibss.util.Utility;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Vector;
+
+public class SystemRole implements IAction{
+   private String service_name;
+   private String sql;
+   private ResultSet rs;
+   @Override
+public int perform(DynamicDict aDict) throws FrameException {
+      service_name =aDict.getServiceName();
+      Utility.println("调用类SystemRole.........."+service_name);
+      try{
+		if(service_name.equalsIgnoreCase("MSM_007")){
+			MSM_007(aDict);
+		}else if(service_name.equalsIgnoreCase("MSM_912")){
+			MSM_912(aDict);
+		}else if(service_name.equalsIgnoreCase("MSM_913")){
+			MSM_913(aDict);
+		}else if(service_name.equalsIgnoreCase("MSM_914")){
+			MSM_914(aDict);
+		}else if(service_name.equalsIgnoreCase("MSM_915")){
+			MSM_915(aDict);
+		}
+      }catch(SQLException e){
+         throw new FrameException(-2212081, "出现SQL异常！", e.getMessage());
+      }finally{
+         try{
+            if(rs!=null){
+               rs.getStatement().close();
+               rs.close();
+            }
+         }catch(SQLException e){e.printStackTrace();}
+      }
+      return 0;
+   }
+   
+	public void MSM_007(DynamicDict aDict) throws FrameException, SQLException{
+		String role_id =(String)aDict.getValueByName("role_id");
+		Vector vSQL =new Vector();
+		vSQL.add( "delete tsm_staff_role where role_id="+role_id);
+		vSQL.add( "delete tsm_site_role where role_id="+role_id);
+		vSQL.add( "delete tsm_role where role_id="+role_id);
+		vSQL.add( "delete tsm_role_fun where role_id="+role_id);
+		vSQL.add( "delete tsm_role_fun_data where role_id="+role_id);
+		Dao.change(vSQL, aDict.GetConnection());
+	}
+	/******************************************************************************************************************
+	MSM_912:   角色数据配置-查询、修改
+	
+	输入输出数据结构：
+	输入：
+	变量名		类型	长度	名称		描述
+	action_flag	String	1       动作类型	0:select 1:update
+	role_id		String	8		角色ID
+	fun_id		String	8		FUN_ID
+	data_type	String	8		类型
+	params		String	-	    参数
+	
+	返回信息: < 0 操作失败 >= 0 操作成功
+	******************************************************************************************************************/
+	public void MSM_912(DynamicDict aDict) throws FrameException, SQLException{
+		String action_flag	= (String)aDict.getValueByName("action_flag", false);
+		String role_id		= (String)aDict.getValueByName("role_id", false);
+		String fun_id		= (String)aDict.getValueByName("fun_id", false);
+		String data_type	= (String)aDict.getValueByName("data_type", false);
+		if (action_flag.equals("0")){
+			//查询
+			String sql = "SELECT * "+
+						 "FROM tsm_role_fun_data "+
+						 "WHERE role_id	='"+role_id+"' "+
+						 "AND fun_id	='"+fun_id+"' "+
+						 "AND data_type	='"+data_type+"' "+
+						 "ORDER BY up_data,data";
+			rs = Dao.select(sql, aDict.GetConnection());
+			aDict.setValueByName("MSM_912", rs);
+		}else if(action_flag.equals("1")){
+			//修改
+			Vector vSQL = new Vector();		
+	        vSQL.add("DELETE FROM tsm_role_fun_data WHERE role_id='"+role_id+"' AND fun_id='"+fun_id+"' AND data_type ='"+data_type+"'");
+	        if (!aDict.getValueByName("params").equals("")){
+				String[] _params = Utility.split((String)aDict.getValueByName("params"),"\n");       			
+				String	 sql_val = "'"+role_id+"','"+fun_id+"',"+data_type;
+				if(_params.length > 0){
+		            //添加角色功能模块信息
+		            for( int i=0; i<_params.length; i++){
+		            	String[] _items	= Utility.split(_params[i], ",");
+		              	vSQL.add("INSERT INTO tsm_role_fun_data "+
+		              			 "(role_id,fun_id,data_type,data,up_data,data_name) VALUES "+
+		              			 "("+sql_val+",'"+_items[0]+"','"+_items[1]+"','"+_items[2].trim()+"')");
+		            }
+				}
+			}
+			Dao.change(vSQL, aDict.GetConnection());
+		}
+	}
+	
+	
+	/******************************************************************************************************************
+	MSM_913:    根椐数据类型取得配置数据列表
+	
+	输入输出数据结构：
+	输入：
+	变量名		类型	长度	名称		描述
+	data_type	String	8		类型
+	
+	返回信息: < 0 操作失败 >= 0 操作成功
+	******************************************************************************************************************/
+	public void MSM_913(DynamicDict aDict) throws FrameException, SQLException{
+		String data_type = (String)aDict.getValueByName("data_type",false);
+		if(data_type != null && !data_type.equals("")){
+			rs = Dao.select("SELECT data_sql FROM tsm_data WHERE data_type="+data_type,aDict.GetConnection());
+			if (rs.next()){
+				rs = Dao.select(rs.getString(1), aDict.GetConnection());
+				aDict.setValueByName("MSM_913", rs);
+			}
+		}
+	}
+
+	public void MSM_914(DynamicDict aDict) throws FrameException, SQLException{
+		String role_id =(String)aDict.getValueByName("role_id");
+		String fun_id  =(String)aDict.getValueByName("fun_id");
+		String data_type =(String)aDict.getValueByName("data_type");
+		Vector vSQL =new Vector();
+		//vSQL.add( "delete tsm_role_fun_alldata where role_id="+role_id+" and fun_id="+fun_id+" and data_type="+data_type);
+		MSM_915(aDict);
+		vSQL.add( "insert into tsm_role_fun_alldata(role_id,fun_id,data_type) values('"+role_id+"',"+fun_id+","+data_type+")");
+		Dao.change(vSQL, aDict.GetConnection());
+	}
+
+	public void MSM_915(DynamicDict aDict) throws FrameException, SQLException{
+		String role_id =(String)aDict.getValueByName("role_id");
+		String fun_id  =(String)aDict.getValueByName("fun_id");
+		String data_type =(String)aDict.getValueByName("data_type");
+		Vector vSQL =new Vector();
+		vSQL.add( "delete tsm_role_fun_alldata where role_id="+role_id+" and fun_id="+fun_id+" and data_type="+data_type);
+		Dao.change(vSQL, aDict.GetConnection());
+	}
+//////////////////////////
+}   

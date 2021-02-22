@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>电商平台 - API详情</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="shortcut icon" href="" type="image/x-icon">
+<link rel="stylesheet" href="css/base-min.css">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/error.css">
+<link rel="stylesheet" href="css/open-base.css">
+<link rel="stylesheet" href="css/sh.css">
+<link rel="stylesheet" href="css/editor-pkg-min-datauri.css" >
+<link rel="stylesheet" href="css/right-tools.css">
+<script src="js/jquery-1.4.2.min.js"></script>
+</head>
+<body>
+	<div class="top-header-menu">
+		<div class="top-menu-cont">
+			<h1 class="top-logo" style="display:none;">
+				<a class="top-logo-link" href="http://open.taobao.com/" alt="淘宝开放平台"></a>
+			</h1>
+			<!-- 搜索start -->
+			<div class="search-wrap">
+				<div class="search">
+					<div id="search">
+						<div class="default"><span class="initText">请输入您要搜索的内容</span></div>
+						<div class="actived">
+							<input autocomplete="off" class="searchText" id="searchText" t="api" onkeypress="EnterPress()" onkeydown="EnterPress(event)" type="text"> 
+							<a class="sBtn" onclick="searchapi()"></a>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- 搜索end -->
+			<ul class="top-nav-menu clearfix">
+				<li><a href="#">文档</a></li>
+				<li class="selected"><a href="index.html">API<iclass="reddot"></i></a></li>
+			</ul>
+		</div>
+	</div>
+	<!-- header end -->
+
+	<!--header end-->
+	<!--面包屑 begin-->
+	<div class="crumbs">
+		<a href="index.html">用户API</a>
+		<a class="last" href="#">zte.net.iservice.ISysService</a>
+		<!--class with "last"-->
+	</div>
+	<!--面包屑 end-->
+
+	<div class="container grid-s165m0 layout">
+		<!--正文区 begin-->
+		<div class="col-main bg_line">
+			<div class="main-wrap">
+				<div class="title-wrap">
+					<h1 class="open-bg title">
+						zte.net.iservice.ISysService 系统管理API 
+					</h1>
+
+					<ul class="api-sub-title layout clearfix">
+						<li class="sub-title"><a class="link" href="#param-in-h2">函数输入参数</a></li>
+						<li class="sub-title last"><a class="link" href="#param-out-h2">函数输出参数</a></li>
+					</ul>
+				</div>
+
+				<div class="api-detail-bd" id="bd">
+					<div>
+						<p class="title-intro">系统管理API[用户查询等API]</p>
+						<!-- 函数入参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-in-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-in')"> 函数输入参数<font color="blue"><b>class params.adminuser.req.MessageListReq</b></font>
+							</h2>
+							<div id="param-in" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">区分收件箱和发件箱的信息</td>
+											<td class="middle"><font color='red'>num</font></td>
+											<td class="middle">java.lang.Integer</td>
+											<td class="middle">Y</td>
+											<td class="left">num：区分收件箱和发件箱的信息， 不能为空。</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">收件人状态</td>
+											<td class="middle"><font color='red'>reciverState</font></td>
+											<td class="middle">java.lang.Integer</td>
+											<td class="middle">N</td>
+											<td class="left">reciverState：收件人状态。</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">发件人状态</td>
+											<td class="middle"><font color='red'>senderState</font></td>
+											<td class="middle">java.lang.Integer</td>
+											<td class="middle">N</td>
+											<td class="left">SendState：发件人状态。</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">消息主题</td>
+											<td class="middle"><font color='red'>topic</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">N</td>
+											<td class="left">topic：消息主题。</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">开始时间</td>
+											<td class="middle"><font color='red'>starttime</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">N</td>
+											<td class="left">statetime：开始时间。</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">结束时间</td>
+											<td class="middle"><font color='red'>endtime</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">N</td>
+											<td class="left">endtime：结束时间。</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">消息类型</td>
+											<td class="middle"><font color='red'>type</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">N</td>
+											<td class="left">type：消息类型。</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">分页信息</td>
+											<td class="middle"><font color='red'>pageNo</font></td>
+											<td class="middle">java.lang.Integer</td>
+											<td class="middle">Y</td>
+											<td class="left">pageNo：分页信息。</td>
+										</tr>
+										<tr class="odd">
+											<td class="middle">每页记录数</td>
+											<td class="middle"><font color='red'>pageSize</font></td>
+											<td class="middle">java.lang.Integer</td>
+											<td class="middle">Y</td>
+											<td class="left">pageSize：每页记录数。</td>
+										</tr>
+										<tr class="even">
+											<td class="middle">用户id</td>
+											<td class="middle"><font color='red'>user_id</font></td>
+											<td class="middle">java.lang.String</td>
+											<td class="middle">Y</td>
+											<td class="left">user_id：用户Id。</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数入参>>end -->
+						<!-- 函数出参<<begin -->
+						<div>
+							<h2 class="head-title" id="param-out-h2">
+								<img src="image/tri_down.png" style="cursor:pointer;margin-right:5px;" onclick="changeHide(this,'param-out')"> 函数输出参<font color="blue"><b>class params.adminuser.resp.MessageListResp</b></font>
+							</h2>
+							<div id="param-out" style="display:">
+								<table class="api-table" cellspacing="0">
+									<thead>
+										<tr>
+											<th class="middle" width="15%">名称</th>
+											<th class="middle" width="15%">变量名</th>
+											<th class="middle" width="15%">类型</th>
+											<th class="middle" width="15%">是否为空</th>
+											<th class="left" width="">说明</th>										
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="odd">
+											<td class="middle">分页器</td>
+											<td class="middle"><font color='red'>webPage</font></td>
+											<td class="middle">com.ztesoft.net.framework.database.Page</td>
+											<td class="middle">Y</td>
+											<td class="left">pageNo：分页器， 不能为空。</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<!-- 函数出参>>end -->						
+					</div>
+					
+				</div>
+			</div>
+		</div>
+		<!--正文区 end-->
+		<!--左侧导航栏 begin-->
+		<div class="col-sub">
+			<div class="APIgory">
+				<ul id="leftnavigation">
+					<li>
+						<div class="APIgory-title">
+							<a href="index.html">返回&nbsp;<span class="APIgory-sub-title">zte.net.iservice.ISysService</span></a>
+						</div>
+					</li>
+						<li url="zte.net.iservice.ISysService.accessLog.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.ISysService.accessLog.html" title="accessLog">zte.net.iservice.ISysService.accessLog</a>
+									<p class="APIgory-intro info-overflow">访问日志</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.ISysService.qryAdminUser.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.ISysService.qryAdminUser.html" title="qryAdminUser">zte.net.iservice.ISysService.qryAdminUser</a>
+									<p class="APIgory-intro info-overflow">查询用户</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.ISysService.listMsg.html">
+							<div class="APIgory-list focus ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.ISysService.listMsg.html" title="listMsg">zte.net.iservice.ISysService.listMsg</a>
+									<p class="APIgory-intro info-overflow">查询消息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.ISysService.getMessageDetail.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.ISysService.getMessageDetail.html" title="getMessageDetail">zte.net.iservice.ISysService.getMessageDetail</a>
+									<p class="APIgory-intro info-overflow">根据id查询消息</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.ISysService.loginLog.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.ISysService.loginLog.html" title="loginLog">zte.net.iservice.ISysService.loginLog</a>
+									<p class="APIgory-intro info-overflow">登陆日志</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+						<li url="zte.net.iservice.ISysService.logCall.html">
+							<div class="APIgory-list  ">
+								<div class="APIgory-content">
+									<a class="link APIgoryItem title-overflow" href="zte.net.iservice.ISysService.logCall.html" title="logCall">zte.net.iservice.ISysService.logCall</a>
+									<p class="APIgory-intro info-overflow">调用sdk写接口日志</p>
+								</div>
+								<s></s>
+							</div>
+						</li>
+				</ul>
+			</div>
+		</div>
+		<!--左侧导航栏 end-->
+	</div>
+
+	<script type="text/javascript">
+		function changeHide(imgDom, contentDivId) {
+			var contentDiv = document.getElementById(contentDivId);
+			if (contentDiv.style.display == "none") {
+				contentDiv.style.display = "";
+				imgDom.src = "image/tri_down.png";
+			} else {
+				contentDiv.style.display = "none";
+				imgDom.src = "image/tri_right.png";
+			}
+		}
+		
+		$(function(){
+				$($("#leftnavigation").find("li")).each(function(){
+					$(this).bind("click",function(){
+						 window.location.href=$(this).attr("url");
+					});	
+					
+				});
+		
+		})
+	</script>
+	<!--footer begin-->
+	<div id="footer">
+		<div class="footer">
+			<div class="contact">
+				<a class="weibo" href="#" target="_blank">电商平台</a> 
+			</div>
+
+			<div class="about">
+				<span class="copyright">Copyright ? 2003-2012 ZteSoft 版权所有</span>
+				<span class="links">
+				 <a href="#" target="_blank">关于我们</a>
+				</span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

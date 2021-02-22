@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+	<!-- 广东联通订单系统、商品系统合并、提供除工作流能力 -->
+ 	<!-- 启动订单系统应用，通过dubbo方式调用工作流 -->
+	<import resource="classpath*:/dubbo/rop/RopApplicationContext.xml"/>
+	<import resource="classpath*:/dubbo/rop/dubbo-rop-service.xml"/>
+	<import resource="classpath*:/dubbo/rop/dubbo-rop-spring.xml"/>
+	<import resource="classpath*:spring/*.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-goods-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-info-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-member-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-order-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-partner-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-payment-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-sms-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-supplier-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-sys-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-task-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-cms-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-num-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-ecsord-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-ecs-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-inf-spring.xml"/>
+	<import resource="classpath*:dubbo/spring/dubbo-logs-spring.xml"/>
+	
+	<import resource="classpath*:dubbo/service/dubbo-goods-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-info-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-member-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-order-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-partner-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-payment-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-sms-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-supplier-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-sys-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-task-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-num-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-cms-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-ecsord-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-ecs-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-inf-service.xml"/>
+	<import resource="classpath*:dubbo/service/dubbo-logs-service.xml"/>
+	
+	<import resource="classpath*:dubbo/reference/dubbo-client-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-workflow-reference.xml"/>
+	<import resource="classpath*:dubbo/reference/dubbo-rules-reference.xml"/>
+</beans>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" >
+	<!-- 以下代码移动本地
+	<bean id="staticDataList" class="com.ztesoft.net.cms.widget.StaticDataListWidget"  scope="prototype"></bean>
+	<bean id="staticDataDetail" class="com.ztesoft.net.cms.widget.StaticDataDetailWidget" scope="prototype"></bean>
+ 	<bean id="dynamicDataDetail" class="com.ztesoft.net.cms.widget.DynamicDataDetailWidget" scope="prototype"></bean>
+ 	<bean id="dynamicDataList" class="com.ztesoft.net.cms.widget.DynamicDataListWidget" scope="prototype"></bean>
+ 	<bean id="dataForm" class="com.ztesoft.net.cms.widget.DataFormWidget" scope="prototype"></bean>
+ 	<bean id="staticContent" class="com.ztesoft.net.cms.widget.StaticContentWidget" scope="prototype"></bean>
+ 	<bean id="dataCatTree" class="com.ztesoft.net.cms.widget.cattree.DataCatTreeWidget" scope="prototype"></bean>
+ 	<bean id="dataSearchForm" class="com.ztesoft.net.cms.widget.DataSearchFormWidget" scope="prototype"></bean>
+ 	<bean id="dataSearchResult" class="com.ztesoft.net.cms.widget.DataSearchResultWidget" scope="prototype"></bean>
+ 	<bean id="relatedData" class="com.ztesoft.net.cms.widget.RelatedDataWidget" scope="prototype"></bean>
+ 	 -->
+</beans>

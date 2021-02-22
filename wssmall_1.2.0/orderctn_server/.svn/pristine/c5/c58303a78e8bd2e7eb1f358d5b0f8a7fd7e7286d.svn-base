@@ -1,0 +1,259 @@
+package com.ztesoft.net.mall.server.servlet;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+
+import zte.net.iservice.IOrderCtnService;
+import zte.net.iservice.IOrderQueueBaseManager;
+import zte.params.orderctn.req.OrderCtnReq;
+import zte.params.orderctn.resp.HSOrderCtnB2BResp;
+import zte.params.orderctn.resp.HSOrderCtnResp;
+import zte.params.orderctn.resp.OrderCtnResp;
+
+import com.alibaba.fastjson.JSONObject;
+import com.ztesoft.common.util.MD5Util;
+import com.ztesoft.common.util.StringUtils;
+import com.ztesoft.net.cache.common.CacheFactory;
+import com.ztesoft.net.cache.common.INetCache;
+import com.ztesoft.net.framework.context.spring.SpringContextHolder;
+import com.ztesoft.net.mall.consts.OrderCtnConsts;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ICacheUtil;
+import com.ztesoft.net.mall.utils.MallUtils;
+import com.ztesoft.net.mall.utils.Xml2JsonUtil;
+
+import consts.ConstsCore;
+
+public class HSMallServer {
+	private static Logger logger = Logger.getLogger(HSMallServer.class);
+	private IOrderCtnService orderCtnService;
+	private IOrderQueueBaseManager orderQueueBaseManager;	
+	public static final String MSG_CODE_ERROR_HS = "E";	//失败
+	public static final String MSG_CODE_SUCCESS_HS = "S";	//成功
+	public static final String ERROR_CODE_SUCCESS_HS = "0000";	//成功
+	public static final String ERROR_CODE_ERROR_HS = "9999";	//成功
+
+	public HSOrderCtnResp hsOrderStand(String reqMsg){
+		HSOrderCtnResp ctnResp = new HSOrderCtnResp();
+		String type = MSG_CODE_SUCCESS_HS;
+		String message = "订单同步成功！";
+		boolean canStd = true;
+		logger.info("[HSMallServer] 请求报文:" + reqMsg);
+		if(StringUtils.isEmpty(reqMsg)){
+			type = MSG_CODE_ERROR_HS;
+			message = "请求报文为空!";
+			canStd = false;
+		}
+		try{
+			String json = Xml2JsonUtil.xml2JSON(reqMsg.substring(reqMsg.indexOf("<Request>")));
+			//关键信息校验
+			String order_id = MallUtils.searchValue(json, "VBELN");
+			String sn = MallUtils.searchValue(json, "MATNR");
+			String source_from = OrderCtnConsts.HS_SOURCE_FROM_B2C;
+			if(canStd && StringUtils.isEmpty(order_id) || StringUtils.isEmpty(sn)){
+				type = MSG_CODE_ERROR_HS;
+				message = "同步失败,缺少订单关键参数!";
+				canStd = false;
+			}
+			
+			//订单唯一性校验-校验订单是否存在
+			if(canStd){
+				//json中添加订单类型，标准化时根据类型来区分处理
+		    	JSONObject jsonObj = JSONObject.parseObject(json);
+				jsonObj.put("HSOrderType", OrderCtnConsts.HS_SOURCE_FROM_B2C);
+				json = jsonObj.toString();
+				Map<String,String> map = orderCtn(order_id, source_from, json);
+				type = map.get("type");
+				message = map.get("message");
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			type = MSG_CODE_ERROR_HS;
+			message = "系统处理异常,"+e.getMessage()+"!";
+		}
+		logger.info("[HSMallServer] 返回前端商城消息:[type:" + type + ",message:" + message + "]");
+		ctnResp.setTYPE(type);
+		ctnResp.setMESSAGE(message);
+		if(MSG_CODE_SUCCESS_HS.equals(type)){
+			ctnResp.setError_code(ERROR_CODE_SUCCESS_HS);
+		}else{
+			ctnResp.setError_code(ERROR_CODE_ERROR_HS);
+		}
+		return ctnResp;
+	}
+	
+	public HSOrderCtnB2BResp hsOrderB2BStand(String reqMsg){
+		HSOrderCtnB2BResp ctnResp = new HSOrderCtnB2BResp();
+		String type = MSG_CODE_SUCCESS_HS;
+		String message = "订单同步成功！";
+		boolean canStd = true;
+		logger.info("[HSMallServer] 请求报文:" + reqMsg);
+		if(StringUtils.isEmpty(reqMsg)){
+			type = MSG_CODE_ERROR_HS;
+			message = "请求报文为空!";
+			canStd = false;
+		}
+		try{
+			String json = Xml2JsonUtil.xml2JSON(reqMsg.substring(reqMsg.indexOf("<HEADER>")));
+	    	JSONObject jsonObj = JSONObject.parseObject(json);
+			//关键信息校验
+			String order_id = jsonObj.getString("EBELN");
+			String sn = MallUtils.searchValue(json, "MATNR");
+			String source_from = OrderCtnConsts.HS_SOURCE_FROM_B2B;
+			if(canStd && StringUtils.isEmpty(order_id) || StringUtils.isEmpty(sn)){
+				type = MSG_CODE_ERROR_HS;
+				message = "同步失败,缺少订单关键参数!";
+				canStd = false;
+			}
+			
+			//订单唯一性校验-校验订单是否存在
+			if(canStd){
+		    	//json中添加订单类型，标准化时根据类型来区分处理
+				jsonObj.put("HSOrderType", OrderCtnConsts.HS_SOURCE_FROM_B2B);
+				json = jsonObj.toString();
+				Map<String,String> map = orderCtn(order_id, source_from, json);
+				type = map.get("type");
+				message = map.get("message");
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			type = MSG_CODE_ERROR_HS;
+			message = "系统处理异常,"+e.getMessage()+"!";
+		}
+		logger.info("[HSMallServer] 返回前端商城消息:[type:" + type + ",message:" + message + "]");
+		ctnResp.setTYPE(type);
+		ctnResp.setMESSAGE(message);
+		if(MSG_CODE_SUCCESS_HS.equals(type)){
+			ctnResp.setError_code(ERROR_CODE_SUCCESS_HS);
+		}else{
+			ctnResp.setError_code(ERROR_CODE_ERROR_HS);
+		}
+		return ctnResp;
+	}
+	
+	private ICacheUtil cacheUtil;
+
+	private void initBean() {
+		if(null == orderCtnService) {
+			orderCtnService = SpringContextHolder.getBean("orderCtnService");
+		}
+		if (null == orderQueueBaseManager) {
+			orderQueueBaseManager = SpringContextHolder.getBean("orderQueueBaseManager");
+		}
+		if(null == cacheUtil) {
+			cacheUtil = SpringContextHolder.getBean("cacheUtil");
+		}
+	}
+	
+	/**
+	 * 订单标准化
+	 * @param order_id
+	 * @param source_from
+	 * @param req_json
+	 * @return
+	 */
+	public Map<String,String> orderCtn(String order_id,String source_from , String req_json){
+		Map<String,String> mapResult = new HashMap<String, String>();
+		String type = "";
+		String message = "";
+		try{
+			INetCache cache = CacheFactory.getCacheByType("");
+		    String key = new StringBuffer().append(source_from).append(order_id).toString();
+		    key = MD5Util.MD5(key);
+		    String def = String.valueOf(cache.get(OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE, key));
+		    if(null != def && def.equals(key)){
+				type = MSG_CODE_SUCCESS_HS;
+				message = "订单["+ order_id +"]同步失败,订单已接收!";
+		    }else{
+		    	//写缓存
+		    	cache.set(OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE,key, key,OrderCtnConsts.ORDER_DUPLICATE_CHECK_NAMESPACE_CACHE_TIMEOUT);
+		    	//订单归集
+		    	initBean();
+		    	OrderCtnReq req  = new OrderCtnReq();
+				req.setOutServiceCode(OrderCtnConsts.OUT_SERVICE_CODE_HSMALLORDERSTANDARD);
+				req.setVersion(OrderCtnConsts.VERSION);
+				req.setReqMsgStr(req_json);
+				req.setFormat(OrderCtnConsts.ORDER_QUEUE_MSG_TYPE_JSON);
+				req.setOutOrderId(order_id);
+				final OrderCtnResp resp = orderCtnService.orderCtn(req);
+				if (null != resp) {
+					String rpc_type = resp.getRpc_type();
+					if(OrderCtnConsts.RPC_TYPE_DUBBO.equals(rpc_type)){
+						if(null != resp.getError_msg() && resp.getError_msg().contains("订单重复执行")){
+							type = MSG_CODE_SUCCESS_HS;
+							message = "订单["+ order_id +"]同步失败,订单已接收!";
+						}else if(!ConstsCore.ERROR_SUCC.equals(resp.getError_code())){
+							type = MSG_CODE_ERROR_HS;
+							message = "订单["+ order_id +"]同步失败,"+resp.getError_msg()+"!";
+						}else{
+							type = MSG_CODE_SUCCESS_HS;
+							message = "订单["+ order_id +"]同步成功!";
+						}
+					}else if(OrderCtnConsts.RPC_TYPE_MQ.equals(rpc_type)){
+						if(null != resp.getError_msg() && resp.getError_msg().contains("订单重复执行")){
+							type = MSG_CODE_SUCCESS_HS;
+							message = "订单["+ order_id +"]同步失败,订单已接收!";
+						}if(!ConstsCore.ERROR_SUCC.equals(resp.getError_code())){
+							type = MSG_CODE_ERROR_HS;
+							message = "订单["+ order_id +"]同步失败,"+resp.getError_msg()+"!";
+						}else{
+							type = MSG_CODE_SUCCESS_HS;
+							message = "订单["+ order_id +"]同步成功!";
+						}
+					}else{
+						type = MSG_CODE_ERROR_HS;
+						message = "订单["+ order_id +"]同步失败,"+resp.getError_msg()+"!";
+					}
+					String esearch_flag = "0";//默认关闭
+					esearch_flag = cacheUtil.getConfigInfo(EcsOrderConsts.ESEARCH_FLAG);//是否取消前置校验 0：关闭 1：开启
+					if("1".equals(esearch_flag)) {
+						final String inJsonStr = req_json;
+						final String returnValueString = "";
+						final String out_tid = order_id;
+						if (StringUtils.isNotEmpty(resp.getBase_co_id())) {
+							Thread thread = new Thread(new Runnable() {
+								@Override
+								public void run() {
+									orderQueueBaseManager.writeEsearch(resp.getBase_co_id(), inJsonStr, returnValueString,out_tid);
+								}
+							});
+							thread.setName("HSMallWriteEsearchThread");
+							thread.start();
+						}
+					}
+					
+				} else {
+					type = MSG_CODE_ERROR_HS;
+					message = "订单["+ order_id +"]同步失败!";
+				}
+		    }
+		}catch(Exception e){
+			e.printStackTrace();
+			type = MSG_CODE_ERROR_HS;
+			message = "系统处理异常,"+e.getMessage()+"!";
+		}
+		mapResult.put("type", type);
+		mapResult.put("message", message);
+		return mapResult;
+	}
+	
+	public static void main(String[] args) {
+//		String str = "<Request><VBELN>11111</VBELN><VBESO>22222</VBESO><ITEMS><ITEM>33333</ITEM></ITEMS><ITEMS><ITEM>3333322222222</ITEM></ITEMS><Invoice><InvoiceItem><TC_ISB02>4444444</TC_ISB02><TC_ISA04>5555555</TC_ISA04></InvoiceItem><InvoiceItem><TC_ISB02>6666666</TC_ISB02><TC_ISA04>7777777</TC_ISA04></InvoiceItem></Invoice></Request>";
+//		Map map = XmlUtils.xmlToMap(str);
+//		logger.info(map);
+//		String json = Xml2JsonUtil.xml2JSON(str);
+//		logger.info(json);
+		String json = "{\"Items\":[{\"Item\":[{\"MENGE\":\"2.000\",\"ITEM\":\"0001\",\"LGORT\":\"1001\",\"delivDate\":\"20160229150239\",\"MEINS\":\"PCS\",\"MATNR\":\"000000007400209754\"},{\"MENGE\":\"2.000\",\"SOBKZ\":\"K\",\"ITEM\":\"0002\",\"LGORT\":\"1001\",\"delivDate\":\"20160229150239\",\"MEINS\":\"PCS\",\"MATNR\":\"000000007400209754\"}]}],\"TELPhone\":\"13722222222\",\"MJAHR\":\"2016\",\"shipToAddress\":\"前进街道南湖广场气象宿舍乙栋3门107室\",\"remark\":\"1\",\"status\":\"单据状态\",\"consignee\":\"赵东方\",\"VBESO\":\"20150311099916\",\"Invoice\":[{\"InvoiceItem\":[{\"TC_ISB09X\":\"29.06\",\"TC_ISB11W\":\"0.00\",\"TC_ISB09T\":\"200.00\",\"TC_ISA03\":\"20160229\",\"TC_ISA04\":\"301602290004\",\"ZCHLB\":\"X\",\"TC_ISB09\":\"170.94\",\"TC_ISA05\":\"0001000191\",\"TC_ISB08\":\"2.000\",\"BUKRS\":\"X000\",\"TC_ISB04\":\"000000007400200487\",\"TC_ISB05\":\"3G手机华为_3G手机华为_U1270白色\",\"TC_ISB06\":\"3G手机华为_3G手机华为_U1270白\",\"TC_ISB07\":\"PCS\",\"TC_ISB02\":\"301602290004\",\"TC_ISB03\":\"00001\",\"LINE_INDEX\":\"1\",\"TC_ISB11X\":\"0.00\",\"TC_ISA061\":\"17.0000\",\"TC_ISA062\":\"B\",\"TC_ISA053\":\"前进街道南湖广场气象宿舍乙栋3门107室13722222222\",\"TC_ISA051\":\"最爱田老板\",\"TC_ISA10\":\"4900111290;444502527824\",\"ZWLDH\":\"444502527824\",\"WERKS\":\"X0001001\",\"ZJSX1\":\"0000\",\"TC_ISA055\":\"N\",\"ZCHDH\":\"4900111290\",\"ZCKTIME\":\"150244\",\"TC_ISB11\":\"0.00\",\"ZCKDATE\":\"20160229\"}]}],\"companyName\":\"赵东方\",\"WERKS\":\"X000\",\"Traficnum\":\"444502527824\",\"city\":\"长春市\",\"disvendorCode\":\"1\",\"AreaCode\":\"431\",\"county\":\"朝阳区\",\"province\":\"吉林省\",\"companyId\":\"0001000191\",\"createDate\":\"15023900000000\",\"VBELN\":\"4900111290\",\"consigneePhone\":\"13722222222\"}";
+		JSONObject jsonObj = JSONObject.parseObject(json);
+		jsonObj.put("orderType", "10061");
+		logger.info(jsonObj.toString());
+		String orderType = MallUtils.searchValue(jsonObj.toString(), "orderType");
+		logger.info("orderTypeorderType" + orderType);
+		json = "{\"bezei\":\"吉林省\",\"TELF1\":\"18888888888\",\"TELF2\":\"18888888888\",\"EBELN\":\"dsc00001\",\"ORT02\":\"朝阳区\",\"ORT01\":\"长春市\",\"STRAS\":\"前进街道南湖广场气象宿舍乙栋3门107室\",\"LIFNR\":\"000001\",\"WERKS\":\"广州\",\"ZRECEIVER1\":\"李四\",\"ZJKLB\":\"21\",\"NAME1\":\"张三\",\"ITEMS\":[{\"MENGE\":\"2\",\"EBELP\":\"00000001\",\"MAKTX\":\"test\",\"LGORT\":\"00000001\",\"MATNR\":\"000000007400200487\"}]}";
+		logger.info("Json:" + json);
+		logger.info("dd:" + MallUtils.searchValue(json,"MATNR"));
+	}	
+	
+}

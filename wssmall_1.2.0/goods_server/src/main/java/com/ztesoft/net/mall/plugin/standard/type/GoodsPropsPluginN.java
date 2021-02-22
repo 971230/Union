@@ -1,0 +1,229 @@
+package com.ztesoft.net.mall.plugin.standard.type;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.net.eop.processor.core.freemarker.FreeMarkerPaser;
+import com.ztesoft.net.eop.processor.core.freemarker.RepeatDirective;
+import com.ztesoft.net.mall.core.model.Attribute;
+import com.ztesoft.net.mall.core.params.GoodsExtData;
+import com.ztesoft.net.mall.core.plugin.goods.AbstractGoodsPluginN;
+import com.ztesoft.net.mall.core.service.IGoodsCatManager;
+import com.ztesoft.net.mall.core.service.IGoodsTypeManager;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+
+/**
+ * 商品属性插件
+ * @author zou.qh
+ *
+ */
+public class GoodsPropsPluginN extends AbstractGoodsPluginN{
+
+	private IGoodsCatManager goodsCatManager;
+	private IGoodsTypeManager goodsTypeManager;
+	private String parent_id;
+	public String getParent_id() {
+		return parent_id;
+	}
+
+	public void setParent_id(String parent_id) {
+		this.parent_id = parent_id;
+	}
+
+	@Override
+	public void addTabs() {
+
+	}
+
+	@Override
+	public void onBeforeGoodsEdit(Map goods, GoodsExtData goodsExtData)  {
+		String[] propvalues= goodsExtData.getPropvalues();  // 值数组
+
+		try{
+			String goods_id  =(String) goods.get("goods_id");
+			saveProps(goods_id,propvalues);	
+		}
+		catch(NumberFormatException e){
+			throw new  RuntimeException("商品id格式错误");
+		}			
+	}
+	
+	@Override
+	public void onBeforeGoodsAdd(Map goods, GoodsExtData goodsExtData) {
+//		HttpServletRequest request = ThreadContextHolder.getHttpRequest();
+//		List typeList = goodsTypeManager.listAll();
+//		if(typeList != null){
+//			request.setAttribute("typeList", typeList);
+//		}
+	}
+
+	
+	@Override
+	public String onFillGoodsAddInput() {
+		FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getInstance();
+		freeMarkerPaser.setPageName("props_inputn");
+		return freeMarkerPaser.proessPageContent();
+	}
+ 
+	@Override
+	public void onAfterGoodsEdit(Map goods, GoodsExtData goodsExtData)  {
+		
+	}
+
+	@Override
+	public void onAfterGoodsAdd(Map goods, GoodsExtData goodsExtData)  {
+		String[] propvalues= goodsExtData.getPropvalues();  // 值数组
+		try{
+			String goods_id  =  (String)goods.get("goods_id");
+			saveProps(goods_id,propvalues);	
+		}
+		catch(NumberFormatException e){
+			/*Integer 最大值为 2147483647
+			 * 商品ID为：201304090000000233
+			 * 一定会触发异常
+			 * */
+			throw new  RuntimeException("商品id格式错误");
+		}
+	}
+		
+
+	@Override
+	public String onFillGoodsEditInput(Map goods, GoodsExtData goodsExtData) {
+		String type = Const.getStrValue(goods, "type");//广东联通ECS添加，区分商品货品
+		//读取属性信息
+		Map propMap = new HashMap();
+		for(int i=0;i<20;i++){
+			String value = goods.get("p" + (i+1))==null ? "" : goods.get("p" + (i+1)).toString();
+			propMap.put("p"+i,value);
+		}
+		goods.put("propMap",propMap);
+		
+		List propList  = proessProps(goods);
+		FreeMarkerPaser freeMarkerPaser = FreeMarkerPaser.getInstance();
+		freeMarkerPaser.setPageName("props_inputn");
+		freeMarkerPaser.putData("attrList", propList);
+		freeMarkerPaser.putData("is_edit", true);
+		freeMarkerPaser.putData("founder", ManagerUtils.getAdminUser().getFounder()+"");
+		freeMarkerPaser.putData("repeat", new RepeatDirective());
+		freeMarkerPaser.putData("type", type);
+		return freeMarkerPaser.proessPageContent();
+	}
+	
+	// 处理属性信息
+	private List proessProps(Map goodsView) {
+		
+		if( goodsView.get("type_id")==null ) {
+			throw new  RuntimeException("类型id为空");
+		}
+		String goods_id ="";
+		try{
+			 goods_id  = goodsView.get("type_id").toString();
+		}catch(NumberFormatException e){
+			throw new  RuntimeException("类型不为数字");
+		}
+		List  propList = this.goodsTypeManager.getAttrListByTypeId( goods_id );
+		if(propList==null) return propList;
+		Map<String, String> propMap = (Map)goodsView.get("propMap");
+		for (int i = 0; i < propList.size(); i++) {
+			Attribute attribute = (Attribute) propList.get(i);
+			String value = propMap.get("p" + i);
+			attribute.setValue(value);
+		}
+		List tempList = null;
+		List subAttrList = new ArrayList();
+		tempList = propList;
+		propList = new ArrayList();
+		if(tempList != null){
+			int j=1;
+			for(int i=0;i<tempList.size();i++){
+				Attribute attr = (Attribute) tempList.get(i);
+				subAttrList.add(attr);
+				if(j%3==0 || j==tempList.size()){
+					Map<String,Object> map = new HashMap<String,Object>();
+					map.put("subAttrList", subAttrList);
+					propList.add(map);
+					subAttrList = new ArrayList();
+				}
+				j++;
+			}
+		}
+		return propList;
+	}
+	
+	
+	/**
+	 * 商品添加时处理相关的属性信息 是添加完后更新, 因为可能存在 有p1 到p20 个字段,所以更新要比较添加方便
+	 * 
+	 * @param goodsid
+	 * @param propvalues
+	 */
+	private void saveProps(String goodsid, String[] propvalues) {
+		if(propvalues!=null && propvalues.length>0){
+			HashMap fields = new HashMap();
+			int length = propvalues.length;
+			length = length > 20 ? 20 : length; // 只支持20个自定义属性
+
+			// 循环所有属性,按p_个数 为字段名存在 goods表中
+			// 字段中存的是 值,当是下拉框时也存的是值,并不是属性的id
+			for (int i = 0; i < length; i++) {
+				String value = propvalues[i];
+				fields.put("p" + (i + 1), value);
+			}
+			// 更新这个商品的属性信息
+			this.daoSupport.update("es_goods", fields, "goods_id=" + goodsid);
+			
+		}
+
+	}
+
+	@Override
+	public void perform(Object... params) {
+
+	}
+	
+	@Override
+	public String getAuthor() {
+		return "zou.qh";
+	}
+
+	@Override
+	public String getId() {
+		return "props_inputN";
+	}
+
+	@Override
+	public String getName() {
+		return "商品属性插件";
+	}
+
+	@Override
+	public String getType() {
+		return null;
+	}
+
+	@Override
+	public String getVersion() {
+		return "1.0";
+	}
+	
+	public void setGoodsTypeManager(IGoodsTypeManager goodsTypeManager) {
+		this.goodsTypeManager = goodsTypeManager;
+	}
+
+	public void setGoodsCatManager(IGoodsCatManager goodsCatManager) {
+		this.goodsCatManager = goodsCatManager;
+	}
+
+	public IGoodsCatManager getGoodsCatManager() {
+		return goodsCatManager;
+	}
+
+	public IGoodsTypeManager getGoodsTypeManager() {
+		return goodsTypeManager;
+	}
+	
+}

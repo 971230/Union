@@ -1,0 +1,165 @@
+package com.ztesoft.net.mall.core.service.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.powerise.ibss.framework.Const;
+import com.ztesoft.net.eop.sdk.database.BaseSupportGProduct;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.mall.core.model.CoQueue;
+import com.ztesoft.net.mall.core.model.Goods;
+import com.ztesoft.net.mall.core.model.OrderOuter;
+import com.ztesoft.net.mall.core.model.Product;
+import com.ztesoft.net.mall.core.service.IGProdCoQueueManager;
+import com.ztesoft.net.sqls.SF;
+
+public class GProdCoQueueManager extends BaseSupportGProduct implements IGProdCoQueueManager {
+
+	private static final String CO_QUEUE_DEAL_STATUS = "002";
+	private static final String CO_QUEUE_LOCK_STATUS = "001";
+	
+	@Override
+	public List<CoQueue> getForJob(String service_code, int max_count) {
+		//获取未发送的【WFS】和响应失败【XYSB】的（失败次数4次以下的）
+		String sql = SF.baseSql("QUERY_CO_QUEUE_BAK_ALL") 
+				+ " and service_code = ?"
+				+ " and deal_status = ? ";
+		sql += " order by created_date desc";
+		List<String> paramLst = new ArrayList<String>();
+		paramLst.add(service_code);
+		paramLst.add(CO_QUEUE_DEAL_STATUS);//Consts.CO_QUEUE_STATUS_WFS
+ 
+		Page coPage = this.baseDaoSupportGProd.queryForPage(sql, 1, max_count, 
+				CoQueue.class, paramLst.toArray());
+		
+		return coPage.getResult();
+	}
+	
+	@Override
+	@Transactional(propagation = Propagation.REQUIRED)
+	public void lock(String co_id) {
+		
+		List<String> paramLst = new ArrayList<String>();
+		paramLst.add(CO_QUEUE_LOCK_STATUS);
+		paramLst.add(co_id);
+		this.baseDaoSupportGProd.execute(SF.baseSql("LOCK_CO_QUEUE_BY_ID_2"), paramLst.toArray());
+		
+	}
+
+	@Override
+	public List<CoQueue> listCoQueue(String service_code, String last_move_time) {
+		String sql = SF.baseSql("CO_QUEUE_GUIJI_LIST");
+		List<CoQueue> queues = this.baseDaoSupportGProd.queryForList(sql, CoQueue.class, service_code,last_move_time);
+		return queues;
+	}
+	
+	public List listOrderOuter(String last_move_time){
+		String sql = SF.baseSql("ORDER_OUTER_LIST");
+		return this.baseDaoSupportGProd.queryForList(sql, last_move_time);
+	}
+
+	@Override
+	public OrderOuter getOrderOuter(Map params) {
+		String out_tid = Const.getStrValue(params, "ext_order_id");
+		String sql = SF.baseSql("ORDER_OUTER_GET");
+		List<String> pList = new ArrayList<String>();
+		if(!StringUtils.isEmpty(out_tid)){
+			sql += " and old_sec_order_id=? and rownum<2";
+			pList.add(out_tid);
+		}
+		List<OrderOuter> orderOuters = this.baseDaoSupportGProd.queryForList(sql, OrderOuter.class,pList.toArray());
+		return (orderOuters!=null && orderOuters.size()>0)?orderOuters.get(0):null;
+	}
+
+	@Override
+	public CoQueue getGuijiCoQueue(String tab_name, String object_id, String service_code) {
+		String sql = SF.baseSql("CO_QUEUE_GUIJI_GET").replaceAll("#tab_name", tab_name);
+		List<CoQueue> coQueues = this.baseDaoSupportGProd.queryForList(sql, CoQueue.class, service_code, object_id);
+		return (coQueues!=null && coQueues.size()>0)?coQueues.get(0):null;
+	}
+
+	@Override
+	public Goods getGoods(String goods_id) {
+		String sql = SF.baseSql("GOODS_GET");
+		Goods goods = (Goods) this.baseDaoSupportGProd.queryForObject(sql, Goods.class, goods_id);
+		return goods;
+	}
+
+	@Override
+	public List<Map> getGoodsRelations(String a_goods_id) {
+		String sql = SF.baseSql("GOODS_RELATIONS");
+		List<Map> relations = this.baseDaoSupportGProd.queryForList(sql, a_goods_id);
+		return relations;
+	}
+
+	@Override
+	public List<Goods> getProducts(String goods_id) {
+		String sql = SF.baseSql("PRODUCTS_LIST");
+		List<Goods> products = this.baseDaoSupportGProd.queryForList(sql, Goods.class, goods_id);
+		return products;
+	}
+
+	@Override
+	public List<Map> getGoodsPackage(String goods_id) {
+		String sql = SF.baseSql("GOODS_PACKAGE_GET");
+		List<Map> packages = this.baseDaoSupportGProd.queryForList(sql, goods_id);
+		return packages;
+	}
+
+	@Override
+	public Product getProduct(String goods_id) {
+		String sql = SF.baseSql("PRODUCT_TABLE_GET");
+		Product product = (Product) this.baseDaoSupportGProd.queryForObject(sql, Product.class, goods_id);
+		return product;
+	}
+
+	@Override
+	public List<Product> getProductList(String goods_id) {
+		String sql = SF.baseSql("PRODUCT_TABLE_LIST");
+		List<Product> products = this.baseDaoSupportGProd.queryForList(sql, Product.class, goods_id);
+		return products;
+	}
+	
+	@Override
+	public List<Map> getPmtGoods(String goods_id){
+		String sql = SF.baseSql("PMT_GOODS");
+		List<Map> pmtGoods = this.baseDaoSupportGProd.queryForList(sql, goods_id);
+		return pmtGoods;
+	}
+	
+	@Override
+	public List<Map> getPromotions(List<Map> pmts){
+		List<Map> pmtList = new ArrayList<Map>();
+		for(Map pmt : pmts){
+			String pmt_id = Const.getStrValue(pmt, "pmt_id");
+			List<Map> pmtMap = this.baseDaoSupportGProd.queryForList(SF.baseSql("PROMOTION_GET"), pmt_id);
+			pmtList.addAll(pmtMap);
+		}
+		return pmtList;
+	}
+	
+	@Override
+	public List<Map> getPromotionActivities(List<Map> pmts){
+		List<Map> pmtList = new ArrayList<Map>();
+		for(Map pmt : pmts){
+			String id = Const.getStrValue(pmt, "pmta_id");
+			List<Map> pmtMap = this.baseDaoSupportGProd.queryForList(SF.baseSql("PROMOTION_ACTIVITY_GET"), id);
+			pmtList.addAll(pmtMap);
+		}
+		return pmtList;
+	}
+	
+	public void moveBlobData(List list, String table_name){
+		if(null != list){
+			for(int i = 0; i < list.size(); i++){
+				this.baseDaoSupportGProd.insert(table_name, list.get(i));
+			}
+		}
+		logger.info("====>>>>");
+	}
+}

@@ -1,0 +1,57 @@
+package com.ztesoft.services;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.commons.beanutils.BeanUtils;
+
+import com.ztesoft.api.AppKeyEnum;
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.net.utils.EopUtils;
+import com.ztesoft.parameters.sms.SmsRequest;
+import com.ztesoft.remote.params.req.SmsTempleteRequest;
+import com.ztesoft.remote.params.resp.SmsTempleteResponse;
+import com.ztesoft.rop.annotation.NeedInSessionType;
+import com.ztesoft.rop.annotation.ServiceMethod;
+import com.ztesoft.rop.annotation.ServiceMethodBean;
+
+/***
+ * 
+ * @author ping
+ *
+ */
+@ServiceMethodBean(version = "1.0")
+public class SmsService extends IROPService  {
+	@ServiceMethod(method = "sms.sendSms", version = "1.0", needInSession = NeedInSessionType.YES, timeout = 300000)
+    public Map sendSms(SmsRequest request) {
+		SmsTempleteRequest req = new SmsTempleteRequest();
+		ZteClient client=null;
+        try {
+        	client = ClientFactory.getZteDubboClient(AppKeyEnum.APP_KEY_WSSMALL_FJ);
+            req.setAccNbr(request.getAcc_nbr());
+            req.setUserSessionId(request.getUserSessionId());
+            req.setSessionId(req.getSessionId());
+            req.setAppKey(request.getRopRequestContext().getAppKey());
+            req.setCode("RANDOM_CODE");
+            Map params = new HashMap();
+            String randCode = String.valueOf(EopUtils.genRandom(6));
+            params.put("randCode", randCode);
+            params.put("random_code", randCode);
+            
+            req.setParams(params);
+            SmsTempleteResponse resp = client.execute(req,SmsTempleteResponse.class);
+            Map map = BeanUtils.describe(resp);
+            Map rtn_map = new HashMap();
+            rtn_map.put("error_code", map.get("error_code")==null?"":map.get("error_code"));
+            rtn_map.put("error_msg",  map.get("error_msg")==null?"":map.get("error_msg"));
+            rtn_map.put("send_no", map.get("sendNo")==null?"":map.get("sendNo"));
+            return rtn_map;
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
+        return null;
+    }
+
+}

@@ -1,0 +1,27 @@
+log4j.rootLogger = INFO, stdout, file
+###. ������Ϊ stdout ������˵�����
+log4j.appender.stdout = org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target = System.out
+log4j.appender.stdout.layout = org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern = %-d{yyyy-MM-dd HH:mm:ss} [%t] - [%p] %m%n
+
+
+
+
+###. ������Ϊ file ������˵�����Ϊÿ�����һ����־�ļ���
+log4j.appender.file =org.apache.log4j.DailyRollingFileAppender
+###.Ĭ����վ��Ŀ¼��
+log4j.appender.file.File=log.log
+log4j.appender.file.layout=org.apache.log4j.PatternLayout
+log4j.appender.file.layout.ConversionPattern=%d-[TS] %p %t %c - %m%n
+#���þ��·��
+#log4j.appender.logfile.File=F://log/log.log
+
+
+
+###. ָ�� com.neusoft ���µ�������ĵȼ�Ϊ DEBUG �����԰� com.neusoft ��Ϊ�Լ���Ŀ���õİ���
+#log4j.logger=DEBUG
+log4j.logger.com.ztesoft= error
+log4j.logger.org.apache.axis.ConfigurationException=ERROR
+
+

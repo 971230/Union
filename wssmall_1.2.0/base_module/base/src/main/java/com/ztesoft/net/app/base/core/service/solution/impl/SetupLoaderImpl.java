@@ -1,0 +1,34 @@
+package com.ztesoft.net.app.base.core.service.solution.impl;
+
+import com.ztesoft.net.app.base.core.service.solution.ISetupLoader;
+import com.ztesoft.net.eop.sdk.context.EopSetting;
+import com.ztesoft.net.framework.util.FileBaseUtil;
+
+import org.apache.log4j.Logger;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.io.SAXReader;
+
+import java.io.File;
+
+public class SetupLoaderImpl implements ISetupLoader {
+	private static Logger logger = Logger.getLogger(SetupLoaderImpl.class);
+	
+	@Override
+	public Document load(String productId) {
+		String xmlFile = EopSetting.PRODUCTS_STORAGE_PATH+"/"+productId +"/setup.xml"; 
+		Document document = null;
+		SAXReader saxReader = new SAXReader();
+		try {
+			if (FileBaseUtil.exist(xmlFile)) {
+				document = saxReader.read(new File(xmlFile));
+			}
+
+		} catch (DocumentException e) {
+			logger.info(e.getMessage());
+		} 	
+		return document;
+		 
+	}
+
+}

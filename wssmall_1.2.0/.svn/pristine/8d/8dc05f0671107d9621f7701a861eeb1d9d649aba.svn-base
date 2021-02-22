@@ -1,0 +1,101 @@
+package com.ztesoft.net.framework.pager.impl;
+
+import com.ztesoft.net.framework.pager.AbstractProxyPageHtmlBuilder;
+
+/**
+ * 正常的页面跳转的翻页
+ * @author apexking
+ *
+ */
+public class SimplePageHtmlBuilder extends AbstractProxyPageHtmlBuilder   {
+	
+	private String gridid;
+	
+	public SimplePageHtmlBuilder(long _pageNum, long _totalCount, int _pageSize,String gridid,String _asynModel) {
+		super(_pageNum, _totalCount, _pageSize,_asynModel);
+		this.gridid = gridid;
+	}
+	public SimplePageHtmlBuilder(long _pageNum, long _totalCount, int _pageSize,String gridid) {
+		this(_pageNum, _totalCount, _pageSize, gridid, "");
+	}
+	
+	public String getGridId() {
+		return gridid;
+	}
+	
+	@Override
+	public String buildPageHtml() {
+		return super.buildPageHtml() + "<script type=\"text/javascript\">" +getFunction()+"\r\n"+getLinkPageFunction()+"\r\n"+
+				"jQuery(\".gridbody[gridid='"+gridid+"']>.page>ul>li>input[name='pageSize']\").unbind('change').bind('change',goToSizePage);\r\n"+
+				"jQuery(\".gridbody[gridid='"+gridid+"']>.page>ul>li>a[page_url]\").unbind('click').bind('click',"+getAFunction()+");\r\n"+
+				"jQuery(\".gridbody[gridid='"+gridid+"']>.page>ul>li[name=setpagesize_li]>a[name='spsize']\").unbind('click').bind('click',goLinkSizePage);"+
+				"\r\n"+getEnterBindEvent()+
+				"</script>";
+	}
+	
+	private String getFunction(){
+		String function = "function goToSizePage(){" +
+				"var pgObj = jQuery(\"li[name=setpagesize_li]>input[name=pageSize]\");"+
+				"var pageSize = pgObj.val();"+
+				"var reg = /\\d+$/;"+
+				"if(!reg.test(pageSize))pageSize = 10;pgObj.val(pageSize);"+
+				"window.location.href=\""+getChangeUrl()+"\"+pageSize;" +
+			"};";
+		return function;
+	}
+	
+	private String getLinkPageFunction(){
+		String function = "function goLinkSizePage(){" +
+				"var pgObj = jQuery(this);"+
+				"var pageSize = pgObj.attr('p_size');"+
+				"var reg = /\\d+$/;"+
+				"if(!reg.test(pageSize))pageSize = 10;pgObj.val(pageSize);"+
+				"window.location.href=\""+getChangeUrl()+"\"+pageSize;" +
+			"};";
+		return function;
+	}
+	
+	private String getAFunction(){
+		String function = "function (){" +
+				"var pgObj = jQuery(\"li[name=setpagesize_li]>input[name=pageSize]\");"+
+				"var pageSize = pgObj.val();"+
+				"var reg = /\\d+$/;"+
+				"if(!reg.test(pageSize))pageSize = 10;$(this).val(pageSize);"+
+				"window.location.href=$(this).attr('page_url')+pageSize;" +
+			"}";
+		return function;
+	}
+	
+	private String getEnterBindEvent(){
+	     return "document.onkeydown=function(event){"+
+	            "var e = event || window.event || arguments.callee.caller.arguments[0];"+
+	             "if(e && e.keyCode==13){goToSizePage();}"+
+	        "};"; 
+	}
+	
+	private String getChangeUrl(){
+		return url+"page="+this.pageNum+"&pageSize=";
+	}
+
+	/**
+	 * 生成href的字串
+	 */
+	
+	protected String getUrlStr(long page) {
+		
+		StringBuffer linkHtml = new StringBuffer();
+		linkHtml.append(" href='javascript:void(0);'");
+		linkHtml.append(" page_url='");
+		linkHtml.append(url);
+		linkHtml.append("page=");
+		linkHtml.append(page);
+		linkHtml.append("&pageSize=");
+		//linkHtml.append(pageSize);
+		linkHtml.append("'>");
+		return linkHtml.toString();
+		
+		 
+	}
+	
+ 
+}

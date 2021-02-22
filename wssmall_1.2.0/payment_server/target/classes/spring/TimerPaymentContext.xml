@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+<beans default-autowire="byName" default-lazy-init="false">
+    <bean id="bankManager" class="com.ztesoft.net.mall.core.service.impl.BankManager" ></bean>
+    <bean id="paymentListManager" class="com.ztesoft.net.mall.core.service.impl.PaymentListManager" parent="baseSupport"></bean>
+    <bean id="payProcess" class="com.ztesoft.net.mall.core.action.pay.PayProcess" parent="baseSupport"></bean>
+    <!-- <bean id="paymentHander" class="com.ztesoft.net.mall.core.pay.PaymentHander" parent="baseSupport" ></bean> -->
+    <bean id = "checkAcctManager" class = "com.ztesoft.net.mall.cmp.CheckAcctManager" parent="baseSupport"></bean>
+    <bean id = "bakCheckBillData" class = "com.ztesoft.net.mall.cmp.BakCheckBillData" parent="baseSupport"></bean>
+    <bean id = "dataToDataBase" class = "com.ztesoft.net.mall.cmp.DataToDataBase" parent="baseSupport"></bean>
+    <bean id = "dataBaseToFile" class = "com.ztesoft.net.mall.cmp.DataBaseToFile"></bean>
+    <bean id = "checkBill" class = "com.ztesoft.net.mall.cmp.CheckBill" ></bean>
+    <!-- <bean id = "compChargePro" class = "com.ztesoft.net.mall.cmp.CompChargePro" parent="baseSupport"></bean> -->
+    <bean id = "compCharge" class = "com.ztesoft.net.mall.cmp.CompCharge" ></bean>
+    
+    <bean id = "creditManager" class = "com.ztesoft.net.mall.core.service.impl.CreditManager" parent="baseSupport"></bean>
+	
+	
+	<bean id = "bankOnlinePayParams" class = "services.BankOnlinePayParams"></bean>
+
+	
+	<!-- 支付插件桩-->
+	<bean id="paymentPluginBundle" class="com.ztesoft.net.mall.core.plugin.payment.PaymentPluginBundle"></bean>
+	
+	
+	<!-- 支付宝担保交易接口 -->
+	<bean id="alipayEscowPlugin"  class="com.ztesoft.net.mall.plugin.payment.alipay.escow.AlipayEscowPlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="paymentPluginBundle" />
+			</list>
+		</property>	
+	</bean>
+	<!-- 支付宝即时到账接口 -->
+	<bean id="alipayDirectPlugin"  class="com.ztesoft.net.mall.plugin.payment.alipay.direct.AlipayDirectPlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="paymentPluginBundle" />
+			</list>
+		</property>	
+	</bean>	
+	
+	<bean id="commonPayHander" class="com.ztesoft.net.mall.core.action.desposit.pay.CommonPayHander"   parent="baseSupport"  />
+	<bean id="paymentManager" class="com.ztesoft.net.mall.core.service.impl.PaymentManager" parent="baseSupport"></bean>
+	<!-- 支付宝双接口 -->
+    <bean id="alipayDualfunPlugin"  class="com.ztesoft.net.mall.plugin.payment.alipay.dualfun.AlipayDualfunPlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="paymentPluginBundle" />
+			</list>
+		</property>	
+	</bean>	
+	<!-- 财付通即时到账接口 -->
+	<bean id="tenpayDirectPlugin"  class="com.ztesoft.net.mall.plugin.payment.tenpay.direct.TenpayDirectPlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="paymentPluginBundle" />
+			</list>
+		</property>	
+	</bean>
+	<!-- 财富通担保交易接口 -->
+	<bean id="tenpayMedPlugin" class="com.ztesoft.net.mall.plugin.payment.tenpay.med.TenpayMedPlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="paymentPluginBundle" />
+			</list>
+		</property>	
+	</bean>
+	<bean id="offline"  class="com.ztesoft.net.mall.plugin.payment.offline.OfflinePlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="paymentPluginBundle" />
+			</list>
+		</property>	
+	</bean>	
+	<bean id="deposit"  class="com.ztesoft.net.mall.plugin.payment.deposit.DepositPlugin" lazy-init="false">
+		<property name="bundleList">
+			<list>
+				<ref bean="paymentPluginBundle" />
+			</list>
+		</property>	
+	</bean>	
+	
+	<bean id = "checkacctLogsManager" class ="com.ztesoft.net.mall.core.service.impl.CheckacctLogsManager" parent ="baseSupport"></bean>
+</beans>

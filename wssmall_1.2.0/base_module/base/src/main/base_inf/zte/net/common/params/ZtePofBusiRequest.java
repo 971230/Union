@@ -1,0 +1,71 @@
+package zte.net.common.params;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+
+import org.apache.commons.beanutils.MethodUtils;
+
+import params.ZteBusiRequest;
+import params.ZteResponse;
+import zte.net.common.annontion.context.request.RequestFieldAnnontion;
+
+import com.tangosol.io.pof.PofReader;
+import com.tangosol.io.pof.PofWriter;
+import com.tangosol.io.pof.PortableObject;
+
+
+public abstract class ZtePofBusiRequest<T extends ZteResponse> extends ZteBusiRequest implements PortableObject { 
+
+	@Override
+	public void readExternal(PofReader pofReader) throws IOException {
+		Field[] Fields = this.getClass().getDeclaredFields();
+		for (Field field : Fields) {
+			if (field.isAnnotationPresent(RequestFieldAnnontion.class)) {
+				// 获取顺序符号
+				RequestFieldAnnontion requestFieldAnnontion = field.getAnnotation(RequestFieldAnnontion.class);
+				final int fileOrder = requestFieldAnnontion.field_Order();
+				final String fieldName = field.getName();
+				// 读取属性值
+				try {
+					Object readValue = null;
+					if (field.getType().getName().contains("Map")) {
+						readValue = MethodUtils.invokeMethod(pofReader, "read" + field.getType().getSimpleName(), new Object[] { fileOrder, new HashMap() });
+					} else {
+						readValue = MethodUtils.invokeMethod(pofReader, "read" + field.getType().getSimpleName(), fileOrder);
+					}
+					MethodUtils.invokeMethod(this, "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1), readValue);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	@Override
+	public void writeExternal(PofWriter pofWriter) throws IOException {
+		Field[] Fields = this.getClass().getDeclaredFields();
+		for (Field field : Fields) {
+			if (field.isAnnotationPresent(RequestFieldAnnontion.class)) {
+				RequestFieldAnnontion requestFieldAnnontion = field.getAnnotation(RequestFieldAnnontion.class);
+				final int fileOrder = requestFieldAnnontion.field_Order();
+				final String fieldName = field.getName();
+				Object value = null;
+				try {
+					// 获取属性值
+					value = MethodUtils.invokeMethod(this, "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1), null);
+					// 写入属性值
+					MethodUtils.invokeMethod(pofWriter, "write" + field.getType().getSimpleName(), new Object[] { fileOrder, value });
+				} catch (Exception  e) {
+					e.printStackTrace();
+				}
+
+			}
+		}
+	}
+	
+//	@NotDbField
+//	public abstract void delete();
+	
+	
+}

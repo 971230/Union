@@ -1,0 +1,59 @@
+
+.division {
+background:none repeat scroll 0 0 #FFFFFF;
+border-color:#a3d1ec;
+border-style:solid;
+border-width:2px;
+line-height:150%;
+margin:10px;
+white-space:normal;
+}
+.division table{margin:0;padding:0} 
+.orderdetails_basic th {
+color:#444;
+text-align:left;
+white-space:nowrap;
+}
+
+.division th {
+background:none repeat scroll 0 0 #eefaff;
+font-size:12px;
+text-align:right;
+white-space:nowrap;
+width:140px;
+color:#444;
+}
+.division th, .division td {
+	border-bottom:1px solid #e0e0e0;
+	border-right:1px solid #e0e0e0;
+	padding:5px;
+	vertical-align:top;
+	color:#444;
+	text-align:left;
+}
+.division td span{ color:#e41c33; font-weight:bold;font-size:12px;}
+.division td a{ color:#247bcc; font-size:12px; font-weight:lighter;}
+
+.tableform {
+background:none repeat scroll 0 0 #fff;
+margin:10px 0px;
+padding:5px;
+}
+.orderdetails_basic h5{ color:#444; padding-left:10px;}
+
+h5  {
+font-size:1em;
+font-weight:bold;
+}
+h1, h2, h3, h4, h5, h6 {
+clear:both;
+color:#111111;
+margin:0.5em 0;
+}
+
+#order_dialog .con{
+		background:none repeat scroll 0 0 #FFFFFF;
+		overflow-x:hidden;
+		overflow-y:auto;
+		height: 400px;   visibility: visible; opacity: 1; position: relative;
+}

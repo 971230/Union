@@ -1,0 +1,369 @@
+/*     */ package com.ztesoft.crm.report.config.elements;
+/*     */ 
+/*     */ import com.ztesoft.crm.report.actions.ParameterMap;
+/*     */ import com.ztesoft.crm.report.lang.ArrayListEx;
+/*     */ import com.ztesoft.crm.report.lang.Utils;
+/*     */ import java.util.Iterator;
+/*     */ import java.util.List;
+/*     */ 
+/*     */ public final class Panel extends Element
+/*     */ {
+/*     */   private static final long serialVersionUID = 4407685480232759363L;
+/*     */   private Axis axis;
+/*     */   private String axisCn;
+/*     */   private String columnAlign;
+/*     */   private String columnEqualWidth;
+/*  37 */   private String columnMinWidth = "100px";
+/*  38 */   private String columns = "1";
+/*     */   private String columnWidth;
+/*     */   private Model currentModel;
+/*     */   private String defaultChartType;
+/*  42 */   private String exportEnable = "false";
+/*     */   private String height;
+/*     */   private String labelSeparator;
+/*  45 */   private String labelVisiable = "true";
+/*     */   private String labelWidth;
+/*     */   private String leftAxisTitle;
+/*     */   private Metric metric;
+/*     */   private String model;
+/*     */   private String page;
+/*     */   private String pageSize;
+/*     */   private String legendFormat;
+/*     */   private String labelPosition;
+/*     */   private String labelFormat;
+/*     */   private List prepareSeries;
+/*     */   private String reportPath;
+/*     */   private String rightAxisTitle;
+/*     */   private List series;
+/*     */   private String styleRule;
+/*     */   private String target;
+/*     */   private String title;
+/*     */   private String type;
+/*  97 */   private String width = "100%";
+/*     */   private List xHeaders;
+/*     */   private List yRows;
+/*     */ 
+/*     */   public static long getSerialVersionUID()
+/*     */   {
+/*  28 */     return 4407685480232759363L;
+/*     */   }
+/*     */ 
+/*     */   public String getLabelFormat()
+/*     */   {
+/*  58 */     return ((this.labelFormat == null) ? "" : this.labelFormat);
+/*     */   }
+/*     */ 
+/*     */   public void setLabelFormat(String labelFormat) {
+/*  62 */     this.labelFormat = labelFormat;
+/*     */   }
+/*     */ 
+/*     */   public String getLabelPosition() {
+/*  66 */     return this.labelPosition;
+/*     */   }
+/*     */ 
+/*     */   public void setLabelPosition(String labelPosition) {
+/*  70 */     this.labelPosition = labelPosition;
+/*     */   }
+/*     */ 
+/*     */   public String getLegendFormat() {
+/*  74 */     return ((this.legendFormat == null) ? "" : this.legendFormat);
+/*     */   }
+/*     */ 
+/*     */   public void setLegendFormat(String legendFormat) {
+/*  78 */     this.legendFormat = legendFormat;
+/*     */   }
+/*     */ 
+/*     */   public Axis getAxis()
+/*     */   {
+/* 114 */     return this.axis;
+/*     */   }
+/*     */ 
+/*     */   public String getAxisCn() {
+/* 118 */     return this.axisCn;
+/*     */   }
+/*     */ 
+/*     */   public String getColumnAlign() {
+/* 122 */     return this.columnAlign; }
+/*     */ 
+/*     */   public String getColumnEqualWidth() {
+/* 125 */     return this.columnEqualWidth; }
+/*     */ 
+/*     */   public String getColumnMinWidth() {
+/* 128 */     return this.columnMinWidth;
+/*     */   }
+/*     */ 
+/*     */   public String getColumns()
+/*     */   {
+/* 134 */     return this.columns; }
+/*     */ 
+/*     */   public String getColumnWidth() {
+/* 137 */     return ((this.columnWidth == null) ? this.columnMinWidth : this.columnWidth);
+/*     */   }
+/*     */ 
+/*     */   public Model getCurrentModel()
+/*     */   {
+/* 143 */     return this.currentModel; }
+/*     */ 
+/*     */   public String getDefaultChartType() {
+/* 146 */     return this.defaultChartType; }
+/*     */ 
+/*     */   public String getExportEnable() {
+/* 149 */     return this.exportEnable;
+/*     */   }
+/*     */ 
+/*     */   public String getHeight()
+/*     */   {
+/* 155 */     return this.height;
+/*     */   }
+/*     */ 
+/*     */   public String getLabelSeparator()
+/*     */   {
+/* 161 */     return ((this.labelSeparator == null) ? "" : this.labelSeparator);
+/*     */   }
+/*     */ 
+/*     */   public String getLabelVisiable()
+/*     */   {
+/* 167 */     return this.labelVisiable;
+/*     */   }
+/*     */ 
+/*     */   public String getLabelWidth()
+/*     */   {
+/* 173 */     return this.labelWidth;
+/*     */   }
+/*     */ 
+/*     */   public String getLeftAxisTitle() {
+/* 177 */     return this.leftAxisTitle;
+/*     */   }
+/*     */ 
+/*     */   public Metric getMetric()
+/*     */   {
+/* 184 */     return this.metric;
+/*     */   }
+/*     */ 
+/*     */   public final String getModel()
+/*     */   {
+/* 191 */     return this.model;
+/*     */   }
+/*     */ 
+/*     */   public String getPage() {
+/* 195 */     return this.page;
+/*     */   }
+/*     */ 
+/*     */   public String getPageSize() {
+/* 199 */     return this.pageSize;
+/*     */   }
+/*     */ 
+/*     */   public List getPrepareSeries() {
+/* 203 */     return this.prepareSeries;
+/*     */   }
+/*     */ 
+/*     */   public String getReportPath() {
+/* 207 */     return this.reportPath;
+/*     */   }
+/*     */ 
+/*     */   public String getRightAxisTitle() {
+/* 211 */     return this.rightAxisTitle;
+/*     */   }
+/*     */ 
+/*     */   public List getSeries()
+/*     */   {
+/* 218 */     return this.series;
+/*     */   }
+/*     */ 
+/*     */   public List getSeries(ParameterMap map) {
+/* 222 */     ArrayListEx arr = new ArrayListEx();
+/* 223 */     Panel p = this;
+/* 224 */     arr.addAll(p.getSeries());
+/*     */     Iterator objs;
+/*     */     PrepareSeries ps;
+/* 225 */     if (map.isEmpty("prepareSeriesId")) {
+/* 226 */       if ((Utils.isEmpty(p.getSeries())) && 
+/* 227 */         (!(Utils.isEmpty(p.getPrepareSeries())))) {
+/* 228 */         for (objs = p.getPrepareSeries().iterator(); objs.hasNext(); ) {
+/* 229 */           ps = (PrepareSeries)objs.next();
+/* 230 */           if (Utils.isTrue(ps.getDefaultSeries())) {
+/* 231 */             arr.add(ps);
+/*     */           }
+/*     */         }
+/*     */ 
+/* 235 */         if (arr.isEmpty()) {
+/* 236 */           arr.add(p.getPrepareSeries().get(0));
+/*     */         }
+/*     */       }
+/*     */     }
+/*     */     else {
+/* 241 */       for (objs = p.getPrepareSeries().iterator(); objs
+/* 242 */         .hasNext(); )
+/*     */       {
+/* 243 */         ps = (PrepareSeries)objs.next();
+/*     */ 
+/* 245 */         if (map.contain("prepareSeriesId", ps.getId())) {
+/* 246 */           arr.add(ps);
+/*     */         }
+/*     */       }
+/*     */     }
+/*     */ 
+/* 251 */     return arr;
+/*     */   }
+/*     */ 
+/*     */   public String getStyleRule() {
+/* 255 */     return ((this.styleRule == null) ? "" : this.styleRule.trim());
+/*     */   }
+/*     */ 
+/*     */   public final String getTarget()
+/*     */   {
+/* 262 */     return this.target;
+/*     */   }
+/*     */ 
+/*     */   public final String getTitle()
+/*     */   {
+/* 269 */     return this.title;
+/*     */   }
+/*     */ 
+/*     */   public final String getType()
+/*     */   {
+/* 276 */     return this.type;
+/*     */   }
+/*     */ 
+/*     */   public String getWidth()
+/*     */   {
+/* 283 */     return this.width;
+/*     */   }
+/*     */ 
+/*     */   public List getXHeaders()
+/*     */   {
+/* 290 */     return this.xHeaders;
+/*     */   }
+/*     */ 
+/*     */   public List getYRows()
+/*     */   {
+/* 297 */     return this.yRows;
+/*     */   }
+/*     */ 
+/*     */   @Override
+protected void init(Element top)
+/*     */   {
+/* 309 */     this.axis = ((Axis)getChildElement(Axis.class));
+/* 310 */     this.metric = ((Metric)getChildElement(Metric.class));
+/* 311 */     this.series = getChildElements(Series.class);
+/* 312 */     this.prepareSeries = getChildElements(PrepareSeries.class);
+/* 313 */     Element el = getChildElement(X.class);
+/* 314 */     if (el != null) {
+/* 315 */       this.xHeaders = new ArrayListEx(el.childs());
+/*     */     }
+/* 317 */     el = getChildElement(Y.class);
+/* 318 */     if (el != null) {
+/* 319 */       this.yRows = new ArrayListEx(el.childs());
+/*     */     }
+/*     */ 
+/* 322 */     this.currentModel = ((Model)top.getElement(this.model));
+/*     */ 
+/* 324 */     StyleRule sr = (StyleRule)getChildElement(StyleRule.class);
+/* 325 */     if (sr != null)
+/* 326 */       this.styleRule = sr.getContent();
+/*     */   }
+/*     */ 
+/*     */   public void setAxisCn(String axisCn)
+/*     */   {
+/* 332 */     this.axisCn = axisCn;
+/*     */   }
+/*     */ 
+/*     */   public void setColumnAlign(String columnAlign) {
+/* 336 */     this.columnAlign = columnAlign;
+/*     */   }
+/*     */ 
+/*     */   public void setColumnEqualWidth(String columnEqualWidth) {
+/* 340 */     this.columnEqualWidth = columnEqualWidth;
+/*     */   }
+/*     */ 
+/*     */   public void setColumnMinWidth(String columnMinWidth) {
+/* 344 */     this.columnMinWidth = columnMinWidth;
+/*     */   }
+/*     */ 
+/*     */   public void setColumns(String columns)
+/*     */   {
+/* 352 */     this.columns = columns;
+/*     */   }
+/*     */ 
+/*     */   public void setColumnWidth(String columnWidth) {
+/* 356 */     this.columnWidth = columnWidth;
+/*     */   }
+/*     */ 
+/*     */   public void setDefaultChartType(String defaultChartType) {
+/* 360 */     this.defaultChartType = defaultChartType;
+/*     */   }
+/*     */ 
+/*     */   public void setExportEnable(String exportEnable) {
+/* 364 */     this.exportEnable = exportEnable;
+/*     */   }
+/*     */ 
+/*     */   public void setHeight(String height)
+/*     */   {
+/* 372 */     this.height = height;
+/*     */   }
+/*     */ 
+/*     */   public void setLabelSeparator(String labelSeparator)
+/*     */   {
+/* 380 */     this.labelSeparator = labelSeparator;
+/*     */   }
+/*     */ 
+/*     */   public void setLabelVisiable(String labelVisiable)
+/*     */   {
+/* 388 */     this.labelVisiable = labelVisiable;
+/*     */   }
+/*     */ 
+/*     */   public void setLabelWidth(String labelWidth)
+/*     */   {
+/* 396 */     this.labelWidth = labelWidth;
+/*     */   }
+/*     */ 
+/*     */   public void setLeftAxisTitle(String leftAxisTitle) {
+/* 400 */     this.leftAxisTitle = leftAxisTitle;
+/*     */   }
+/*     */ 
+/*     */   public final void setModel(String model)
+/*     */   {
+/* 408 */     this.model = model;
+/*     */   }
+/*     */ 
+/*     */   public void setPage(String page) {
+/* 412 */     this.page = page;
+/*     */   }
+/*     */ 
+/*     */   public void setPageSize(String pageSize) {
+/* 416 */     this.pageSize = pageSize;
+/*     */   }
+/*     */ 
+/*     */   public void setReportPath(String reportPath) {
+/* 420 */     this.reportPath = reportPath;
+/*     */   }
+/*     */ 
+/*     */   public void setRightAxisTitle(String rightAxisTitle) {
+/* 424 */     this.rightAxisTitle = rightAxisTitle;
+/*     */   }
+/*     */ 
+/*     */   public final void setTarget(String target)
+/*     */   {
+/* 432 */     this.target = target;
+/*     */   }
+/*     */ 
+/*     */   public final void setTitle(String title)
+/*     */   {
+/* 440 */     this.title = title;
+/*     */   }
+/*     */ 
+/*     */   public final void setType(String type)
+/*     */   {
+/* 448 */     this.type = type;
+/*     */   }
+/*     */ 
+/*     */   public void setWidth(String width)
+/*     */   {
+/* 456 */     this.width = width;
+/*     */   }
+/*     */ }
+
+/* Location:           F:\mblmall1.0\wssmall\WebContent\WEB-INF\lib\crm-report.jar
+ * Qualified Name:     com.ztesoft.crm.report.config.elements.Panel
+ * JD-Core Version:    0.5.3
+ */

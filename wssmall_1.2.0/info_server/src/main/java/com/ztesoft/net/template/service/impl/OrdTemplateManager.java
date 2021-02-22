@@ -1,0 +1,794 @@
+package com.ztesoft.net.template.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.ztesoft.common.util.DateFormatUtils;
+import com.ztesoft.net.eop.sdk.database.BaseSupport;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+import com.ztesoft.net.model.AttrDef;
+import com.ztesoft.net.model.AttrTable;
+import com.ztesoft.net.template.model.Catalogue;
+import com.ztesoft.net.template.model.NodeModel;
+import com.ztesoft.net.template.model.OrdTemplateLog;
+import com.ztesoft.net.template.model.OrderTemplateNode;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.net.sqls.SF;
+import com.ztesoft.net.template.model.OrderTemplate;
+import com.ztesoft.net.template.service.IOrdTemplateManager;
+import com.ztesoft.net.template.vo.OrdTplDTO;
+import com.ztesoft.net.template.vo.TepletaParam;
+ 
+public class OrdTemplateManager extends BaseSupport implements IOrdTemplateManager{
+ 
+	@Override
+	public String getEsAttrDefSequence(){
+		return this.baseDaoSupport.getSequences("es_attr_def_seq","2",18);
+	}
+
+	@Override
+	public List<OrderTemplateNode> qryTemplateTree(String id,String super_id) {
+		List<OrderTemplateNode> nodeList=null;
+		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and order_template_id=? and source_from=? ");
+		if(super_id!=null&&!"".equals(super_id)){
+			sql.append(" and super_node_id=?");
+			nodeList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,id,ManagerUtils.getSourceFrom(),super_id);
+		}else{
+			nodeList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,id,ManagerUtils.getSourceFrom());
+		}
+		
+		return nodeList;
+	}
+
+	@Override
+	public OrderTemplateNode qryTemplateNode(String id) {
+		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and node_id=? and source_from=? ");
+		OrderTemplateNode orderTemplateNode=(OrderTemplateNode) this.baseDaoSupport.queryForObject(sql.toString(), OrderTemplateNode.class, id,ManagerUtils.getSourceFrom());	
+		return orderTemplateNode;
+	}
+
+	@Override
+	public void saveTemplateNode(OrderTemplateNode orderTemplateNode) {
+		// TODO Auto-generated method stub
+		if(orderTemplateNode.getNode_id()==null || orderTemplateNode.getNode_id().equals("")){
+			String nodeId=this.daoSupport.getSequences("SEQ_ES_ORDER_TEMPLATE_NODE", "2", 18);
+			orderTemplateNode.setNode_id(nodeId);
+		}
+		this.baseDaoSupport.insert("es_order_template_node", orderTemplateNode);
+	}
+
+	@Override
+	public void editTemplateNode(OrderTemplateNode orderTemplateNode) {
+		// TODO Auto-generated method stub
+		this.baseDaoSupport.update("es_order_template_node", orderTemplateNode, "node_id=" + orderTemplateNode.getNode_id() + "");
+	}
+
+	@Override
+	public void delTemplateNode(String id) {
+		// TODO Auto-generated method stub
+		StringBuilder del_sql = new StringBuilder("DELETE FROM es_order_template_node  where 1=1 and node_id="+id);
+		//logger.info(del_sql);
+		this.baseDaoSupport.execute(del_sql.toString());
+	}
+	
+	@Override
+	public List<Catalogue> qryRootCatalogue(String id,String pid) {
+		List<Catalogue> directoryVoList = new ArrayList<Catalogue>();
+		Catalogue directoryVo = null;
+		StringBuilder sql = new StringBuilder("select t.* from es_catalogue t where 1=1");
+		if (StringUtils.isNotBlank(id)) {
+			sql.append(" and t.id = ?");
+		}
+		if (StringUtils.isNotBlank(pid)) {
+			sql.append(" and t.pid = ?");
+		}
+		sql.append(" order by t.id ");
+		List<Map> list = null;
+		if (StringUtils.isNotBlank(id) && StringUtils.isNotBlank(pid))
+			list = this.baseDaoSupport.queryForList(sql.toString(), id, pid);
+		if (StringUtils.isBlank(id) && StringUtils.isNotBlank(pid))
+			list = this.baseDaoSupport.queryForList(sql.toString(), pid);
+		if (list != null && list.size()>0) {
+			for (Map mp : list) {			
+				if (mp.size() > 0 && mp != null) {
+					directoryVo =	new Catalogue();
+					directoryVo.setId(mp.get("ID")!=null ? String.valueOf(mp.get("ID")) : "");
+					directoryVo.setPid(mp.get("PID")!=null ? String.valueOf(mp.get("PID")) : "");
+					directoryVo.setName(mp.get("NAME")!=null ? String.valueOf(mp.get("NAME")) : "");
+					directoryVo.setType(mp.get("TYPE")!=null&&StringUtils.isNotBlank(mp.get("TYPE").toString())
+							? Integer.valueOf(String.valueOf(mp.get("TYPE"))) : 0);
+					directoryVo.setHint(mp.get("HINT")!=null ? String.valueOf(mp.get("HINT")) : "");
+					directoryVo.setCreate_time(mp.get("CREATE_TIME")!=null ? String.valueOf(mp.get("CREATE_TIME")) : "");
+					directoryVo.setSource_from(mp.get("SOURCE_FROM")!=null ? String.valueOf(mp.get("SOURCE_FROM")) : "");
+					directoryVoList.add(directoryVo);
+				}
+			}
+		}
+		return directoryVoList;
+	}
+	
+	@Override
+	public Catalogue qryCatalogue(String id) {
+		StringBuilder sql = new StringBuilder("select a.* from es_catalogue a where 1=1 and id=? and source_from=? ");
+		Catalogue orderTemplateNode=(Catalogue) this.baseDaoSupport.queryForObject(sql.toString(), Catalogue.class, id,ManagerUtils.getSourceFrom());	
+		return orderTemplateNode;
+	}
+	
+	@Override
+	public void saveCatalogue(Catalogue catalogue) {
+		// TODO Auto-generated method stub
+//		String id=this.daoSupport.getSequences("SEQ_ES_ORDER_TEMPLATE_NODE", "2", 18);
+//		catalogue.setId(id);
+		this.baseDaoSupport.insert("es_catalogue", catalogue);
+	}
+
+	@Override
+	public void editCatalogue(Catalogue catalogue) {
+		// TODO Auto-generated method stub
+		this.baseDaoSupport.update("es_catalogue", catalogue, "id='" + catalogue.getId() + "'");
+	}
+
+	@Override
+	public void delCatalogue(String id) {
+		// TODO Auto-generated method stub
+		String sql = "delete from es_catalogue t where t.id=?";
+		this.baseDaoSupport.execute(sql, id);	
+	}
+	
+	@Override
+	public void delTemplateNodeByTplId(String tplId) {
+		String sql=SF.infoSql("DEL_NODE_TPLID");
+		this.baseDaoSupport.execute(sql, tplId);
+	}
+	
+	@Override
+	public List<OrderTemplate> getOrderTemplateList(String id) {
+		List<OrderTemplate> tplList=null;
+		String sql=SF.infoSql("ORDER_TEMPLATE");	
+		sql=sql+" WHERE 1=1 and catalogue_id=? and source_from=?";
+		tplList = daoSupport.queryForList(sql.toString(), OrderTemplate.class,id,ManagerUtils.getSourceFrom());
+		return tplList;
+	}
+	
+	@Override
+	public void updateNodeSeq(String nodeId, String nodeSeq) {
+		String sql = "update es_order_template_node set node_seq=? where node_id= ?";
+		this.baseDaoSupport.execute(sql,nodeSeq,nodeId);
+	}
+	
+	@Override
+	public List<OrderTemplateNode> getNodeTreeByTpl(String id) {
+		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and order_template_id=? and source_from=? and super_node_id='-0' ");
+		List<OrderTemplateNode> nodeList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,id,ManagerUtils.getSourceFrom());
+		if(nodeList!=null&&!nodeList.isEmpty()){
+			OrderTemplateNode node=nodeList.get(0);
+			String orderTemplateId=node.getOrder_template_id();
+			String nodeId=node.getNode_id();
+			//根节点头信息
+			getChildNodeTreeByTpl(nodeList,nodeId,orderTemplateId);
+		}
+		return nodeList;
+	}
+	
+	@Override
+	public  List<OrderTemplateNode> getChildNodeTreeByTpl(String id){
+		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and node_id=? and source_from=? order by node_seq  ");
+		List<OrderTemplateNode> nodeList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,id,ManagerUtils.getSourceFrom());
+		if(nodeList!=null&&!nodeList.isEmpty()){
+			OrderTemplateNode node=nodeList.get(0);
+			String orderTemplateId=node.getOrder_template_id();
+			String nodeId=node.getNode_id();
+			//根节点头信息
+			getChildNodeTreeByTpl(nodeList,nodeId,orderTemplateId);
+		}
+		return nodeList;
+	}
+	//模板循环添加子节点
+	public void getChildNodeTreeByTpl(List<OrderTemplateNode> nodeList,String node_id,String order_template_d){
+		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and order_template_id=? and source_from=? and super_node_id=? order by node_seq  ");
+		List<OrderTemplateNode> list = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,order_template_d,ManagerUtils.getSourceFrom(),node_id);
+		nodeList.addAll(list);
+		Iterator<OrderTemplateNode> nodeIt=list.iterator();
+		while(nodeIt.hasNext()){
+			OrderTemplateNode node=nodeIt.next();
+			String orderTemplateId=node.getOrder_template_id();
+			String nodeId=node.getNode_id();
+			getChildNodeTreeByTpl(nodeList,nodeId,orderTemplateId);
+		}
+	}
+	
+	@Override
+	public void updateNodeTable(String node_id, String table_code,
+			String field_code) {
+		String sql = "update es_order_template_node set node_table_code=?,node_table_field_code=? where node_id= ?";
+		this.baseDaoSupport.execute(sql,table_code,field_code,node_id);
+	}
+	
+	@Override
+	public List getAttrTableList(String tableName) {
+		StringBuilder sql = new StringBuilder("SELECT a.* FROM es_attr_table a WHERE table_name=? and source_from=?  ");
+		List list = daoSupport.queryForList(sql.toString(),tableName,ManagerUtils.getSourceFrom());
+		
+		return list;
+	}
+	
+//	public String copyOrderTpl(String id) {
+//		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and order_template_id=? and source_from=? and super_node_id is null ");
+//		List<OrderTemplateNode> nodeList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,id,ManagerUtils.getSourceFrom());
+//		StringBuilder tpl=new StringBuilder();
+//		if(nodeList!=null&&!nodeList.isEmpty()){
+//			OrderTemplateNode node=nodeList.get(0);
+//			String orderTemplateId=node.getOrder_template_id();
+//			String nodeId=node.getNode_id();
+//			//String nodeName=node.getNode_name();
+//			//根节点头信息
+//			tpl.append("{");
+//			tpl.append("'").append("rootNode").append("'").append(":{");
+//			
+//			//节点信息
+//			addNode(tpl,node);
+//
+//			//获取子节点信息
+//			getChildTpl(tpl,nodeId,orderTemplateId);
+//			
+//			tpl.append("}");
+//			tpl.append("}");
+//		}
+//		return tpl.toString();
+//	}
+	
+	@Override
+	public String copyOrderTpl(String id) {
+		JSONArray jsonArr=new JSONArray();
+		JSONObject jsNode=null;
+		List<OrderTemplateNode> list=new ArrayList<OrderTemplateNode>();
+		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and order_template_id=? and source_from=? and super_node_id='-0' ");
+		List<OrderTemplateNode> nodeList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,id,ManagerUtils.getSourceFrom());
+		if(nodeList!=null&&!nodeList.isEmpty()){
+			OrderTemplateNode node=nodeList.get(0);
+			list.add(0, node);
+			String orderTemplateId=node.getOrder_template_id();
+			String nodeId=node.getNode_id();
+			getChildTpl(list,nodeId,orderTemplateId);
+			//list->jsonArray
+			if(list!=null && list.isEmpty()==false){
+				for(int i=0;i<list.size();i++){
+					jsNode=JSONObject.fromObject(list.get(i));
+					jsonArr.add(jsNode);
+				}
+			}
+		}
+		return jsonArr.toString();
+	}
+	
+	//模板JSON循环添加子节点
+	public void getChildTpl(List<OrderTemplateNode> list,String node_id,String order_template_d){
+		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and order_template_id=? and source_from=? and super_node_id=? order by node_seq ");
+		List<OrderTemplateNode> nodeList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,order_template_d,ManagerUtils.getSourceFrom(),node_id);
+		Iterator<OrderTemplateNode> nodeIt=nodeList.iterator();
+		while(nodeIt.hasNext()){
+			OrderTemplateNode node=nodeIt.next();
+			list.add(node);
+			String orderTemplateId=node.getOrder_template_id();
+			String nodeId=node.getNode_id();
+			getChildTpl(list,nodeId,orderTemplateId);
+		}
+	}
+	
+//	//模板JSON添加节点
+//	public void addNode(StringBuilder tpl,OrderTemplateNode node){
+//		String orderTemplateId=node.getOrder_template_id();
+//		String nodeId=node.getNode_id();
+//		String nodeName=node.getNode_name();
+//		String nodeCode=node.getNode_code();
+//		String nodeType=node.getNode_type();
+//		String superNodeId=node.getSuper_node_id();
+//		String nodePath=node.getNode_path();
+//		String nodeTableCode=node.getNode_table_code();
+//		String nodeTableFieldCode=node.getNode_table_field_code();
+//		String nodeReadComments=node.getNode_read_comments();
+//		Long nodeRepeat=node.getNode_repeat();
+//		
+//		tpl.append("'nodeInfo': {");
+//		tpl.append("'order_template_id':").append("'").append(orderTemplateId).append("',");
+//		tpl.append("'node_id':").append("'").append(nodeId).append("',");
+//		tpl.append("'node_name':").append("'").append(nodeName).append("',");
+//		tpl.append("'node_code':").append("'").append(nodeCode).append("',");
+//		tpl.append("'node_type':").append("'").append(nodeType).append("',");
+//		tpl.append("'super_node_id':").append("'").append(superNodeId).append("',");
+//		tpl.append("'node_path':").append("'").append(nodePath).append("',");
+//		tpl.append("'node_table_code':").append("'").append(nodeTableCode).append("',");
+//		tpl.append("'node_table_field_code':").append("'").append(nodeTableFieldCode).append("',");
+//		tpl.append("'node_read_comments':").append("'").append(nodeReadComments).append("',");
+//		tpl.append("'node_repeat':").append("'").append(nodeRepeat.toString()).append("'");
+//		tpl.append("},");
+//	}
+	
+	@Override
+	public Map<String, NodeModel> getNodeModel(String orderTemplateId,
+			String nodeId) {
+		List<OrderTemplateNode> list=new ArrayList<OrderTemplateNode>();
+		List<OrderTemplateNode> firstList=null;
+		if(orderTemplateId!=null&&!"".equals(orderTemplateId)){
+			StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and order_template_id=? and source_from=? and super_node_id='-0' ");
+			firstList= daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,orderTemplateId,ManagerUtils.getSourceFrom());
+		}else if(nodeId!=null&&!"".equals(nodeId)){
+			StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and node_id=? and source_from=?  order by node_seq  ");
+			firstList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,nodeId,ManagerUtils.getSourceFrom());
+		}
+		Map<String, NodeModel> nodeModelMap=new HashMap<String, NodeModel>();
+		if(firstList!=null&&!firstList.isEmpty()){
+			OrderTemplateNode node=firstList.get(0);
+			String node_id=node.getNode_id();
+			String node_code=node.getNode_code();
+			String order_template_id=node.getOrder_template_id();
+			NodeModel nodeModel=new NodeModel();
+			nodeModel.setNodeInfo(node);
+			setSubNodeModel(order_template_id,node_id,nodeModel);
+			
+			nodeModelMap.put(node_code, nodeModel);
+			
+		}
+		return nodeModelMap;
+	}
+	
+	public void setSubNodeModel(String orderTemplateId,String nodeId,NodeModel pNodeModel){
+		StringBuilder sql = new StringBuilder("select a.* from es_order_template_node a where 1=1 and order_template_id=? and source_from=? and super_node_id=? order by node_seq ");
+		List<OrderTemplateNode> nodeList = daoSupport.queryForList(sql.toString(), OrderTemplateNode.class,orderTemplateId,ManagerUtils.getSourceFrom(),nodeId);
+		Iterator nodeIt=nodeList.iterator();
+		Map<String, NodeModel> nodeModelMap=new HashMap<String, NodeModel>();
+		while(nodeIt.hasNext()){
+			
+			OrderTemplateNode node=(OrderTemplateNode)nodeIt.next();
+			String node_id=node.getNode_id();
+			String node_code=node.getNode_code();
+			String order_template_id=node.getOrder_template_id();
+			NodeModel nodeModel=new NodeModel();
+			nodeModel.setNodeInfo(node);
+			setSubNodeModel(order_template_id,node_id,nodeModel);
+			
+			nodeModelMap.put(node_code, nodeModel);
+		}
+		if(nodeList!=null&&!nodeList.isEmpty()){
+			pNodeModel.setSub_node(nodeModelMap);
+		}
+		
+	}
+	/**
+	 * 根据表名获取ES_ATTR_DEF表的信息
+	 * 
+	 * Copyright (c) 2015, 南京中兴软创科技股份有限公司 All rights reserved
+	 * @author      : 张金叶
+	 * @createTime  : 2015-3-3
+	 * @version     : 1.0 
+	 * @comments    : 重写方法
+	 */
+	@Override
+	public  List<AttrDef>  selectEsAttrDefVO(AttrDef vo){
+		String sql= SF.infoSql("EsAttrDefVO");
+		return this.baseDaoSupport.queryForList(sql,AttrDef.class,vo.getRel_table_name());
+	}
+
+	/**
+	 * 往es_attr_def表中插入数据
+	 * 
+	 * Copyright (c) 2015, 南京中兴软创科技股份有限公司 All rights reserved
+	 * @author      : 张金叶
+	 * @createTime  : 2015-3-3
+	 * @version     : 1.0 
+	 * @comments    : 重写方法
+	 */
+	@Override
+	public void insertEsAttrDef(AttrDef vo) {
+		baseDaoSupport.insert("es_attr_def", vo);
+	}
+
+	//更新es_attr_def表中插入数据
+	@Override
+	@SuppressWarnings("unchecked")
+	public void updateEsAttrDef(AttrDef vo) {
+		baseDaoSupport.update("es_attr_def", vo,"  ATTR_SPEC_ID='"+vo.getAttr_spec_id()+"'");
+	}
+	
+	//删除es_attr_def表中插入数据
+	@Override
+	public void deleteEsAttrDef(AttrDef vo) {
+		String sql=SF.infoSql("DelEsAttrDef");
+		baseDaoSupport.execute(sql, vo.getAttr_spec_id());
+	}
+
+	//分页查询组件
+	@Override
+	public Page selectEsAttrDefByTable(TepletaParam vo,int pageNo, int pageSize) {
+		StringBuffer buffer=new StringBuffer();
+		buffer.append("SELECT REL_TABLE_NAME,FIELD_NAME,FIELD_DESC,FIELD_ATTR_ID,SOURCE_FROM,DEFAULT_VALUE FROM ES_ATTR_DEF ");
+		buffer.append(" WHERE 1=1 ");
+		String fieldName=vo.getNodePath();
+		if (!StringUtil.isEmpty(fieldName)) {
+			buffer.append(" AND  FIELD_NAME='" + fieldName+"'");
+		}
+		String tableName=vo.getNodeName();
+		if (!StringUtil.isEmpty(tableName)) {
+			buffer.append(" AND  REL_TABLE_NAME='" + tableName+"'");
+		}
+		Page page = this.daoSupport.queryForPage(buffer.toString(), pageNo,
+				pageSize);
+		return page;
+	}
+
+	@Override
+	public Page queryTplList(int pageNo, int pageSize, OrdTplDTO ordTplDTO) {
+		Page page=null;
+		String sql=SF.infoSql("ORDER_TEMPLATE");	
+		StringBuffer buffer=new StringBuffer();
+		buffer.append(sql);
+		buffer.append(" WHERE 1=1 ");
+		List<String> list=new ArrayList<String>();
+		if(ordTplDTO.getCatalogue_id()!=null&&!"".equals(ordTplDTO.getCatalogue_id())){
+			buffer.append(" AND  CATALOGUE_ID='" + ordTplDTO.getCatalogue_id()+"'");
+		}
+		page=this.baseDaoSupport.queryForPage(buffer.toString(), pageNo, pageSize,list.toArray());
+		return page;
+	}
+
+	@Override
+	public void insertTpl(OrdTplDTO ordTplDTO) {
+		OrderTemplate ordTpl=new OrderTemplate();
+		OrderTemplateNode orderTemplateNode=new OrderTemplateNode();
+		try {
+			//dto-->bo
+			tplDTO2BO(ordTplDTO, ordTpl);
+			String templateId=baseDaoSupport.getSequences("SEQ_ES_ORDER_TEMPLATE", "2", 20);
+			ordTpl.setOrder_template_id(templateId);
+			ordTplDTO.setOrder_template_id(templateId);
+			//添加默认的根节点
+			if(ordTplDTO.getFlag()!=null && ordTplDTO.getFlag().equals("add")){
+				orderTemplateNode.setOrder_template_id(templateId);
+//				String nodeId=this.daoSupport.getSequences("SEQ_ES_ORDER_TEMPLATE_NODE", "2", 18);
+//				orderTemplateNode.setNode_id(nodeId);
+				orderTemplateNode.setNode_name("node_name_value");
+				orderTemplateNode.setNode_code("node_name_value");
+				orderTemplateNode.setNode_type("0");
+				orderTemplateNode.setNode_path("->node_code_value");
+				orderTemplateNode.setNode_depth(1L);
+				orderTemplateNode.setNode_table_code("node_table_code_value");
+				orderTemplateNode.setSuper_node_id("-0");
+				orderTemplateNode.setNode_seq(1L);
+				this.saveTemplateNode(orderTemplateNode);
+			}
+			ordTpl.setCreate_date(DateFormatUtils.getFormatedDateTime());
+			ordTplDTO.setCreate_date(DateFormatUtils.getFormatedDateTime());
+			baseDaoSupport.insert("es_order_template",ordTpl);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void insertTplLog(OrdTplDTO ordTplDTO){
+		OrdTemplateLog tplLog=new OrdTemplateLog();
+		String log_id=baseDaoSupport.getSequences("SEQ_ES_ORDER_TEMPLATE_LOG", "2", 20);
+		tplLog.setLog_id(log_id);
+		String flag=ordTplDTO.getFlag();
+		if(flag.equals("delete")){
+			flag="D";
+			//找到删除前的模板
+			OrdTplDTO tplDTO=queryTplById(ordTplDTO);
+			if(tplDTO!=null){
+				tpl2Log(tplDTO, tplLog, flag);
+				baseDaoSupport.insert("es_order_template_log", tplLog);
+			}
+		}else{
+			if(flag.equals("add") || flag.equals("copy")){
+				flag="A";
+			}
+			if(flag.equals("modify")){
+				flag="M";
+			}
+			tpl2Log(ordTplDTO, tplLog, flag);
+			baseDaoSupport.insert("es_order_template_log", tplLog);
+		}
+	}
+
+	/**
+	 * 转换成模板日志对象
+	 * @param ordTplDTO
+	 * @param tplLog
+	 * @param flag
+	 */
+	private void tpl2Log(OrdTplDTO ordTplDTO, OrdTemplateLog tplLog, String flag) {
+		tplLog.setBasic_response_content(ordTplDTO.getBasic_response_content());
+		tplLog.setCall_source_system(ordTplDTO.getCall_source_system());
+		tplLog.setCallback_info(ordTplDTO.getCallback_info());
+		tplLog.setCreate_date(DateFormatUtils.getFormatedDateTime());
+		tplLog.setExchange_protocol(ordTplDTO.getExchange_protocol());
+//		tplLog.setMod_staff_id(ordTplDTO.getCreate_staff_id());
+//		tplLog.setMod_date(DateFormatUtils.getFormatedDateTime());
+		tplLog.setMod_type(flag);
+		tplLog.setOrder_area(ordTplDTO.getOrder_area());
+		tplLog.setOrder_business_type(ordTplDTO.getOrder_business_type());
+		tplLog.setOrder_template_code(ordTplDTO.getOrder_template_code());
+		tplLog.setOrder_template_id(ordTplDTO.getOrder_template_id());
+		tplLog.setOrder_template_name(ordTplDTO.getOrder_template_name());
+		tplLog.setOrder_template_type(ordTplDTO.getOrder_template_type());
+		tplLog.setSon_template_ids(ordTplDTO.getSub_template_id());
+		tplLog.setSource_from(ordTplDTO.getSource_from());
+		tplLog.setStatus(ordTplDTO.getStatus());
+	}
+
+	/**
+	 * DTO转换成BO对象
+	 * @param ordTplDTO
+	 * @param ordTpl
+	 */
+	private void tplDTO2BO(OrdTplDTO ordTplDTO, OrderTemplate ordTpl) {
+		ordTpl.setBasic_response_content(ordTplDTO.getBasic_response_content());
+		ordTpl.setCall_source_system(ordTplDTO.getCall_source_system());
+		ordTpl.setCallback_info(ordTplDTO.getCallback_info());
+		ordTpl.setCatalogue_id(ordTplDTO.getCatalogue_id());
+		ordTpl.setCreate_date(ordTplDTO.getCreate_date());
+		ordTpl.setCreate_staff_id(ordTplDTO.getCreate_staff_id());
+		ordTpl.setExchange_protocol(ordTplDTO.getExchange_protocol());
+		ordTpl.setOrder_area(ordTplDTO.getOrder_area());
+		ordTpl.setOrder_business_type(ordTplDTO.getOrder_business_type());
+		ordTpl.setOrder_template_code(ordTplDTO.getOrder_template_code());
+		ordTpl.setOrder_template_id(ordTplDTO.getOrder_template_id());
+		ordTpl.setOrder_template_name(ordTplDTO.getOrder_template_name());
+		ordTpl.setOrder_template_type(ordTplDTO.getOrder_template_type());
+		ordTpl.setOrder_template_version(ordTplDTO.getOrder_template_version());
+		ordTpl.setSource_from(ordTplDTO.getSource_from());
+		ordTpl.setStatus(ordTplDTO.getStatus());
+		ordTpl.setSub_template_id(ordTplDTO.getSub_template_id());
+	}
+	
+	/**
+	 * BO转换成DTO对象
+	 * @param ordTplDTO
+	 * @param ordTpl
+	 */
+	private void tplBO2DTO(OrderTemplate ordTpl,OrdTplDTO ordTplDTO) {
+		ordTplDTO.setBasic_response_content(ordTpl.getBasic_response_content());
+		ordTplDTO.setCall_source_system(ordTpl.getCall_source_system());
+		ordTplDTO.setCallback_info(ordTpl.getCallback_info());
+		ordTplDTO.setCatalogue_id(ordTpl.getCatalogue_id());
+		ordTplDTO.setCreate_date(ordTpl.getCreate_date());
+		ordTplDTO.setCreate_staff_id(ordTpl.getCreate_staff_id());
+		ordTplDTO.setExchange_protocol(ordTpl.getExchange_protocol());
+		ordTplDTO.setOrder_area(ordTpl.getOrder_area());
+		ordTplDTO.setOrder_business_type(ordTpl.getOrder_business_type());
+		ordTplDTO.setOrder_template_code(ordTpl.getOrder_template_code());
+		ordTplDTO.setOrder_template_id(ordTpl.getOrder_template_id());
+		ordTplDTO.setOrder_template_name(ordTpl.getOrder_template_name());
+		ordTplDTO.setOrder_template_type(ordTpl.getOrder_template_type());
+		ordTplDTO.setOrder_template_version(ordTpl.getOrder_template_version());
+		ordTplDTO.setSource_from(ordTpl.getSource_from());
+		ordTplDTO.setStatus(ordTpl.getStatus());
+		ordTplDTO.setSub_template_id(ordTpl.getSub_template_id());
+	}
+
+	@Override
+	public OrdTplDTO queryTplByCode(OrdTplDTO ordTplDTO) {
+		List<OrderTemplate> list=null;
+		try {
+			String sql="";
+			if(ordTplDTO.getOrder_template_id()==null || "".equals(ordTplDTO.getOrder_template_id())){
+				sql=SF.infoSql("TEMPLATE_qry");
+				list=baseDaoSupport.queryForList(sql, OrderTemplate.class, ordTplDTO.getOrder_template_code());
+			}else{
+				sql=SF.infoSql("TEMPLATE_mod");
+				list=baseDaoSupport.queryForList(sql, OrderTemplate.class,ordTplDTO.getOrder_template_code(),ordTplDTO.getOrder_template_id());
+			}
+			if(list!=null && list.isEmpty()==false){
+				OrderTemplate ordTpl=list.get(0);
+				//bo->dto
+				this.tplBO2DTO(ordTpl, ordTplDTO);
+				return ordTplDTO;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	@Override
+	public OrdTplDTO qryTplByCodeAndCataId(OrdTplDTO tplDto){
+		String sql=SF.infoSql("Qre_template_code_CataId");
+		List<OrderTemplate>list=this.baseDaoSupport.queryForList(sql, OrderTemplate.class,tplDto.getOrder_template_code(),tplDto.getCatalogue_id());
+		if(list!=null && list.isEmpty()==false){
+			OrderTemplate ordTpl=list.get(0);
+			tplBO2DTO(ordTpl, tplDto);
+			return tplDto;
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public OrdTplDTO queryTplById(OrdTplDTO ordTplDTO) {
+		OrderTemplate ordTpl=null;
+		try {
+			//根据id查询模板是否存在
+			String sql=SF.infoSql("TEMPLATE_ID");
+			StringBuffer buffer=new StringBuffer();
+			buffer.append(sql);
+			if(ordTplDTO.getCatalogue_id()!=null && !ordTplDTO.getCatalogue_id().equals("")){
+				buffer.append(" AND  CATALOGUE_ID='" + ordTplDTO.getCatalogue_id()+"'");
+			}
+			List<OrderTemplate>list=baseDaoSupport.queryForList(buffer.toString(), OrderTemplate.class, ordTplDTO.getOrder_template_id());
+			if(list!=null && list.isEmpty()==false){
+				//bo-->dto
+				ordTpl=list.get(0);
+				tplBO2DTO(ordTpl, ordTplDTO);
+				return ordTplDTO;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public void updateTpl(OrdTplDTO ordTplDTO) {
+		try {
+			//DTO-->BO
+			OrderTemplate ordTpl=new OrderTemplate();
+			tplDTO2BO(ordTplDTO, ordTpl);
+			baseDaoSupport.update("ES_ORDER_TEMPLATE", ordTpl, " ORDER_TEMPLATE_ID='"+ordTpl.getOrder_template_id()+"'");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+	}
+
+	@Override
+	public void deleteTpl(OrdTplDTO ordTplDTO) {
+		//DTO-->BO
+		OrderTemplate ordTpl=new OrderTemplate();
+		tplDTO2BO(ordTplDTO, ordTpl);
+		String sql=SF.infoSql("DEL_TPL");
+		baseDaoSupport.execute(sql,ordTpl.getOrder_template_id());
+		
+	}
+	
+	@Override
+	@SuppressWarnings({ "unchecked"})
+	public String insertTplNode(String jsonStr) {
+		String result="";
+		String tpl_id="";
+		String nodeId="";
+		OrdTplDTO tplDto1=new OrdTplDTO();
+		OrderTemplateNode tplNode=null;
+		try {
+				JSONObject jo=JSONObject.fromObject(jsonStr);		
+				//解析jsonStr
+				String catalogueId=jo.getString("catalogueId");//目录id
+				String tplId=jo.getString("tplId");//模板id
+				JSONArray jsonArr=JSONArray.fromObject(jo.get("copyTplTreeVal"));
+				//jsonArray->list
+				List<OrderTemplateNode> list=(List<OrderTemplateNode>) JSONArray.toCollection(jsonArr, OrderTemplateNode.class);
+				if(StringUtils.isNotBlank(catalogueId) && StringUtils.isNotBlank(tplId)){
+					//根据模板code查找该目录下是否存在该模板
+					tplDto1.setOrder_template_id(tplId);
+					//先找到要复制的模板code
+					tplDto1=this.queryTplById(tplDto1);
+					tplDto1.setCatalogue_id(catalogueId);
+					OrdTplDTO tplDto2=this.qryTplByCodeAndCataId(tplDto1);
+					if(tplDto2!=null){
+						result="{'status':'0','msg':'repeat'}";
+					}else{
+						//在该目录下新增该模板
+						tplDto1.setFlag("copy");
+						this.insertTpl(tplDto1);
+						//写入主模板日志
+						this.insertTplLog(tplDto1);
+						tpl_id=tplDto1.getOrder_template_id();
+						//新增节点
+						if(list!=null && list.isEmpty()==false){
+//							for(int i=0;i<list.size();i++){
+//								tplNode=list.get(i);
+//								tplNode.setOrder_template_id(tpl_id);
+//								this.saveTemplateNode(tplNode);
+//							}
+							//获取根节点并入库
+							OrderTemplateNode rootNode=list.get(0);
+							nodeId=rootNode.getNode_id();
+							//获取父节点的所有直接子节点
+							List<OrderTemplateNode> childNodes=getChildNodes(list,rootNode);
+							String newId=this.daoSupport.getSequences("SEQ_ES_ORDER_TEMPLATE_NODE", "2", 18);//新的节点Id
+							rootNode.setNode_id(newId);
+							rootNode.setOrder_template_id(tpl_id);
+							recursionSubNode(childNodes,list,nodeId,newId,tpl_id);
+							this.saveTemplateNode(rootNode);
+						}
+						result = "{'status':'0','msg':'粘贴成功'}";
+					}
+				}else{
+					result="{'status':'1','msg':'粘贴失败'}";
+				}
+				
+		} catch (Exception e) {
+			e.printStackTrace();
+			result="{'status':'1','msg':'操作失败'}";
+		}
+		return result;
+	}
+	
+	/**
+	 * 获取父节点的所有直接子节点
+	 * @param list 节点列表
+	 * @param node 父节点
+	 * @return
+	 */
+	public List<OrderTemplateNode> getChildNodes(List<OrderTemplateNode> list,OrderTemplateNode node){
+		List<OrderTemplateNode> nodeList=new ArrayList<OrderTemplateNode>();
+		Iterator<OrderTemplateNode> nodeIt=list.iterator();
+		while(nodeIt.hasNext()){
+			OrderTemplateNode subNode=nodeIt.next();
+			if(subNode.getSuper_node_id().equals(node.getNode_id())){
+				nodeList.add(subNode);
+			}
+		}
+		return nodeList;
+	}
+	
+	/**
+	 * 递归子节点并入库
+	 * @param list
+	 * @param superId
+	 * @param tplId
+	 */
+	public void recursionSubNode(List<OrderTemplateNode>childList,List<OrderTemplateNode> list,String superId,String newId,String tpl_id){
+		Iterator<OrderTemplateNode> nodeIt=childList.iterator();
+		while (nodeIt.hasNext()) {
+			OrderTemplateNode orderTemplateNode = nodeIt.next();
+			if(orderTemplateNode.getSuper_node_id().equals(superId)){
+				//是父节点的子节点
+				orderTemplateNode.setSuper_node_id(newId);//更换superId
+				String nodeId=orderTemplateNode.getNode_id();//取出原节点id
+				childList=getChildNodes(list, orderTemplateNode);
+				String newSupId=this.daoSupport.getSequences("SEQ_ES_ORDER_TEMPLATE_NODE", "2", 18);//更新节点id
+				orderTemplateNode.setNode_id(newSupId);
+				orderTemplateNode.setOrder_template_id(tpl_id);
+				if(childList!=null && childList.isEmpty()==false){
+					recursionSubNode(childList,list, nodeId,newSupId,tpl_id);
+				}
+				this.saveTemplateNode(orderTemplateNode);
+			}
+		}
+	}
+	
+	@Override
+	public  List<AttrTable>  selectEsAttrTableVO(AttrTable vo){
+		String sql= SF.infoSql("EsAttrTableVO");
+		return   baseDaoSupport.queryForList(sql,AttrTable.class,vo.getTable_name());
+	}
+
+	@Override
+	public void insertEsAttrTable(AttrTable vo) {
+		baseDaoSupport.insert("es_attr_table", vo);
+	}
+
+	@Override
+	public void deleteEsAttrTable(AttrTable vo) {
+		String sql=SF.infoSql("DelAttrTable");
+		baseDaoSupport.execute(sql, vo.getAttr_def_id());
+	}
+
+	@Override
+	public void udpateNodeTableCode(OrderTemplateNode node) {
+		this.baseDaoSupport.update("es_order_template_node", node, "node_id=" + node.getNode_id() + "");
+	}
+
+
+	 
+}

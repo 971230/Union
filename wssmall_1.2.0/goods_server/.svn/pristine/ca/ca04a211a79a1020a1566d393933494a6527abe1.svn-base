@@ -1,0 +1,64 @@
+<#if paramAr?exists >
+	<#list paramAr as group >
+		<table  class="form-table">
+			<tr>
+				<th style='text-align:left;' align="left" colSpan="2" class="groupname">
+					${group.name }
+					<input type="hidden" name="groupnames" value="${ group.name}" />
+					<input type="hidden" name="paramnums" value="${ group.paramNum}" />
+				</th>
+			</tr>
+			
+				<#list group.paramList as gparam>
+				<tr>
+					<th style="font-weight: normal;">
+						<input type="hidden" name="paramnames" value="${ gparam.name}" />
+						<#if gparam.required?? && gparam.required=='YES'><span class="red">*</span></#if>${gparam.name }：
+					</th>
+					<td>
+						<#if gparam.attrvaltype??>
+							<#if gparam.attrcode=="">
+								<input type="text" name="paramvalues" style="width:160px;" value="${gparam.value!'' }"
+									<#if gparam.required?? && gparam.required=='YES'>required="true"</#if>/>
+								<input type="hidden" name="attrvaltype" value="${gparam.attrvaltype!''}">
+								<input type="hidden" name="ename" value="${gparam.ename!''}">
+								<input type="hidden" name="attrcode" value="${gparam.attrcode!''}">
+								<input type="hidden" name="attrtype" value="${gparam.attrtype!''}">
+								<input type="hidden" name="required" value="${gparam.required!'NO'}">
+							</#if>
+							<#if gparam.attrcode!="">
+								<input type="hidden" name="attrvaltype" value="${gparam.attrvaltype!''}">
+								<input type="hidden" name="ename" value="${gparam.ename!''}">
+								<input type="hidden" name="attrcode" value="${gparam.attrcode!''}">
+								<input type="hidden" name="attrtype" value="${gparam.attrtype!''}">
+								<input type="hidden" name="required" value="${gparam.required!'NO'}">
+								<select name="paramvalues" style="width:160px;"<#if type_id?? && type_id=='10000'&&gparam.attrcode?? && gparam.attrcode=='DC_GOODS_COLOR'>id="dc_goods_color"</#if> <#if gparam.required?? && gparam.required=='YES'>required="true"</#if>>
+								
+									<option value="">--请选择--</option>
+									<#if gparam.dropdownValues??>
+										<#list gparam.dropdownValues as dropdown>
+											<#if dropdown.value??>
+												<#if gparam.attrcode?? && gparam.attrcode=='DC_GOODS_COLOR'>
+													<option value="${dropdown.value}" <#if gparam.value?? && gparam.value==dropdown.value>selected="true"</#if>>${dropdown.value_desc}-${dropdown.value}</option>
+												</#if>
+												<#if gparam.attrcode?? && gparam.attrcode!='DC_GOODS_COLOR'>
+													<option value="${dropdown.value}" <#if gparam.value?? && gparam.value==dropdown.value>selected="true"</#if>>${dropdown.value_desc}</option>
+												</#if>
+											</#if>
+										</#list>
+									</#if>
+								</select>
+								
+							</#if>
+							
+						<#else>
+							<input type="text" name="paramvalues" class="input_text" value="${gparam.value!'' }"/>						
+						</#if>
+					</td>
+				</tr>
+				</#list>
+		</table>
+	</#list>
+<#else>
+该类型未定义参数，或者参数解析异常！
+</#if>

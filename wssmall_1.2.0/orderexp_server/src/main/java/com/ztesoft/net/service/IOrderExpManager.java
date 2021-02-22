@@ -1,0 +1,199 @@
+package com.ztesoft.net.service;
+
+import java.util.List;
+import java.util.Map;
+
+import params.req.OrderExpMarkProcessedReq;
+import params.req.OrderExpWriteForBusReq;
+import params.req.OrderExpWriteForInfReq;
+import params.resp.OrderExpMarkProcessedResp;
+import params.resp.OrderExpWriteResp;
+
+import com.ztesoft.net.eop.resource.model.AdminUser;
+import com.ztesoft.net.framework.database.Page;
+import com.ztesoft.net.model.EsearchExpInst;
+import com.ztesoft.net.model.EsearchExpInstQuery;
+import com.ztesoft.net.param.inner.ExpInstBatchProcessedInner;
+import com.ztesoft.net.param.inner.ExpInstInner;
+import com.ztesoft.net.param.inner.ExpInstProcessedInner;
+import com.ztesoft.net.param.inner.ExpInstQueryInner;
+import com.ztesoft.net.param.inner.ExpInstSpecInner;
+import com.ztesoft.net.param.inner.OrderExpAlarmInner;
+import com.ztesoft.net.param.inner.OrderExpMarkProcessedInner;
+import com.ztesoft.net.param.outer.ExpInstBatchProcessedOuter;
+import com.ztesoft.net.param.outer.ExpInstOuter;
+import com.ztesoft.net.param.outer.ExpInstProcessedOuter;
+import com.ztesoft.net.param.outer.ExpInstQueryOuter;
+import com.ztesoft.net.param.outer.OrderExpAlarmOuter;
+import com.ztesoft.net.param.outer.OrderExpMarkProcessedOuter;
+import com.ztesoft.net.vo.CatalogAndSolution;
+
+
+public interface IOrderExpManager {
+
+	/**
+	 * 异常订单环节/不一致标记已处理
+	 * @param inner
+	 * @return
+	 */
+	public OrderExpMarkProcessedOuter orderExpMarkProcessed(OrderExpMarkProcessedInner inner);
+	
+	/**
+	 * 异常订单环节/不一致标记已处理  从外部系统过来
+	 * @param req
+	 * @return
+	 */
+	public OrderExpMarkProcessedResp orderExpMarkProcessedForOuterSys(OrderExpMarkProcessedReq req);
+	
+	/**
+	 * 异常单实例处理
+	 * @param inner
+	 * @return
+	 */
+	public ExpInstProcessedOuter expInstProcess(ExpInstProcessedInner inner);
+	
+	/**
+	 * 异常单实例批量处理
+	 * @param inner
+	 * @return
+	 */
+	public ExpInstBatchProcessedOuter expInstBatchProcessed(ExpInstBatchProcessedInner inner);
+	
+	/**
+	 * 异常单标识已处理定时任务的处理方法
+	 * @param maxRecords
+	 */
+	public void orderExpMarkProcessedTimerExc(int maxRecords);
+	
+	/**
+	 * 异常实例插入
+	 * @param inner
+	 * @return
+	 */
+	public ExpInstOuter insertExpInst(ExpInstInner inner);
+	
+	/**
+	 * 异常实例更新
+	 * @param inner
+	 * @return
+	 */
+	public ExpInstOuter updateExpInst(ExpInstInner inner);
+	
+	/**
+	 * 异常实例查询
+	 * @param inner
+	 * @return
+	 */
+	public ExpInstQueryOuter queryExpInstList(ExpInstQueryInner inner);
+	
+	/**
+	 * 根据异常实例ID查询异常实例详情
+	 * @param inner
+	 * @return
+	 */
+	public EsearchExpInstQuery getExpInstDetailById(String expInstId);
+	
+	/**
+	 * 异常实例查询-分页
+	 * @param inner
+	 * @param pageNo
+	 * @param pageSize
+	 * @return
+	 */
+	public Page queryExpInstPage(ExpInstQueryInner inner, AdminUser admin, int pageNo, int pageSize);
+	
+	/**
+	 *异常实例查询-分页(无主机环境，不关联正常单等) 
+	 * @param inner
+	 * @param pageNo
+	 * @param pageSize
+	 * @return
+	 */
+	public Page queryExpInstPage(ExpInstQueryInner inner, int pageNo, int pageSize);
+	
+	/**
+	 * 异常能力写入[接口异常]
+	 * @param req
+	 * @return
+	 */
+	public OrderExpWriteResp orderExpWrite(OrderExpWriteForInfReq req);
+	
+	/**
+	 * 异常能力写入[接口异常]
+	 * @param req
+	 * @return
+	 */
+	public OrderExpWriteResp orderExpWrite(OrderExpWriteForBusReq req);
+
+	/**
+	 * 异常单告警API
+	 * @param inner
+	 * @return
+	 */
+	public OrderExpAlarmOuter orderExpAlarm(OrderExpAlarmInner inner);
+	
+	/**
+	 * 统计关键字排名
+	 * @return
+	 */
+	public Page topExpKey(String startTime, String endTime, int pageNo, int pageSize);
+	
+	/**
+	 * 查询解决方案及归类信息
+	 * @return
+	 */
+	public List<CatalogAndSolution> qryCatalogAndSolution();
+	
+	/**
+	 * 批量执行解决方案中的SQL
+	 * @param sqls 以;区分多条
+	 * @param order_id
+	 */
+	public int excuteSolutionSql(String sqls, String order_id);
+	
+	public List<EsearchExpInst> getExpInstByProcessModeAList();
+	
+	/**
+	 * 异常实例归档（单条）
+	 * @param expInst
+	 */
+	public void orderExpArchive(EsearchExpInst expInst);
+	
+	/**
+	 * 异常实例历史表归档（单条）
+	 * @param expInst
+	 */
+	public void orderExpHisArchive(EsearchExpInst expInst);
+	
+	/**
+	 * 查询异常实例列表（无权限、无主机环境等）
+	 */
+	public List<EsearchExpInst> getExpInsts();
+	
+	/**
+	 * 查询异常历史实例列表（无权限、无主机环境等）
+	 */
+	public List<EsearchExpInst> getExpHisInsts();
+	
+	/**
+	 * 根据key_id获取归类信息
+	 * @param key_id
+	 * @return
+	 */
+	public Map getCataLogId(String key_id);
+	/**
+	 * 根据关联单号、搜索ID、关键字ID去重异常单ID
+	 * @param expInstIds
+	 * @return
+	 */
+	public Object[] distinctEsearchExpInst(String[] expInstIds);
+	public Page queryExpInstSpecList(ExpInstSpecInner eisInner,int pageNo,int pageSize);
+	
+	public List queryInstSpecOnDayList(String start_time,String end_time,String key_id);
+	
+	public String getContentBykeyid(String key_id);
+	
+	public Page querySpecCatalogList(String catalog_id,String order_model,int pageNo,int pageSize,String start_time,String end_time);
+	public int queryExpInstCount(String start_time,String end_time);
+	public int querySpecCatalogCount(String catalog_id,String start_time,String end_time);
+}

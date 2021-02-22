@@ -1,0 +1,40 @@
+#=============================================================Cache Core config===============================================================
+#cache\u7684\u7c7b\u578b\uff0c\u76ee\u524d\u652f\u6301\uff1amemcached,ehcache,tair
+core.cache.type=memcached
+#cache\u7684\u547d\u540d\u7a7a\u95f4\uff0c\u9ed8\u8ba4\u4e3a-1
+core.cache.default.namespace=0
+#cache\u7684\u5199\u65e5\u5fd7\u8def\u5f84
+core.cache.default.writelog=d\:\\t.log
+
+core.cache.default.session.namespace=1
+core.cache.default.session.timeout=30
+
+
+
+#=============================================================Memcached config===============================================================
+#memcached \u5730\u5740:\u76d1\u542c\u7aef\u53e3
+memcached.servers=10.45.47.190:11212
+#memcached.servers=10.123.180.100:10001
+#memcached.servers=10.123.99.69:11212
+#memcached.servers=10.123.180.100:10008
+#xm/spy memcached\u8fde\u63a5\u65b9\u5f0f
+memcached.context=xm
+
+#0-30\u5efa\u8bae\u503c
+memcached.poolsize=10
+#get\u7b49\u64cd\u4f5c\u8bf7\u6c42\u8d85\u65f6,\u8bbe\u7f6e\u4e3a3s
+memcached.timeout=5000
+memcached.multiGetTimeout=30000
+
+#=============================================================taobao tair config===============================================================
+#tair \u4e3b\u63a7\u5730\u5740:\u76d1\u542c\u7aef\u53e3
+tair.manage.servers=10.45.47.168:5198
+#tair \u5206\u7ec4\u540d\u79f0
+tair.groupname=group_1
+#tair \u5b57\u7b26\u7f16\u7801
+tair.charset=utf-8
+#tair \u6700\u5927\u7b49\u5f85\u7ebf\u7a0b\u6570
+tair.MaxWaitThread=90000
+
+
+

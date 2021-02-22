@@ -1,0 +1,55 @@
+package com.ztesoft.crm.pass.ecsord_server;
+
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+
+
+import com.ztesoft.api.ClientFactory;
+import com.ztesoft.api.ZteClient;
+import com.ztesoft.common.util.MD5Util;
+import com.ztesoft.net.mall.core.consts.EcsOrderConsts;
+import com.ztesoft.net.mall.core.utils.ManagerUtils;
+
+import zte.net.ecsord.common.AttrConsts;
+import zte.net.ecsord.common.CommonDataFactory;
+import zte.net.ecsord.params.busi.req.OrderTreeBusiRequest;
+import zte.net.ecsord.params.wms.req.NotifyOrderStatusFromWMSReq;
+import zte.net.ecsord.params.wms.req.SynCardInfoWMSReq;
+import zte.net.ecsord.params.wms.req.SynSerialNumWMSReq;
+import zte.net.ecsord.params.wms.resp.NotifyOrderStatusFromWMSResp;
+import zte.net.ecsord.params.wms.resp.SynCardInfoWMSResp;
+import zte.net.ecsord.params.wms.resp.SynSerialNumWMSResp;
+import zte.net.ecsord.params.wms.vo.NotifyStatusFromWMSOrderInfoVo;
+import zte.net.ecsord.params.wms.vo.SynCardInfoOrderInfoVo;
+import zte.net.ecsord.params.wms.vo.SynSerialGoodInfoVo;
+import zte.net.ecsord.params.wms.vo.SynSerialOrderInfoVo;
+import zte.net.ecsord.params.zb.req.NotifyOpenAccountGDRequest;
+import zte.net.ecsord.params.zb.resp.NotifyOpenAccountGDResponse;
+import zte.net.ecsord.params.zb.vo.AccountInfo;
+import zte.net.ecsord.rule.tache.TacheFact;
+import zte.net.ecsord.params.busi.req.OrderItemProdExtBusiRequest;
+import zte.net.params.req.RuleTreeExeReq;
+
+
+/**
+ * 订单预警老数据插入
+ */
+public class WarningDataInsert {
+	
+	
+	public static void main(String[] args) {
+		String user_id="admin";
+		String out_tid="5130724909";//外部单id
+		String myToken;
+		try {
+			myToken = MD5Util.MD5(user_id+out_tid+EcsOrderConsts.APP_KEY);
+			System.out.println("我的加密："+myToken);
+		} catch (NoSuchAlgorithmException e) {
+			
+			e.printStackTrace();
+		}
+		
+		
+	}
+}

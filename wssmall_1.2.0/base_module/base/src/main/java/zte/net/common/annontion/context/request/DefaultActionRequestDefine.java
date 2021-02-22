@@ -1,0 +1,158 @@
+package zte.net.common.annontion.context.request;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.BeansException;
+import org.springframework.util.ReflectionUtils;
+
+import com.ztesoft.api.spring.ApiContextHolder;
+import com.ztesoft.ibss.common.util.ListUtil;
+import com.ztesoft.net.framework.util.StringUtil;
+import com.ztesoft.rop.common.ServiceMethodHandler;
+import com.ztesoft.rop.session.SessionManager;
+
+/**
+ * 业务对象定义
+ *
+ * @author wui
+ *
+ */
+@SuppressWarnings( { "unused", "unchecked" })
+public class DefaultActionRequestDefine{
+
+   // protected  Logger logger = LoggerFactory.getLogger(DefaultServiceContext.class);
+    private  final Map<String, List<RequestFieldDefinition>> actionRequestFieldsMap = new HashMap<String, List<RequestFieldDefinition>>();
+
+    private  final Map<String, RequestBeanDefinition> actionRequestServiceMap = new HashMap<String, RequestBeanDefinition>();
+    
+    private  final Map<String, RequestBeanDefinition> actionRequestTableNameMap = new HashMap<String, RequestBeanDefinition>();
+
+
+    private boolean signEnable;
+
+    private SessionManager sessionManager;
+
+    private static List<String>  beanNames = new ArrayList<String>();
+
+    public static DefaultActionRequestDefine getInstance(){
+        return DefaultCmsBeanDefineLoader.instance;
+    }
+
+    private static class DefaultCmsBeanDefineLoader {
+        public static DefaultActionRequestDefine instance = new DefaultActionRequestDefine();
+    }
+
+    private static boolean doneLoad  = false;
+    public DefaultActionRequestDefine(){
+    	if(doneLoad)
+            return;
+        String[] beanNames = ApiContextHolder.getApplicationContext().getBeanNamesForType(Object.class);
+        //默认启动时装载一次
+        for (String beanName :beanNames) {
+            registerFromContext(beanName);
+        }
+        doneLoad = true;
+    }
+
+    public void addServiceFields(String version, RequestBeanDefinition service ,RequestFieldDefinition zteActionRequestFieldDefinition) {
+    	
+    	List<RequestFieldDefinition> zteActionRequestFieldDefinitions = actionRequestFieldsMap.get(ServiceMethodHandler.methodWithVersion(service.getService_name(), version));
+    	if(ListUtil.isEmpty(zteActionRequestFieldDefinitions))
+    		zteActionRequestFieldDefinitions = new ArrayList<RequestFieldDefinition>();
+    	zteActionRequestFieldDefinitions.add(zteActionRequestFieldDefinition);
+    	actionRequestFieldsMap.put(ServiceMethodHandler.methodWithVersion(service.getService_name(), version), zteActionRequestFieldDefinitions);
+    	actionRequestServiceMap.put(ServiceMethodHandler.methodWithVersion(service.getService_name(), version), service);
+    	actionRequestTableNameMap.put(service.getTable_name(), service);
+    }
+    
+    public void registerFromContext(final String  beanName) throws BeansException {
+        if(!(beanName.indexOf("BusiRequest")>-1))
+            return;
+        Class<?> handlerType = null;
+        try{
+            handlerType = ApiContextHolder.getBean(beanName).getClass();
+        }catch (Exception e) {}
+        if(handlerType == null){
+            return;
+        }
+        ReflectionUtils.doWithFields(handlerType, new ReflectionUtils.FieldCallback() {
+					@Override
+					public void doWith(Field field)
+							throws IllegalArgumentException,IllegalAccessException {
+						ReflectionUtils.makeAccessible(field);
+                        RequestFieldAnnontion fieldAnnontion = field.getAnnotation(RequestFieldAnnontion.class);
+                        if(fieldAnnontion == null)
+                        	return;
+                        RequestBeanAnnontion serviceAnnontion = field.getDeclaringClass().getAnnotation(RequestBeanAnnontion.class);
+                       
+                        //build服务信息
+                        RequestBeanDefinition bean = new RequestBeanDefinition();
+                        bean.setPrimary_keys(serviceAnnontion.primary_keys());
+                        bean.setService_name(StringUtil.isEmpty(bean.getService_name())?field.getDeclaringClass().getSimpleName():bean.getService_name()); //设置服务名称
+                        bean.setService_desc(serviceAnnontion.service_desc());
+                        bean.setTable_name(serviceAnnontion.table_name());
+                        bean.setTable_type(serviceAnnontion.table_type());
+                        bean.setCache_store(serviceAnnontion.cache_store());
+                        bean.setStore_type(serviceAnnontion.store_type());
+                        bean.setQuery_store(serviceAnnontion.query_store());
+                        bean.setBeanClass(field.getDeclaringClass());
+                        bean.setDepency_keys(StringUtil.isEmpty(serviceAnnontion.depency_keys())?"":serviceAnnontion.depency_keys());
+                        bean.setTable_archive(StringUtil.isEmpty(serviceAnnontion.table_archive())?"":serviceAnnontion.table_archive());
+                        
+                        //buildField
+                        RequestFieldDefinition  definition = buildRequestDefinition(serviceAnnontion, fieldAnnontion,field);
+                        
+                        
+                        
+                        //设置
+                        addServiceFields("1.0", bean,definition);
+					}
+                }
+
+        );
+    }
+
+    private RequestFieldDefinition buildRequestDefinition(RequestBeanAnnontion serviceAnnontion, RequestFieldAnnontion fieldAnnontion,Field field) {
+    	RequestFieldDefinition definition = new RequestFieldDefinition();
+        definition.setDname(StringUtil.isEmpty(fieldAnnontion.dname())?field.getName():fieldAnnontion.dname());
+        definition.setXname(StringUtil.isEmpty(fieldAnnontion.xname())?definition.getDname():fieldAnnontion.xname());
+        definition.setQname(StringUtil.isEmpty(fieldAnnontion.qname())?definition.getDname():fieldAnnontion.qname());
+        definition.setNeed_insert(fieldAnnontion.need_insert());
+        definition.setNeed_xshow(fieldAnnontion.need_xshow());
+        definition.setNeed_query(fieldAnnontion.need_query());
+        definition.setDesc(fieldAnnontion.desc());
+        definition.setField(field);
+        definition.setAsy_query(fieldAnnontion.asy_query());
+        definition.setAsy_store(fieldAnnontion.asy_store());
+        String name =field.getName();
+        String upper_name = name.substring(0,1).toUpperCase()+name.substring(1);
+        definition.setService_name(StringUtil.isEmpty(fieldAnnontion.service_name())?upper_name:fieldAnnontion.service_name());//设置服务名称
+        return definition;
+    }
+
+    public List<RequestFieldDefinition> getActionRequestFieldsMap(String service_name) {
+		return actionRequestFieldsMap.get(ServiceMethodHandler.methodWithVersion(service_name, "1.0"));
+	}
+
+	public RequestBeanDefinition getActionRequestServiceMap(String service_name) {
+		return actionRequestServiceMap.get(ServiceMethodHandler.methodWithVersion(service_name, "1.0"));
+	}
+	
+	public RequestBeanDefinition getActionRequestTableNameMap(String tableName) {
+		return actionRequestTableNameMap.get(tableName);
+	}
+
+	public SessionManager getSessionManager() {
+        return this.sessionManager;
+    }
+
+	public Map<String, RequestBeanDefinition> getActionRequestServiceMap() {
+		return actionRequestServiceMap;
+	}
+	
+
+}
